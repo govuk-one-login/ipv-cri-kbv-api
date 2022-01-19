@@ -29,5 +29,6 @@ public class KBVApi {
         // provide the session id
         // get a question back
         Spark.get("/question", this.kbvResource.question);
+        Spark.post("/answer", this.kbvResource.answer);
     }
 }
