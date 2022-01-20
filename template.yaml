@@ -1,51 +1,51 @@
-AWSTemplateFormatVersion: "2010-09-09"
-Transform: "AWS::Serverless-2016-10-31"
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
 Description: >
   di-ipv-cri-kbv-api
   SAM Template for the kbv api
 
-Resources:
-  KBVSessionTable:
-    Type: "AWS::DynamoDB::Table"
-    Properties:
-      TableName: "kbv-session"
-      BillingMode: "PAY_PER_REQUEST"
-      AttributeDefinitions:
-        -
-          AttributeName: "session-id"
-          AttributeType: "S"
-        -
-          AttributeName: "authorization-code"
-          AttributeType: "S"
-        -
-          AttributeName: "token"
-          AttributeType: "S"
+Globals:
+  Api:
+    Auth:
+      DefaultAuthorizer: AWS_IAM
+  Function:
+    Timeout: 60
 
-      KeySchema:
-        -
-          AttributeName: "session-id"
-          KeyType: "HASH"
-      GlobalSecondaryIndexes:
-        -
-          IndexName: "authorization-code-index"
-          KeySchema:
-            -
-              AttributeName: "authorization-code"
-              KeyType: "HASH"
-          Projection:
-            NonKeyAttributes:
-              - "session-id"
-            ProjectionType: "INCLUDE"
-        -
-          IndexName: "token-index"
-          KeySchema:
-            -
-              AttributeName: "token"
-              KeyType: "HASH"
-          Projection:
-            NonKeyAttributes:
-              - "session-id"
-            ProjectionType: "INCLUDE"
-      TimeToLiveSpecification:
-         AttributeName: expiry-date
-         Enabled: true
+Resources:
+  CriSessionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: uk.gov.di.cri.experian.kbv.api.handler.SessionHandler::handleRequest
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSXrayWriteOnlyAccess
+      Runtime: java11
+      MemorySize: 512
+      Tracing: Active
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
+          EXPERIAN_API_WRAPPER_SAA_RESOURCE: http://localhost:8080/question-request
+          EXPERIAN_API_WRAPPER_RTQ_RESOURCE: http://localhost:8080/question-answer
+          EXPERIAN_API_WRAPPER_URL: http://localhost:8080/
+      Events:
+        CreateIdentityCheck:
+          Type: Api
+          Properties:
+            Path: /cri-session
+            Method: post
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  CriSessionApi:
+    Description: "API Gateway endpoint URL for Prod stage for CriSession function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/cri-session/"
+  CriSessionFunction:
+    Description: " CriSession check lambda function ARN"
+    Value: !GetAtt CriSessionFunction.Arn
+  CriSessionFunctionIamRole:
+    Description: "Implicit IAM Role created for CriSession function"
+    Value: !GetAtt CriSessionFunction.Arn
