@@ -11,6 +11,7 @@ plugins {
 
 group "uk.gov.di.ipv.cri.kbv.api"
 	id "org.sonarqube" version "3.3"
+	id "io.freefair.aspectj.post-compile-weaving" version "6.3.0"
 }
 
 
@@ -43,6 +44,8 @@ dependencies {
 
 	aspect "software.amazon.lambda:powertools-tracing:1.10.2"
 
+
+	aspect "software.amazon.lambda:powertools-tracing:1.10.2"
 
 	testImplementation "org.junit.jupiter:junit-jupiter:5.8.2",
 			"org.mockito:mockito-inline:4.2.0",
