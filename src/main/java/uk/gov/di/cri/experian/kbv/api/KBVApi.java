@@ -6,12 +6,14 @@ import spark.Spark;
 import uk.gov.di.cri.experian.kbv.api.resource.KBVResource;
 import uk.gov.di.cri.experian.kbv.api.service.StorageService;
 
+import java.util.Optional;
+
 public class KBVApi {
     private final KBVResource kbvResource;
 
     public KBVApi() {
         try {
-            Spark.port(8080);
+            Spark.port(Integer.valueOf(Optional.ofNullable(System.getenv("PORT")).orElse("8080")));
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.registerModule(new JavaTimeModule());
             StorageService storageService = new StorageService();
@@ -26,8 +28,6 @@ public class KBVApi {
 
     private void mapRoutes() {
         Spark.post("/session", this.kbvResource.createSession); // provide the user attributes
-        // provide the session id
-        // get a question back
         Spark.get("/question", this.kbvResource.question);
         Spark.post("/answer", this.kbvResource.answer);
     }
