@@ -3,10 +3,12 @@ package uk.gov.di.cri.experian.kbv.api.domain;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Questions;
+import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public class QuestionState {
 
@@ -14,42 +16,50 @@ public class QuestionState {
     private Control control;
     private Integer skipsRemaining;
     private String skipWarning;
-    private List<QuestionAnswerPair> qas = new ArrayList<>();
+    private List<QuestionAnswerPair> qaPairs = new ArrayList<>();
 
     public QuestionState(PersonIdentity personIdentity) {
         this.personIdentity = personIdentity;
     }
 
-    public void setQuestionsResponse(QuestionsResponse questionsResponse) {
+    public boolean setQuestionsResponse(QuestionsResponse questionsResponse) {
         setControl(questionsResponse.getControl());
 
-        Questions questions = questionsResponse.getQuestions();
-        this.skipsRemaining = questions.getSkipsRemaining();
-        this.skipWarning = questions.getSkipWarning();
-        List<Question> question = questions.getQuestion(); // possibly 2 q's
+        Results results = questionsResponse.getResults();
+        String outcome = results.getOutcome();
+        System.out.println("outcome is " + outcome);
+        String authenticationResult = results.getAuthenticationResult();
+        System.out.println("authenticationResult is " + authenticationResult);
+        List<String> trans = results.getNextTransId().getString();
+        System.out.println("transition is " + trans);
 
-        for (Question q : question) {
-            qas.add(new QuestionAnswerPair(q));
+        Questions questions = questionsResponse.getQuestions();
+
+        boolean hasQuestions = questions != null && questions.getQuestion() != null;
+        if (hasQuestions) {
+            skipsRemaining = questions.getSkipsRemaining();
+            skipWarning = questions.getSkipWarning();
+            for (Question question : questions.getQuestion()) {
+                qaPairs.add(new QuestionAnswerPair(question));
+            }
         }
 
-
+        return hasQuestions;
     }
 
-    public List<QuestionAnswerPair> getQas() {
-        return Collections.unmodifiableList(qas);
+    public List<QuestionAnswerPair> getQaPairs() {
+        return Collections.unmodifiableList(qaPairs);
     }
 
     public PersonIdentity getPersonIdentity() {
         return personIdentity;
     }
 
-    public Question getNextQuestion() {
-        for (QuestionAnswerPair pair : qas) {
-            if (pair.getAnswer() == null) {
-                return pair.getQuestion();
-            }
-        }
-        return null;
+    public Optional<Question> getNextQuestion() {
+        return qaPairs.stream()
+                .filter(pair -> pair.getAnswer() == null)
+                .map(pair -> pair.getQuestion())
+                .findFirst();
     }
 
     public void setControl(Control control) {
@@ -61,20 +71,30 @@ public class QuestionState {
     }
 
     public void setAnswer(QuestionAnswer answer) {
-        for (QuestionAnswerPair qa : qas) {
-            if (qa.getQuestion().getQuestionID().equals(answer.getQuestionId())) {
-                qa.setAnswer(answer.getAnswer());
-            }
-        }
+
+        QuestionAnswerPair questionAnswerPair =
+                qaPairs.stream()
+                        .filter(
+                                pair ->
+                                        pair.getQuestion()
+                                                .getQuestionID()
+                                                .equals(answer.getQuestionId()))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new IllegalStateException(
+                                                "question not found for "
+                                                        + answer.getQuestionId()));
+        questionAnswerPair.setAnswer(answer.getAnswer());
     }
 
     public boolean submitAnswers() {
-        return qas.stream().allMatch(qa -> qa.getAnswer() != null);
+        return qaPairs.stream().allMatch(qa -> qa.getAnswer() != null);
     }
 
     public static class QuestionAnswerPair {
 
-        private Question question;
+        private final Question question;
         private String answer;
 
         public QuestionAnswerPair(Question question) {
@@ -85,10 +105,6 @@ public class QuestionState {
             return question;
         }
 
-        public void setQuestion(Question question) {
-            this.question = question;
-        }
-
         public String getAnswer() {
             return answer;
         }
@@ -97,5 +113,4 @@ public class QuestionState {
             this.answer = answer;
         }
     }
-
 }
