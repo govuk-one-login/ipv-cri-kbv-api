@@ -6,6 +6,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import software.amazon.lambda.powertools.tracing.CaptureMode;
 import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.cri.experian.kbv.api.domain.PersonIdentity;
@@ -21,6 +22,12 @@ public class SessionHandler
     private ObjectMapper objectMapper;
     private StorageService storageService;
     public static final String HEADER_SESSION_ID = "session-id";
+
+    public SessionHandler() {
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
+        this.storageService = new StorageService();
+    }
 
     public SessionHandler(ObjectMapper objectMapper, StorageService storageService) {
         this.objectMapper = objectMapper;
