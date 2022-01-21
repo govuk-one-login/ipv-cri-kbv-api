@@ -6,6 +6,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import software.amazon.lambda.powertools.tracing.CaptureMode;
 import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.cri.experian.kbv.api.domain.PersonIdentity;
@@ -29,6 +30,12 @@ public class QuestionHandler
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String RESPONSE_TYPE_APPLICATION_JSON = "application/json";
     public static final String EMPTY_JSON = "{}";
+
+    public QuestionHandler(){
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
+        this.storageService = new StorageService();
+    }
 
     public QuestionHandler(ObjectMapper objectMapper, StorageService storageService) {
         this.objectMapper = objectMapper;
