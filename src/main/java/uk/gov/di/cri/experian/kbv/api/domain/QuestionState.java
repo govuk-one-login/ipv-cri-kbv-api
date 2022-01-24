@@ -1,10 +1,5 @@
 package uk.gov.di.cri.experian.kbv.api.domain;
 
-import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Questions;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -30,7 +25,7 @@ public class QuestionState {
         System.out.println("outcome is " + outcome);
         String authenticationResult = results.getAuthenticationResult();
         System.out.println("authenticationResult is " + authenticationResult);
-        List<String> trans = results.getNextTransId().getString();
+        List<String> trans = results.getNextTransId();
         System.out.println("transition is " + trans);
 
         Questions questions = questionsResponse.getQuestions();
