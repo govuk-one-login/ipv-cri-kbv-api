@@ -10,9 +10,6 @@ plugins {
 }
 
 group "uk.gov.di.ipv.cri.kbv.api"
-	id "org.sonarqube" version "3.3"
-	id "io.freefair.aspectj.post-compile-weaving" version "6.3.0"
-}
 
 
 repositories {
@@ -22,11 +19,7 @@ repositories {
 sourceCompatibility = 11
 
 dependencies {
-
 	implementation "com.amazonaws:aws-lambda-java-core:1.2.1",
-			"software.amazon.awssdk:url-connection-client:2.17.121",
-			"ch.qos.logback:logback-classic:1.2.10",
-			"ch.qos.logback:logback-access:1.2.10",
 			"com.amazonaws:aws-lambda-java-events:3.11.0",
 			'com.fasterxml.jackson.core:jackson-databind:2.13.1',
 			'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.1',
@@ -88,6 +81,8 @@ run {
 		suspend = false
 	}
 }
+
+sourceSets.main.java.srcDirs = ['src/main/java']
 
 sonarqube {
 	properties {
