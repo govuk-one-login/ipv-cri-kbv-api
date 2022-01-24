@@ -1,10 +1,5 @@
 package uk.gov.di.cri.experian.kbv.api.domain;
 
-import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Questions;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
-
 public class QuestionsResponse {
 
     protected Control control;

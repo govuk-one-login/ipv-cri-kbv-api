@@ -4,12 +4,12 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import software.amazon.lambda.powertools.tracing.CaptureMode;
 import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.cri.experian.kbv.api.domain.PersonIdentity;
+import uk.gov.di.cri.experian.kbv.api.domain.Question;
 import uk.gov.di.cri.experian.kbv.api.domain.QuestionState;
 import uk.gov.di.cri.experian.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.cri.experian.kbv.api.service.StorageService;
@@ -31,7 +31,7 @@ public class QuestionHandler
     public static final String RESPONSE_TYPE_APPLICATION_JSON = "application/json";
     public static final String EMPTY_JSON = "{}";
 
-    public QuestionHandler(){
+    public QuestionHandler() {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
         this.storageService = new StorageService();
