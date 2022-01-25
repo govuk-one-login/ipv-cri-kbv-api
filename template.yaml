@@ -12,6 +12,28 @@ Globals:
     Timeout: 60
 
 Resources:
+  CriKbvApi:
+    Type: AWS::Serverless:Api
+    Properties:
+      Name: APIStubWebApp
+      StageName: Dev
+    Body:
+      info:
+        version: '1.0'
+        title: !Ref 'AWS::StackName'
+      paths:
+        /session:
+          post:
+            x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub >-
+                  arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CriSessionFunction.Arn}/invocations
+                credentials: 'arn:aws:iam::*:user/*'
+              security:
+                - AWS_IAM: []
+              responses: {}
+
   CriSessionFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -29,23 +51,21 @@ Resources:
           EXPERIAN_API_WRAPPER_SAA_RESOURCE: http://localhost:8080/question-request
           EXPERIAN_API_WRAPPER_RTQ_RESOURCE: http://localhost:8080/question-answer
           EXPERIAN_API_WRAPPER_URL: http://localhost:8080/
-      Events:
-        CreateIdentityCheck:
-          Type: Api
-          Properties:
-            Path: /cri-session
-            Method: post
+
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  CriSessionApi:
-    Description: "API Gateway endpoint URL for Prod stage for CriSession function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/cri-session/"
+
   CriSessionFunction:
     Description: " CriSession check lambda function ARN"
     Value: !GetAtt CriSessionFunction.Arn
   CriSessionFunctionIamRole:
     Description: "Implicit IAM Role created for CriSession function"
     Value: !GetAtt CriSessionFunction.Arn
+  CriKbvApi:
+    Description: "CriKbvApi API Gateway URL"
+    Value: !Sub ${CriKbvApi}
+    Export:
+      Name: "CriKbvApi"
