@@ -12,6 +12,29 @@ Globals:
     Timeout: 60
 
 Resources:
+
+  CriSessionApi:
+    Type: 'AWS::ApiGateway::Api'
+    Properties:
+      StageName: Dev
+      Auth:
+        InvokeRole: CALLER_CREDENTIALS
+
+  CriSessionTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: session
+      PrimaryKey:
+        Name: id
+        Type: String
+
+  CriKbvFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref CriSessionFunction
+      Principal: apigateway.amazonaws.com
+
   CriSessionFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -30,11 +53,14 @@ Resources:
           EXPERIAN_API_WRAPPER_RTQ_RESOURCE: http://localhost:8080/question-answer
           EXPERIAN_API_WRAPPER_URL: http://localhost:8080/
       Events:
-        CreateIdentityCheck:
+        CriSessionApi:
           Type: Api
           Properties:
-            Path: /cri-session
-            Method: post
+            Path: /session
+            Method: Post
+            RestApiId: !Ref CriSessionApi
+            Auth:
+              Authorizer: AWS_IAM
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
@@ -42,7 +68,7 @@ Outputs:
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   CriSessionApi:
     Description: "API Gateway endpoint URL for Prod stage for CriSession function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/cri-session/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Dev/session/"
   CriSessionFunction:
     Description: " CriSession check lambda function ARN"
     Value: !GetAtt CriSessionFunction.Arn
