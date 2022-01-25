@@ -34,6 +34,15 @@ Resources:
                 - AWS_IAM: []
               responses: {}
 
+
+  CriSessionTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: CriSessionTable
+      PrimaryKey:
+        Name: id
+        Type: String
+
   CriSessionFunction:
     Type: AWS::Serverless::Function
     Properties:
