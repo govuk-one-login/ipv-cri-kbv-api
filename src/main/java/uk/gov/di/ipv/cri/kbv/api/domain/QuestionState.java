@@ -1,4 +1,4 @@
-package uk.gov.di.cri.experian.kbv.api.domain;
+package uk.gov.di.ipv.cri.kbv.api.domain;
 
 import java.util.ArrayList;
 import java.util.Collections;

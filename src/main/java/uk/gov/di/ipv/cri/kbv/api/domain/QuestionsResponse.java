@@ -1,6 +1,7 @@
-package uk.gov.di.cri.experian.kbv.api.domain;
+package uk.gov.di.ipv.cri.kbv.api.domain;
 
-public class QuestionAnswerResponse {
+public class QuestionsResponse {
+
     protected Control control;
     protected Questions questions;
     protected Results results;
@@ -10,31 +11,31 @@ public class QuestionAnswerResponse {
         return control;
     }
 
-    public void setControl(Control value) {
-        this.control = value;
+    public void setControl(Control control) {
+        this.control = control;
     }
 
     public Questions getQuestions() {
         return questions;
     }
 
-    public void setQuestions(Questions value) {
-        this.questions = value;
+    public void setQuestions(Questions questions) {
+        this.questions = questions;
     }
 
     public Results getResults() {
         return results;
     }
 
-    public void setResults(Results value) {
-        this.results = value;
+    public void setResults(Results results) {
+        this.results = results;
     }
 
     public Error getError() {
         return error;
     }
 
-    public void setError(Error value) {
-        this.error = value;
+    public void setError(Error error) {
+        this.error = error;
     }
 }
