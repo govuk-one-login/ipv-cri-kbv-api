@@ -9,7 +9,7 @@ plugins {
 	id "io.freefair.aspectj.post-compile-weaving" version "6.3.0"
 }
 
-group "uk.gov.di.cri.experian.kbv.api"
+group "uk.gov.di.ipv.cri.kbv.api"
 
 repositories {
 	mavenCentral()
@@ -80,5 +80,3 @@ sonarqube {
 		property "sonar.host.url", "https://sonarcloud.io"
 	}
 }
-
-mainClassName = "uk.gov.di.cri.experian.kbv.api.App"
