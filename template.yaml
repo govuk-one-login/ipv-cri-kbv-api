@@ -13,26 +13,12 @@ Globals:
 
 Resources:
 
-  ServerlessRestApi:
-    Type: 'AWS::ApiGateway::RestApi'
+  CriSessionApi:
+    Type: 'AWS::ApiGateway::Api'
     Properties:
-      Body:
-        info:
-          version: '1.0'
-          title: !Ref 'AWS::StackName'
-        paths:
-          /session:
-            post:
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                type: aws_proxy
-                uri: !Sub >-
-                  arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CriSessionFunction.Arn}/invocations
-                credentials: 'arn:aws:iam::*:user/*'
-              security:
-                - AWS_IAM: [ ]
-              responses: { }
-        swagger: '2.0'
+      StageName: Dev
+      Auth:
+        InvokeRole: CALLER_CREDENTIALS
 
   CriSessionTable:
     Type: AWS::Serverless::SimpleTable
@@ -66,6 +52,15 @@ Resources:
           EXPERIAN_API_WRAPPER_SAA_RESOURCE: http://localhost:8080/question-request
           EXPERIAN_API_WRAPPER_RTQ_RESOURCE: http://localhost:8080/question-answer
           EXPERIAN_API_WRAPPER_URL: http://localhost:8080/
+      Events:
+        CriSessionApi:
+          Type: Api
+          Properties:
+            Path: /session
+            Method: Post
+            RestApiId: !Ref CriSessionApi
+            Auth:
+              Authorizer: AWS_IAM
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
@@ -73,7 +68,7 @@ Outputs:
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   CriSessionApi:
     Description: "API Gateway endpoint URL for Prod stage for CriSession function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/cri-session/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Dev/session/"
   CriSessionFunction:
     Description: " CriSession check lambda function ARN"
     Value: !GetAtt CriSessionFunction.Arn
