@@ -7,7 +7,7 @@ Description: >
 Resources:
 
   CriSessionApi:
-    Type: 'AWS::ApiGateway::Api'
+    Type: AWS::Serverless::Api
     Properties:
       StageName: Dev
       Auth:
@@ -21,18 +21,11 @@ Resources:
         Name: id
         Type: String
 
-  CriKbvFunctionPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref CriSessionFunction
-      Principal: apigateway.amazonaws.com
-
   CriSessionFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./
-      Handler: uk.gov.di.cri.experian.kbv.api.handler.SessionHandler::handleRequest
+      Handler: uk.gov.di.ipv.cri.kbv.api.handler.SessionHandler::handleRequest
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
@@ -60,8 +53,8 @@ Outputs:
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   CriSessionApi:
-    Description: "API Gateway endpoint URL for Prod stage for CriSession function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Dev/session/"
+    Description: "API Gateway endpoint URL for Dev CriSession function"
+    Value: !Sub "https://${CriSessionApi}.execute-api.${AWS::Region}.amazonaws.com/Dev/session/"
   CriSessionFunction:
     Description: " CriSession check lambda function ARN"
     Value: !GetAtt CriSessionFunction.Arn
