@@ -6,22 +6,70 @@ Description: >
 
 Resources:
 
-  CriSessionApi:
+  KBVSessionApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Dev
       Auth:
         InvokeRole: CALLER_CREDENTIALS
 
-  CriSessionTable:
-    Type: AWS::Serverless::SimpleTable
+  KBVSessionTable:
+    Type: "AWS::DynamoDB::Table"
     Properties:
-      TableName: session
-      PrimaryKey:
-        Name: id
-        Type: String
+      TableName: "kbv-session-data"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "sessionId"
+          AttributeType: "S"
+        -
+          AttributeName: "authorizationCode"
+          AttributeType: "S"
+        -
+          AttributeName: "token"
+          AttributeType: "S"
+        -
+          AttributeName: "questionState"
+          AttributeType: "S"
 
-  CriSessionFunction:
+      KeySchema:
+        -
+          AttributeName: "sessionId"
+          KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "authorization-code-index"
+          KeySchema:
+            -
+              AttributeName: "authorizationCode"
+              KeyType: "HASH"
+          Projection:
+            NonKeyAttributes:
+              - "sessionId"
+            ProjectionType: "INCLUDE"
+        -
+          IndexName: "token-index"
+          KeySchema:
+            -
+              AttributeName: "token"
+              KeyType: "HASH"
+          Projection:
+            NonKeyAttributes:
+              - "sessionId"
+            ProjectionType: "INCLUDE"
+        -
+          IndexName: "questions-index"
+          KeySchema:
+            -
+              AttributeName: "questionState"
+              KeyType: "HASH"
+          Projection:
+            NonKeyAttributes:
+              - "sessionId"
+            ProjectionType: "INCLUDE"
+
+
+  KBVSessionFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./
@@ -29,22 +77,25 @@ Resources:
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
+        - DynamoDBWritePolicy:
+            TableName: !Ref KBVSessionTable
       Runtime: java11
       MemorySize: 512
       Tracing: Active
       Environment:
         Variables:
+          KBV_SESSION_TABLE_NAME: !Ref KBVSessionTable
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
           EXPERIAN_API_WRAPPER_SAA_RESOURCE: http://localhost:8080/question-request
           EXPERIAN_API_WRAPPER_RTQ_RESOURCE: http://localhost:8080/question-answer
           EXPERIAN_API_WRAPPER_URL: http://localhost:8080/
       Events:
-        CriSessionApi:
+        KBVSessionApi:
           Type: Api
           Properties:
             Path: /session
             Method: Post
-            RestApiId: !Ref CriSessionApi
+            RestApiId: !Ref KBVSessionApi
             Auth:
               Authorizer: AWS_IAM
 
@@ -52,12 +103,13 @@ Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  CriSessionApi:
-    Description: "API Gateway endpoint URL for Dev CriSession function"
-    Value: !Sub "https://${CriSessionApi}.execute-api.${AWS::Region}.amazonaws.com/Dev/session/"
-  CriSessionFunction:
-    Description: " CriSession check lambda function ARN"
-    Value: !GetAtt CriSessionFunction.Arn
-  CriSessionFunctionIamRole:
-    Description: "Implicit IAM Role created for CriSession function"
-    Value: !GetAtt CriSessionFunction.Arn
+  KBVSessionApi:
+    Description: "API Gateway endpoint URL for Dev KBVSession function"
+    Value: !Sub "https://${KBVSessionApi}.execute-api.${AWS::Region}.amazonaws.com/Dev/session/"
+  KBVSessionFunction:
+    Description: " KBVSession check lambda function ARN"
+    Value: !GetAtt KBVSessionFunction.Arn
+  KBVSessionFunctionIamRole:
+    Description: "Implicit IAM Role created for KBVSession function"
+    Value: !GetAtt KBVSessionFunction.Arn
+  
