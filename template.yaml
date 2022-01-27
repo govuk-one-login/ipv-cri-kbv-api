@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+Description: >
+  di-ipv-cri-kbv-api
+  SAM Template for the kbv api
+
+Resources:
+  KBVSessionTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "kbv-session"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        -
+          AttributeName: "session-id"
+          AttributeType: "S"
+        -
+          AttributeName: "authorization-code"
+          AttributeType: "S"
+        -
+          AttributeName: "token"
+          AttributeType: "S"
+
+      KeySchema:
+        -
+          AttributeName: "session-id"
+          KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "authorization-code-index"
+          KeySchema:
+            -
+              AttributeName: "authorization-code"
+              KeyType: "HASH"
+          Projection:
+            NonKeyAttributes:
+              - "session-id"
+            ProjectionType: "INCLUDE"
+        -
+          IndexName: "token-index"
+          KeySchema:
+            -
+              AttributeName: "token"
+              KeyType: "HASH"
+          Projection:
+            NonKeyAttributes:
+              - "session-id"
+            ProjectionType: "INCLUDE"
