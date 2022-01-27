@@ -46,3 +46,6 @@ Resources:
             NonKeyAttributes:
               - "session-id"
             ProjectionType: "INCLUDE"
+      TimeToLiveSpecification:
+         AttributeName: expiry-date
+         Enabled: true
