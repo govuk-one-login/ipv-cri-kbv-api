@@ -20,18 +20,22 @@ sourceCompatibility = 11
 dependencies {
 	implementation "com.amazonaws:aws-lambda-java-core:1.2.1",
 			"com.amazonaws:aws-lambda-java-events:3.11.0",
-			"com.fasterxml.jackson.core:jackson-databind:2.13.0",
-			"com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.0",
-			"org.hibernate.validator:hibernate-validator:6.2.1.Final",
-			"org.hibernate:hibernate-validator-annotation-processor:6.2.1.Final",
+			'com.fasterxml.jackson.core:jackson-databind:2.13.1',
+			'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.1',
+			'org.hibernate.validator:hibernate-validator:7.0.1.Final',
+			'org.hibernate:hibernate-validator-annotation-processor:7.0.1.Final',
+			"com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
 			"javax.validation:validation-api:2.0.1.Final",
+			"org.junit.jupiter:junit-jupiter:5.8.2",
 			"javax.el:javax.el-api:3.0.0",
-			"org.glassfish:javax.el:3.0.0"
+			"org.glassfish:javax.el:3.0.0",
+			"com.nimbusds:nimbus-jose-jwt:9.16"
+
 
 	aspect "software.amazon.lambda:powertools-tracing:1.10.2"
 
-	testImplementation "org.junit.jupiter:junit-jupiter:5.8.2",
-			"org.mockito:mockito-junit-jupiter:4.1.0",
+	implementation "org.junit.jupiter:junit-jupiter:5.8.2",
+			'org.mockito:mockito-junit-jupiter:4.2.0',
 			"org.mockito:mockito-inline:4.2.0"
 }
 
@@ -71,7 +75,10 @@ run {
 	}
 }
 
-sourceSets.main.java.srcDirs = ['src/main/java']
+sourceSets.main.java.srcDirs = [
+	'src/main/java',
+	'src/main/test'
+]
 
 sonarqube {
 	properties {
