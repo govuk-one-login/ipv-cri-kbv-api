@@ -43,6 +43,9 @@ public class SessionHandler
         Map<String, String> responseHeaders = Map.of("Content-Type", "application/json");
         int statusCode;
         try {
+            // identity = parseJwt.getPersonIdentity();
+            //--- ipv_session_id = parseJwt.getIpvSessionId();
+            //--- strategy = parseJwt.getStrategy();
             identity = objectMapper.readValue(input.getBody(), PersonIdentity.class);
             String key = UUID.randomUUID().toString();
             storageService.save(key, new QuestionState(identity));
@@ -54,17 +57,9 @@ public class SessionHandler
             statusCode = 500;
             responseBody = "{ \"error\":\"" + e.getMessage() + "\" }";
         }
-        return createResponseEvent(statusCode, responseBody, responseHeaders);
-    }
-
-    private static APIGatewayProxyResponseEvent createResponseEvent(
-            int statusCode, String body, Map<String, String> headers) {
-        APIGatewayProxyResponseEvent apiGatewayProxyResponseEvent =
-                new APIGatewayProxyResponseEvent();
-        apiGatewayProxyResponseEvent.setHeaders(headers);
-        apiGatewayProxyResponseEvent.setStatusCode(statusCode);
-        apiGatewayProxyResponseEvent.setBody(body);
-
-        return apiGatewayProxyResponseEvent;
+        return new APIGatewayProxyResponseEvent()
+                .withStatusCode(statusCode)
+                .withHeaders(responseHeaders)
+                .withBody(responseBody);
     }
 }
