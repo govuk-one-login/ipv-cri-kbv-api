@@ -11,6 +11,9 @@ import software.amazon.lambda.powertools.tracing.CaptureMode;
 import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
+import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
+import uk.gov.di.ipv.cri.kbv.api.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
 import java.util.Map;
@@ -19,47 +22,55 @@ import java.util.UUID;
 public class SessionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-    private ObjectMapper objectMapper;
-    private StorageService storageService;
+    private final ObjectMapper objectMapper;
+    private final StorageService storageService;
     public static final String HEADER_SESSION_ID = "session-id";
 
+    private APIGatewayProxyResponseEvent response;
+
     public SessionHandler() {
-        this.objectMapper = new ObjectMapper();
+        this(
+                new ObjectMapper(),
+                new StorageService(
+                        new DataStore<KBVSessionItem>(
+                                ConfigurationService.getInstance().getKBVSessionTableName(),
+                                KBVSessionItem.class,
+                                DataStore.getClient(false),
+                                false)),
+                new APIGatewayProxyResponseEvent());
+
         this.objectMapper.registerModule(new JavaTimeModule());
-        this.storageService = new StorageService();
     }
 
-    public SessionHandler(ObjectMapper objectMapper, StorageService storageService) {
+    public SessionHandler(
+            ObjectMapper objectMapper,
+            StorageService storageService,
+            APIGatewayProxyResponseEvent response) {
         this.objectMapper = objectMapper;
         this.storageService = storageService;
+        this.response = response;
     }
 
     @Override
     @Tracing(captureMode = CaptureMode.DISABLED)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
-        PersonIdentity identity = null;
-        String responseBody = "";
-        Map<String, String> responseHeaders = Map.of("Content-Type", "application/json");
-        int statusCode;
+        PersonIdentity identity;
+
+        response.withHeaders(Map.of("Content-Type", "application/json"));
         try {
-            // identity = parseJwt.getPersonIdentity();
-            //--- ipv_session_id = parseJwt.getIpvSessionId();
-            //--- strategy = parseJwt.getStrategy();
             identity = objectMapper.readValue(input.getBody(), PersonIdentity.class);
+            String questionState = objectMapper.writeValueAsString(new QuestionState(identity));
             String key = UUID.randomUUID().toString();
-            storageService.save(key, new QuestionState(identity));
-            responseBody = objectMapper.writeValueAsString(Map.of(HEADER_SESSION_ID, key));
-            statusCode = 201;
+            storageService.save(key, questionState);
+            response.withBody(objectMapper.writeValueAsString(Map.of(HEADER_SESSION_ID, key)));
+            response.withStatusCode(201);
 
         } catch (JsonProcessingException e) {
             e.printStackTrace();
-            statusCode = 500;
-            responseBody = "{ \"error\":\"" + e.getMessage() + "\" }";
+            response.withStatusCode(500);
+            response.withBody("{ \"error\":\"" + e.getMessage() + "\" }");
         }
-        return new APIGatewayProxyResponseEvent()
-                .withStatusCode(statusCode)
-                .withHeaders(responseHeaders)
-                .withBody(responseBody);
+        return response;
     }
 }

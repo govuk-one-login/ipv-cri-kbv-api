@@ -12,6 +12,9 @@ import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
+import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
+import uk.gov.di.ipv.cri.kbv.api.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
 import java.io.IOException;
@@ -25,16 +28,21 @@ import java.util.Optional;
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-    private ObjectMapper objectMapper;
-    private StorageService storageService;
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String RESPONSE_TYPE_APPLICATION_JSON = "application/json";
-    public static final String EMPTY_JSON = "{}";
+    private final ObjectMapper objectMapper;
+    private final StorageService storageService;
 
     public QuestionHandler() {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
-        this.storageService = new StorageService();
+        this.storageService =
+                new StorageService(
+                        new DataStore<>(
+                                ConfigurationService.getInstance().getKBVSessionTableName(),
+                                KBVSessionItem.class,
+                                DataStore.getClient(false),
+                                false));
     }
 
     public QuestionHandler(ObjectMapper objectMapper, StorageService storageService) {
@@ -49,16 +57,18 @@ public class QuestionHandler
 
         String responseBody = "{}";
         Map<String, String> responseHeaders = Map.of("Content-Type", "application/json");
-        String json = null;
+        String json;
         int statusCode;
 
         try {
             String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-            QuestionState questionState = storageService.get(sessionId);
+            KBVSessionItem kbvSessionItem = storageService.getSessionId(sessionId);
+            QuestionState questionState =
+                    objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
             PersonIdentity personIdentity = questionState.getPersonIdentity();
             json = objectMapper.writeValueAsString(personIdentity);
             Optional<Question> nextQuestion = questionState.getNextQuestion();
-            if (!nextQuestion.isPresent()) { // we should fall in this block once only
+            if (nextQuestion.isEmpty()) { // we should fall in this block once only
                 // fetch a batch of questions from experian kbv wrapper
                 QuestionsResponse questionsResponse = startGetQuestions(json);
                 if (!questionState.setQuestionsResponse(questionsResponse)) {
@@ -66,7 +76,8 @@ public class QuestionHandler
                     responseBody = "{ \"error\":\" no further questions \" }";
                 } else {
                     statusCode = 200;
-                    storageService.save(sessionId, questionState);
+                    String state = objectMapper.writeValueAsString(questionState);
+                    storageService.save(sessionId, state);
                     nextQuestion = questionState.getNextQuestion();
                     responseBody = objectMapper.writeValueAsString(nextQuestion.get());
                 }
@@ -75,22 +86,15 @@ public class QuestionHandler
                 statusCode = 200;
             }
         } catch (Exception e) {
-            context.getLogger().log("Retrieving questions failed: " + e.toString());
+            context.getLogger().log("Retrieving questions failed: " + e);
             statusCode = 500;
             responseBody = "{ \"error\":\"" + e.getMessage() + "\" }";
         }
-        return createResponseEvent(statusCode, responseBody, responseHeaders);
-    }
 
-    private static APIGatewayProxyResponseEvent createResponseEvent(
-            int statusCode, String body, Map<String, String> headers) {
-        APIGatewayProxyResponseEvent apiGatewayProxyResponseEvent =
-                new APIGatewayProxyResponseEvent();
-        apiGatewayProxyResponseEvent.setHeaders(headers);
-        apiGatewayProxyResponseEvent.setStatusCode(statusCode);
-        apiGatewayProxyResponseEvent.setBody(body);
-
-        return apiGatewayProxyResponseEvent;
+        return new APIGatewayProxyResponseEvent()
+                .withHeaders(responseHeaders)
+                .withStatusCode(statusCode)
+                .withBody(responseBody);
     }
 
     private QuestionsResponse startGetQuestions(String json)
