@@ -39,10 +39,11 @@ dependencies {
 
 	aspect "software.amazon.lambda:powertools-tracing:1.10.2"
 
-	testImplementation "org.junit.jupiter:junit-jupiter:5.8.2",
-			"org.mockito:mockito-inline:4.2.0",
-			"org.mockito:mockito-junit-jupiter:4.2.0"
-
+	implementation "org.junit.jupiter:junit-jupiter:5.8.2",
+			'org.mockito:mockito-junit-jupiter:4.2.0',
+			"org.mockito:mockito-inline:4.2.0"
+	implementation 'ch.qos.logback:logback-classic:1.2.10'
+	implementation 'ch.qos.logback:logback-access:1.2.10'
 }
 
 test {
