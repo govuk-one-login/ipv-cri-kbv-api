@@ -41,8 +41,7 @@ public class SessionHandler
                         new DataStore<KBVSessionItem>(
                                 ConfigurationService.getInstance().getKBVSessionTableName(),
                                 KBVSessionItem.class,
-                                DataStore.getClient(false),
-                                false)),
+                                DataStore.getClient(false))),
                 new APIGatewayProxyResponseEvent(),
                 new ParseJWT(objectMapper));
     }
@@ -69,7 +68,7 @@ public class SessionHandler
             String key = UUID.randomUUID().toString();
             String questionState = objectMapper.writeValueAsString(new QuestionState(identity));
             storageService.save(key, questionState);
-            response.withBody(objectMapper.writeValueAsString(Map.of(HEADER_SESSION_ID, key)));
+            response.withHeaders(Map.of(HEADER_SESSION_ID, key));
             response.withStatusCode(HttpStatus.SC_CREATED);
         } catch (JsonProcessingException | ParseException | NullPointerException e) {
             LOGGER.error("The supplied JWT was not of the expected format.");

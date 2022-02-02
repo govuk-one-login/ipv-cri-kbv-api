@@ -18,6 +18,7 @@ public class StorageService {
         KBVSessionItem kbvSessionItem = new KBVSessionItem();
         kbvSessionItem.setSessionId(sessionId);
         kbvSessionItem.setQuestionState(state);
+
         dataStore.create(kbvSessionItem);
     }
 }
