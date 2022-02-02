@@ -19,11 +19,33 @@ Resources:
       StageName: Dev
       Auth:
         InvokeRole: CALLER_CREDENTIALS
+      DefinitionBody:
+        openapi: "3.0.1"
+        info:
+          title: "di-ipv-cri-kbv-api-90"
+          version: "1.0"
+        servers:
+          - url: !Sub "https://${KBVSessionApi}.execute-api.${AWS::Region}.amazonaws.com/{basePath}"
+            variables:
+              basePath:
+                default: "/Dev"
+        paths:
+          /session:
+            post:
+              security:
+                - sigv4: [ ]
+        components:
+          securitySchemes:
+            sigv4:
+              type: "apiKey"
+              name: "Authorization"
+              in: "header"
+              x-amazon-apigateway-authtype: "awsSigv4"
 
   KBVSessionTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
-      TableName: "kbv-session-data"
+      TableName: "user_attributes"
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
@@ -114,7 +136,7 @@ Outputs:
     Description: "API Gateway endpoint URL for Dev KBVSession function"
     Value: !Sub "https://${KBVSessionApi}.execute-api.${AWS::Region}.amazonaws.com/Dev/session/"
   KBVSessionFunction:
-    Description: " KBVSession check lambda function ARN"
+    Description: "KBVSession check lambda function ARN"
     Value: !GetAtt KBVSessionFunction.Arn
   KBVSessionFunctionIamRole:
     Description: "Implicit IAM Role created for KBVSession function"
