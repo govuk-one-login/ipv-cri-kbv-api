@@ -1,0 +1,24 @@
+openapi: "3.0.1"
+info:
+  title: "di ipv cri kbv api 90"
+  version: "1.0"
+
+paths:
+  /session:
+    post:
+      security:
+        - sigv4: [ ]
+      x-amazon-apigateway-integration:
+        credentials: "arn:aws:iam::*:user/*"
+        type: "aws_proxy"
+        httpMethod: "POST"
+        uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${KBVSessionFunction}/invocations"
+        passthroughBehavior: "when_no_match"
+components:
+  securitySchemes:
+    sigv4:
+      type: "apiKey"
+      name: "Authorization"
+      in: "header"
+      x-amazon-apigateway-authtype: "awsSigv4"
