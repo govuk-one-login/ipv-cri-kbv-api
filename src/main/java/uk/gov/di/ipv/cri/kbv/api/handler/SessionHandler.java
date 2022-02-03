@@ -64,7 +64,8 @@ public class SessionHandler
 
         response.withHeaders(Map.of("Content-Type", "application/json"));
         try {
-            PersonIdentity identity = jwtParser.getPersonIdentity(input).orElseThrow(NullPointerException::new);
+            PersonIdentity identity =
+                    jwtParser.getPersonIdentity(input).orElseThrow(NullPointerException::new);
             String key = UUID.randomUUID().toString();
             String questionState = objectMapper.writeValueAsString(new QuestionState(identity));
             storageService.save(key, questionState);

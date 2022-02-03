@@ -62,8 +62,7 @@ public class SessionHandlerTest {
                 new SessionHandler(
                         this.mockStorageService,
                         this.mockApiGatewayProxyResponseEvent,
-                        this.mockParseJWT
-                        );
+                        this.mockParseJWT);
         objectMapper.registerModule(new JavaTimeModule());
     }
 

@@ -19,33 +19,11 @@ Resources:
       StageName: Dev
       Auth:
         InvokeRole: CALLER_CREDENTIALS
-      DefinitionBody:
-        openapi: "3.0.1"
-        info:
-          title: "di-ipv-cri-kbv-api-90"
-          version: "1.0"
-        servers:
-          - url: !Sub "https://${KBVSessionApi}.execute-api.${AWS::Region}.amazonaws.com/{basePath}"
-            variables:
-              basePath:
-                default: "/Dev"
-        paths:
-          /session:
-            post:
-              security:
-                - sigv4: [ ]
-        components:
-          securitySchemes:
-            sigv4:
-              type: "apiKey"
-              name: "Authorization"
-              in: "header"
-              x-amazon-apigateway-authtype: "awsSigv4"
 
   KBVSessionTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
-      TableName: "user_attributes"
+      TableName: !Sub "kbv-session-${AWS::StackName}"
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
