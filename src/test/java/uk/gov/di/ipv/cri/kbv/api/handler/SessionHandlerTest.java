@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import uk.gov.di.ipv.cri.kbv.api.domain.ParseJWT;
 import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
+import uk.gov.di.ipv.cri.kbv.api.handler.SessionHandler;
 import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
 import java.text.ParseException;

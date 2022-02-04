@@ -8,6 +8,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.di.ipv.cri.kbv.api.domain.AddressType;
+import uk.gov.di.ipv.cri.kbv.api.domain.ParseJWT;
+import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
 
 import java.text.ParseException;
 import java.util.Map;
