@@ -66,7 +66,7 @@ public class ParseJWTTest {
                     assertTrue(p.getFirstName().equals(person.getFirstName()));
                     assertTrue(p.getSurname().equals(person.getSurname()));
                     assertTrue(p.getDateOfBirth().isEqual(person.getDateOfBirth()));
-                    assertTrue(!p.getAddresses().isEmpty());
+                    assertFalse(p.getAddresses().isEmpty());
                     assertTrue(
                             p.getAddresses()
                                     .get(0)

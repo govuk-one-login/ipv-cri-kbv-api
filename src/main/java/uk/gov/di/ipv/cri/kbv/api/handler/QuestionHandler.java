@@ -41,8 +41,8 @@ public class QuestionHandler
                         new DataStore<>(
                                 ConfigurationService.getInstance().getKBVSessionTableName(),
                                 KBVSessionItem.class,
-                                DataStore.getClient(false),
-                                false));
+                                DataStore.getClient(
+                                        ConfigurationService.getInstance().isRunningLocally())));
     }
 
     public QuestionHandler(ObjectMapper objectMapper, StorageService storageService) {

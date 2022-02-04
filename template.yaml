@@ -91,6 +91,7 @@ Resources:
       Tracing: Active
       Environment:
         Variables:
+          IS_LOCAL: false
           KBV_SESSION_TABLE_NAME: !Ref KBVSessionTable
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
           EXPERIAN_API_WRAPPER_SAA_RESOURCE: http://localhost:8080/question-request

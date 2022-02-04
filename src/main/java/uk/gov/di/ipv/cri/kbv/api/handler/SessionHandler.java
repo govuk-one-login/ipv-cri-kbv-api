@@ -35,14 +35,14 @@ public class SessionHandler
 
     private APIGatewayProxyResponseEvent response;
 
-    public SessionHandler() throws ParseException, JsonProcessingException {
+    public SessionHandler() {
         this(
                 new StorageService(
-                        new DataStore<KBVSessionItem>(
+                        new DataStore<>(
                                 ConfigurationService.getInstance().getKBVSessionTableName(),
                                 KBVSessionItem.class,
-                                DataStore.getClient(false),
-                                false)),
+                                DataStore.getClient(
+                                        ConfigurationService.getInstance().isRunningLocally()))),
                 new APIGatewayProxyResponseEvent(),
                 new ParseJWT(objectMapper));
     }

@@ -47,8 +47,7 @@ class DataStoreTest {
         kbvSessionItem.setSessionId("test-session-12345");
 
         dataStore =
-                new DataStore<KBVSessionItem>(
-                        TEST_TABLE_NAME, KBVSessionItem.class, mockDynamoDbEnhancedClient, false);
+                new DataStore<>(TEST_TABLE_NAME, KBVSessionItem.class, mockDynamoDbEnhancedClient);
     }
 
     @Test
