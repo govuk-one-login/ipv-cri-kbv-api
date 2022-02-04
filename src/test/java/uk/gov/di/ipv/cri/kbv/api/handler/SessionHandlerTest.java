@@ -22,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import uk.gov.di.ipv.cri.kbv.api.domain.ParseJWT;
 import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
-import uk.gov.di.ipv.cri.kbv.api.handler.SessionHandler;
 import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
 import java.text.ParseException;
@@ -36,6 +35,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.di.ipv.cri.kbv.api.data.TestData.APERSONIDENTITY;
 
 @ExtendWith(MockitoExtension.class)
 public class SessionHandlerTest {
@@ -46,9 +46,6 @@ public class SessionHandlerTest {
     @Mock private APIGatewayProxyResponseEvent mockApiGatewayProxyResponseEvent;
     @Mock private Context mockContext;
     @Mock private Appender<ILoggingEvent> appender;
-
-    private static String APERSONIDENTITY =
-            "{\"firstName\":\"KENNETH\",\"surname\":\"DECERQUEIRA\",\"title\":\"MR\",\"dateOfBirth\":\"1964-06-18\",\"addresses\":[{\"houseNumber\":8,\"street\":\"HADLEY ROAD\",\"townCity\":\"BATH\",\"postcode\":\"BA2 5AA\",\"addressType\":\"CURRENT\"}]}";
 
     @BeforeEach
     void setUp() {
