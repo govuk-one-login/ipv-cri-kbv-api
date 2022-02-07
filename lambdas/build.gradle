@@ -1,0 +1,9 @@
+plugins {
+	id "java"
+	id "application"
+}
+
+group "uk.gov.di.ipv.cri.kbv.api"
+
+allprojects {
+}
