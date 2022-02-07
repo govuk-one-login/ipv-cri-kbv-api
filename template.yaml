@@ -34,7 +34,7 @@ Resources:
       DefinitionBody:
         openapi: "3.0.1" # workaround to get `sam validate` to work
         paths: # workaround to get `sam validate` to work
-          /foo:
+          /never-created:
             options: { } # workaround to get `sam validate` to work
         Fn::Transform:
           Name: AWS::Include
