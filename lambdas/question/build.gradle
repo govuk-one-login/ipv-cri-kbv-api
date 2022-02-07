@@ -1,0 +1,52 @@
+plugins {
+    id "java"
+    id "application"
+    id "idea"
+    id "jacoco"
+    id "io.freefair.aspectj.post-compile-weaving" version "6.3.0"
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(":lib"),
+            "com.amazonaws:aws-lambda-java-core:1.2.1",
+            "com.amazonaws:aws-lambda-java-events:3.11.0",
+            "com.fasterxml.jackson.core:jackson-databind:2.13.1",
+            "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.1",
+            "com.amazonaws:aws-java-sdk-dynamodb:1.12.150",
+            "software.amazon.awssdk:dynamodb-enhanced:2.17.121"
+
+    aspect "software.amazon.lambda:powertools-tracing:1.10.2"
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.2'
+
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+task buildZip(type: Zip) {
+    from compileJava
+    from processResources
+    destinationDirectory = file("$rootDir/dist")
+    into("lib") {
+        from configurations.runtimeClasspath
+    }
+}
+
+test {
+    useJUnitPlatform ()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required.set(true)
+    }
+}

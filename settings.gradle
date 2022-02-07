@@ -1,4 +1,5 @@
 rootProject.name = "di-ipv-cri-kbv-api"
 include "lib",
 		"lambdas",
-		"lambdas:session"
+		"lambdas:session",
+		"lambdas:question"
