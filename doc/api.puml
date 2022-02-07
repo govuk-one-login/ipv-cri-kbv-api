@@ -1,0 +1,105 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+skinparam backgroundColor #ffffff
+skinparam handwritten true
+
+'actor User
+box "Relying Party" #d0ffee
+participant Core as core
+end box
+
+box "Credential Issuer"
+participant Frontend as fe
+
+participant API as api
+participant Wrapper as wrapper
+end box
+
+box "Third Party" #e4ffde
+participant Experian as experian
+end box
+== Oauth start ==
+
+core -[#blue]> fe : /oauth2/authorize\n{ jwt }
+activate fe
+
+fe -> api: POST /session\n{ jwt }
+activate api
+
+api -> api: << create session >>
+api -> api: << decode jwt >>\n  ... name, dob, address
+
+api -> fe: { ... sessionId }
+== Experian ==
+
+
+fe -> api: GET /question\n{ sessionId }
+
+alt first authentication attempt
+    api -> wrapper: /question-request \n{ name, dob, address}
+    wrapper -> experian: /saa //(start authentication attempt)//\n{name, dob, address}
+wrapper <- experian: {... questions }
+activate experian
+wrapper -> api: {... questions}
+
+api -> api: << store questions >>
+
+end
+
+loop current batch of questions
+    api -> api: << get next question >>
+
+    fe <- api: { question }
+    fe -[#blue]> fe: << render question >>
+    fe -[#blue]> fe: << answer question >>
+
+
+    fe -> api: POST /answer\n{question-id, answer}
+    api -> api: << store answer >>
+
+'    fe -> api: POST /answer\n{question-id, answer}
+'    api -> api: << store answer >>
+
+    alt current batch of questions completed and more questions available
+'        fe -> api: POST /answer\n{question-id, answer}
+'        api -> api: << store answer >>
+
+        api -> wrapper: /question-answer \n{ answers }
+        wrapper -> experian: /rtq //(respond to questions))//\n {control, responses }
+        experian -> wrapper: { questions}
+        wrapper -> api: { questions }
+        api -> api: << store questions >>
+
+
+    end
+        api -> fe: [200]
+        fe -> api: /question
+
+end
+
+
+
+
+note over experian: No more questions &\nauthentication attempt\nsuccessful or failed
+
+experian -> wrapper: { results }
+destroy experian
+
+wrapper -> api: { AuthenticationResult }
+api -> api : << store >>\n AuthenticationResult
+
+api -> fe: [201] No content
+
+== Oauth return ==
+core <[#blue]- fe: /oauth2/authorize
+destroy fe
+
+core -> api: /oauth/token
+api -> api: use AuthenticationResult in verifiable-credential
+core <- api: { verifiable-credential }
+
+
+destroy api
+@enduml
