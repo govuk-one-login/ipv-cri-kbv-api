@@ -8,7 +8,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
-import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.verify;

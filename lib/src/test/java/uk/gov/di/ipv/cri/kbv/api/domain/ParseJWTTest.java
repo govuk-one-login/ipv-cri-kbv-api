@@ -94,8 +94,7 @@ public class ParseJWTTest {
     @Test
     public void shouldThrowJsonProcessingException() {
         APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
-        event.setQueryStringParameters(
-                Map.of("request", BADJWT));
+        event.setQueryStringParameters(Map.of("request", BADJWT));
         assertThrows(
                 JsonProcessingException.class,
                 () -> {

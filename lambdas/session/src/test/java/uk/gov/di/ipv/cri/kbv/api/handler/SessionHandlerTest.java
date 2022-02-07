@@ -68,7 +68,8 @@ public class SessionHandlerTest {
     void shouldReturn201ResponseWhenRequestIsValid()
             throws JsonProcessingException, ParseException {
 
-        PersonIdentity person = objectMapper.readValue(TestData.APERSONIDENTITY, PersonIdentity.class);
+        PersonIdentity person =
+                objectMapper.readValue(TestData.APERSONIDENTITY, PersonIdentity.class);
         APIGatewayProxyRequestEvent mockRequest = mock(APIGatewayProxyRequestEvent.class);
 
         when(mockParseJWT.getPersonIdentity(mockRequest)).thenReturn(Optional.of(person));
@@ -88,7 +89,8 @@ public class SessionHandlerTest {
         APIGatewayProxyRequestEvent mockRequest = mock(APIGatewayProxyRequestEvent.class);
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
                 ArgumentCaptor.forClass(ILoggingEvent.class);
-        PersonIdentity person = objectMapper.readValue(TestData.APERSONIDENTITY, PersonIdentity.class);
+        PersonIdentity person =
+                objectMapper.readValue(TestData.APERSONIDENTITY, PersonIdentity.class);
 
         when(mockParseJWT.getPersonIdentity(mockRequest)).thenReturn(Optional.of(person));
         doThrow(InternalServerErrorException.class)
