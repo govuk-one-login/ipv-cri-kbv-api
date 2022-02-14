@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   di-ipv-cri-kbv-api
-  SAM Template for the kbv api
+  SAM Template for the kbv api v0.3
 
 Globals:
   Api:
@@ -11,17 +11,49 @@ Globals:
   Function:
     Timeout: 60
 
+Parameters:
+  Environment:
+    Description: environment name
+    Default: dev
+    Type: String
+    AllowedValues:
+      - dev
+      - staging
+      - integration
+      - prod
+    ConstraintDescription: specify dev, staging, integration or prod for environment
+
+
 Resources:
 
   KBVSessionApi:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: Dev
-      Auth:
-        InvokeRole: CALLER_CREDENTIALS
+      StageName: !Ref Environment
+#      DefinitionBody:
+#        openapi: "3.0.1" # workaround to get `sam validate` to work
+#        paths: # workaround to get `sam validate` to work
+#          /never-created:
+#            options: { } # workaround to get `sam validate` to work
+#        Fn::Transform:
+#          Name: AWS::Include
+#          Parameters:
+#            Location: './api.yaml'
+#      OpenApiVersion: 3.0.1
+      EndpointConfiguration:
+        Type: REGIONAL
+
+
+#  FunctionPermission:
+#    Type: AWS::Lambda::Permission
+#    Properties:
+#      Action: lambda:InvokeFunction
+#      FunctionName: !Ref KBVSessionFunction
+#      Principal: apigateway.amazonaws.com
+#      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${KBVSessionApi}*"
 
   KBVSessionTable:
-    Type: "AWS::DynamoDB::Table"
+    Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Sub "kbv-session-${AWS::StackName}"
       BillingMode: "PAY_PER_REQUEST"
@@ -37,6 +69,15 @@ Resources:
           AttributeType: "S"
         -
           AttributeName: "questionState"
+          AttributeType: "S"
+        -
+          AttributeName: "expiry-date"
+          AttributeType: "S"
+        -
+          AttributeName: "auth-ref-no"
+          AttributeType: "S"
+        -
+          AttributeName: "urn"
           AttributeType: "S"
 
       KeySchema:
@@ -74,12 +115,14 @@ Resources:
             NonKeyAttributes:
               - "sessionId"
             ProjectionType: "INCLUDE"
-
+      TimeToLiveSpecification:
+        AttributeName: expiry-date
+        Enabled: true
 
   KBVSessionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./
+      CodeUri: ./lambdas/session
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.SessionHandler::handleRequest
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -94,18 +137,49 @@ Resources:
           IS_LOCAL: false
           KBV_SESSION_TABLE_NAME: !Ref KBVSessionTable
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
-          EXPERIAN_API_WRAPPER_SAA_RESOURCE: http://localhost:8080/question-request
-          EXPERIAN_API_WRAPPER_RTQ_RESOURCE: http://localhost:8080/question-answer
-          EXPERIAN_API_WRAPPER_URL: http://localhost:8080/
       Events:
-        KBVSessionApi:
+        KBVSessionFunctionApi:
           Type: Api
           Properties:
             Path: /session
-            Method: Post
+            Method: post
             RestApiId: !Ref KBVSessionApi
-            Auth:
-              Authorizer: AWS_IAM
+
+  KBVQuestionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./lambdas/question
+      Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler::handleRequest
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBReadPolicy:
+            TableName: !Ref KBVSessionTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref KBVSessionTable
+      Runtime: java11
+      MemorySize: 512
+      Tracing: Active
+      Environment:
+        Variables:
+          IS_LOCAL: false
+          KBV_SESSION_TABLE_NAME: !Ref KBVSessionTable
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
+          EXPERIAN_API_WRAPPER_SAA_RESOURCE: /question-request
+          EXPERIAN_API_WRAPPER_URL: https://u7tpgfw3bh.execute-api.eu-west-2.amazonaws.com/dev
+
+      Events:
+        KBVQuestionApi:
+          Type: Api
+          Properties:
+            Path: /question
+            Method: get
+            RestApiId: !Ref KBVSessionApi
+#      VpcConfig:
+#        SecurityGroupIds:
+#          - sg-03a1efaf2fed58442
+#        SubnetIds:
+#          - subnet-07fcf55b165be35ed
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
@@ -113,11 +187,17 @@ Outputs:
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   KBVSessionApi:
     Description: "API Gateway endpoint URL for Dev KBVSession function"
-    Value: !Sub "https://${KBVSessionApi}.execute-api.${AWS::Region}.amazonaws.com/Dev/session/"
+    Value: !Sub "https://${KBVSessionApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/session"
   KBVSessionFunction:
     Description: "KBVSession check lambda function ARN"
     Value: !GetAtt KBVSessionFunction.Arn
+  KBVQuestionFunction:
+    Description: "KBVQuestion check lambda function ARN"
+    Value: !GetAtt KBVQuestionFunction.Arn
   KBVSessionFunctionIamRole:
     Description: "Implicit IAM Role created for KBVSession function"
     Value: !GetAtt KBVSessionFunction.Arn
-  
+  KBVQuestionFunctionIamRole:
+    Description: "Implicit IAM Role created for KBVQuestion function"
+    Value: !GetAtt KBVQuestionFunction.Arn
+

@@ -12,6 +12,9 @@ public class QuestionState {
     private Integer skipsRemaining;
     private String skipWarning;
     private List<QuestionAnswerPair> qaPairs = new ArrayList<>();
+    private NextQuestion nextQuestion;
+
+    private QuestionState() {}
 
     public QuestionState(PersonIdentity personIdentity) {
         this.personIdentity = personIdentity;
@@ -25,8 +28,8 @@ public class QuestionState {
         System.out.println("outcome is " + outcome);
         String authenticationResult = results.getAuthenticationResult();
         System.out.println("authenticationResult is " + authenticationResult);
-        List<String> trans = results.getNextTransId();
-        System.out.println("transition is " + trans);
+        NextTransId nextTransId = results.getNextTransId();
+        System.out.println("transition is " + nextTransId);
 
         Questions questions = questionsResponse.getQuestions();
 
