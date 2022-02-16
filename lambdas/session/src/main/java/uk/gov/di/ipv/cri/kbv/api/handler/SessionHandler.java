@@ -67,8 +67,10 @@ public class SessionHandler
             PersonIdentity identity =
                     jwtParser.getPersonIdentity(input).orElseThrow(NullPointerException::new);
             String key = UUID.randomUUID().toString();
-            String questionState = objectMapper.writeValueAsString(new QuestionState(identity));
-            storageService.save(key, questionState);
+            storageService.save(
+                    key,
+                    objectMapper.writeValueAsString(identity),
+                    objectMapper.writeValueAsString(new QuestionState()));
             response.withBody(objectMapper.writeValueAsString(Map.of(HEADER_SESSION_ID, key)));
             response.withStatusCode(HttpStatus.SC_CREATED);
         } catch (JsonProcessingException | ParseException | NullPointerException e) {

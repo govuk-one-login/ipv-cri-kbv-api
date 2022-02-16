@@ -28,7 +28,7 @@ class StorageServiceTest {
         ArgumentCaptor<KBVSessionItem> kbvSessionItemArgumentCaptor =
                 ArgumentCaptor.forClass(KBVSessionItem.class);
 
-        storageService.save("uuid4-identifier", "question-state");
+        storageService.save("uuid4-identifier", "person-identity", "question-state");
 
         verify(mockDataStore).create(kbvSessionItemArgumentCaptor.capture());
         assertNotNull(kbvSessionItemArgumentCaptor.getValue().getQuestionState());

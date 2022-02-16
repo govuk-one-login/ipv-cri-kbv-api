@@ -11,10 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.lambda.powertools.tracing.CaptureMode;
 import software.amazon.lambda.powertools.tracing.Tracing;
-import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
-import uk.gov.di.ipv.cri.kbv.api.domain.Question;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.domain.*;
 import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.service.ConfigurationService;
@@ -22,7 +19,7 @@ import uk.gov.di.ipv.cri.kbv.api.service.ExperianService;
 import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
 import java.io.IOException;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
@@ -63,39 +60,55 @@ public class QuestionHandler
     @Tracing(captureMode = CaptureMode.DISABLED)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
-        LOGGER.info("Invoked QuestionHandler.handleRequest() at: " + LocalDate.now());
+        LOGGER.info("QuestionHandler.handleRequest() at: " + LocalDateTime.now());
         String responseBody = "{}";
         Map<String, String> responseHeaders = Map.of("Content-Type", "application/json");
         String json;
         int statusCode;
-
         try {
             String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
             LOGGER.info("sessionId: " + sessionId);
             KBVSessionItem kbvSessionItem = storageService.getSessionId(sessionId);
+            PersonIdentity personIdentity =
+                    objectMapper.readValue(
+                            kbvSessionItem.getUserAttributes(), PersonIdentity.class);
+
             QuestionState questionState =
-                    objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
-            PersonIdentity personIdentity = questionState.getPersonIdentity();
+                    objectMapper.readValue(
+                            kbvSessionItem.getQuestionState(), QuestionState.class);
             json = objectMapper.writeValueAsString(personIdentity);
-            LOGGER.info("json-payload: " + json);
+
+            questionState
+                    .getQaPairs()
+                    .forEach(
+                            p -> System.out.println("Question Answer pairs => " +
+                                            p.getQuestion().getQuestionID()
+                                                    + " <-QA-> "
+                                                    + p.getAnswer()));
+
             Optional<Question> nextQuestion = questionState.getNextQuestion();
             if (nextQuestion.isEmpty()) { // we should fall in this block once only
                 // fetch a batch of questions from experian kbv wrapper
-                QuestionsResponse questionsResponse = this.experianService.getQuestions(json);
-                if (!questionState.setQuestionsResponse(questionsResponse)) {
+                QuestionsResponse questionsResponse = experianService.getQuestions(json);
+                if (questionState != null
+                        && !questionState.setQuestionsResponse(questionsResponse)) {
                     statusCode = 400;
                     responseBody = "{ \"error\":\" no further questions \" }";
                 } else {
                     statusCode = 200;
                     String state = objectMapper.writeValueAsString(questionState);
-                    System.out.println("state:"+state);
-                    storageService.update(sessionId, state, questionState.getControl().getAuthRefNo(), questionState.getControl().getURN());
+                    LOGGER.info("questionState:" + state);
+                    storageService.update(
+                            sessionId,
+                            state,
+                            questionState.getControl().getAuthRefNo(),
+                            questionState.getControl().getURN());
                     nextQuestion = questionState.getNextQuestion();
                     responseBody = objectMapper.writeValueAsString(nextQuestion.get());
                 }
             } else {
                 // TODO Handle scenario when no questions are available
-                statusCode = 200;
+                statusCode = 201;
             }
         } catch (JsonProcessingException jsonProcessingException) {
             context.getLogger()

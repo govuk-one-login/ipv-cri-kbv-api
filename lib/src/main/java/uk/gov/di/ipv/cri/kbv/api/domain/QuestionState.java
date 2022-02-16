@@ -7,32 +7,17 @@ import java.util.Optional;
 
 public class QuestionState {
 
-    private PersonIdentity personIdentity;
     private Control control;
     private Integer skipsRemaining;
     private String skipWarning;
     private List<QuestionAnswerPair> qaPairs = new ArrayList<>();
     private NextQuestion nextQuestion;
 
-    private QuestionState() {}
-
-    public QuestionState(PersonIdentity personIdentity) {
-        this.personIdentity = personIdentity;
-    }
+    public QuestionState() {}
 
     public boolean setQuestionsResponse(QuestionsResponse questionsResponse) {
         setControl(questionsResponse.getControl());
-
-        Results results = questionsResponse.getResults();
-        String outcome = results.getOutcome();
-        System.out.println("outcome is " + outcome);
-        String authenticationResult = results.getAuthenticationResult();
-        System.out.println("authenticationResult is " + authenticationResult);
-        NextTransId nextTransId = results.getNextTransId();
-        System.out.println("transition is " + nextTransId);
-
         Questions questions = questionsResponse.getQuestions();
-
         boolean hasQuestions = questions != null && questions.getQuestion() != null;
         if (hasQuestions) {
             skipsRemaining = questions.getSkipsRemaining();
@@ -41,16 +26,11 @@ public class QuestionState {
                 qaPairs.add(new QuestionAnswerPair(question));
             }
         }
-
         return hasQuestions;
     }
 
     public List<QuestionAnswerPair> getQaPairs() {
         return Collections.unmodifiableList(qaPairs);
-    }
-
-    public PersonIdentity getPersonIdentity() {
-        return personIdentity;
     }
 
     public Optional<Question> getNextQuestion() {
@@ -88,27 +68,5 @@ public class QuestionState {
 
     public boolean submitAnswers() {
         return qaPairs.stream().allMatch(qa -> qa.getAnswer() != null);
-    }
-
-    public static class QuestionAnswerPair {
-
-        private final Question question;
-        private String answer;
-
-        public QuestionAnswerPair(Question question) {
-            this.question = question;
-        }
-
-        public Question getQuestion() {
-            return question;
-        }
-
-        public String getAnswer() {
-            return answer;
-        }
-
-        public void setAnswer(String answer) {
-            this.answer = answer;
-        }
     }
 }

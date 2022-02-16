@@ -59,16 +59,16 @@ Resources:
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
-          AttributeName: "sessionId"
+          AttributeName: "session-id"
           AttributeType: "S"
         -
-          AttributeName: "authorizationCode"
+          AttributeName: "authorization-code"
           AttributeType: "S"
         -
           AttributeName: "token"
           AttributeType: "S"
         -
-          AttributeName: "questionState"
+          AttributeName: "user-attributes"
           AttributeType: "S"
         -
           AttributeName: "expiry-date"
@@ -78,6 +78,9 @@ Resources:
           AttributeType: "S"
         -
           AttributeName: "urn"
+          AttributeType: "S"
+        -
+          AttributeName: "questions"
           AttributeType: "S"
 
       KeySchema:

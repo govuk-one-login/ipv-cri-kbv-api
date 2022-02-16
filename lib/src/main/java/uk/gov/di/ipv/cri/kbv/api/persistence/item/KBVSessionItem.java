@@ -12,6 +12,7 @@ public class KBVSessionItem {
     private String expiryDate;
     private String authRefNo;
     private String urn;
+    private String userAttributes;
 
     public void setAuthorizationCode(String authorizationCode) {
         this.authorizationCode = authorizationCode;
@@ -63,6 +64,14 @@ public class KBVSessionItem {
 
     public void setUrn(String urn) {
         this.urn = urn;
+    }
+
+    public String getUserAttributes() {
+        return userAttributes;
+    }
+
+    public void setUserAttributes(String userAttributes) {
+        this.userAttributes = userAttributes;
     }
 
     @DynamoDbPartitionKey
