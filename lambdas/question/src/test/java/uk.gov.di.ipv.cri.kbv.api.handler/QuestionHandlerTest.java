@@ -150,4 +150,43 @@ public class QuestionHandlerTest {
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         //assertEquals(null, response.getBody());
     }
+    @Test
+    void shouldReturn200OkWhen1stCalledAndReturn1stUnAnsweredQuestion() throws IOException, InterruptedException {
+        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
+        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+
+        Context contextMock = mock(Context.class);
+        KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
+        PersonIdentity personIdentityMock = mock(PersonIdentity.class);
+        QuestionState questionStateMock = mock(QuestionState.class);
+
+        when(input.getHeaders()).thenReturn(sessionHeader);
+        when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID))).thenReturn(kbvSessionItemMock);
+        when(mockObjectMapper.readValue(kbvSessionItemMock.getUserAttributes(), PersonIdentity.class)).thenReturn(personIdentityMock);
+        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class)).thenReturn(questionStateMock);
+        when(mockObjectMapper.writeValueAsString(personIdentityMock)).thenReturn("person-identity");
+
+
+        QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
+        when(mockExperianService.getQuestions("person-identity")).thenReturn(questionsResponseMock);
+        when(questionStateMock.setQuestionsResponse(questionsResponseMock)).thenReturn(true);
+        String state = "question-state";
+        when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn(state);
+        Control controlMock = mock(Control.class);
+        when(questionStateMock.getControl()).thenReturn(controlMock);
+        when(controlMock.getAuthRefNo()).thenReturn("auth-ref-no");
+        when(controlMock.getURN()).thenReturn("ipv-session-id");
+        doNothing().when(mockStorageService).update(sessionHeader.get(HEADER_SESSION_ID), state, "auth-ref-no", "ipv-session-id");
+
+        Question expectedQuestion = mock(Question.class);
+
+        when(questionStateMock.getNextQuestion()) // we have to do this to get it to work
+                .thenReturn(Optional.empty())     // otherwise the second overrides the first
+                .thenReturn(Optional.ofNullable(expectedQuestion));
+
+        when(mockObjectMapper.writeValueAsString(expectedQuestion)).thenReturn("expected-question");
+        APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertEquals("expected-question", response.getBody());
+    }
 }
