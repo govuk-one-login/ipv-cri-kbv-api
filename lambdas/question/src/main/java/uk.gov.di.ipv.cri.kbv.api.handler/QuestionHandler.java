@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.lambda.powertools.tracing.CaptureMode;
 import software.amazon.lambda.powertools.tracing.Tracing;
-
 import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
@@ -24,7 +23,6 @@ import uk.gov.di.ipv.cri.kbv.api.service.ExperianService;
 import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
@@ -71,14 +69,14 @@ public class QuestionHandler
 
         try {
             String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-            KBVSessionItem kbvSessionItem = storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
+            KBVSessionItem kbvSessionItem =
+                    storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
             PersonIdentity personIdentity =
                     objectMapper.readValue(
                             kbvSessionItem.getUserAttributes(), PersonIdentity.class);
 
             QuestionState questionState =
-                    objectMapper.readValue(
-                            kbvSessionItem.getQuestionState(), QuestionState.class);
+                    objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
             json = objectMapper.writeValueAsString(personIdentity);
             Optional<Question> nextQuestion = questionState.getNextQuestion();
             if (nextQuestion.isEmpty()) { // we should fall in this block once only
@@ -103,17 +101,16 @@ public class QuestionHandler
                 // TODO Handle scenario when no questions are available
                 statusCode = HttpStatus.SC_OK;
                 nextQuestion = questionState.getNextQuestion();
-                if(!nextQuestion.isEmpty()){
+                if (!nextQuestion.isEmpty()) {
                     responseBody = objectMapper.writeValueAsString(nextQuestion.get());
-                }else{
+                } else {
                     responseBody = "{\"message\":\"no further questions\"}";
                 }
-
             }
         } catch (JsonProcessingException jsonProcessingException) {
             LOGGER.error("Failed to parse object using ObjectMapper");
             statusCode = HttpStatus.SC_INTERNAL_SERVER_ERROR;
-            responseBody = "{ \"error\":\"" + jsonProcessingException+ "\" }";
+            responseBody = "{ \"error\":\"" + jsonProcessingException + "\" }";
         } catch (IOException | InterruptedException | NullPointerException e) {
             LOGGER.error("Retrieving questions failed: " + e);
             statusCode = HttpStatus.SC_INTERNAL_SERVER_ERROR;
