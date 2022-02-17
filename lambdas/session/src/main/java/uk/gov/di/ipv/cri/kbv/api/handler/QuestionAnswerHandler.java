@@ -42,7 +42,7 @@ public class QuestionAnswerHandler
         String responseBody = "{}";
         Map<String, String> responseHeaders = Map.of("Content-Type", "application/json");
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-        KBVSessionItem kbvSessionItem = storageService.getSessionId(sessionId);
+        KBVSessionItem kbvSessionItem = storageService.getSessionId(sessionId).orElseThrow();
         QuestionState questionState = null;
         try {
             questionState =

@@ -7,11 +7,16 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.lambda.powertools.tracing.CaptureMode;
 import software.amazon.lambda.powertools.tracing.Tracing;
-import uk.gov.di.ipv.cri.kbv.api.domain.*;
+
+import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
+import uk.gov.di.ipv.cri.kbv.api.domain.Question;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.service.ConfigurationService;
@@ -29,7 +34,6 @@ public class QuestionHandler
     private static final Logger LOGGER = LoggerFactory.getLogger(QuestionHandler.class);
 
     public static final String HEADER_SESSION_ID = "session-id";
-    public static final String RESPONSE_TYPE_APPLICATION_JSON = "application/json";
     private final ObjectMapper objectMapper;
     private final StorageService storageService;
     private final ExperianService experianService;
@@ -60,15 +64,14 @@ public class QuestionHandler
     @Tracing(captureMode = CaptureMode.DISABLED)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
-        LOGGER.info("QuestionHandler.handleRequest() at: " + LocalDateTime.now());
         String responseBody = "{}";
         Map<String, String> responseHeaders = Map.of("Content-Type", "application/json");
         String json;
         int statusCode;
+
         try {
             String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-            LOGGER.info("sessionId: " + sessionId);
-            KBVSessionItem kbvSessionItem = storageService.getSessionId(sessionId);
+            KBVSessionItem kbvSessionItem = storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
             PersonIdentity personIdentity =
                     objectMapper.readValue(
                             kbvSessionItem.getUserAttributes(), PersonIdentity.class);
@@ -77,27 +80,17 @@ public class QuestionHandler
                     objectMapper.readValue(
                             kbvSessionItem.getQuestionState(), QuestionState.class);
             json = objectMapper.writeValueAsString(personIdentity);
-
-            questionState
-                    .getQaPairs()
-                    .forEach(
-                            p -> System.out.println("Question Answer pairs => " +
-                                            p.getQuestion().getQuestionID()
-                                                    + " <-QA-> "
-                                                    + p.getAnswer()));
-
             Optional<Question> nextQuestion = questionState.getNextQuestion();
             if (nextQuestion.isEmpty()) { // we should fall in this block once only
                 // fetch a batch of questions from experian kbv wrapper
                 QuestionsResponse questionsResponse = experianService.getQuestions(json);
                 if (questionState != null
                         && !questionState.setQuestionsResponse(questionsResponse)) {
-                    statusCode = 400;
+                    statusCode = HttpStatus.SC_BAD_REQUEST;
                     responseBody = "{ \"error\":\" no further questions \" }";
                 } else {
-                    statusCode = 200;
+                    statusCode = HttpStatus.SC_OK;
                     String state = objectMapper.writeValueAsString(questionState);
-                    LOGGER.info("questionState:" + state);
                     storageService.update(
                             sessionId,
                             state,
@@ -108,21 +101,28 @@ public class QuestionHandler
                 }
             } else {
                 // TODO Handle scenario when no questions are available
-                statusCode = 201;
+                statusCode = HttpStatus.SC_OK;
+                nextQuestion = questionState.getNextQuestion();
+                if(!nextQuestion.isEmpty()){
+                    responseBody = objectMapper.writeValueAsString(nextQuestion.get());
+                }else{
+                    responseBody = "{\"message\":\"no further questions\"}";
+                }
+
             }
         } catch (JsonProcessingException jsonProcessingException) {
-            context.getLogger()
-                    .log(
-                            "JSON processing exception- failed to get questions: "
-                                    + jsonProcessingException);
-            statusCode = 500;
-            responseBody = "{ \"error\":\"" + jsonProcessingException.getMessage() + "\" }";
-        } catch (IOException | InterruptedException e) {
-            context.getLogger().log("Retrieving questions failed: " + e);
-            statusCode = 500;
+            LOGGER.error("Failed to parse object using ObjectMapper");
+            statusCode = HttpStatus.SC_INTERNAL_SERVER_ERROR;
+            responseBody = "{ \"error\":\"" + jsonProcessingException+ "\" }";
+        } catch (IOException | InterruptedException | NullPointerException e) {
+            LOGGER.error("Retrieving questions failed: " + e);
+            statusCode = HttpStatus.SC_INTERNAL_SERVER_ERROR;
             responseBody = "{ \"error\":\"" + e.getMessage() + "\" }";
+        } catch (com.amazonaws.AmazonServiceException e) {
+            LOGGER.error("AWS Server error occurred.");
+            statusCode = HttpStatus.SC_INTERNAL_SERVER_ERROR;
+            responseBody = "{ \"error\":\"" + e + "\" }";
         }
-
         return new APIGatewayProxyResponseEvent()
                 .withHeaders(responseHeaders)
                 .withStatusCode(statusCode)

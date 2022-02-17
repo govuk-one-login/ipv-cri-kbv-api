@@ -1,18 +1,24 @@
 package uk.gov.di.ipv.cri.kbv.api.handler;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
+import com.amazonaws.services.dynamodbv2.model.InternalServerErrorException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.amazonaws.xray.AWSXRay;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestReporter;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import uk.gov.di.ipv.cri.kbv.api.domain.*;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.service.ExperianService;
@@ -29,7 +35,6 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.HEADER_SESSION_I
 @ExtendWith(MockitoExtension.class)
 public class QuestionHandlerTest {
 
-    private static final String TEST_IPV_SESSION_ID = "a-session-id";
     private QuestionHandler questionHandler;
     @Mock
     private ObjectMapper mockObjectMapper;
@@ -37,12 +42,14 @@ public class QuestionHandlerTest {
     private StorageService mockStorageService;
     @Mock
     private ExperianService mockExperianService;
-    @Mock
-    private APIGatewayProxyResponseEvent mockapiGatewayProxyResponseEvent;
+
+    @Mock private Appender<ILoggingEvent> appender;
 
     @BeforeEach
     void setUp() {
         AWSXRay.beginSegment("handleRequest");
+        Logger logger = (Logger) LoggerFactory.getLogger(QuestionHandler.class);
+        logger.addAppender(appender);
         questionHandler =
                 new QuestionHandler(mockObjectMapper, mockStorageService, mockExperianService);
     }
@@ -52,104 +59,6 @@ public class QuestionHandlerTest {
         AWSXRay.endSegment();
     }
 
-//    @Test
-    void shouldReturn200ResponseWithAQuestion() throws IOException, InterruptedException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        APIGatewayProxyRequestEvent input = new APIGatewayProxyRequestEvent();
-        input.setHeaders(Map.of(HEADER_SESSION_ID, TEST_IPV_SESSION_ID));
-
-        PersonIdentity personIdentity = mock(PersonIdentity.class);
-        QuestionState initialQuestionState = objectMapper.readValue(TestData.INITIAL_QUESTION_STATE, QuestionState.class);
-
-        KBVSessionItem kbvSessionItem = mock(KBVSessionItem.class);
-        when(mockStorageService.getSessionId(TEST_IPV_SESSION_ID)).thenReturn(kbvSessionItem);
-
-        when(mockObjectMapper.readValue(kbvSessionItem.getUserAttributes(), PersonIdentity.class))
-                .thenReturn(personIdentity);
-        when(mockObjectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class))
-                .thenReturn(initialQuestionState);
-
-        when(mockObjectMapper.writeValueAsString(personIdentity))
-                .thenReturn("person-identity");
-
-//        Question question = objectMapper.readValue(expectedResult, Question.class);
-        QuestionState mockQuestionState = mock(QuestionState.class);
-//        when(mockQuestionState.getNextQuestion()).thenReturn(Optional.empty());
-//
-
-        QuestionsResponse questionsResponse = objectMapper.readValue(TestData.expectedResult, QuestionsResponse.class);
-        when(mockExperianService.getQuestions("person-identity")).thenReturn(questionsResponse);
-
-//        String state = objectMapper.writeValueAsString(questionState);
-//        LOGGER.info("questionState:" + state);
-//        storageService.update(
-//                sessionId,
-//                state,
-//                questionState.getControl().getAuthRefNo(),
-//                questionState.getControl().getURN());
-//        nextQuestion = questionState.getNextQuestion();
-//        responseBody = objectMapper.writeValueAsString(nextQuestion.get());
-//
-//        String newState = mockObjectMapper.writeValueAsString(mockQuestionState);
-        mockStorageService.update(anyString(), anyString(), anyString(), anyString());
-//        when(mockQuestionState.getNextQuestion()).thenReturn(Optional.ofNullable(new Question()));
-
-//        when(mockQuestionState.setQuestionsResponse(questionsResponse)).thenReturn(true);
-
-//        when(mockapiGatewayProxyResponseEvent.getBody()).thenReturn(expectedResult);
-
-         mockapiGatewayProxyResponseEvent = questionHandler.handleRequest(input, mock(Context.class));
-
-//        verify(mockApiGatewayProxyResponseEvent).withHeaders(Map.of("Content-Type",
-//                "application/json"));
-//        verify(mockApiGatewayProxyResponseEvent).withStatusCode(HttpStatus.SC_OK);
-//        assertTrue(apiGatewayProxyResponseEvent.getBody().contains("Q007"));
-        System.out.println(mockapiGatewayProxyResponseEvent.getBody());
-        assertEquals( HttpStatus.SC_OK, mockapiGatewayProxyResponseEvent.getStatusCode());
-    }
-
-    @Test
-    void ola_shouldReturn200OkWhen1stCalledAndReturn1stUnAnsweredQuestion() throws IOException, InterruptedException {
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
-        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
-        ObjectMapper objectMapper = new ObjectMapper();
-        Context contextMock = mock(Context.class);
-        KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
-        PersonIdentity personIdentityMock = mock(PersonIdentity.class);
-//        QuestionState questionStateMock = mock(QuestionState.class);
-
-        QuestionState initialQuestionState = objectMapper.readValue(TestData.INITIAL_QUESTION_STATE, QuestionState.class);
-        when(input.getHeaders()).thenReturn(sessionHeader);
-        when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID))).thenReturn(kbvSessionItemMock);
-        when(mockObjectMapper.readValue(kbvSessionItemMock.getUserAttributes(), PersonIdentity.class)).thenReturn(personIdentityMock);
-        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class)).thenReturn(initialQuestionState);
-        when(mockObjectMapper.writeValueAsString(personIdentityMock)).thenReturn("person-identity");
-
-
-
-//        when(questionStateMock.getNextQuestion()).thenReturn(Optional.empty());
-
-        QuestionsResponse questionsResponse = objectMapper.readValue(TestData.expectedResult, QuestionsResponse.class);
-        when(mockExperianService.getQuestions("person-identity")).thenReturn(questionsResponse);
-//        when(questionStateMock.setQuestionsResponse(questionsResponse)).thenReturn(true);
-
-        QuestionState questionState = objectMapper.readValue(TestData.QUESTION_STATE, QuestionState.class);
-        when(mockObjectMapper.writeValueAsString(questionState)).thenReturn(TestData.QUESTION_STATE);
-//        Control controlMock = mock(Control.class);
-//        when(questionStateMock.getControl()).thenReturn(controlMock);
-//        when(controlMock.getAuthRefNo()).thenReturn(questionState.getControl().getAuthRefNo());
-//        when(controlMock.getURN()).thenReturn(questionState.getControl().getURN());
-        doNothing().when(mockStorageService).update(sessionHeader.get(HEADER_SESSION_ID), TestData.QUESTION_STATE, questionState.getControl().getAuthRefNo(), questionState.getControl().getURN());
-
-        Question nextQuestion = objectMapper.readValue(TestData.EXPECTED_QUESTION, Question.class);
-//        when(questionStateMock.getNextQuestion()).thenReturn(Optional.ofNullable(nextQuestion));
-
-//        when(mockObjectMapper.writeValueAsString(nextQuestion)).thenReturn(TestData.EXPECTED_QUESTION);
-
-        APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
-        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        //assertEquals(null, response.getBody());
-    }
     @Test
     void shouldReturn200OkWhen1stCalledAndReturn1stUnAnsweredQuestion() throws IOException, InterruptedException {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
@@ -161,11 +70,10 @@ public class QuestionHandlerTest {
         QuestionState questionStateMock = mock(QuestionState.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
-        when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID))).thenReturn(kbvSessionItemMock);
+        when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID))).thenReturn(Optional.ofNullable(kbvSessionItemMock));
         when(mockObjectMapper.readValue(kbvSessionItemMock.getUserAttributes(), PersonIdentity.class)).thenReturn(personIdentityMock);
         when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class)).thenReturn(questionStateMock);
         when(mockObjectMapper.writeValueAsString(personIdentityMock)).thenReturn("person-identity");
-
 
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
         when(mockExperianService.getQuestions("person-identity")).thenReturn(questionsResponseMock);
@@ -184,9 +92,86 @@ public class QuestionHandlerTest {
                 .thenReturn(Optional.empty())     // otherwise the second overrides the first
                 .thenReturn(Optional.ofNullable(expectedQuestion));
 
-        when(mockObjectMapper.writeValueAsString(expectedQuestion)).thenReturn("expected-question");
+        when(mockObjectMapper.writeValueAsString(expectedQuestion)).thenReturn(TestData.EXPECTED_QUESTION);
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        assertEquals("expected-question", response.getBody());
+        assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
     }
+
+    @Test
+    void shouldReturn400ErrorWhenNoFurtherQuestions() throws IOException, InterruptedException {
+        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
+        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+
+        Context contextMock = mock(Context.class);
+        KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
+        PersonIdentity personIdentityMock = mock(PersonIdentity.class);
+        QuestionState questionStateMock = mock(QuestionState.class);
+
+        when(input.getHeaders()).thenReturn(sessionHeader);
+        when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID))).thenReturn(Optional.ofNullable(kbvSessionItemMock));
+        when(mockObjectMapper.readValue(kbvSessionItemMock.getUserAttributes(), PersonIdentity.class)).thenReturn(personIdentityMock);
+        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class)).thenReturn(questionStateMock);
+        when(mockObjectMapper.writeValueAsString(personIdentityMock)).thenReturn("person-identity");
+
+        QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
+        when(mockExperianService.getQuestions("person-identity")).thenReturn(questionsResponseMock);
+        when(questionStateMock.setQuestionsResponse(questionsResponseMock)).thenReturn(false);
+
+        APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertEquals("{ \"error\":\" no further questions \" }", response.getBody());
+    }
+
+    @Test
+    void shouldReturn500ErrorWhenNoSessionIdProvided()  {
+        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
+        ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
+                ArgumentCaptor.forClass(ILoggingEvent.class);
+
+        APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, mock(Context.class));
+        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        verify(appender).doAppend(loggingEventArgumentCaptor.capture());
+        ILoggingEvent event = loggingEventArgumentCaptor.getValue();
+        assertEquals(event.getMessage(), "Retrieving questions failed: java.lang.NullPointerException");
+    }
+
+    @Test
+    void shouldReturn500ErrorWhenAWSDynamoDBServiceDown() throws IOException, InterruptedException {
+        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
+        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+        ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
+                ArgumentCaptor.forClass(ILoggingEvent.class);
+
+        when(input.getHeaders()).thenReturn(sessionHeader);
+        doThrow(InternalServerErrorException.class)
+                .when(mockStorageService)
+                .getSessionId(anyString());
+
+        APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, mock(Context.class));
+        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        verify(appender).doAppend(loggingEventArgumentCaptor.capture());
+        ILoggingEvent event = loggingEventArgumentCaptor.getValue();
+        assertEquals(event.getMessage(), "AWS Server error occurred.");
+    }
+
+    @Test
+    void shouldReturn500ErrorWhenPersonIdentityCannotBeParsedToJSON() throws IOException, InterruptedException {
+        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
+        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+        KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
+        ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
+                ArgumentCaptor.forClass(ILoggingEvent.class);
+
+        when(input.getHeaders()).thenReturn(sessionHeader);
+        when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID))).thenReturn(Optional.ofNullable(kbvSessionItemMock));
+        when(mockObjectMapper.readValue(kbvSessionItemMock.getUserAttributes(), PersonIdentity.class)).thenThrow(JsonProcessingException.class);
+
+        APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, mock(Context.class));
+        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        verify(appender).doAppend(loggingEventArgumentCaptor.capture());
+        ILoggingEvent event = loggingEventArgumentCaptor.getValue();
+        assertEquals(event.getMessage(),"Failed to parse object using ObjectMapper");
+    }
+
 }

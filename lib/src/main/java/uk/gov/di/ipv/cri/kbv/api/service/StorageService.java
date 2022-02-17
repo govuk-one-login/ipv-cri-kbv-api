@@ -5,6 +5,7 @@ import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 
 public class StorageService {
     private final DataStore<KBVSessionItem> dataStore;
@@ -14,8 +15,8 @@ public class StorageService {
         this.dataStore = datastore;
     }
 
-    public KBVSessionItem getSessionId(String sessionId) {
-        return dataStore.getItem(sessionId);
+    public Optional<KBVSessionItem> getSessionId(String sessionId) {
+        return Optional.of(dataStore.getItem(sessionId));
     }
 
     public void save(String sessionId, String personIdentity, String questionState) {
