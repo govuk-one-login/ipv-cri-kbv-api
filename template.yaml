@@ -131,6 +131,16 @@ Resources:
           EXPERIAN_API_WRAPPER_RTQ_RESOURCE: http://localhost:8080/question-answer
           EXPERIAN_API_WRAPPER_URL: http://localhost:8080/
 
+  KBVSessionFunctionCodeSigning:
+    Type: AWS::Lambda::CodeSigningConfig
+    Properties:
+      Description: "Code Signing for KBVSessionFunction"
+      AllowedPublishers:
+        SigningProfileVersionArns:
+          - "{{resolve:ssm:/dev/credentialIssuers/kbv/sam/signingProfileVersionArn}}"
+      CodeSigningPolicies:
+        UntrustedArtifactOnDeployment: "Enforce"
+
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
