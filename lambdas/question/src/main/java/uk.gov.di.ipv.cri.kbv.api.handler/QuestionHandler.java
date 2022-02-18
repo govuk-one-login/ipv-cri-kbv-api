@@ -32,40 +32,43 @@ public class QuestionHandler
     private static final Logger LOGGER = LoggerFactory.getLogger(QuestionHandler.class);
 
     public static final String HEADER_SESSION_ID = "session-id";
-    private final ObjectMapper objectMapper;
+    public static final String ERROR = "\"error\"";
+    private static ObjectMapper objectMapper = new ObjectMapper();
     private final StorageService storageService;
     private final ExperianService experianService;
+    private APIGatewayProxyResponseEvent response;
 
     public QuestionHandler() {
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.registerModule(new JavaTimeModule());
-        this.storageService =
+        this(
+                new ObjectMapper(),
                 new StorageService(
                         new DataStore<>(
                                 ConfigurationService.getInstance().getKBVSessionTableName(),
                                 KBVSessionItem.class,
                                 DataStore.getClient(
-                                        ConfigurationService.getInstance().isRunningLocally())));
-        this.experianService = new ExperianService(this.objectMapper);
+                                        ConfigurationService.getInstance().isRunningLocally()))),
+                new ExperianService(objectMapper),
+                new APIGatewayProxyResponseEvent());
     }
 
     public QuestionHandler(
             ObjectMapper objectMapper,
             StorageService storageService,
-            ExperianService experianService) {
+            ExperianService experianService,
+            APIGatewayProxyResponseEvent apiGatewayProxyResponseEvent) {
         this.objectMapper = objectMapper;
+        this.objectMapper.registerModule(new JavaTimeModule());
         this.storageService = storageService;
         this.experianService = experianService;
+        this.response = apiGatewayProxyResponseEvent;
     }
 
     @Override
     @Tracing(captureMode = CaptureMode.DISABLED)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
-        String responseBody = "{}";
-        Map<String, String> responseHeaders = Map.of("Content-Type", "application/json");
+        response.withHeaders(Map.of("Content-Type", "application/json"));
         String json;
-        int statusCode;
 
         try {
             String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
@@ -82,12 +85,11 @@ public class QuestionHandler
             if (nextQuestion.isEmpty()) { // we should fall in this block once only
                 // fetch a batch of questions from experian kbv wrapper
                 QuestionsResponse questionsResponse = experianService.getQuestions(json);
-                if (questionState != null
-                        && !questionState.setQuestionsResponse(questionsResponse)) {
-                    statusCode = HttpStatus.SC_BAD_REQUEST;
-                    responseBody = "{ \"error\":\" no further questions \" }";
+                if (!questionState.setQuestionsResponse(questionsResponse)) {
+                    response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    response.withBody("{ " + ERROR + ":\" no further questions \" }");
                 } else {
-                    statusCode = HttpStatus.SC_OK;
+                    response.withStatusCode(HttpStatus.SC_OK);
                     String state = objectMapper.writeValueAsString(questionState);
                     storageService.update(
                             sessionId,
@@ -95,34 +97,35 @@ public class QuestionHandler
                             questionState.getControl().getAuthRefNo(),
                             questionState.getControl().getURN());
                     nextQuestion = questionState.getNextQuestion();
-                    responseBody = objectMapper.writeValueAsString(nextQuestion.get());
+                    response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
                 }
             } else {
                 // TODO Handle scenario when no questions are available
-                statusCode = HttpStatus.SC_OK;
+                response.withStatusCode(HttpStatus.SC_OK);
                 nextQuestion = questionState.getNextQuestion();
-                if (!nextQuestion.isEmpty()) {
-                    responseBody = objectMapper.writeValueAsString(nextQuestion.get());
+                if (nextQuestion.isPresent()) {
+                    response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
                 } else {
-                    responseBody = "{\"message\":\"no further questions\"}";
+                    response.withBody("{\"message\":\"no further questions\"}");
                 }
             }
         } catch (JsonProcessingException jsonProcessingException) {
             LOGGER.error("Failed to parse object using ObjectMapper");
-            statusCode = HttpStatus.SC_INTERNAL_SERVER_ERROR;
-            responseBody = "{ \"error\":\"" + jsonProcessingException + "\" }";
-        } catch (IOException | InterruptedException | NullPointerException e) {
+            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            response.withBody("{ " + ERROR + ":\"" + jsonProcessingException.getMessage() + "\" }");
+        } catch (NullPointerException npe) {
+            LOGGER.error("Error finding the requested resource");
+            response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
+            response.withBody("{ " + ERROR + ":\"" + npe.getMessage() + "\" }");
+        } catch (IOException | InterruptedException e) {
             LOGGER.error("Retrieving questions failed: " + e);
-            statusCode = HttpStatus.SC_INTERNAL_SERVER_ERROR;
-            responseBody = "{ \"error\":\"" + e.getMessage() + "\" }";
+            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            response.withBody("{ " + ERROR + ":\"" + e.getMessage() + "\" }");
         } catch (com.amazonaws.AmazonServiceException e) {
             LOGGER.error("AWS Server error occurred.");
-            statusCode = HttpStatus.SC_INTERNAL_SERVER_ERROR;
-            responseBody = "{ \"error\":\"" + e + "\" }";
+            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            response.withBody("{ " + ERROR + ":\"" + e.getMessage() + "\" }");
         }
-        return new APIGatewayProxyResponseEvent()
-                .withHeaders(responseHeaders)
-                .withStatusCode(statusCode)
-                .withBody(responseBody);
+        return response;
     }
 }

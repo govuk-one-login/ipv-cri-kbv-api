@@ -1,6 +1,8 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 
 import java.io.IOException;
@@ -11,6 +13,7 @@ import java.net.http.HttpResponse;
 
 public class ExperianService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExperianService.class);
     public static final String RESPONSE_TYPE_APPLICATION_JSON = "application/json";
     private ObjectMapper objectMapper;
 
@@ -19,8 +22,8 @@ public class ExperianService {
     }
 
     public QuestionsResponse getQuestions(String payload) throws IOException, InterruptedException {
-        URI wrapperResourceURI = get_KBV_SAA_URI();
-        System.out.println("wrapper uri:" + wrapperResourceURI);
+        URI wrapperResourceURI = getKbvStartAuthenticationAttemptUri();
+        LOGGER.info("KBV StartAuthenticationAttempt URI: " + wrapperResourceURI);
         HttpRequest httpReq =
                 HttpRequest.newBuilder()
                         .uri(wrapperResourceURI)
@@ -34,14 +37,14 @@ public class ExperianService {
 
         res = httpClient.send(httpReq, HttpResponse.BodyHandlers.ofString());
 
-        System.out.println("saa response status code: " + res.statusCode());
+        LOGGER.info("StartAuthenticationAttempt response status code: " + res.statusCode());
         String body = res.body();
-        System.out.println("saa response: " + body);
+        LOGGER.info("StartAuthenticationAttempt response: " + body);
 
         return objectMapper.readValue(body, QuestionsResponse.class);
     }
 
-    private URI get_KBV_SAA_URI() {
+    private URI getKbvStartAuthenticationAttemptUri() {
         String baseURL = System.getenv("EXPERIAN_API_WRAPPER_URL");
         String resource = System.getenv("EXPERIAN_API_WRAPPER_SAA_RESOURCE");
         return URI.create(baseURL + resource);

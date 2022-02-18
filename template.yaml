@@ -170,7 +170,6 @@ Resources:
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
           EXPERIAN_API_WRAPPER_SAA_RESOURCE: /question-request
           EXPERIAN_API_WRAPPER_URL: https://u7tpgfw3bh.execute-api.eu-west-2.amazonaws.com/dev
-
       Events:
         KBVQuestionApi:
           Type: Api

@@ -9,7 +9,6 @@ import java.util.Optional;
 
 public class StorageService {
     private final DataStore<KBVSessionItem> dataStore;
-    private KBVSessionItem kbvSessionItem = new KBVSessionItem();
 
     public StorageService(DataStore<KBVSessionItem> datastore) {
         this.dataStore = datastore;
@@ -20,6 +19,7 @@ public class StorageService {
     }
 
     public void save(String sessionId, String personIdentity, String questionState) {
+        KBVSessionItem kbvSessionItem = new KBVSessionItem();
         kbvSessionItem.setSessionId(sessionId);
         kbvSessionItem.setUserAttributes(personIdentity);
         kbvSessionItem.setQuestionState(questionState);

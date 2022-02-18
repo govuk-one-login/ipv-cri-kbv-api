@@ -4,13 +4,13 @@ import java.util.List;
 
 public class NextTransId {
 
-    private List string;
+    private List<String> string;
 
-    public List getString() {
+    public List<String> getString() {
         return string;
     }
 
-    public void setString(List string) {
+    public void setString(List<String> string) {
         this.string = string;
     }
 }
