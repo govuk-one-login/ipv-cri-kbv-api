@@ -3,6 +3,10 @@ package uk.gov.di.ipv.cri.kbv.api.service;
 import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
+
 public class StorageService {
     private final DataStore<KBVSessionItem> dataStore;
 
@@ -10,14 +14,25 @@ public class StorageService {
         this.dataStore = datastore;
     }
 
-    public KBVSessionItem getSessionId(String sessionId) {
-        return dataStore.getItem(sessionId);
+    public Optional<KBVSessionItem> getSessionId(String sessionId) {
+        return Optional.of(dataStore.getItem(sessionId));
     }
 
-    public void save(String sessionId, String state) {
+    public void save(String sessionId, String personIdentity, String questionState) {
         KBVSessionItem kbvSessionItem = new KBVSessionItem();
         kbvSessionItem.setSessionId(sessionId);
-        kbvSessionItem.setQuestionState(state);
+        kbvSessionItem.setUserAttributes(personIdentity);
+        kbvSessionItem.setQuestionState(questionState);
+        kbvSessionItem.setExpiryDate(
+                String.valueOf(Instant.now().plus(48, ChronoUnit.HOURS).getEpochSecond()));
         dataStore.create(kbvSessionItem);
+    }
+
+    public void update(String sessionId, String state, String auth, String urn) {
+        KBVSessionItem kbvSessionItem = dataStore.getItem(sessionId);
+        kbvSessionItem.setQuestionState(state);
+        kbvSessionItem.setAuthRefNo(auth);
+        kbvSessionItem.setUrn(urn);
+        dataStore.update(kbvSessionItem);
     }
 }

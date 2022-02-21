@@ -1,12 +1,13 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class Results {
     private String outcome;
     private String authenticationResult;
-    List<String> nextTransId;
+    private NextTransId nextTransId;
+    private String questions;
+    private String alerts;
+    private String caseFoundFlag;
+    private String confirmationCode;
 
     public String getOutcome() {
         return outcome;
@@ -24,10 +25,43 @@ public class Results {
         this.authenticationResult = authenticationResult;
     }
 
-    public List<String> getNextTransId() {
-        if (nextTransId == null) {
-            nextTransId = new ArrayList<String>();
-        }
-        return this.nextTransId;
+    public NextTransId getNextTransId() {
+        return nextTransId;
+    }
+
+    public void setNextTransId(NextTransId nextTransId) {
+        this.nextTransId = nextTransId;
+    }
+
+    public String getQuestions() {
+        return questions;
+    }
+
+    public void setQuestions(String questions) {
+        this.questions = questions;
+    }
+
+    public String getAlerts() {
+        return alerts;
+    }
+
+    public void setAlerts(String alerts) {
+        this.alerts = alerts;
+    }
+
+    public String getCaseFoundFlag() {
+        return caseFoundFlag;
+    }
+
+    public void setCaseFoundFlag(String caseFoundFlag) {
+        this.caseFoundFlag = caseFoundFlag;
+    }
+
+    public String getConfirmationCode() {
+        return confirmationCode;
+    }
+
+    public void setConfirmationCode(String confirmationCode) {
+        this.confirmationCode = confirmationCode;
     }
 }

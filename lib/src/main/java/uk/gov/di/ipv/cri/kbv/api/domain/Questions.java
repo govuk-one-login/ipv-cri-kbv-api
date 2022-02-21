@@ -2,12 +2,12 @@ package uk.gov.di.ipv.cri.kbv.api.domain;
 
 public class Questions {
 
-    private Question[] questions;
+    private Question[] question;
     private int skipsRemaining;
-    private String skipsWarning;
+    private String skipWarning;
 
     public Question[] getQuestion() {
-        return questions;
+        return question;
     }
 
     public int getSkipsRemaining() {
@@ -15,6 +15,6 @@ public class Questions {
     }
 
     public String getSkipWarning() {
-        return skipsWarning;
+        return skipWarning;
     }
 }

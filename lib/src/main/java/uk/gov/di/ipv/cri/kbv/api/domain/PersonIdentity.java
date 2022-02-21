@@ -1,5 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
@@ -11,7 +13,7 @@ import java.util.List;
 
 public class PersonIdentity {
     @NotBlank(message = "{personIdentity.title.required}")
-    private String title;
+    private String title = "MR";
 
     @NotBlank(message = "{personIdentity.firstname.required}")
     private String firstName;
@@ -23,6 +25,7 @@ public class PersonIdentity {
 
     @NotNull(message = "{personIdentity.dateOfBirth.required}")
     @Past(message = "{personIdentity.dateOfBirth.notInFuture}")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate dateOfBirth;
 
     @Valid

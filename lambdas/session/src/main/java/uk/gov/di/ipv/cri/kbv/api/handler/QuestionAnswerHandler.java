@@ -8,10 +8,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.lambda.powertools.tracing.CaptureMode;
 import software.amazon.lambda.powertools.tracing.Tracing;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.domain.*;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
@@ -45,7 +42,7 @@ public class QuestionAnswerHandler
         String responseBody = "{}";
         Map<String, String> responseHeaders = Map.of("Content-Type", "application/json");
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-        KBVSessionItem kbvSessionItem = storageService.getSessionId(sessionId);
+        KBVSessionItem kbvSessionItem = storageService.getSessionId(sessionId).orElseThrow();
         QuestionState questionState = null;
         try {
             questionState =
@@ -82,7 +79,7 @@ public class QuestionAnswerHandler
     private QuestionsResponse submitAnswers(QuestionState questionState)
             throws IOException, InterruptedException {
         QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
-        List<QuestionState.QuestionAnswerPair> pairs = questionState.getQaPairs();
+        List<QuestionAnswerPair> pairs = questionState.getQaPairs();
 
         List<QuestionAnswer> collect =
                 pairs.stream()
@@ -115,7 +112,7 @@ public class QuestionAnswerHandler
         HttpResponse<String> res = httpClient.send(httpReq, HttpResponse.BodyHandlers.ofString());
 
         String body = res.body();
-        System.out.println("😁 got rtq response: " + body);
+        System.out.println("got rtq response: " + body);
         QuestionsResponse questionsResponse = objectMapper.readValue(body, QuestionsResponse.class);
         return questionsResponse;
     }

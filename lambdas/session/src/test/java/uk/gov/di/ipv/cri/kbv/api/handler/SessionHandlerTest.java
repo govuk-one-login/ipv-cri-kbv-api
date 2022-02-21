@@ -95,7 +95,7 @@ public class SessionHandlerTest {
         when(mockParseJWT.getPersonIdentity(mockRequest)).thenReturn(Optional.of(person));
         doThrow(InternalServerErrorException.class)
                 .when(mockStorageService)
-                .save(anyString(), anyString());
+                .save(anyString(), anyString(), anyString());
 
         mockApiGatewayProxyResponseEvent = sessionHandler.handleRequest(mockRequest, mockContext);
 
