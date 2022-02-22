@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.lambda.powertools.tracing.CaptureMode;
 import software.amazon.lambda.powertools.tracing.Tracing;
-
 import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
@@ -30,7 +29,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class QuestionAnswerHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
+public class QuestionAnswerHandler
+        implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(QuestionAnswerHandler.class);
 
@@ -40,8 +40,9 @@ public class QuestionAnswerHandler implements RequestHandler<APIGatewayProxyRequ
     private final ExperianService experianService;
     public static final String HEADER_SESSION_ID = "session-id";
 
-    public QuestionAnswerHandler(){
-        this(new ObjectMapper(),
+    public QuestionAnswerHandler() {
+        this(
+                new ObjectMapper(),
                 new StorageService(
                         new DataStore<>(
                                 ConfigurationService.getInstance().getKBVSessionTableName(),
@@ -50,11 +51,13 @@ public class QuestionAnswerHandler implements RequestHandler<APIGatewayProxyRequ
                                         ConfigurationService.getInstance().isRunningLocally()))),
                 new ExperianService(objectMapper),
                 new APIGatewayProxyResponseEvent());
-
     }
 
-    public QuestionAnswerHandler(ObjectMapper objectMapper, StorageService storageService, ExperianService experianService,
-                                 APIGatewayProxyResponseEvent apiGatewayProxyResponseEvent) {
+    public QuestionAnswerHandler(
+            ObjectMapper objectMapper,
+            StorageService storageService,
+            ExperianService experianService,
+            APIGatewayProxyResponseEvent apiGatewayProxyResponseEvent) {
         this.objectMapper = objectMapper;
         this.objectMapper.registerModule(new JavaTimeModule());
         this.storageService = storageService;
@@ -70,7 +73,7 @@ public class QuestionAnswerHandler implements RequestHandler<APIGatewayProxyRequ
         String responseBody = "{}";
         Map<String, String> responseHeaders = Map.of("Content-Type", "application/json");
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-        LOGGER.info("QuestionAnswerHandler handleRequest sessionId: "+sessionId);
+        LOGGER.info("QuestionAnswerHandler handleRequest sessionId: " + sessionId);
         KBVSessionItem kbvSessionItem = storageService.getSessionId(sessionId).orElseThrow();
         QuestionState questionState;
         QuestionAnswer answer;
@@ -81,26 +84,26 @@ public class QuestionAnswerHandler implements RequestHandler<APIGatewayProxyRequ
             answer = objectMapper.readValue(input.getBody(), QuestionAnswer.class);
             String questionID = answer.getQuestionId();
 
-            QuestionAnswerPair questionAnswerPair = questionState.getQaPairs().stream()
-                    .filter(
-                            pair ->
-                                    pair.getQuestion()
-                                            .getQuestionID()
-                                            .equals(questionID))
-                    .findFirst()
-                    .orElseThrow(
-                            () ->
-                                    new IllegalStateException(
-                                            "Question not found for questionID: "
-                                                    + questionID));
+            QuestionAnswerPair questionAnswerPair =
+                    questionState.getQaPairs().stream()
+                            .filter(pair -> pair.getQuestion().getQuestionID().equals(questionID))
+                            .findFirst()
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalStateException(
+                                                    "Question not found for questionID: "
+                                                            + questionID));
             questionAnswerPair.setAnswer(answer.getAnswer());
 
-            questionState.getQaPairs().stream().map( qaPair -> {
-                if(qaPair.getQuestion().getQuestionID().equals(questionID)){
-                    qaPair = questionAnswerPair;
-                }
-                return qaPair;
-            }).collect(Collectors.toList());
+            questionState.getQaPairs().stream()
+                    .map(
+                            qaPair -> {
+                                if (qaPair.getQuestion().getQuestionID().equals(questionID)) {
+                                    qaPair = questionAnswerPair;
+                                }
+                                return qaPair;
+                            })
+                    .collect(Collectors.toList());
 
             storageService.updateAnswer(sessionId, objectMapper.writeValueAsString(questionState));
             if (questionState.canSubmitAnswers(questionState.getQaPairs())) {
@@ -108,7 +111,11 @@ public class QuestionAnswerHandler implements RequestHandler<APIGatewayProxyRequ
                 boolean moreQuestions = questionState.setQuestionsResponse(questionsResponse);
                 if (moreQuestions) {
                     String state = objectMapper.writeValueAsString(questionState);
-                    storageService.update(sessionId, state, questionsResponse.getControl().getAuthRefNo(), questionsResponse.getControl().getURN());
+                    storageService.update(
+                            sessionId,
+                            state,
+                            questionsResponse.getControl().getAuthRefNo(),
+                            questionsResponse.getControl().getURN());
                     Optional<Question> nextQuestion = questionState.getNextQuestion();
                     responseBody = objectMapper.writeValueAsString(nextQuestion.get());
                     response.withStatusCode(HttpStatus.SC_CREATED);
@@ -157,7 +164,9 @@ public class QuestionAnswerHandler implements RequestHandler<APIGatewayProxyRequ
         questionAnswerRequest.setAuthRefNo(questionState.getControl().getAuthRefNo());
         questionAnswerRequest.setUrn(questionState.getControl().getURN());
         String json = objectMapper.writeValueAsString(questionAnswerRequest);
-        QuestionsResponse questionsResponse = experianService.getResponseFromExperianAPI(json, "EXPERIAN_API_WRAPPER_RTQ_RESOURCE");
+        QuestionsResponse questionsResponse =
+                experianService.getResponseFromExperianAPI(
+                        json, "EXPERIAN_API_WRAPPER_RTQ_RESOURCE");
 
         return questionsResponse;
     }
