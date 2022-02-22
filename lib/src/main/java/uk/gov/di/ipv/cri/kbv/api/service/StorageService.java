@@ -36,11 +36,6 @@ public class StorageService {
         dataStore.update(kbvSessionItem);
     }
 
-    public void updateAnswer(String sessionId, String state) {
-        KBVSessionItem kbvSessionItem = getKbvSessionItem(sessionId, state);
-        dataStore.update(kbvSessionItem);
-    }
-
     private KBVSessionItem getKbvSessionItem(String sessionId, String state) {
         KBVSessionItem kbvSessionItem = dataStore.getItem(sessionId);
         kbvSessionItem.setQuestionState(state);

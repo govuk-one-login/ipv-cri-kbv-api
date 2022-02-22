@@ -105,7 +105,11 @@ public class QuestionAnswerHandler
                             })
                     .collect(Collectors.toList());
 
-            storageService.updateAnswer(sessionId, objectMapper.writeValueAsString(questionState));
+            storageService.update(
+                    sessionId,
+                    objectMapper.writeValueAsString(questionState),
+                    questionState.getControl().getAuthRefNo(),
+                    questionState.getControl().getURN());
             if (questionState.canSubmitAnswers(questionState.getQaPairs())) {
                 QuestionsResponse questionsResponse = submitAnswersToExperianAPI(questionState);
                 boolean moreQuestions = questionState.setQuestionsResponse(questionsResponse);
