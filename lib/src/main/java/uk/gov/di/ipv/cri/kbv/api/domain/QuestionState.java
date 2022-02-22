@@ -20,6 +20,7 @@ public class QuestionState {
         Questions questions = questionsResponse.getQuestions();
         boolean hasQuestions = questions != null && questions.getQuestion() != null;
         if (hasQuestions) {
+            qaPairs = new ArrayList<>();
             skipsRemaining = questions.getSkipsRemaining();
             skipWarning = questions.getSkipWarning();
             for (Question question : questions.getQuestion()) {
@@ -66,7 +67,7 @@ public class QuestionState {
         questionAnswerPair.setAnswer(answer.getAnswer());
     }
 
-    public boolean submitAnswers() {
-        return qaPairs.stream().allMatch(qa -> qa.getAnswer() != null);
+    public boolean canSubmitAnswers(List<QuestionAnswerPair> pairs) {
+        return pairs.stream().allMatch(qa -> qa.getAnswer() != null);
     }
 }

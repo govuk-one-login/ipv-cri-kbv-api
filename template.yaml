@@ -183,6 +183,36 @@ Resources:
 #        SubnetIds:
 #          - subnet-07fcf55b165be35ed
 
+  KBVAnswerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./lambdas/answer
+      Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionAnswerHandler::handleRequest
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBReadPolicy:
+            TableName: !Ref KBVSessionTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref KBVSessionTable
+      Runtime: java11
+      MemorySize: 512
+      Tracing: Active
+      Environment:
+        Variables:
+          IS_LOCAL: false
+          KBV_SESSION_TABLE_NAME: !Ref KBVSessionTable
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
+          EXPERIAN_API_WRAPPER_RTQ_RESOURCE: /question-answer
+          EXPERIAN_API_WRAPPER_URL: https://u7tpgfw3bh.execute-api.eu-west-2.amazonaws.com/dev
+      Events:
+        KBVAnswerFunctionApi:
+          Type: Api
+          Properties:
+            Path: /answer
+            Method: post
+            RestApiId: !Ref KBVSessionApi
+
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM

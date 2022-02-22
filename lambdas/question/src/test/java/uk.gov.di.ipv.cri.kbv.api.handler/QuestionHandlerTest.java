@@ -96,7 +96,9 @@ class QuestionHandlerTest {
         when(mockObjectMapper.writeValueAsString(personIdentityMock)).thenReturn("person-identity");
 
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
-        when(mockExperianService.getQuestions("person-identity")).thenReturn(questionsResponseMock);
+        when(mockExperianService.getResponseFromExperianAPI(
+                        "person-identity", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
+                .thenReturn(questionsResponseMock);
         when(questionStateMock.setQuestionsResponse(questionsResponseMock)).thenReturn(true);
         String state = "question-state";
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn(state);
@@ -147,7 +149,9 @@ class QuestionHandlerTest {
         when(mockObjectMapper.writeValueAsString(personIdentityMock)).thenReturn("person-identity");
 
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
-        when(mockExperianService.getQuestions("person-identity")).thenReturn(questionsResponseMock);
+        when(mockExperianService.getResponseFromExperianAPI(
+                        "person-identity", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
+                .thenReturn(questionsResponseMock);
         when(questionStateMock.setQuestionsResponse(questionsResponseMock)).thenReturn(false);
 
         mockApiGatewayProxyResponseEvent = questionHandler.handleRequest(input, contextMock);

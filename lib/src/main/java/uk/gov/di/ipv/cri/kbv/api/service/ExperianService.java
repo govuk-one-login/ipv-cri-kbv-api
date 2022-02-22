@@ -21,9 +21,10 @@ public class ExperianService {
         this.objectMapper = objectMapper;
     }
 
-    public QuestionsResponse getQuestions(String payload) throws IOException, InterruptedException {
-        URI wrapperResourceURI = getKbvStartAuthenticationAttemptUri();
-        LOGGER.info("KBV StartAuthenticationAttempt URI: " + wrapperResourceURI);
+    public QuestionsResponse getResponseFromExperianAPI(String payload, String uri)
+            throws IOException, InterruptedException {
+        URI wrapperResourceURI = createExperianUri(uri);
+        LOGGER.info("KBV Experian URI: " + wrapperResourceURI);
         HttpRequest httpReq =
                 HttpRequest.newBuilder()
                         .uri(wrapperResourceURI)
@@ -37,16 +38,16 @@ public class ExperianService {
 
         res = httpClient.send(httpReq, HttpResponse.BodyHandlers.ofString());
 
-        LOGGER.info("StartAuthenticationAttempt response status code: " + res.statusCode());
+        LOGGER.info("getResponseFromExperianAPI response status code: " + res.statusCode());
         String body = res.body();
-        LOGGER.info("StartAuthenticationAttempt response: " + body);
+        LOGGER.info("getResponseFromExperianAPI response: " + body);
 
         return objectMapper.readValue(body, QuestionsResponse.class);
     }
 
-    private URI getKbvStartAuthenticationAttemptUri() {
+    private URI createExperianUri(String uri) {
         String baseURL = System.getenv("EXPERIAN_API_WRAPPER_URL");
-        String resource = System.getenv("EXPERIAN_API_WRAPPER_SAA_RESOURCE");
+        String resource = System.getenv(uri);
         return URI.create(baseURL + resource);
     }
 }
