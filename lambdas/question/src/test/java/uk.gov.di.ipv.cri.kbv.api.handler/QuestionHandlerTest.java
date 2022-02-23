@@ -13,7 +13,6 @@ import com.amazonaws.xray.strategy.LogErrorContextMissingStrategy;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,7 +49,6 @@ class QuestionHandlerTest {
     @Mock private ObjectMapper mockObjectMapper;
     @Mock private StorageService mockStorageService;
     @Mock private ExperianService mockExperianService;
-    @Mock private APIGatewayProxyResponseEvent mockApiGatewayProxyResponseEvent;
     @Mock private Appender<ILoggingEvent> appender;
 
     @BeforeEach
@@ -62,16 +60,7 @@ class QuestionHandlerTest {
         Logger logger = (Logger) LoggerFactory.getLogger(QuestionHandler.class);
         logger.addAppender(appender);
         questionHandler =
-                new QuestionHandler(
-                        mockObjectMapper,
-                        mockStorageService,
-                        mockExperianService,
-                        mockApiGatewayProxyResponseEvent);
-    }
-
-    @AfterEach
-    void tearDown() {
-        AWSXRay.endSegment();
+                new QuestionHandler(mockObjectMapper, mockStorageService, mockExperianService);
     }
 
     @Test
@@ -108,9 +97,7 @@ class QuestionHandlerTest {
         when(controlMock.getAuthRefNo()).thenReturn(authRefNo);
         String ipvSessionId = "ipv-session-id";
         when(controlMock.getURN()).thenReturn(ipvSessionId);
-        doNothing()
-                .when(mockStorageService)
-                .update(kbvSessionItemMock);
+        doNothing().when(mockStorageService).update(kbvSessionItemMock);
 
         Question expectedQuestion = mock(Question.class);
 
@@ -121,11 +108,10 @@ class QuestionHandlerTest {
         when(mockObjectMapper.writeValueAsString(expectedQuestion))
                 .thenReturn(TestData.EXPECTED_QUESTION);
 
-        when(mockApiGatewayProxyResponseEvent.getBody()).thenReturn(TestData.EXPECTED_QUESTION);
-        mockApiGatewayProxyResponseEvent = questionHandler.handleRequest(input, contextMock);
+        APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
-        verify(mockApiGatewayProxyResponseEvent).withStatusCode(HttpStatus.SC_OK);
-        assertEquals(TestData.EXPECTED_QUESTION, mockApiGatewayProxyResponseEvent.getBody());
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
     }
 
     @Test
@@ -154,10 +140,9 @@ class QuestionHandlerTest {
                 .thenReturn(questionsResponseMock);
         when(questionStateMock.setQuestionsResponse(questionsResponseMock)).thenReturn(false);
 
-        mockApiGatewayProxyResponseEvent = questionHandler.handleRequest(input, contextMock);
-        verify(mockApiGatewayProxyResponseEvent).withStatusCode(HttpStatus.SC_BAD_REQUEST);
-        verify(mockApiGatewayProxyResponseEvent)
-                .withBody("{ \"error\":\" no further questions \" }");
+        APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
+        assertEquals("{ \"error\":\" no further questions \" }", response.getBody());
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -166,12 +151,13 @@ class QuestionHandlerTest {
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
                 ArgumentCaptor.forClass(ILoggingEvent.class);
 
-        mockApiGatewayProxyResponseEvent =
+        APIGatewayProxyResponseEvent response =
                 questionHandler.handleRequest(input, mock(Context.class));
-        verify(mockApiGatewayProxyResponseEvent).withStatusCode(HttpStatus.SC_BAD_REQUEST);
+
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
         assertEquals("Error finding the requested resource", event.getMessage());
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -186,18 +172,17 @@ class QuestionHandlerTest {
                 .when(mockStorageService)
                 .getSessionId(anyString());
 
-        mockApiGatewayProxyResponseEvent =
+        APIGatewayProxyResponseEvent response =
                 questionHandler.handleRequest(input, mock(Context.class));
-        verify(mockApiGatewayProxyResponseEvent)
-                .withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
         assertEquals("AWS Server error occurred.", event.getMessage());
+        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
     }
 
     @Test
-    void shouldReturn500ErrorWhenPersonIdentityCannotBeParsedToJSON()
-            throws IOException, InterruptedException {
+    void shouldReturn500ErrorWhenPersonIdentityCannotBeParsedToJSON() throws IOException {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
@@ -211,12 +196,12 @@ class QuestionHandlerTest {
                         kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
                 .thenThrow(JsonProcessingException.class);
 
-        mockApiGatewayProxyResponseEvent =
+        APIGatewayProxyResponseEvent response =
                 questionHandler.handleRequest(input, mock(Context.class));
-        verify(mockApiGatewayProxyResponseEvent)
-                .withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
         assertEquals("Failed to parse object using ObjectMapper", event.getMessage());
+        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
     }
 }

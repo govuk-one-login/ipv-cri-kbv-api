@@ -47,20 +47,18 @@ public class QuestionHandler
                                 KBVSessionItem.class,
                                 DataStore.getClient(
                                         ConfigurationService.getInstance().isRunningLocally()))),
-                new ExperianService(objectMapper),
-                new APIGatewayProxyResponseEvent());
+                new ExperianService(objectMapper));
     }
 
     public QuestionHandler(
             ObjectMapper objectMapper,
             StorageService storageService,
-            ExperianService experianService,
-            APIGatewayProxyResponseEvent apiGatewayProxyResponseEvent) {
+            ExperianService experianService) {
         this.objectMapper = objectMapper;
         this.objectMapper.registerModule(new JavaTimeModule());
         this.storageService = storageService;
         this.experianService = experianService;
-        this.response = apiGatewayProxyResponseEvent;
+        this.response = new APIGatewayProxyResponseEvent();
     }
 
     @Override

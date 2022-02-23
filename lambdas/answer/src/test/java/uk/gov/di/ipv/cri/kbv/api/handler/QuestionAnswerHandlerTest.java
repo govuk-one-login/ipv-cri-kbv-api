@@ -45,7 +45,6 @@ public class QuestionAnswerHandlerTest {
     @Mock private ObjectMapper mockObjectMapper;
     @Mock private StorageService mockStorageService;
     @Mock private ExperianService mockExperianService;
-    @Mock private APIGatewayProxyResponseEvent mockApiGatewayProxyResponseEvent;
     @Mock private Appender<ILoggingEvent> appender;
 
     @BeforeEach
@@ -60,15 +59,7 @@ public class QuestionAnswerHandlerTest {
 
         questionAnswerHandler =
                 new QuestionAnswerHandler(
-                        mockObjectMapper,
-                        mockStorageService,
-                        mockExperianService,
-                        mockApiGatewayProxyResponseEvent);
-    }
-
-    @AfterEach
-    void tearDown() {
-        AWSXRay.endSegment();
+                        mockObjectMapper, mockStorageService, mockExperianService);
     }
 
     @Test
@@ -77,7 +68,7 @@ public class QuestionAnswerHandlerTest {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Context contextMock = mock(Context.class);
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
-        QuestionState questionStateMock = mock (QuestionState.class);
+        QuestionState questionStateMock = mock(QuestionState.class);
         Control controlMock = mock(Control.class);
         when(controlMock.getAuthRefNo()).thenReturn("some-auth-ref");
         when(controlMock.getURN()).thenReturn("some-urn");
@@ -89,7 +80,8 @@ public class QuestionAnswerHandlerTest {
         String questionID = "Q0008";
         String answer = "some-answer";
 
-        String requestPayload = "\"questionID\":\" " +  questionID + " \",\"answer\":\" " + answer + " \"";
+        String requestPayload =
+                "\"questionID\":\" " + questionID + " \",\"answer\":\" " + answer + " \"";
         when(questionAnswerMock.getQuestionId()).thenReturn(questionID);
         when(questionAnswerMock.getAnswer()).thenReturn(answer);
 
@@ -101,31 +93,32 @@ public class QuestionAnswerHandlerTest {
                 .thenReturn(questionStateMock);
 
         when(input.getBody()).thenReturn(requestPayload);
-        when(mockObjectMapper.readValue(requestPayload, QuestionAnswer.class)).thenReturn(questionAnswerMock);
+        when(mockObjectMapper.readValue(requestPayload, QuestionAnswer.class))
+                .thenReturn(questionAnswerMock);
 
-        Question questionMock1 = mock( Question.class);
+        Question questionMock1 = mock(Question.class);
         when(questionMock1.getQuestionID()).thenReturn(questionID);
 
         QuestionAnswerPair questionAnswerPairMock1 = mock(QuestionAnswerPair.class);
         when(questionAnswerPairMock1.getQuestion()).thenReturn(questionMock1);
 
-        Question questionMock2 = mock( Question.class);
-        when(questionMock2.getQuestionID()).thenReturn("some-question-id");
+        Question questionMock2 = mock(Question.class);
+        // when(questionMock2.getQuestionID()).thenReturn("some-question-id");
         QuestionAnswerPair questionAnswerPairMock2 = mock(QuestionAnswerPair.class);
-        when(questionAnswerPairMock2.getQuestion()).thenReturn(questionMock2);
-
-        when(questionStateMock.getQaPairs()).thenReturn(List.of(questionAnswerPairMock1, questionAnswerPairMock2));
-
-        when(questionAnswerPairMock1.getAnswer()).thenReturn(answer);
+        // when(questionAnswerPairMock2.getQuestion()).thenReturn(questionMock2);
+        when(questionStateMock.getQaPairs())
+                .thenReturn(List.of(questionAnswerPairMock1, questionAnswerPairMock2));
+        // when(questionAnswerPairMock1.getAnswer()).thenReturn(answer);
 
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
         doNothing().when(mockStorageService).update(kbvSessionItemMock);
-
         when(questionStateMock.getNextQuestion()).thenReturn(Optional.of(questionMock2));
         when(mockObjectMapper.writeValueAsString(questionMock2)).thenReturn("response-body");
 
-        mockApiGatewayProxyResponseEvent = questionAnswerHandler.handleRequest(input, contextMock);
+        APIGatewayProxyResponseEvent result =
+                questionAnswerHandler.handleRequest(input, contextMock);
 
-        assertEquals(HttpStatus.SC_OK, mockApiGatewayProxyResponseEvent.getStatusCode());
+        assertEquals(HttpStatus.SC_OK, result.getStatusCode());
+        assertEquals("response-body", result.getBody());
     }
 }
