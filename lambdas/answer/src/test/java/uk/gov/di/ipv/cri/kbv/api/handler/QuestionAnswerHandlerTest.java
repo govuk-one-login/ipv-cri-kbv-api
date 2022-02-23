@@ -28,17 +28,13 @@ import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.service.ExperianService;
 import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionAnswerHandler.HEADER_SESSION_ID;
 
@@ -70,7 +66,12 @@ public class QuestionAnswerHandlerTest {
                         mockApiGatewayProxyResponseEvent);
     }
 
-//    @Test
+    @AfterEach
+    void tearDown() {
+        AWSXRay.endSegment();
+    }
+
+    @Test
     void shouldReturn200OkWithNextQuestionWhen1stAnswerIsSubmitted()
             throws JsonProcessingException {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
@@ -122,7 +123,6 @@ public class QuestionAnswerHandlerTest {
 
         when(questionStateMock.getNextQuestion()).thenReturn(Optional.of(questionMock2));
         when(mockObjectMapper.writeValueAsString(questionMock2)).thenReturn("response-body");
-
 
         mockApiGatewayProxyResponseEvent = questionAnswerHandler.handleRequest(input, contextMock);
 

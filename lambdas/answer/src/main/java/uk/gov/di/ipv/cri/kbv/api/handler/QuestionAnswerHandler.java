@@ -72,7 +72,6 @@ public class QuestionAnswerHandler
             APIGatewayProxyRequestEvent input, Context context) {
 
         String responseBody = "{}";
-        Map<String, String> responseHeaders = Map.of("Content-Type", "application/json");
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
         LOGGER.info("QuestionAnswerHandler handleRequest sessionId: " + sessionId);
         KBVSessionItem kbvSessionItem = storageService.getSessionId(sessionId).orElseThrow();
@@ -134,8 +133,7 @@ public class QuestionAnswerHandler
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.withBody(responseBody);
         }
-
-        response.withHeaders(responseHeaders);
+        response.withHeaders(Map.of("Content-Type", "application/json"));
         return response;
     }
 
