@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class QuestionAnswerHandler
@@ -95,38 +96,29 @@ public class QuestionAnswerHandler
                                                             + questionID));
             questionAnswerPair.setAnswer(answer.getAnswer());
 
-            questionState.getQaPairs().stream()
-                    .map(
-                            qaPair -> {
-                                if (qaPair.getQuestion().getQuestionID().equals(questionID)) {
-                                    qaPair = questionAnswerPair;
-                                }
-                                return qaPair;
-                            })
-                    .collect(Collectors.toList());
+            kbvSessionItem.setQuestionState(objectMapper.writeValueAsString(questionState));
+            kbvSessionItem.setAuthRefNo(questionState.getControl().getAuthRefNo());
+            kbvSessionItem.setUrn(questionState.getControl().getURN());
+            storageService.update(kbvSessionItem);
 
-            storageService.update(
-                    sessionId,
-                    objectMapper.writeValueAsString(questionState),
-                    questionState.getControl().getAuthRefNo(),
-                    questionState.getControl().getURN());
             if (questionState.canSubmitAnswers(questionState.getQaPairs())) {
                 QuestionsResponse questionsResponse = submitAnswersToExperianAPI(questionState);
                 boolean moreQuestions = questionState.setQuestionsResponse(questionsResponse);
                 if (moreQuestions) {
                     String state = objectMapper.writeValueAsString(questionState);
-                    storageService.update(
-                            sessionId,
-                            state,
-                            questionsResponse.getControl().getAuthRefNo(),
-                            questionsResponse.getControl().getURN());
+                    kbvSessionItem.setQuestionState(state);
+                    kbvSessionItem.setAuthRefNo(questionState.getControl().getAuthRefNo());
+                    kbvSessionItem.setUrn(questionState.getControl().getURN());
+                    storageService.update(kbvSessionItem);
                     Optional<Question> nextQuestion = questionState.getNextQuestion();
                     responseBody = objectMapper.writeValueAsString(nextQuestion.get());
                     response.withStatusCode(HttpStatus.SC_CREATED);
                     response.withBody(responseBody);
                 } else {
-                    storageService.updateAuthorisationCode(sessionId, responseBody);
                     responseBody = objectMapper.writeValueAsString(questionsResponse);
+                    kbvSessionItem.setQuestionState(responseBody);
+                    kbvSessionItem.setAuthorizationCode(UUID.randomUUID().toString());
+                    storageService.update(kbvSessionItem);
                     response.withStatusCode(HttpStatus.SC_OK);
                     response.withBody(responseBody);
                 }

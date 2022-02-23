@@ -93,11 +93,10 @@ public class QuestionHandler
                 } else {
                     response.withStatusCode(HttpStatus.SC_OK);
                     String state = objectMapper.writeValueAsString(questionState);
-                    storageService.update(
-                            sessionId,
-                            state,
-                            questionState.getControl().getAuthRefNo(),
-                            questionState.getControl().getURN());
+                    kbvSessionItem.setQuestionState(state);
+                    kbvSessionItem.setAuthRefNo(questionState.getControl().getAuthRefNo());
+                    kbvSessionItem.setUrn(questionState.getControl().getURN());
+                    storageService.update(kbvSessionItem);
                     nextQuestion = questionState.getNextQuestion();
                     response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
                 }

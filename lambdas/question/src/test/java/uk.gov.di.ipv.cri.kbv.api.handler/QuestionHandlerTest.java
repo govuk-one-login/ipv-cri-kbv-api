@@ -110,7 +110,7 @@ class QuestionHandlerTest {
         when(controlMock.getURN()).thenReturn(ipvSessionId);
         doNothing()
                 .when(mockStorageService)
-                .update(sessionHeader.get(HEADER_SESSION_ID), state, authRefNo, ipvSessionId);
+                .update(kbvSessionItemMock);
 
         Question expectedQuestion = mock(Question.class);
 
