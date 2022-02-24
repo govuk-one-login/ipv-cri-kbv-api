@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.http.HttpStatus;
@@ -14,7 +15,6 @@ import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
@@ -24,11 +24,9 @@ import uk.gov.di.ipv.cri.kbv.api.service.ExperianService;
 import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class QuestionAnswerHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -40,6 +38,7 @@ public class QuestionAnswerHandler
     private final StorageService storageService;
     private final ExperianService experianService;
     public static final String HEADER_SESSION_ID = "session-id";
+    public static final String ERROR = "\"error\"";
 
     public QuestionAnswerHandler() {
         this(
@@ -68,15 +67,14 @@ public class QuestionAnswerHandler
     @Tracing(captureMode = CaptureMode.DISABLED)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
-
-        String responseBody = "{}";
-        String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-        LOGGER.info("QuestionAnswerHandler handleRequest sessionId: " + sessionId);
-        KBVSessionItem kbvSessionItem = storageService.getSessionId(sessionId).orElseThrow();
         QuestionState questionState;
         QuestionAnswer answer;
+        String responseBody = "{}";
 
         try {
+            String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
+            KBVSessionItem kbvSessionItem =
+                    storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
             questionState =
                     objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
             answer = objectMapper.readValue(input.getBody(), QuestionAnswer.class);
@@ -99,7 +97,8 @@ public class QuestionAnswerHandler
             storageService.update(kbvSessionItem);
 
             if (questionState.canSubmitAnswers(questionState.getQaPairs())) {
-                QuestionsResponse questionsResponse = submitAnswersToExperianAPI(questionState);
+                QuestionsResponse questionsResponse =
+                        experianService.submitAnswersToExperianAPI(questionState);
                 boolean moreQuestions = questionState.setQuestionsResponse(questionsResponse);
                 if (moreQuestions) {
                     String state = objectMapper.writeValueAsString(questionState);
@@ -125,41 +124,24 @@ public class QuestionAnswerHandler
                 response.withStatusCode(HttpStatus.SC_OK);
                 response.withBody(responseBody);
             }
-
-        } catch (Exception e) {
-            responseBody = "{ \"error\":\"" + e.getMessage() + "\" }";
+        } catch (JsonProcessingException jsonProcessingException) {
+            LOGGER.error("Failed to parse object using ObjectMapper");
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-            response.withBody(responseBody);
+            response.withBody("{ " + ERROR + ":\"" + jsonProcessingException.getMessage() + "\" }");
+        } catch (NullPointerException npe) {
+            LOGGER.error("Error finding the requested resource");
+            response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
+            response.withBody("{ " + ERROR + ":\"" + npe.getMessage() + "\" }");
+        } catch (IOException | InterruptedException e) {
+            LOGGER.error("Retrieving questions failed: " + e);
+            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            response.withBody("{ " + ERROR + ":\"" + e.getMessage() + "\" }");
+        } catch (com.amazonaws.AmazonServiceException e) {
+            LOGGER.error("AWS Server error occurred.");
+            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            response.withBody("{ " + ERROR + ":\"" + e.getMessage() + "\" }");
         }
         response.withHeaders(Map.of("Content-Type", "application/json"));
         return response;
-    }
-
-    private QuestionsResponse submitAnswersToExperianAPI(QuestionState questionState)
-            throws IOException, InterruptedException {
-        QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
-        List<QuestionAnswerPair> pairs = questionState.getQaPairs();
-
-        List<QuestionAnswer> collect =
-                pairs.stream()
-                        .map(
-                                pair -> {
-                                    QuestionAnswer questionAnswer = new QuestionAnswer();
-                                    questionAnswer.setAnswer(pair.getAnswer());
-                                    questionAnswer.setQuestionId(
-                                            pair.getQuestion().getQuestionID());
-                                    return questionAnswer;
-                                })
-                        .collect(Collectors.toList());
-
-        questionAnswerRequest.setQuestionAnswers(collect);
-        questionAnswerRequest.setAuthRefNo(questionState.getControl().getAuthRefNo());
-        questionAnswerRequest.setUrn(questionState.getControl().getURN());
-        String json = objectMapper.writeValueAsString(questionAnswerRequest);
-        QuestionsResponse questionsResponse =
-                experianService.getResponseFromExperianAPI(
-                        json, "EXPERIAN_API_WRAPPER_RTQ_RESOURCE");
-
-        return questionsResponse;
     }
 }
