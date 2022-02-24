@@ -22,7 +22,8 @@ public class ExperianService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperianService.class);
     public static final String RESPONSE_TYPE_APPLICATION_JSON = "application/json";
-    public static final String EXPERIAN_API_WRAPPER_RTQ_RESOURCE = "EXPERIAN_API_WRAPPER_RTQ_RESOURCE";
+    public static final String EXPERIAN_API_WRAPPER_RTQ_RESOURCE =
+            "EXPERIAN_API_WRAPPER_RTQ_RESOURCE";
     public static final String EXPERIAN_API_WRAPPER_URL = "EXPERIAN_API_WRAPPER_URL";
     private ObjectMapper objectMapper;
 
@@ -63,10 +64,12 @@ public class ExperianService {
     public QuestionsResponse submitAnswersToExperianAPI(QuestionState questionState)
             throws IOException, InterruptedException {
         QuestionAnswerRequest request = prepareToSubmitAnswers(questionState);
-        return getResponseFromExperianAPI(objectMapper.writeValueAsString(request), EXPERIAN_API_WRAPPER_RTQ_RESOURCE);
+        return getResponseFromExperianAPI(
+                objectMapper.writeValueAsString(request), EXPERIAN_API_WRAPPER_RTQ_RESOURCE);
     }
 
-    public QuestionAnswerRequest prepareToSubmitAnswers(QuestionState questionState) throws JsonProcessingException {
+    public QuestionAnswerRequest prepareToSubmitAnswers(QuestionState questionState)
+            throws JsonProcessingException {
         QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
         List<QuestionAnswerPair> pairs = questionState.getQaPairs();
 
@@ -85,6 +88,6 @@ public class ExperianService {
         questionAnswerRequest.setQuestionAnswers(collect);
         questionAnswerRequest.setAuthRefNo(questionState.getControl().getAuthRefNo());
         questionAnswerRequest.setUrn(questionState.getControl().getURN());
-       return questionAnswerRequest;
+        return questionAnswerRequest;
     }
 }
