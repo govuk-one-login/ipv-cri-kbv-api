@@ -92,8 +92,10 @@ class QuestionHandlerTest {
                         "questions-request", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
                 .thenReturn("questionsResponseMock");
 
-        //  QuestionsResponse questionsResponse = objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
-        when(mockObjectMapper.readValue("questionsResponseMock", QuestionsResponse.class)).thenReturn(questionsResponseMock);
+        //  QuestionsResponse questionsResponse = objectMapper.readValue(questionsResponsePayload,
+        // QuestionsResponse.class);
+        when(mockObjectMapper.readValue("questionsResponseMock", QuestionsResponse.class))
+                .thenReturn(questionsResponseMock);
 
         when(questionStateMock.setQuestionsResponse(questionsResponseMock)).thenReturn(true);
         String state = "question-state";
@@ -149,9 +151,11 @@ class QuestionHandlerTest {
                         "questions-request", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
                 .thenReturn(questionsResponsePayload);
 
-//        QuestionsResponse questionsResponse = objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
+        //        QuestionsResponse questionsResponse =
+        // objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
 
-        when(mockObjectMapper.readValue(questionsResponsePayload, QuestionsResponse.class)).thenReturn(questionsResponseMock);
+        when(mockObjectMapper.readValue(questionsResponsePayload, QuestionsResponse.class))
+                .thenReturn(questionsResponseMock);
 
         when(questionStateMock.setQuestionsResponse(questionsResponseMock)).thenReturn(false);
 

@@ -1,7 +1,6 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,5 +29,4 @@ public class QuestionAnswerRequestMapper {
         questionAnswerRequest.setUrn(questionState.getControl().getURN());
         return questionAnswerRequest;
     }
-
 }

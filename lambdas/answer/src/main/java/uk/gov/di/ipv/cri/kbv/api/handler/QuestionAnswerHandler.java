@@ -100,14 +100,18 @@ public class QuestionAnswerHandler
             storageService.update(kbvSessionItem);
 
             if (questionState.canSubmitAnswers(questionState.getQaPairs())) {
-                QuestionAnswerRequestMapper questionAnswerRequestMapper = new QuestionAnswerRequestMapper();
+                QuestionAnswerRequestMapper questionAnswerRequestMapper =
+                        new QuestionAnswerRequestMapper();
                 QuestionAnswerRequest questionAnswer =
                         questionAnswerRequestMapper.mapFrom(questionState);
                 String questionAnswerRequest = objectMapper.writeValueAsString(questionAnswer);
-                String questionsResponseReceived = experianService.getResponseFromExperianAPI(questionAnswerRequest, EXPERIAN_API_WRAPPER_RTQ_RESOURCE);
+                String questionsResponseReceived =
+                        experianService.getResponseFromExperianAPI(
+                                questionAnswerRequest, EXPERIAN_API_WRAPPER_RTQ_RESOURCE);
 
-                System.out.println("RESPONSE->>>> "+questionsResponseReceived);
-                QuestionsResponse questionsResponse = objectMapper.readValue(questionsResponseReceived, QuestionsResponse.class);
+                System.out.println("RESPONSE->>>> " + questionsResponseReceived);
+                QuestionsResponse questionsResponse =
+                        objectMapper.readValue(questionsResponseReceived, QuestionsResponse.class);
                 boolean moreQuestions = questionState.setQuestionsResponse(questionsResponse);
                 if (moreQuestions) {
                     String state = objectMapper.writeValueAsString(questionState);

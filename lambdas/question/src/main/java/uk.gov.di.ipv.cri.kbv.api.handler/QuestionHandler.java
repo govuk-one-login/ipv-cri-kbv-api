@@ -87,9 +87,11 @@ public class QuestionHandler
             Optional<Question> nextQuestion = questionState.getNextQuestion();
             if (nextQuestion.isEmpty()) { // we should fall in this block once only
                 // fetch a batch of questions from experian kbv wrapper
-                String questionsResponsePayload = experianService.getResponseFromExperianAPI(
-                        json, "EXPERIAN_API_WRAPPER_SAA_RESOURCE");
-                QuestionsResponse questionsResponse = objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
+                String questionsResponsePayload =
+                        experianService.getResponseFromExperianAPI(
+                                json, "EXPERIAN_API_WRAPPER_SAA_RESOURCE");
+                QuestionsResponse questionsResponse =
+                        objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
                 if (!questionState.setQuestionsResponse(questionsResponse)) {
                     response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
                     response.withBody("{ " + ERROR + ":\" no further questions \" }");
