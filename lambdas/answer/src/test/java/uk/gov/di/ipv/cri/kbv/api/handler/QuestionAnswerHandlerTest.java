@@ -24,6 +24,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.Control;
 import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
@@ -36,9 +37,9 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -58,10 +59,11 @@ public class QuestionAnswerHandlerTest {
     @Mock private StorageService mockStorageService;
     @Mock private ExperianService mockExperianService;
     @Mock private Appender<ILoggingEvent> appender;
+    @Mock private APIGatewayProxyRequestEvent input;
+    @Mock private Context contextMock;
 
     @BeforeEach
     void setUp() {
-
         AWSXRay.setGlobalRecorder(
                 AWSXRayRecorderBuilder.standard()
                         .withContextMissingStrategy(new LogErrorContextMissingStrategy())
@@ -76,8 +78,6 @@ public class QuestionAnswerHandlerTest {
 
     @Test
     void shouldReturn200WithNextQuestionWhen1stAnswerIsSubmitted() throws JsonProcessingException {
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
-        Context contextMock = mock(Context.class);
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         QuestionState questionStateMock = mock(QuestionState.class);
         Control controlMock = mock(Control.class);
@@ -128,55 +128,59 @@ public class QuestionAnswerHandlerTest {
     @Test
     void shouldReturn200WithFinalResponseFromExperianAPI()
             throws IOException, InterruptedException {
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
-        Context contextMock = mock(Context.class);
+
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         QuestionState questionStateMock = mock(QuestionState.class);
         Control controlMock = mock(Control.class);
         when(controlMock.getAuthRefNo()).thenReturn("some-auth-ref");
         when(controlMock.getURN()).thenReturn("some-urn");
-
         when(questionStateMock.getControl()).thenReturn(controlMock);
+
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+        when(input.getHeaders()).thenReturn(sessionHeader);
 
         QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
-
         when(questionAnswerMock.getQuestionId()).thenReturn(QUESTION_ID);
         when(questionAnswerMock.getAnswer()).thenReturn(ANSWER);
 
-        when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
-
         when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
-
         when(input.getBody()).thenReturn(REQUEST_PAYLOAD);
         when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
                 .thenReturn(questionAnswerMock);
 
         Question questionMock1 = mock(Question.class);
-        when(questionMock1.getQuestionID()).thenReturn(QUESTION_ID);
         QuestionAnswerPair questionAnswerPairMock1 = mock(QuestionAnswerPair.class);
-        when(questionAnswerPairMock1.getQuestion()).thenReturn(questionMock1);
-
         QuestionAnswerPair questionAnswerPairMock2 = mock(QuestionAnswerPair.class);
 
+        when(questionMock1.getQuestionID()).thenReturn(QUESTION_ID);
+        when(questionAnswerPairMock1.getQuestion()).thenReturn(questionMock1);
         when(questionStateMock.getQaPairs())
                 .thenReturn(List.of(questionAnswerPairMock1, questionAnswerPairMock2));
-
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
-
-        when(questionStateMock.canSubmitAnswers(questionStateMock.getQaPairs())).thenReturn(true);
+        when(questionStateMock.canSubmitAnswers()).thenReturn(true);
 
         QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
-        when(mockExperianService.submitAnswersToExperianAPI(questionStateMock))
-                .thenReturn(questionsResponse);
+        QuestionAnswerRequest questionAnswerRequestMock = mock(QuestionAnswerRequest.class);
+        String questionResponseBody = "experian-saa-question-response-body";
+        when(mockExperianService.prepareToSubmitAnswers(questionStateMock))
+                .thenReturn(questionAnswerRequestMock);
+        when(mockObjectMapper.writeValueAsString(questionAnswerRequestMock))
+                .thenReturn(questionResponseBody);
+        when(mockExperianService.getResponseFromExperianAPI(
+                        questionResponseBody, "EXPERIAN_API_WRAPPER_RTQ_RESOURCE"))
+                .thenReturn("a-responseBody-from-experian");
+        QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
+        when(mockObjectMapper.readValue("a-responseBody-from-experian", QuestionsResponse.class))
+                .thenReturn(questionsResponseMock);
 
-        doReturn(false).when(questionStateMock).setQuestionsResponse(questionsResponse);
+        when(questionStateMock.setQuestionsResponse(any(QuestionsResponse.class)))
+                .thenReturn(false);
 
         String responsePayload = "authenticated-response-received";
-        when(mockObjectMapper.writeValueAsString(questionsResponse))
+        when(mockObjectMapper.writeValueAsString(any(QuestionsResponse.class)))
                 .thenReturn("authenticated-response-received");
         doNothing().when(mockStorageService).update(kbvSessionItemMock);
         APIGatewayProxyResponseEvent result =
@@ -187,57 +191,60 @@ public class QuestionAnswerHandlerTest {
     }
 
     @Test
-    void shouldReturn201WhenNextSetOfQuestionsReceivedFromExperian()
+    void shouldReturn201WhenNextSetOfQuestionsAreReceivedFromExperian()
             throws IOException, InterruptedException {
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
-        Context contextMock = mock(Context.class);
+
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         QuestionState questionStateMock = mock(QuestionState.class);
+
         Control controlMock = mock(Control.class);
         when(controlMock.getAuthRefNo()).thenReturn("some-auth-ref");
         when(controlMock.getURN()).thenReturn("some-urn");
-
         when(questionStateMock.getControl()).thenReturn(controlMock);
-        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
 
         QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
         when(questionAnswerMock.getQuestionId()).thenReturn(QUESTION_ID);
         when(questionAnswerMock.getAnswer()).thenReturn(ANSWER);
 
+        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
 
         when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
-
         when(input.getBody()).thenReturn(REQUEST_PAYLOAD);
         when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
                 .thenReturn(questionAnswerMock);
 
         Question questionMock1 = mock(Question.class);
         Question questionMock2 = mock(Question.class);
-        when(questionMock1.getQuestionID()).thenReturn(QUESTION_ID);
         QuestionAnswerPair questionAnswerPairMock1 = mock(QuestionAnswerPair.class);
-        when(questionAnswerPairMock1.getQuestion()).thenReturn(questionMock1);
-
         QuestionAnswerPair questionAnswerPairMock2 = mock(QuestionAnswerPair.class);
 
+        when(questionMock1.getQuestionID()).thenReturn(QUESTION_ID);
+        when(questionAnswerPairMock1.getQuestion()).thenReturn(questionMock1);
         when(questionStateMock.getQaPairs())
                 .thenReturn(List.of(questionAnswerPairMock1, questionAnswerPairMock2));
 
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
+        when(questionStateMock.canSubmitAnswers()).thenReturn(true);
 
-        when(questionStateMock.canSubmitAnswers(questionStateMock.getQaPairs())).thenReturn(true);
+        String responseBodyExperian = "experian-response-body";
+        QuestionAnswerRequest questionAnswerRequestMock = mock(QuestionAnswerRequest.class);
+        when(mockExperianService.prepareToSubmitAnswers(questionStateMock))
+                .thenReturn(questionAnswerRequestMock);
+        when(mockObjectMapper.writeValueAsString(questionAnswerRequestMock))
+                .thenReturn("a-question-answer-request");
+        when(mockExperianService.getResponseFromExperianAPI(
+                        "a-question-answer-request", "EXPERIAN_API_WRAPPER_RTQ_RESOURCE"))
+                .thenReturn(responseBodyExperian);
+        QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
+        when(mockObjectMapper.readValue(responseBodyExperian, QuestionsResponse.class))
+                .thenReturn(questionsResponseMock);
 
-        QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
-        when(mockExperianService.submitAnswersToExperianAPI(questionStateMock))
-                .thenReturn(questionsResponse);
-
-        doReturn(true).when(questionStateMock).setQuestionsResponse(questionsResponse);
-
+        when(questionStateMock.setQuestionsResponse(questionsResponseMock)).thenReturn(true);
         doNothing().when(mockStorageService).update(kbvSessionItemMock);
-
         when(questionStateMock.getNextQuestion()).thenReturn(Optional.of(questionMock2));
         when(mockObjectMapper.writeValueAsString(questionMock2)).thenReturn(SECOND_QUESTION);
 
@@ -249,8 +256,7 @@ public class QuestionAnswerHandlerTest {
     }
 
     @Test
-    void shouldReturn500ErrorWhenAWSDynamoDBServiceDown() throws IOException, InterruptedException {
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
+    void shouldReturn500ErrorWhenAWSDynamoDBServiceDown() {
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
                 ArgumentCaptor.forClass(ILoggingEvent.class);
@@ -261,7 +267,7 @@ public class QuestionAnswerHandlerTest {
                 .getSessionId(anyString());
 
         APIGatewayProxyResponseEvent response =
-                questionAnswerHandler.handleRequest(input, mock(Context.class));
+                questionAnswerHandler.handleRequest(input, contextMock);
 
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
@@ -271,12 +277,11 @@ public class QuestionAnswerHandlerTest {
 
     @Test
     void shouldReturn400ErrorWhenNoSessionIdProvided() {
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
                 ArgumentCaptor.forClass(ILoggingEvent.class);
 
         APIGatewayProxyResponseEvent response =
-                questionAnswerHandler.handleRequest(input, mock(Context.class));
+                questionAnswerHandler.handleRequest(input, contextMock);
 
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
@@ -286,7 +291,6 @@ public class QuestionAnswerHandlerTest {
 
     @Test
     void shouldReturn500ErrorWhenQuestionStateCannotBeParsedToJSON() throws IOException {
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
@@ -299,7 +303,7 @@ public class QuestionAnswerHandlerTest {
                 .thenThrow(JsonProcessingException.class);
 
         APIGatewayProxyResponseEvent response =
-                questionAnswerHandler.handleRequest(input, mock(Context.class));
+                questionAnswerHandler.handleRequest(input, contextMock);
 
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
@@ -311,50 +315,46 @@ public class QuestionAnswerHandlerTest {
     void shouldReturn500ErrorWhenExperianAPIIsDown() throws IOException, InterruptedException {
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
                 ArgumentCaptor.forClass(ILoggingEvent.class);
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
-        Context contextMock = mock(Context.class);
+
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         QuestionState questionStateMock = mock(QuestionState.class);
         Control controlMock = mock(Control.class);
         when(controlMock.getAuthRefNo()).thenReturn("some-auth-ref");
         when(controlMock.getURN()).thenReturn("some-urn");
-
         when(questionStateMock.getControl()).thenReturn(controlMock);
+
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
-
-        QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
-
-        when(questionAnswerMock.getQuestionId()).thenReturn(QUESTION_ID);
-        when(questionAnswerMock.getAnswer()).thenReturn(ANSWER);
-
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
 
+        QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
+        when(questionAnswerMock.getQuestionId()).thenReturn(QUESTION_ID);
+        when(questionAnswerMock.getAnswer()).thenReturn(ANSWER);
+
         when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
-
         when(input.getBody()).thenReturn(REQUEST_PAYLOAD);
         when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
                 .thenReturn(questionAnswerMock);
 
         Question questionMock1 = mock(Question.class);
-        when(questionMock1.getQuestionID()).thenReturn(QUESTION_ID);
         QuestionAnswerPair questionAnswerPairMock1 = mock(QuestionAnswerPair.class);
-        when(questionAnswerPairMock1.getQuestion()).thenReturn(questionMock1);
-
         QuestionAnswerPair questionAnswerPairMock2 = mock(QuestionAnswerPair.class);
 
+        when(questionMock1.getQuestionID()).thenReturn(QUESTION_ID);
+        when(questionAnswerPairMock1.getQuestion()).thenReturn(questionMock1);
         when(questionStateMock.getQaPairs())
                 .thenReturn(List.of(questionAnswerPairMock1, questionAnswerPairMock2));
 
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
-        when(questionStateMock.canSubmitAnswers(questionStateMock.getQaPairs())).thenReturn(true);
-        when(mockExperianService.submitAnswersToExperianAPI(questionStateMock))
+        when(questionStateMock.canSubmitAnswers()).thenReturn(true);
+        when(mockExperianService.getResponseFromExperianAPI(
+                        null, "EXPERIAN_API_WRAPPER_RTQ_RESOURCE"))
                 .thenThrow(InterruptedException.class);
 
         APIGatewayProxyResponseEvent response =
-                questionAnswerHandler.handleRequest(input, mock(Context.class));
+                questionAnswerHandler.handleRequest(input, contextMock);
 
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
