@@ -33,7 +33,7 @@ public class QuestionHandler
 
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String ERROR = "\"error\"";
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    private ObjectMapper objectMapper;
     private final StorageService storageService;
     private final ExperianService experianService;
     private APIGatewayProxyResponseEvent response;
@@ -47,7 +47,7 @@ public class QuestionHandler
                                 KBVSessionItem.class,
                                 DataStore.getClient(
                                         ConfigurationService.getInstance().isRunningLocally()))),
-                new ExperianService(objectMapper));
+                new ExperianService());
     }
 
     public QuestionHandler(
@@ -82,13 +82,13 @@ public class QuestionHandler
             Optional<Question> nextQuestion = questionState.getNextQuestion();
             if (nextQuestion.isEmpty()) { // we should fall in this block once only
                 // fetch a batch of questions from experian kbv wrapper
-                QuestionsResponse questionsResponse =
+                String body =
                         experianService.getResponseFromExperianAPI(
                                 json, "EXPERIAN_API_WRAPPER_SAA_RESOURCE");
-                if (!questionState.setQuestionsResponse(questionsResponse)) {
-                    response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
-                    response.withBody("{ " + ERROR + ":\" no further questions \" }");
-                } else {
+                QuestionsResponse questionsResponse =
+                        objectMapper.readValue(body, QuestionsResponse.class);
+
+                if (questionState.setQuestionsResponse(questionsResponse)) {
                     response.withStatusCode(HttpStatus.SC_OK);
                     String state = objectMapper.writeValueAsString(questionState);
                     kbvSessionItem.setQuestionState(state);
@@ -97,6 +97,9 @@ public class QuestionHandler
                     storageService.update(kbvSessionItem);
                     nextQuestion = questionState.getNextQuestion();
                     response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
+                } else {
+                    response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    response.withBody("{ " + ERROR + ":\" no further questions \" }");
                 }
             } else {
                 // TODO Handle scenario when no questions are available

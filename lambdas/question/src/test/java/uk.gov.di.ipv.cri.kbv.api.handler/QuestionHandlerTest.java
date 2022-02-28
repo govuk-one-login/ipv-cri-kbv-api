@@ -50,6 +50,8 @@ class QuestionHandlerTest {
     @Mock private StorageService mockStorageService;
     @Mock private ExperianService mockExperianService;
     @Mock private Appender<ILoggingEvent> appender;
+    @Mock private APIGatewayProxyRequestEvent input;
+    @Mock private Context contextMock;
 
     @BeforeEach
     void setUp() {
@@ -66,14 +68,13 @@ class QuestionHandlerTest {
     @Test
     void shouldReturn200OkWhen1stCalledAndReturn1stUnAnsweredQuestion()
             throws IOException, InterruptedException {
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
-        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
 
-        Context contextMock = mock(Context.class);
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
         QuestionState questionStateMock = mock(QuestionState.class);
 
+        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+        String personIdentity = "person-identity";
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
@@ -82,25 +83,29 @@ class QuestionHandlerTest {
                 .thenReturn(personIdentityMock);
         when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
-        when(mockObjectMapper.writeValueAsString(personIdentityMock)).thenReturn("person-identity");
+        when(mockObjectMapper.writeValueAsString(personIdentityMock)).thenReturn(personIdentity);
 
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
+        String questionResponse = "question-response";
+
         when(mockExperianService.getResponseFromExperianAPI(
-                        "person-identity", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
+                        personIdentity, "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
+                .thenReturn(questionResponse);
+        when(mockObjectMapper.readValue(questionResponse, QuestionsResponse.class))
                 .thenReturn(questionsResponseMock);
         when(questionStateMock.setQuestionsResponse(questionsResponseMock)).thenReturn(true);
-        String state = "question-state";
-        when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn(state);
+
         Control controlMock = mock(Control.class);
-        when(questionStateMock.getControl()).thenReturn(controlMock);
+        String state = "question-state";
         String authRefNo = "auth-ref-no";
-        when(controlMock.getAuthRefNo()).thenReturn(authRefNo);
         String ipvSessionId = "ipv-session-id";
+        when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn(state);
+        when(questionStateMock.getControl()).thenReturn(controlMock);
+        when(controlMock.getAuthRefNo()).thenReturn(authRefNo);
         when(controlMock.getURN()).thenReturn(ipvSessionId);
         doNothing().when(mockStorageService).update(kbvSessionItemMock);
 
         Question expectedQuestion = mock(Question.class);
-
         when(questionStateMock.getNextQuestion()) // we have to do this to get it to work
                 .thenReturn(Optional.empty()) // otherwise the second overrides the first
                 .thenReturn(Optional.ofNullable(expectedQuestion));
@@ -116,14 +121,11 @@ class QuestionHandlerTest {
 
     @Test
     void shouldReturn400ErrorWhenNoFurtherQuestions() throws IOException, InterruptedException {
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
-        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
-
-        Context contextMock = mock(Context.class);
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
         QuestionState questionStateMock = mock(QuestionState.class);
 
+        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
@@ -135,8 +137,11 @@ class QuestionHandlerTest {
         when(mockObjectMapper.writeValueAsString(personIdentityMock)).thenReturn("person-identity");
 
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
+        String questionResponse = "question-response";
         when(mockExperianService.getResponseFromExperianAPI(
                         "person-identity", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
+                .thenReturn(questionResponse);
+        when(mockObjectMapper.readValue(questionResponse, QuestionsResponse.class))
                 .thenReturn(questionsResponseMock);
         when(questionStateMock.setQuestionsResponse(questionsResponseMock)).thenReturn(false);
 
@@ -147,12 +152,10 @@ class QuestionHandlerTest {
 
     @Test
     void shouldReturn400ErrorWhenNoSessionIdProvided() {
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
                 ArgumentCaptor.forClass(ILoggingEvent.class);
 
-        APIGatewayProxyResponseEvent response =
-                questionHandler.handleRequest(input, mock(Context.class));
+        APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
@@ -162,7 +165,6 @@ class QuestionHandlerTest {
 
     @Test
     void shouldReturn500ErrorWhenAWSDynamoDBServiceDown() throws IOException, InterruptedException {
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
                 ArgumentCaptor.forClass(ILoggingEvent.class);
@@ -172,8 +174,7 @@ class QuestionHandlerTest {
                 .when(mockStorageService)
                 .getSessionId(anyString());
 
-        APIGatewayProxyResponseEvent response =
-                questionHandler.handleRequest(input, mock(Context.class));
+        APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
@@ -183,7 +184,6 @@ class QuestionHandlerTest {
 
     @Test
     void shouldReturn500ErrorWhenPersonIdentityCannotBeParsedToJSON() throws IOException {
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
@@ -196,8 +196,7 @@ class QuestionHandlerTest {
                         kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
                 .thenThrow(JsonProcessingException.class);
 
-        APIGatewayProxyResponseEvent response =
-                questionHandler.handleRequest(input, mock(Context.class));
+        APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();

@@ -1,14 +1,12 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 
 import java.io.IOException;
 import java.net.URI;
@@ -25,13 +23,8 @@ public class ExperianService {
     public static final String EXPERIAN_API_WRAPPER_RTQ_RESOURCE =
             "EXPERIAN_API_WRAPPER_RTQ_RESOURCE";
     public static final String EXPERIAN_API_WRAPPER_URL = "EXPERIAN_API_WRAPPER_URL";
-    private ObjectMapper objectMapper;
 
-    public ExperianService(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
-
-    public QuestionsResponse getResponseFromExperianAPI(String payload, String uri)
+    public String getResponseFromExperianAPI(String payload, String uri)
             throws IOException, InterruptedException {
         URI wrapperResourceURI = createExperianUri(uri);
         LOGGER.info("KBV Experian URI: " + wrapperResourceURI);
@@ -52,20 +45,13 @@ public class ExperianService {
         String body = res.body();
         LOGGER.info("getResponseFromExperianAPI response: " + body);
 
-        return objectMapper.readValue(body, QuestionsResponse.class);
+        return body;
     }
 
     private URI createExperianUri(String uri) {
         String baseURL = System.getenv(EXPERIAN_API_WRAPPER_URL);
         String resource = System.getenv(uri);
         return URI.create(baseURL + resource);
-    }
-
-    public QuestionsResponse submitAnswersToExperianAPI(QuestionState questionState)
-            throws IOException, InterruptedException {
-        QuestionAnswerRequest request = prepareToSubmitAnswers(questionState);
-        return getResponseFromExperianAPI(
-                objectMapper.writeValueAsString(request), EXPERIAN_API_WRAPPER_RTQ_RESOURCE);
     }
 
     public QuestionAnswerRequest prepareToSubmitAnswers(QuestionState questionState)
