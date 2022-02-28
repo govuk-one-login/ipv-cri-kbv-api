@@ -5,7 +5,7 @@ public class QuestionAnswerPair {
     private Question question;
     private String answer;
 
-    private QuestionAnswerPair() {}
+    public QuestionAnswerPair() {}
 
     public QuestionAnswerPair(Question question) {
         this.question = question;

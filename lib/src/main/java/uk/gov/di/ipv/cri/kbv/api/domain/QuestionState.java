@@ -1,9 +1,11 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class QuestionState {
 
@@ -22,9 +24,11 @@ public class QuestionState {
         if (hasQuestions) {
             skipsRemaining = questions.getSkipsRemaining();
             skipWarning = questions.getSkipWarning();
-            for (Question question : questions.getQuestion()) {
-                qaPairs.add(new QuestionAnswerPair(question));
-            }
+
+            qaPairs =
+                    Arrays.stream(questions.getQuestion())
+                            .map(question -> new QuestionAnswerPair(question))
+                            .collect(Collectors.toList());
         }
         return hasQuestions;
     }
@@ -66,7 +70,7 @@ public class QuestionState {
         questionAnswerPair.setAnswer(answer.getAnswer());
     }
 
-    public boolean submitAnswers() {
+    public boolean canSubmitAnswers() {
         return qaPairs.stream().allMatch(qa -> qa.getAnswer() != null);
     }
 }

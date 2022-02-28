@@ -4,7 +4,7 @@ public class Results {
     private String outcome;
     private String authenticationResult;
     private NextTransId nextTransId;
-    private String questions;
+    private ResultQuestions questions;
     private String alerts;
     private String caseFoundFlag;
     private String confirmationCode;
@@ -33,11 +33,11 @@ public class Results {
         this.nextTransId = nextTransId;
     }
 
-    public String getQuestions() {
+    public ResultQuestions getQuestions() {
         return questions;
     }
 
-    public void setQuestions(String questions) {
+    public void setQuestions(ResultQuestions questions) {
         this.questions = questions;
     }
 

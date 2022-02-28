@@ -12,10 +12,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.lambda.powertools.tracing.CaptureMode;
 import software.amazon.lambda.powertools.tracing.Tracing;
-import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.Question;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
@@ -26,20 +27,21 @@ import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
-public class QuestionHandler
+public class QuestionAnswerHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(QuestionHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(QuestionAnswerHandler.class);
 
-    public static final String HEADER_SESSION_ID = "session-id";
-    public static final String ERROR = "\"error\"";
-    private static ObjectMapper objectMapper;
+    private APIGatewayProxyResponseEvent response;
+    private final ObjectMapper objectMapper;
     private final StorageService storageService;
     private final ExperianService experianService;
-    private APIGatewayProxyResponseEvent response;
+    public static final String HEADER_SESSION_ID = "session-id";
+    public static final String ERROR = "\"error\"";
 
-    public QuestionHandler() {
+    public QuestionAnswerHandler() {
         this(
                 new ObjectMapper(),
                 new StorageService(
@@ -51,7 +53,7 @@ public class QuestionHandler
                 new ExperianService());
     }
 
-    public QuestionHandler(
+    public QuestionAnswerHandler(
             ObjectMapper objectMapper,
             StorageService storageService,
             ExperianService experianService) {
@@ -66,54 +68,69 @@ public class QuestionHandler
     @Tracing(captureMode = CaptureMode.DISABLED)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
-        response.withHeaders(Map.of("Content-Type", "application/json"));
-        String json;
+        QuestionState questionState;
+        QuestionAnswer answer;
+        String responseBody = "{}";
 
         try {
             String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
             KBVSessionItem kbvSessionItem =
                     storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
-            PersonIdentity personIdentity =
-                    objectMapper.readValue(
-                            kbvSessionItem.getUserAttributes(), PersonIdentity.class);
-
-            QuestionState questionState =
+            questionState =
                     objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
+            answer = objectMapper.readValue(input.getBody(), QuestionAnswer.class);
+            String questionID = answer.getQuestionId();
+            QuestionAnswerPair questionAnswerPair =
+                    questionState.getQaPairs().stream()
+                            .filter(pair -> pair.getQuestion().getQuestionID().equals(questionID))
+                            .findFirst()
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalStateException(
+                                                    "Question not found for questionID: "
+                                                            + questionID));
+            questionAnswerPair.setAnswer(answer.getAnswer());
 
-            QuestionsRequest questionsRequest = new QuestionsRequest();
-            questionsRequest.setPersonIdentity(personIdentity);
+            kbvSessionItem.setQuestionState(objectMapper.writeValueAsString(questionState));
+            kbvSessionItem.setAuthRefNo(questionState.getControl().getAuthRefNo());
+            kbvSessionItem.setUrn(questionState.getControl().getURN());
+            storageService.update(kbvSessionItem);
 
-            json = objectMapper.writeValueAsString(questionsRequest);
-            Optional<Question> nextQuestion = questionState.getNextQuestion();
-            if (nextQuestion.isEmpty()) { // we should fall in this block once only
-                // fetch a batch of questions from experian kbv wrapper
-                String questionsResponsePayload =
+            if (questionState.canSubmitAnswers()) {
+                QuestionAnswerRequest questionAnswerRequest =
+                        experianService.prepareToSubmitAnswers(questionState);
+                String body =
                         experianService.getResponseFromExperianAPI(
-                                json, "EXPERIAN_API_WRAPPER_SAA_RESOURCE");
+                                objectMapper.writeValueAsString(questionAnswerRequest),
+                                "EXPERIAN_API_WRAPPER_RTQ_RESOURCE");
                 QuestionsResponse questionsResponse =
-                        objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
-                if (!questionState.setQuestionsResponse(questionsResponse)) {
-                    response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
-                    response.withBody("{ " + ERROR + ":\" no further questions \" }");
-                } else {
-                    response.withStatusCode(HttpStatus.SC_OK);
+                        objectMapper.readValue(body, QuestionsResponse.class);
+                boolean moreQuestions = questionState.setQuestionsResponse(questionsResponse);
+                if (moreQuestions) {
                     String state = objectMapper.writeValueAsString(questionState);
                     kbvSessionItem.setQuestionState(state);
                     kbvSessionItem.setAuthRefNo(questionState.getControl().getAuthRefNo());
                     kbvSessionItem.setUrn(questionState.getControl().getURN());
                     storageService.update(kbvSessionItem);
-                    nextQuestion = questionState.getNextQuestion();
-                    response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
+                    Optional<Question> nextQuestion = questionState.getNextQuestion();
+                    responseBody =
+                            objectMapper.writeValueAsString(nextQuestion.orElseGet(Question::new));
+                    response.withStatusCode(HttpStatus.SC_CREATED);
+                    response.withBody(responseBody);
+                } else {
+                    responseBody = objectMapper.writeValueAsString(questionsResponse);
+                    kbvSessionItem.setQuestionState(responseBody);
+                    kbvSessionItem.setAuthorizationCode(UUID.randomUUID().toString());
+                    storageService.update(kbvSessionItem);
+                    response.withStatusCode(HttpStatus.SC_OK);
+                    response.withBody(responseBody);
                 }
             } else {
-                // TODO Handle scenario when no questions are available
+                Optional<Question> nextQuestion = questionState.getNextQuestion();
+                responseBody =
+                        objectMapper.writeValueAsString(nextQuestion.orElseGet(Question::new));
                 response.withStatusCode(HttpStatus.SC_OK);
-                nextQuestion = questionState.getNextQuestion();
-                if (nextQuestion.isPresent()) {
-                    response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
-                } else {
-                    response.withBody("{\"message\":\"no further questions\"}");
-                }
+                response.withBody(responseBody);
             }
         } catch (JsonProcessingException jsonProcessingException) {
             LOGGER.error("Failed to parse object using ObjectMapper");
@@ -122,16 +139,18 @@ public class QuestionHandler
         } catch (NullPointerException npe) {
             LOGGER.error("Error finding the requested resource");
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
-            response.withBody("{ " + ERROR + ":\"" + npe.getMessage() + "\" }");
+            response.withBody(npe.getMessage());
         } catch (IOException | InterruptedException e) {
-            LOGGER.error("Retrieving questions failed: " + e);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR + ":\"" + e.getMessage() + "\" }");
+            LOGGER.error(String.format("Retrieving questions failed: %s", e));
+            Thread.currentThread().interrupt();
         } catch (com.amazonaws.AmazonServiceException e) {
             LOGGER.error("AWS Server error occurred.");
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR + ":\"" + e.getMessage() + "\" }");
         }
+        response.withHeaders(Map.of("Content-Type", "application/json"));
         return response;
     }
 }

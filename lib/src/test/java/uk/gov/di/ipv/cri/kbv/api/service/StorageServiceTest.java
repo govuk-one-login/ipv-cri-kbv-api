@@ -10,6 +10,7 @@ import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,5 +34,14 @@ class StorageServiceTest {
         verify(mockDataStore).create(kbvSessionItemArgumentCaptor.capture());
         assertNotNull(kbvSessionItemArgumentCaptor.getValue().getQuestionState());
         assertNotNull(kbvSessionItemArgumentCaptor.getValue().getSessionId());
+    }
+
+    @Test
+    void shouldUpdateKBVSessionItem() {
+        ArgumentCaptor<KBVSessionItem> kbvSessionItemArgumentCaptor =
+                ArgumentCaptor.forClass(KBVSessionItem.class);
+        KBVSessionItem item = mock(KBVSessionItem.class);
+        storageService.update(item);
+        verify(mockDataStore).update(kbvSessionItemArgumentCaptor.capture());
     }
 }

@@ -28,11 +28,7 @@ public class StorageService {
         dataStore.create(kbvSessionItem);
     }
 
-    public void update(String sessionId, String state, String auth, String urn) {
-        KBVSessionItem kbvSessionItem = dataStore.getItem(sessionId);
-        kbvSessionItem.setQuestionState(state);
-        kbvSessionItem.setAuthRefNo(auth);
-        kbvSessionItem.setUrn(urn);
+    public void update(KBVSessionItem kbvSessionItem) {
         dataStore.update(kbvSessionItem);
     }
 }
