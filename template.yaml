@@ -10,6 +10,14 @@ Globals:
       DefaultAuthorizer: AWS_IAM
   Function:
     Timeout: 60
+    Runtime: java11
+    MemorySize: 512
+    Tracing: Active
+    VpcConfig:
+      SecurityGroupIds:
+        - sg-0baf479c53ac54f59
+      SubnetIds:
+        - subnet-08cd07453da63f873
 
 Parameters:
   Environment:
@@ -59,67 +67,14 @@ Resources:
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         -
-          AttributeName: "session-id"
+          AttributeName: "sessionId"
           AttributeType: "S"
-        -
-          AttributeName: "authorization-code"
-          AttributeType: "S"
-        -
-          AttributeName: "token"
-          AttributeType: "S"
-        -
-          AttributeName: "user-attributes"
-          AttributeType: "S"
-        -
-          AttributeName: "expiry-date"
-          AttributeType: "S"
-        -
-          AttributeName: "auth-ref-no"
-          AttributeType: "S"
-        -
-          AttributeName: "urn"
-          AttributeType: "S"
-        -
-          AttributeName: "questions"
-          AttributeType: "S"
-
       KeySchema:
         -
           AttributeName: "sessionId"
           KeyType: "HASH"
-      GlobalSecondaryIndexes:
-        -
-          IndexName: "authorization-code-index"
-          KeySchema:
-            -
-              AttributeName: "authorizationCode"
-              KeyType: "HASH"
-          Projection:
-            NonKeyAttributes:
-              - "sessionId"
-            ProjectionType: "INCLUDE"
-        -
-          IndexName: "token-index"
-          KeySchema:
-            -
-              AttributeName: "token"
-              KeyType: "HASH"
-          Projection:
-            NonKeyAttributes:
-              - "sessionId"
-            ProjectionType: "INCLUDE"
-        -
-          IndexName: "questions-index"
-          KeySchema:
-            -
-              AttributeName: "questionState"
-              KeyType: "HASH"
-          Projection:
-            NonKeyAttributes:
-              - "sessionId"
-            ProjectionType: "INCLUDE"
       TimeToLiveSpecification:
-        AttributeName: expiry-date
+        AttributeName: "expiryDate"
         Enabled: true
 
   KBVSessionFunction:
@@ -169,7 +124,7 @@ Resources:
           KBV_SESSION_TABLE_NAME: !Ref KBVSessionTable
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
           EXPERIAN_API_WRAPPER_SAA_RESOURCE: /question-request
-          EXPERIAN_API_WRAPPER_URL: https://u7tpgfw3bh.execute-api.eu-west-2.amazonaws.com/dev
+          EXPERIAN_API_WRAPPER_URL: https://zn3dus332j.execute-api.eu-west-2.amazonaws.com/dev
       Events:
         KBVQuestionApi:
           Type: Api
@@ -177,11 +132,6 @@ Resources:
             Path: /question
             Method: get
             RestApiId: !Ref KBVSessionApi
-#      VpcConfig:
-#        SecurityGroupIds:
-#          - sg-03a1efaf2fed58442
-#        SubnetIds:
-#          - subnet-07fcf55b165be35ed
 
   KBVAnswerFunction:
     Type: AWS::Serverless::Function
@@ -204,7 +154,7 @@ Resources:
           KBV_SESSION_TABLE_NAME: !Ref KBVSessionTable
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
           EXPERIAN_API_WRAPPER_RTQ_RESOURCE: /question-answer
-          EXPERIAN_API_WRAPPER_URL: https://u7tpgfw3bh.execute-api.eu-west-2.amazonaws.com/dev
+          EXPERIAN_API_WRAPPER_URL: https://zn3dus332j.execute-api.eu-west-2.amazonaws.com/dev
       Events:
         KBVAnswerFunctionApi:
           Type: Api
@@ -216,7 +166,7 @@ Resources:
   KBVSessionFunctionCodeSigning:
     Type: AWS::Lambda::CodeSigningConfig
     Properties:
-      Description: "Code Signing for KBVSessionFunction"
+      Description: "Code Signing for KBV API Functions"
       AllowedPublishers:
         SigningProfileVersionArns:
           - "{{resolve:ssm:/dev/credentialIssuers/cri/sam/signingProfileVersionArn}}"

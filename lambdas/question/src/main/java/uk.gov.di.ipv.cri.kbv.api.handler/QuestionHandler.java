@@ -15,6 +15,7 @@ import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
@@ -33,7 +34,7 @@ public class QuestionHandler
 
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String ERROR = "\"error\"";
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    private static ObjectMapper objectMapper;
     private final StorageService storageService;
     private final ExperianService experianService;
     private APIGatewayProxyResponseEvent response;
@@ -47,7 +48,7 @@ public class QuestionHandler
                                 KBVSessionItem.class,
                                 DataStore.getClient(
                                         ConfigurationService.getInstance().isRunningLocally()))),
-                new ExperianService(objectMapper));
+                new ExperianService());
     }
 
     public QuestionHandler(
@@ -78,13 +79,17 @@ public class QuestionHandler
 
             QuestionState questionState =
                     objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
-            json = objectMapper.writeValueAsString(personIdentity);
+
+            QuestionsRequest questionsRequest = new QuestionsRequest();
+            questionsRequest.setPersonIdentity(personIdentity);
+
+            json = objectMapper.writeValueAsString(questionsRequest);
             Optional<Question> nextQuestion = questionState.getNextQuestion();
             if (nextQuestion.isEmpty()) { // we should fall in this block once only
                 // fetch a batch of questions from experian kbv wrapper
-                QuestionsResponse questionsResponse =
-                        experianService.getResponseFromExperianAPI(
-                                json, "EXPERIAN_API_WRAPPER_SAA_RESOURCE");
+                String questionsResponsePayload = experianService.getResponseFromExperianAPI(
+                        json, "EXPERIAN_API_WRAPPER_SAA_RESOURCE");
+                QuestionsResponse questionsResponse = objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
                 if (!questionState.setQuestionsResponse(questionsResponse)) {
                     response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
                     response.withBody("{ " + ERROR + ":\" no further questions \" }");

@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -82,12 +83,18 @@ class QuestionHandlerTest {
                 .thenReturn(personIdentityMock);
         when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
-        when(mockObjectMapper.writeValueAsString(personIdentityMock)).thenReturn("person-identity");
+
+        when(mockObjectMapper.writeValueAsString(any())).thenReturn("questions-request");
 
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
+
         when(mockExperianService.getResponseFromExperianAPI(
-                        "person-identity", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
-                .thenReturn(questionsResponseMock);
+                        "questions-request", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
+                .thenReturn("questionsResponseMock");
+
+        //  QuestionsResponse questionsResponse = objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
+        when(mockObjectMapper.readValue("questionsResponseMock", QuestionsResponse.class)).thenReturn(questionsResponseMock);
+
         when(questionStateMock.setQuestionsResponse(questionsResponseMock)).thenReturn(true);
         String state = "question-state";
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn(state);
@@ -132,12 +139,20 @@ class QuestionHandlerTest {
                 .thenReturn(personIdentityMock);
         when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
-        when(mockObjectMapper.writeValueAsString(personIdentityMock)).thenReturn("person-identity");
+
+        when(mockObjectMapper.writeValueAsString(any())).thenReturn("questions-request");
 
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
+
+        String questionsResponsePayload = "questionsResponse";
         when(mockExperianService.getResponseFromExperianAPI(
-                        "person-identity", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
-                .thenReturn(questionsResponseMock);
+                        "questions-request", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
+                .thenReturn(questionsResponsePayload);
+
+//        QuestionsResponse questionsResponse = objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
+
+        when(mockObjectMapper.readValue(questionsResponsePayload, QuestionsResponse.class)).thenReturn(questionsResponseMock);
+
         when(questionStateMock.setQuestionsResponse(questionsResponseMock)).thenReturn(false);
 
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);

@@ -15,6 +15,8 @@ import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequestMapper;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
@@ -34,11 +36,13 @@ public class QuestionAnswerHandler
     private static final Logger LOGGER = LoggerFactory.getLogger(QuestionAnswerHandler.class);
 
     private APIGatewayProxyResponseEvent response;
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
     private final StorageService storageService;
     private final ExperianService experianService;
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String ERROR = "\"error\"";
+    public static final String EXPERIAN_API_WRAPPER_RTQ_RESOURCE =
+            "EXPERIAN_API_WRAPPER_RTQ_RESOURCE";
 
     public QuestionAnswerHandler() {
         this(
@@ -49,7 +53,7 @@ public class QuestionAnswerHandler
                                 KBVSessionItem.class,
                                 DataStore.getClient(
                                         ConfigurationService.getInstance().isRunningLocally()))),
-                new ExperianService(objectMapper));
+                new ExperianService());
     }
 
     public QuestionAnswerHandler(
@@ -79,7 +83,6 @@ public class QuestionAnswerHandler
                     objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
             answer = objectMapper.readValue(input.getBody(), QuestionAnswer.class);
             String questionID = answer.getQuestionId();
-
             QuestionAnswerPair questionAnswerPair =
                     questionState.getQaPairs().stream()
                             .filter(pair -> pair.getQuestion().getQuestionID().equals(questionID))
@@ -97,8 +100,14 @@ public class QuestionAnswerHandler
             storageService.update(kbvSessionItem);
 
             if (questionState.canSubmitAnswers(questionState.getQaPairs())) {
-                QuestionsResponse questionsResponse =
-                        experianService.submitAnswersToExperianAPI(questionState);
+                QuestionAnswerRequestMapper questionAnswerRequestMapper = new QuestionAnswerRequestMapper();
+                QuestionAnswerRequest questionAnswer =
+                        questionAnswerRequestMapper.mapFrom(questionState);
+                String questionAnswerRequest = objectMapper.writeValueAsString(questionAnswer);
+                String questionsResponseReceived = experianService.getResponseFromExperianAPI(questionAnswerRequest, EXPERIAN_API_WRAPPER_RTQ_RESOURCE);
+
+                System.out.println("RESPONSE->>>> "+questionsResponseReceived);
+                QuestionsResponse questionsResponse = objectMapper.readValue(questionsResponseReceived, QuestionsResponse.class);
                 boolean moreQuestions = questionState.setQuestionsResponse(questionsResponse);
                 if (moreQuestions) {
                     String state = objectMapper.writeValueAsString(questionState);
@@ -131,7 +140,7 @@ public class QuestionAnswerHandler
         } catch (NullPointerException npe) {
             LOGGER.error("Error finding the requested resource");
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
-            response.withBody("{ " + ERROR + ":\"" + npe.getMessage() + "\" }");
+            response.withBody(npe.getMessage());
         } catch (IOException | InterruptedException e) {
             LOGGER.error("Retrieving questions failed: " + e);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);

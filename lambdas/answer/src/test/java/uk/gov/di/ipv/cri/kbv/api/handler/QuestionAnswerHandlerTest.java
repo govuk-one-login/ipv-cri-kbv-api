@@ -24,6 +24,8 @@ import uk.gov.di.ipv.cri.kbv.api.domain.Control;
 import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequestMapper;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
@@ -36,6 +38,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -43,6 +46,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionAnswerHandler.EXPERIAN_API_WRAPPER_RTQ_RESOURCE;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionAnswerHandler.HEADER_SESSION_ID;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,16 +79,12 @@ public class QuestionAnswerHandlerTest {
     }
 
     @Test
-    void shouldReturn200WithNextQuestionWhen1stAnswerIsSubmitted() throws JsonProcessingException {
+    void shouldReturn200WithTheNextQuestionWhen1stAnswerIsSavedToDynamoDB()
+            throws JsonProcessingException {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Context contextMock = mock(Context.class);
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
-        QuestionState questionStateMock = mock(QuestionState.class);
-        Control controlMock = mock(Control.class);
-        when(controlMock.getAuthRefNo()).thenReturn("some-auth-ref");
-        when(controlMock.getURN()).thenReturn("some-urn");
 
-        when(questionStateMock.getControl()).thenReturn(controlMock);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
 
         QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
@@ -95,34 +95,50 @@ public class QuestionAnswerHandlerTest {
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
 
-        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
-                .thenReturn(questionStateMock);
-
         when(input.getBody()).thenReturn(REQUEST_PAYLOAD);
         when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
                 .thenReturn(questionAnswerMock);
 
-        Question questionMock1 = mock(Question.class);
-        when(questionMock1.getQuestionID()).thenReturn(QUESTION_ID);
-
-        QuestionAnswerPair questionAnswerPairMock1 = mock(QuestionAnswerPair.class);
-        when(questionAnswerPairMock1.getQuestion()).thenReturn(questionMock1);
-
-        Question questionMock2 = mock(Question.class);
-        QuestionAnswerPair questionAnswerPairMock2 = mock(QuestionAnswerPair.class);
-        when(questionStateMock.getQaPairs())
-                .thenReturn(List.of(questionAnswerPairMock1, questionAnswerPairMock2));
+        QuestionState questionStateMock =
+                getQuestionStateWithListOfTwoQuestionAnswerPairs(kbvSessionItemMock);
 
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
         doNothing().when(mockStorageService).update(kbvSessionItemMock);
-        when(questionStateMock.getNextQuestion()).thenReturn(Optional.of(questionMock2));
-        when(mockObjectMapper.writeValueAsString(questionMock2)).thenReturn(SECOND_QUESTION);
 
         APIGatewayProxyResponseEvent result =
                 questionAnswerHandler.handleRequest(input, contextMock);
 
         assertEquals(HttpStatus.SC_OK, result.getStatusCode());
         assertEquals(SECOND_QUESTION, result.getBody());
+    }
+
+    private QuestionState getQuestionStateWithListOfTwoQuestionAnswerPairs(
+            KBVSessionItem kbvSessionItemMock) throws JsonProcessingException {
+        Control controlMock = mock(Control.class);
+        when(controlMock.getAuthRefNo()).thenReturn("some-auth-ref");
+        when(controlMock.getURN()).thenReturn("some-urn");
+
+        QuestionState questionStateMock = mock(QuestionState.class);
+
+        when(questionStateMock.getControl()).thenReturn(controlMock);
+        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
+                .thenReturn(questionStateMock);
+
+        Question questionMock1 = mock(Question.class);
+        when(questionMock1.getQuestionID()).thenReturn(QUESTION_ID);
+        QuestionAnswerPair questionAnswerPairMock1 = mock(QuestionAnswerPair.class);
+        when(questionAnswerPairMock1.getQuestion()).thenReturn(questionMock1);
+
+        Question questionMock2 = mock(Question.class);
+        QuestionAnswerPair questionAnswerPairMock2 = mock(QuestionAnswerPair.class);
+
+        when(questionStateMock.getNextQuestion()).thenReturn(Optional.of(questionMock2));
+        when(mockObjectMapper.writeValueAsString(questionMock2)).thenReturn(SECOND_QUESTION);
+
+        when(questionStateMock.getQaPairs())
+                .thenReturn(List.of(questionAnswerPairMock1, questionAnswerPairMock2));
+
+        return questionStateMock;
     }
 
     @Test
@@ -160,25 +176,43 @@ public class QuestionAnswerHandlerTest {
         QuestionAnswerPair questionAnswerPairMock1 = mock(QuestionAnswerPair.class);
         when(questionAnswerPairMock1.getQuestion()).thenReturn(questionMock1);
 
+        Question questionMock2 = mock(Question.class);
+        when(questionMock2.getQuestionID()).thenReturn(QUESTION_ID + "2");
         QuestionAnswerPair questionAnswerPairMock2 = mock(QuestionAnswerPair.class);
+        when(questionAnswerPairMock2.getQuestion()).thenReturn(questionMock2);
 
         when(questionStateMock.getQaPairs())
                 .thenReturn(List.of(questionAnswerPairMock1, questionAnswerPairMock2));
 
-        when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
+         //when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
 
-        when(questionStateMock.canSubmitAnswers(questionStateMock.getQaPairs())).thenReturn(true);
+//        when(questionStateMock.canSubmitAnswers(questionStateMock.getQaPairs())).thenReturn(true);
 
+        String questionResponsePayload = "questionsResponse";
         QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
-        when(mockExperianService.submitAnswersToExperianAPI(questionStateMock))
-                .thenReturn(questionsResponse);
+        QuestionAnswerRequest questionAnswerRequest = mock(QuestionAnswerRequest.class);
+        QuestionAnswerRequestMapper questionAnswerRequestMapper = mock(QuestionAnswerRequestMapper.class);
+//        when(questionAnswerRequest.getQuestionAnswers()).thenReturn(List.of(questionAnswerPairMock1, questionAnswerPairMock2));
+//        when(questionAnswerRequest.getAuthRefNo()).thenReturn("some-auth-ref");
+//        when(questionAnswerRequest.getUrn()).thenReturn("some-urn");
 
-        doReturn(false).when(questionStateMock).setQuestionsResponse(questionsResponse);
+
+        when(questionAnswerRequestMapper.mapFrom(questionStateMock))
+                .thenReturn(questionAnswerRequest);
+
+        when(mockObjectMapper.writeValueAsString(questionAnswerRequest)).thenReturn("question-answer-request");
+
+        when(mockExperianService.getResponseFromExperianAPI("question-answer-request", EXPERIAN_API_WRAPPER_RTQ_RESOURCE)).thenReturn("");
+
+        when(mockObjectMapper.readValue(questionResponsePayload, QuestionsResponse.class)).thenReturn(questionsResponse);
+
+        when(questionStateMock.setQuestionsResponse(any(QuestionsResponse.class))).thenReturn(false);
 
         String responsePayload = "authenticated-response-received";
         when(mockObjectMapper.writeValueAsString(questionsResponse))
                 .thenReturn("authenticated-response-received");
         doNothing().when(mockStorageService).update(kbvSessionItemMock);
+
         APIGatewayProxyResponseEvent result =
                 questionAnswerHandler.handleRequest(input, contextMock);
 
@@ -229,12 +263,18 @@ public class QuestionAnswerHandlerTest {
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
 
         when(questionStateMock.canSubmitAnswers(questionStateMock.getQaPairs())).thenReturn(true);
-
+        String questionRequestPayload = "questionsRequest";
         QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
-        when(mockExperianService.submitAnswersToExperianAPI(questionStateMock))
-                .thenReturn(questionsResponse);
 
-        doReturn(true).when(questionStateMock).setQuestionsResponse(questionsResponse);
+        QuestionAnswerRequestMapper questionAnswerRequestMapper = new QuestionAnswerRequestMapper();
+
+//        when(questionAnswerRequestMapper.mapFrom(questionStateMock))
+//                .thenReturn(questionRequestPayload);
+
+        when(mockObjectMapper.readValue(questionRequestPayload, QuestionsResponse.class)).thenReturn(questionsResponse);
+
+        when(questionStateMock.setQuestionsResponse(any(QuestionsResponse.class))).thenReturn(true);
+        when(questionStateMock.canSubmitAnswers(questionStateMock.getQaPairs())).thenReturn(true);
 
         doNothing().when(mockStorageService).update(kbvSessionItemMock);
 
@@ -343,14 +383,29 @@ public class QuestionAnswerHandlerTest {
         QuestionAnswerPair questionAnswerPairMock1 = mock(QuestionAnswerPair.class);
         when(questionAnswerPairMock1.getQuestion()).thenReturn(questionMock1);
 
+        Question questionMock2 = mock(Question.class);
+        when(questionMock2.getQuestionID()).thenReturn(QUESTION_ID + "2");
+
         QuestionAnswerPair questionAnswerPairMock2 = mock(QuestionAnswerPair.class);
+        when(questionAnswerPairMock2.getQuestion()).thenReturn(questionMock2);
 
         when(questionStateMock.getQaPairs())
                 .thenReturn(List.of(questionAnswerPairMock1, questionAnswerPairMock2));
 
-        when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
+        String questionState = "question-state";
+        when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn(questionState);
         when(questionStateMock.canSubmitAnswers(questionStateMock.getQaPairs())).thenReturn(true);
-        when(mockExperianService.submitAnswersToExperianAPI(questionStateMock))
+
+
+        QuestionAnswerRequest questionAnswerRequestMock = mock(QuestionAnswerRequest.class);
+        QuestionAnswerRequestMapper questionAnswerRequestMapper = mock(QuestionAnswerRequestMapper.class);
+        when(questionAnswerRequestMock.getQuestionAnswers()).thenReturn(List.of(mock(QuestionAnswer.class), mock(QuestionAnswer.class)));
+
+        when(mockObjectMapper.writeValueAsString(questionAnswerRequestMock)).thenReturn("question-answer-request");
+        when(questionAnswerRequestMapper.mapFrom(questionStateMock))
+                .thenReturn(questionAnswerRequestMock);
+
+        when(mockExperianService.getResponseFromExperianAPI(anyString(), anyString()))
                 .thenThrow(InterruptedException.class);
 
         APIGatewayProxyResponseEvent response =
