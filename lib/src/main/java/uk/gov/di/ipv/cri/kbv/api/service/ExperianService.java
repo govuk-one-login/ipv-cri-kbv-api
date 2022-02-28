@@ -2,12 +2,18 @@ package uk.gov.di.ipv.cri.kbv.api.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class ExperianService {
 
@@ -31,9 +37,11 @@ public class ExperianService {
 
         res = httpClient.send(httpReq, HttpResponse.BodyHandlers.ofString());
 
-        LOGGER.info("getResponseFromExperianAPI response status code: " + res.statusCode());
+        LOGGER.info(
+                String.format(
+                        "getResponseFromExperianAPI response status code: %s", res.statusCode()));
         String body = res.body();
-        LOGGER.info("getResponseFromExperianAPI response: " + body);
+        LOGGER.info(String.format("getResponseFromExperianAPI response: %s", body));
 
         return body;
     }
@@ -42,5 +50,27 @@ public class ExperianService {
         String baseURL = System.getenv(EXPERIAN_API_WRAPPER_URL);
         String resource = System.getenv(uri);
         return URI.create(baseURL + resource);
+    }
+
+    public QuestionAnswerRequest prepareToSubmitAnswers(QuestionState questionState) {
+        QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
+        List<QuestionAnswerPair> pairs = questionState.getQaPairs();
+
+        List<QuestionAnswer> collect =
+                pairs.stream()
+                        .map(
+                                pair -> {
+                                    QuestionAnswer questionAnswer = new QuestionAnswer();
+                                    questionAnswer.setAnswer(pair.getAnswer());
+                                    questionAnswer.setQuestionId(
+                                            pair.getQuestion().getQuestionID());
+                                    return questionAnswer;
+                                })
+                        .collect(Collectors.toList());
+
+        questionAnswerRequest.setQuestionAnswers(collect);
+        questionAnswerRequest.setAuthRefNo(questionState.getControl().getAuthRefNo());
+        questionAnswerRequest.setUrn(questionState.getControl().getURN());
+        return questionAnswerRequest;
     }
 }
