@@ -16,7 +16,6 @@ import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequestMapper;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
@@ -41,8 +40,6 @@ public class QuestionAnswerHandler
     private final ExperianService experianService;
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String ERROR = "\"error\"";
-    public static final String EXPERIAN_API_WRAPPER_RTQ_RESOURCE =
-            "EXPERIAN_API_WRAPPER_RTQ_RESOURCE";
 
     public QuestionAnswerHandler() {
         this(
@@ -99,19 +96,15 @@ public class QuestionAnswerHandler
             kbvSessionItem.setUrn(questionState.getControl().getURN());
             storageService.update(kbvSessionItem);
 
-            if (questionState.canSubmitAnswers(questionState.getQaPairs())) {
-                QuestionAnswerRequestMapper questionAnswerRequestMapper =
-                        new QuestionAnswerRequestMapper();
-                QuestionAnswerRequest questionAnswer =
-                        questionAnswerRequestMapper.mapFrom(questionState);
-                String questionAnswerRequest = objectMapper.writeValueAsString(questionAnswer);
-                String questionsResponseReceived =
+            if (questionState.canSubmitAnswers()) {
+                QuestionAnswerRequest questionAnswerRequest =
+                        experianService.prepareToSubmitAnswers(questionState);
+                String body =
                         experianService.getResponseFromExperianAPI(
-                                questionAnswerRequest, EXPERIAN_API_WRAPPER_RTQ_RESOURCE);
-
-                System.out.println("RESPONSE->>>> " + questionsResponseReceived);
+                                objectMapper.writeValueAsString(questionAnswerRequest),
+                                "EXPERIAN_API_WRAPPER_RTQ_RESOURCE");
                 QuestionsResponse questionsResponse =
-                        objectMapper.readValue(questionsResponseReceived, QuestionsResponse.class);
+                        objectMapper.readValue(body, QuestionsResponse.class);
                 boolean moreQuestions = questionState.setQuestionsResponse(questionsResponse);
                 if (moreQuestions) {
                     String state = objectMapper.writeValueAsString(questionState);
@@ -120,7 +113,8 @@ public class QuestionAnswerHandler
                     kbvSessionItem.setUrn(questionState.getControl().getURN());
                     storageService.update(kbvSessionItem);
                     Optional<Question> nextQuestion = questionState.getNextQuestion();
-                    responseBody = objectMapper.writeValueAsString(nextQuestion.get());
+                    responseBody =
+                            objectMapper.writeValueAsString(nextQuestion.orElseGet(Question::new));
                     response.withStatusCode(HttpStatus.SC_CREATED);
                     response.withBody(responseBody);
                 } else {
@@ -133,7 +127,8 @@ public class QuestionAnswerHandler
                 }
             } else {
                 Optional<Question> nextQuestion = questionState.getNextQuestion();
-                responseBody = objectMapper.writeValueAsString(nextQuestion.get());
+                responseBody =
+                        objectMapper.writeValueAsString(nextQuestion.orElseGet(Question::new));
                 response.withStatusCode(HttpStatus.SC_OK);
                 response.withBody(responseBody);
             }
@@ -146,9 +141,10 @@ public class QuestionAnswerHandler
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
             response.withBody(npe.getMessage());
         } catch (IOException | InterruptedException e) {
-            LOGGER.error("Retrieving questions failed: " + e);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR + ":\"" + e.getMessage() + "\" }");
+            LOGGER.error(String.format("Retrieving questions failed: %s", e));
+            Thread.currentThread().interrupt();
         } catch (com.amazonaws.AmazonServiceException e) {
             LOGGER.error("AWS Server error occurred.");
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
