@@ -163,7 +163,7 @@ Resources:
             Method: post
             RestApiId: !Ref KBVSessionApi
 
-  KBVSessionFunctionCodeSigning:
+  KBVFunctionsCodeSigning:
     Type: AWS::Lambda::CodeSigningConfig
     Properties:
       Description: "Code Signing for KBV API Functions"

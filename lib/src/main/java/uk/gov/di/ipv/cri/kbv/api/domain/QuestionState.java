@@ -50,7 +50,7 @@ public class QuestionState {
     public Control getControl() {
         return control;
     }
-
+  
     public boolean canSubmitAnswers() {
         return qaPairs.stream().allMatch(qa -> qa.getAnswer() != null);
     }
