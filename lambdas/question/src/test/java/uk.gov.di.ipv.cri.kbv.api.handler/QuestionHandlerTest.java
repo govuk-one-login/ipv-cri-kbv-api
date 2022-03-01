@@ -24,7 +24,6 @@ import uk.gov.di.ipv.cri.kbv.api.domain.Control;
 import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.service.ExperianService;
@@ -240,7 +239,7 @@ class QuestionHandlerTest {
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
         when(mockObjectMapper.readValue(
-                kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
+                        kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
                 .thenReturn(personIdentityMock);
         when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
@@ -256,7 +255,8 @@ class QuestionHandlerTest {
 
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
-        assertEquals("Retrieving questions failed: java.lang.InterruptedException", event.getMessage());
+        assertEquals(
+                "Retrieving questions failed: java.lang.InterruptedException", event.getMessage());
         assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
     }
 }
