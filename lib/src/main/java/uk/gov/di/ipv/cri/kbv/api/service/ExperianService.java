@@ -1,6 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
