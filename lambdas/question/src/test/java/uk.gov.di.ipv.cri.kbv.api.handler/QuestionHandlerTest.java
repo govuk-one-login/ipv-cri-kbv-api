@@ -24,6 +24,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.Control;
 import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.service.ExperianService;
@@ -221,6 +222,41 @@ class QuestionHandlerTest {
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
         assertEquals("Failed to parse object using ObjectMapper", event.getMessage());
+        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+    }
+
+    @Test
+    void shouldReturn500ErrorWhenExperianServiceIsDown() throws IOException, InterruptedException {
+
+        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
+        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+        ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
+                ArgumentCaptor.forClass(ILoggingEvent.class);
+        KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
+        PersonIdentity personIdentityMock = mock(PersonIdentity.class);
+        QuestionState questionStateMock = mock(QuestionState.class);
+
+        when(input.getHeaders()).thenReturn(sessionHeader);
+        when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
+                .thenReturn(Optional.ofNullable(kbvSessionItemMock));
+        when(mockObjectMapper.readValue(
+                kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
+                .thenReturn(personIdentityMock);
+        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
+                .thenReturn(questionStateMock);
+
+        when(mockObjectMapper.writeValueAsString(any())).thenReturn("questions-request");
+
+        doThrow(InterruptedException.class)
+                .when(mockExperianService)
+                .getResponseFromExperianAPI(anyString(), anyString());
+
+        APIGatewayProxyResponseEvent response =
+                questionHandler.handleRequest(input, mock(Context.class));
+
+        verify(appender).doAppend(loggingEventArgumentCaptor.capture());
+        ILoggingEvent event = loggingEventArgumentCaptor.getValue();
+        assertEquals("Retrieving questions failed: java.lang.InterruptedException", event.getMessage());
         assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
     }
 }
