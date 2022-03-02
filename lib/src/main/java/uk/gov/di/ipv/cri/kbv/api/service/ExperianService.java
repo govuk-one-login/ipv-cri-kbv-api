@@ -1,6 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
@@ -22,9 +21,9 @@ public class ExperianService {
     public static final String RESPONSE_TYPE_APPLICATION_JSON = "application/json";
     public static final String EXPERIAN_API_WRAPPER_URL = "EXPERIAN_API_WRAPPER_URL";
 
-    public String getResponseFromExperianAPI(String payload, String uri)
+    public String getResponseFromExperianAPI(String payload, String uriEndpoint)
             throws IOException, InterruptedException {
-        URI wrapperResourceURI = createExperianUri(uri);
+        URI wrapperResourceURI = createExperianUri(uriEndpoint);
         HttpRequest httpReq =
                 HttpRequest.newBuilder()
                         .uri(wrapperResourceURI)
@@ -47,14 +46,13 @@ public class ExperianService {
         return body;
     }
 
-    private URI createExperianUri(String uri) {
+    public URI createExperianUri(String uriEndpoint) {
         String baseURL = System.getenv(EXPERIAN_API_WRAPPER_URL);
-        String resource = System.getenv(uri);
+        String resource = System.getenv(uriEndpoint);
         return URI.create(baseURL + resource);
     }
 
-    public QuestionAnswerRequest prepareToSubmitAnswers(QuestionState questionState)
-            throws JsonProcessingException {
+    public QuestionAnswerRequest prepareToSubmitAnswers(QuestionState questionState) {
         QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
         List<QuestionAnswerPair> pairs = questionState.getQaPairs();
 

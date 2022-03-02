@@ -47,7 +47,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionAnswerHandler.HEADER_SESSION_ID;
 
 @ExtendWith(MockitoExtension.class)
-public class QuestionAnswerHandlerTest {
+class QuestionAnswerHandlerTest {
 
     public static final String REQUEST_PAYLOAD =
             "\"questionID\":\" Q0008 \",\"answer\":\" some-answer \"";

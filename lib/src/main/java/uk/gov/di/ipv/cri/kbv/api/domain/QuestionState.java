@@ -2,7 +2,6 @@ package uk.gov.di.ipv.cri.kbv.api.domain;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -27,14 +26,14 @@ public class QuestionState {
 
             qaPairs =
                     Arrays.stream(questions.getQuestion())
-                            .map(question -> new QuestionAnswerPair(question))
+                            .map(QuestionAnswerPair::new)
                             .collect(Collectors.toList());
         }
         return hasQuestions;
     }
 
     public List<QuestionAnswerPair> getQaPairs() {
-        return Collections.unmodifiableList(qaPairs);
+        return qaPairs;
     }
 
     public Optional<Question> getNextQuestion() {
@@ -50,24 +49,6 @@ public class QuestionState {
 
     public Control getControl() {
         return control;
-    }
-
-    public void setAnswer(QuestionAnswer answer) {
-
-        QuestionAnswerPair questionAnswerPair =
-                qaPairs.stream()
-                        .filter(
-                                pair ->
-                                        pair.getQuestion()
-                                                .getQuestionID()
-                                                .equals(answer.getQuestionId()))
-                        .findFirst()
-                        .orElseThrow(
-                                () ->
-                                        new IllegalStateException(
-                                                "question not found for "
-                                                        + answer.getQuestionId()));
-        questionAnswerPair.setAnswer(answer.getAnswer());
     }
 
     public boolean canSubmitAnswers() {

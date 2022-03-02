@@ -2,22 +2,22 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   di-ipv-cri-kbv-api
-  SAM Template for the kbv api v0.3
+  SAM Template for the kbv api v0.4
 
 Globals:
-  Api:
-    Auth:
-      DefaultAuthorizer: AWS_IAM
+#  Api:
+#    Auth:
+#      DefaultAuthorizer: AWS_IAM
   Function:
     Timeout: 60
     Runtime: java11
     MemorySize: 512
     Tracing: Active
-    VpcConfig:
-      SecurityGroupIds:
-        - sg-0baf479c53ac54f59
-      SubnetIds:
-        - subnet-08cd07453da63f873
+#    VpcConfig:
+#      SecurityGroupIds:
+#        - sg-0baf479c53ac54f59
+#      SubnetIds:
+#        - subnet-08cd07453da63f873
 
 Parameters:
   Environment:
