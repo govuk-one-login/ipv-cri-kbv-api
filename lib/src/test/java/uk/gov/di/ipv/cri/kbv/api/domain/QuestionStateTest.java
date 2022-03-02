@@ -23,7 +23,7 @@ class QuestionStateTest {
     }
 
     @Test
-    void shouldEvaluateToTrueWhenNoQuestionsRemainToAnswer() {
+    void shouldEvaluateToTrueWhenAllQuestionsHaveAnswers() {
         QuestionAnswerPair questionAnswerPairMock1 = mock(QuestionAnswerPair.class);
         when(questionAnswerPairMock1.getAnswer()).thenReturn("answer-1");
         QuestionAnswerPair questionAnswerPairMock2 = mock(QuestionAnswerPair.class);
@@ -50,7 +50,7 @@ class QuestionStateTest {
     }
 
     @Test
-    void shouldEvaluateToTrueWhenMoreQuestionsAreReturnedFromExperianAPI() {
+    void shouldEvaluateToTrueWhenQuestionsResponseHasQuestions() {
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
         Questions questionsMock = mock(Questions.class);
         when(questionsMock.getQuestion()).thenReturn(new Question[0]);
@@ -61,11 +61,20 @@ class QuestionStateTest {
     }
 
     @Test
-    void shouldEvaluateToFalseWhenNoMoreQuestionsReturnedFromExperianAPI() {
+    void shouldEvaluateToFalseWhenQuestionResponseHasNoQuestion() {
         QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
         Questions questionsMock = mock(Questions.class);
         when(questionsMock.getQuestion()).thenReturn(null);
         when(questionsResponse.getQuestions()).thenReturn(questionsMock);
+
+        boolean hasMoreQuestions = questionState.setQuestionsResponse(questionsResponse);
+        assertFalse(hasMoreQuestions);
+    }
+
+    @Test
+    void shouldEvaluateToFalseWhenQuestionResponseHasNoQuestions() {
+        QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
+        when(questionsResponse.getQuestions()).thenReturn(null);
 
         boolean hasMoreQuestions = questionState.setQuestionsResponse(questionsResponse);
         assertFalse(hasMoreQuestions);

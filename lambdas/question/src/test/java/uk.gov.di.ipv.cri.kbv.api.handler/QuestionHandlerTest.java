@@ -91,9 +91,6 @@ class QuestionHandlerTest {
         when(mockExperianService.getResponseFromExperianAPI(
                         "questions-request", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
                 .thenReturn("questionsResponseMock");
-
-        //  QuestionsResponse questionsResponse = objectMapper.readValue(questionsResponsePayload,
-        // QuestionsResponse.class);
         when(mockObjectMapper.readValue("questionsResponseMock", QuestionsResponse.class))
                 .thenReturn(questionsResponseMock);
 
@@ -150,9 +147,6 @@ class QuestionHandlerTest {
         when(mockExperianService.getResponseFromExperianAPI(
                         "questions-request", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
                 .thenReturn(questionsResponsePayload);
-
-        //        QuestionsResponse questionsResponse =
-        // objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
 
         when(mockObjectMapper.readValue(questionsResponsePayload, QuestionsResponse.class))
                 .thenReturn(questionsResponseMock);
