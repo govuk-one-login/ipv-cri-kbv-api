@@ -5,19 +5,11 @@ Description: >
   SAM Template for the kbv api v0.4
 
 Globals:
-#  Api:
-#    Auth:
-#      DefaultAuthorizer: AWS_IAM
   Function:
     Timeout: 60
     Runtime: java11
     MemorySize: 512
     Tracing: Active
-#    VpcConfig:
-#      SecurityGroupIds:
-#        - sg-0baf479c53ac54f59
-#      SubnetIds:
-#        - subnet-08cd07453da63f873
 
 Parameters:
   Environment:
@@ -31,34 +23,32 @@ Parameters:
       - prod
     ConstraintDescription: specify dev, staging, integration or prod for environment
 
-
 Resources:
 
   KBVSessionApi:
     Type: AWS::Serverless::Api
     Properties:
+      MethodSettings:
+        - LoggingLevel: INFO
+          ResourcePath: '/*'
+          HttpMethod: '*'
+      AccessLogSetting:
+        Format: '{ "requestId":"$context.requestId", "ip": "$context.identity.sourceIp", "caller":"$context.identity.caller", "user":"$context.identity.user","requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath", "status":"$context.status","protocol":"$context.protocol", "responseLength":"$context.responseLength" }'
+      TracingEnabled: true
+      Name: !Sub "KBVSessionApi-${Environment}"
       StageName: !Ref Environment
-#      DefinitionBody:
-#        openapi: "3.0.1" # workaround to get `sam validate` to work
-#        paths: # workaround to get `sam validate` to work
-#          /never-created:
-#            options: { } # workaround to get `sam validate` to work
-#        Fn::Transform:
-#          Name: AWS::Include
-#          Parameters:
-#            Location: './api.yaml'
-#      OpenApiVersion: 3.0.1
+      DefinitionBody:
+        openapi: "3.0.1" # workaround to get `sam validate` to work
+        paths: # workaround to get `sam validate` to work
+          /never-created:
+            options: { } # workaround to get `sam validate` to work
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: './api.yaml'
+      OpenApiVersion: 3.0.1
       EndpointConfiguration:
         Type: REGIONAL
-
-
-#  FunctionPermission:
-#    Type: AWS::Lambda::Permission
-#    Properties:
-#      Action: lambda:InvokeFunction
-#      FunctionName: !Ref KBVSessionFunction
-#      Principal: apigateway.amazonaws.com
-#      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${KBVSessionApi}*"
 
   KBVSessionTable:
     Type: AWS::DynamoDB::Table
@@ -80,16 +70,13 @@ Resources:
   KBVSessionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./lambdas/session
+      CodeUri: ../lambdas/session
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.SessionHandler::handleRequest
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
         - DynamoDBWritePolicy:
             TableName: !Ref KBVSessionTable
-      Runtime: java11
-      MemorySize: 512
-      Tracing: Active
       Environment:
         Variables:
           IS_LOCAL: false
@@ -106,7 +93,7 @@ Resources:
   KBVQuestionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./lambdas/question
+      CodeUri: ../lambdas/question
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler::handleRequest
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -115,9 +102,6 @@ Resources:
             TableName: !Ref KBVSessionTable
         - DynamoDBWritePolicy:
             TableName: !Ref KBVSessionTable
-      Runtime: java11
-      MemorySize: 512
-      Tracing: Active
       Environment:
         Variables:
           IS_LOCAL: false
@@ -136,7 +120,7 @@ Resources:
   KBVAnswerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./lambdas/answer
+      CodeUri: ../lambdas/answer
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionAnswerHandler::handleRequest
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -145,9 +129,6 @@ Resources:
             TableName: !Ref KBVSessionTable
         - DynamoDBWritePolicy:
             TableName: !Ref KBVSessionTable
-      Runtime: java11
-      MemorySize: 512
-      Tracing: Active
       Environment:
         Variables:
           IS_LOCAL: false
@@ -178,18 +159,14 @@ Outputs:
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   KBVSessionApi:
-    Description: "API Gateway endpoint URL for Dev KBVSession function"
-    Value: !Sub "https://${KBVSessionApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/session"
+    Description: "API Gateway endpoint URL for KBV API functions to be consumed primarily by the frontend"
+    Value: !Sub "https://${KBVSessionApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
   KBVSessionFunction:
-    Description: "KBVSession check lambda function ARN"
+    Description: "KBVSessionFunction lambda ARN"
     Value: !GetAtt KBVSessionFunction.Arn
   KBVQuestionFunction:
-    Description: "KBVQuestion check lambda function ARN"
+    Description: "KBVQuestionFunction lambda ARN"
     Value: !GetAtt KBVQuestionFunction.Arn
-  KBVSessionFunctionIamRole:
-    Description: "Implicit IAM Role created for KBVSession function"
-    Value: !GetAtt KBVSessionFunction.Arn
-  KBVQuestionFunctionIamRole:
-    Description: "Implicit IAM Role created for KBVQuestion function"
-    Value: !GetAtt KBVQuestionFunction.Arn
-
+  KBVAnswerFunction:
+    Description: "KBVAnswerFunction lambda ARN"
+    Value: !GetAtt KBVAnswerFunction.Arn
