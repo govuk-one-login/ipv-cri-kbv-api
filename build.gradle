@@ -4,8 +4,102 @@ plugins {
 	id "com.diffplug.spotless" version "6.1.0"
 }
 
+ext {
+	dependencyVersions = [
+		aws_sdk_version          : "1.12.153",
+		aws_lambda_core_version  : "1.2.1",
+		aws_lambda_events_version: "3.11.0",
+		aws_powertools_version   : "1.9.0",
+		jackson_version          : "2.13.1",
+		nimbusds_oauth_version   : "9.25",
+		nimbusds_jwt_version     : "9.15.1",
+		protobuf_version         : "3.19.4",
+		junit                    : "5.8.2",
+		glassfish_version        : "3.0.3",
+	]
+}
+
 repositories {
-	mavenCentral()
+	maven {
+		url 'https://gds.jfrog.io/artifactory/di-allowed-repos'
+	}
+}
+
+subprojects {
+
+	java {
+		sourceCompatibility = JavaVersion.VERSION_11
+		targetCompatibility = JavaVersion.VERSION_11
+	}
+
+	repositories {
+		maven {
+			url 'https://gds.jfrog.io/artifactory/di-allowed-repos'
+		}
+	}
+
+	configurations {
+		dynamodb
+		cache
+		jackson
+		tests
+		test_runtime
+		logging_runtime
+		lambda
+		powertools
+		hibernate
+		nimbus
+		log
+	}
+
+	dependencies {
+		dynamodb "com.amazonaws:aws-java-sdk-dynamodb:${dependencyVersions.aws_sdk_version}",
+				"software.amazon.awssdk:dynamodb-enhanced:2.17.116"
+
+		jackson "com.fasterxml.jackson.core:jackson-databind:${dependencyVersions.jackson_version}",
+				"com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${dependencyVersions.jackson_version}",
+				"com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${dependencyVersions.jackson_version}",
+				"javax.annotation:javax.annotation-api:1.3.2",
+				"javax.validation:validation-api:2.0.1.Final",
+				"javax.el:javax.el-api:3.0.0",
+				"org.glassfish:javax.el:3.0.0"
+
+
+		tests "org.junit.jupiter:junit-jupiter-api:${dependencyVersions.junit}",
+				"org.junit.jupiter:junit-jupiter-params:${dependencyVersions.junit}",
+				"org.junit.jupiter:junit-jupiter:${dependencyVersions.junit}",
+				"org.mockito:mockito-junit-jupiter:4.3.1",
+				"org.mockito:mockito-inline:4.3.1"
+
+		test_runtime "org.junit.jupiter:junit-jupiter-engine:${dependencyVersions.junit}"
+
+		log 	"ch.qos.logback:logback-classic:1.2.10",
+				"ch.qos.logback:logback-access:1.2.10"
+
+		logging_runtime "com.amazonaws:aws-lambda-java-log4j2:1.5.1",
+				"org.slf4j:slf4j-nop:1.7.36"
+
+		hibernate "org.hibernate.validator:hibernate-validator:7.0.1.Final",
+				"org.hibernate:hibernate-validator-annotation-processor:7.0.1.Final"
+
+
+		lambda "com.amazonaws:aws-lambda-java-core:${dependencyVersions.aws_lambda_core_version}",
+				"com.amazonaws:aws-lambda-java-events:${dependencyVersions.aws_lambda_events_version}"
+
+		powertools "software.amazon.lambda:powertools-tracing:1.10.2",
+				"software.amazon.lambda:powertools-parameters:1.10.2"
+
+
+		nimbus "com.nimbusds:oauth2-oidc-sdk:${dependencyVersions.nimbusds_oauth_version}",
+				"com.nimbusds:nimbus-jose-jwt:${dependencyVersions.nimbusds_jwt_version}"
+	}
+}
+
+tasks.named("jar") {
+	manifest {
+		attributes "Implementation-Title": project.name,
+		"Implementation-Version": project.version
+	}
 }
 
 sonarqube {
@@ -30,3 +124,5 @@ spotless {
 		endWithNewline()
 	}
 }
+
+defaultTasks 'clean', 'spotlessApply', 'build'
