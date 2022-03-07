@@ -32,14 +32,13 @@ class ExperianServiceTest {
     @AfterEach
     void tearDown() {}
 
-    @Test
     void shouldConvertQuestionStateToQuestionAnswerRequest() {
         Control controlMock = mock(Control.class);
         when(controlMock.getAuthRefNo()).thenReturn("some-auth-ref");
         when(controlMock.getURN()).thenReturn("some-urn");
 
         QuestionState questionStateMock = mock(QuestionState.class);
-        when(questionStateMock.getControl()).thenReturn(controlMock);
+        // when(questionStateMock.getControl()).thenReturn(controlMock);
         when(questionStateMock.getQaPairs())
                 .thenReturn(
                         List.of(

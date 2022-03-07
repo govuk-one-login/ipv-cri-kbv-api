@@ -69,8 +69,8 @@ public class ExperianService {
                         .collect(Collectors.toList());
 
         questionAnswerRequest.setQuestionAnswers(collect);
-        questionAnswerRequest.setAuthRefNo(questionState.getControl().getAuthRefNo());
-        questionAnswerRequest.setUrn(questionState.getControl().getURN());
+        // questionAnswerRequest.setAuthRefNo(questionState.getControl().getAuthRefNo());
+        // questionAnswerRequest.setUrn(questionState.getControl().getURN());
         return questionAnswerRequest;
     }
 }
