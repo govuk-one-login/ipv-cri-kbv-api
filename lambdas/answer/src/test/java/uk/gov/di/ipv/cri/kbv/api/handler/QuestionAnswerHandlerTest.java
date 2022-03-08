@@ -125,7 +125,7 @@ class QuestionAnswerHandlerTest {
                 .thenReturn(questionAnswerMock);
         when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
 
-        when(mockExperianService.getResponseFromExperianAPI(
+        when(mockExperianService.getResponseFromKBVExperianAPI(
                         any(), eq("EXPERIAN_API_WRAPPER_RTQ_RESOURCE")))
                 .thenReturn(responseBodyExperian);
         when(mockObjectMapper.readValue(responseBodyExperian, QuestionsResponse.class))
@@ -167,7 +167,7 @@ class QuestionAnswerHandlerTest {
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
         when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
 
-        when(mockExperianService.getResponseFromExperianAPI(
+        when(mockExperianService.getResponseFromKBVExperianAPI(
                         any(), eq("EXPERIAN_API_WRAPPER_RTQ_RESOURCE")))
                 .thenReturn(responseBodyExperian);
         when(mockObjectMapper.readValue(responseBodyExperian, QuestionsResponse.class))
@@ -262,7 +262,7 @@ class QuestionAnswerHandlerTest {
                 .thenReturn(questionAnswerMock);
 
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
-        when(mockExperianService.getResponseFromExperianAPI(
+        when(mockExperianService.getResponseFromKBVExperianAPI(
                         null, "EXPERIAN_API_WRAPPER_RTQ_RESOURCE"))
                 .thenThrow(InterruptedException.class);
 

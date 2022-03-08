@@ -111,7 +111,7 @@ public class QuestionAnswerHandler
         questionAnswerRequest.setAuthRefNo(kbvSessionItem.getAuthRefNo());
         questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
         String body =
-                experianService.getResponseFromExperianAPI(
+                experianService.getResponseFromKBVExperianAPI(
                         objectMapper.writeValueAsString(questionAnswerRequest),
                         "EXPERIAN_API_WRAPPER_RTQ_RESOURCE");
         QuestionsResponse questionsResponse = objectMapper.readValue(body, QuestionsResponse.class);

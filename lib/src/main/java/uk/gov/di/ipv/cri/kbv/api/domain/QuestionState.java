@@ -31,7 +31,6 @@ public class QuestionState {
     }
 
     public boolean setQuestionsResponse(QuestionsResponse questionsResponse) {
-        // setControl(questionsResponse.getControl());
         Questions questions = questionsResponse.getQuestions();
         boolean hasQuestions = questions != null && questions.getQuestion() != null;
         if (hasQuestions) {

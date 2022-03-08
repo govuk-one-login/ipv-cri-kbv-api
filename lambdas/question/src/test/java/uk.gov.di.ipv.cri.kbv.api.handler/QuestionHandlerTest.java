@@ -91,7 +91,7 @@ class QuestionHandlerTest {
 
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
 
-        when(mockExperianService.getResponseFromExperianAPI(
+        when(mockExperianService.getResponseFromKBVExperianAPI(
                         "questions-request", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
                 .thenReturn("questionsResponseMock");
         when(mockObjectMapper.readValue("questionsResponseMock", QuestionsResponse.class))
@@ -182,7 +182,7 @@ class QuestionHandlerTest {
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
 
         String questionsResponsePayload = "questionsResponse";
-        when(mockExperianService.getResponseFromExperianAPI(
+        when(mockExperianService.getResponseFromKBVExperianAPI(
                         "questions-request", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
                 .thenReturn(questionsResponsePayload);
 
@@ -278,7 +278,7 @@ class QuestionHandlerTest {
 
         doThrow(InterruptedException.class)
                 .when(mockExperianService)
-                .getResponseFromExperianAPI(anyString(), anyString());
+                .getResponseFromKBVExperianAPI(anyString(), anyString());
 
         APIGatewayProxyResponseEvent response =
                 questionHandler.handleRequest(input, mock(Context.class));

@@ -73,7 +73,6 @@ public class QuestionHandler
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR + ":\"" + jsonProcessingException.getMessage() + "\" }");
         } catch (NullPointerException npe) {
-            npe.printStackTrace();
             LOGGER.error("Error finding the requested resource");
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
             response.withBody("{ " + ERROR + ":\"" + npe.getMessage() + "\" }");
@@ -130,7 +129,7 @@ public class QuestionHandler
             return;
         }
         String questionsResponsePayload =
-                experianService.getResponseFromExperianAPI(
+                experianService.getResponseFromKBVExperianAPI(
                         json, "EXPERIAN_API_WRAPPER_SAA_RESOURCE");
         QuestionsResponse questionsResponse =
                 objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
