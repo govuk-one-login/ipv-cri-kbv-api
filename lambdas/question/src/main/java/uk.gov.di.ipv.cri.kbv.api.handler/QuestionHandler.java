@@ -144,7 +144,6 @@ public class QuestionHandler
             kbvSessionItem.setQuestionState(state);
             kbvSessionItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
             kbvSessionItem.setUrn(questionsResponse.getControl().getURN());
-            kbvSessionItem.setStatus(questionsResponse.getStatus());
             storageService.update(kbvSessionItem);
         } else { // TODO: Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);

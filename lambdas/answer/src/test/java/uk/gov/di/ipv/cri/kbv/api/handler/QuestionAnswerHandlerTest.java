@@ -133,10 +133,13 @@ class QuestionAnswerHandlerTest {
 
         when(mockObjectMapper.writeValueAsString(any())).thenReturn("question-response");
 
+        when(questionsResponseMock.hasQuestions()).thenReturn(false);
+        when(questionsResponseMock.hasQuestionRequestEnded()).thenReturn(true);
+
         APIGatewayProxyResponseEvent result =
                 questionAnswerHandler.handleRequest(input, contextMock);
 
-        verify(mockStorageService).update(kbvSessionItemMock);
+        verify(mockStorageService, times(2)).update(kbvSessionItemMock);
         assertEquals(HttpStatus.SC_OK, result.getStatusCode());
         assertNull(result.getBody());
     }

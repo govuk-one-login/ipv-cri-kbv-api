@@ -80,7 +80,11 @@ public class KBVSessionItem {
         return sessionId;
     }
 
-    public void setStatus(String authorization_complete) {
-        status = authorization_complete;
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
@@ -287,5 +288,34 @@ class QuestionHandlerTest {
         assertEquals(
                 "Retrieving questions failed: java.lang.InterruptedException", event.getMessage());
         assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+    }
+
+    @Test
+    void shouldReturn204WhenAGivenSessionHasReceivedFinalResponseFromExperian() throws IOException, InterruptedException {
+
+        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
+        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+
+        Context contextMock = mock(Context.class);
+        KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
+        PersonIdentity personIdentityMock = mock(PersonIdentity.class);
+        QuestionState questionStateMock = mock(QuestionState.class);
+
+        when(input.getHeaders()).thenReturn(sessionHeader);
+        when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
+                .thenReturn(Optional.ofNullable(kbvSessionItemMock));
+        when(mockObjectMapper.readValue(
+                kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
+                .thenReturn(personIdentityMock);
+        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
+                .thenReturn(questionStateMock);
+
+        when(kbvSessionItemMock.getAuthorizationCode()).thenReturn("authorisation-code");
+
+        APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
+
+        assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusCode());
+        assertNull(response.getBody());
+
     }
 }
