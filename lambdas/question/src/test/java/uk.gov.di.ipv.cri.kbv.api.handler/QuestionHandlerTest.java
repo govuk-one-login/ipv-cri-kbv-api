@@ -291,7 +291,8 @@ class QuestionHandlerTest {
     }
 
     @Test
-    void shouldReturn204WhenAGivenSessionHasReceivedFinalResponseFromExperian() throws IOException, InterruptedException {
+    void shouldReturn204WhenAGivenSessionHasReceivedFinalResponseFromExperian()
+            throws IOException, InterruptedException {
 
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
@@ -305,7 +306,7 @@ class QuestionHandlerTest {
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
         when(mockObjectMapper.readValue(
-                kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
+                        kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
                 .thenReturn(personIdentityMock);
         when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
@@ -316,6 +317,5 @@ class QuestionHandlerTest {
 
         assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusCode());
         assertNull(response.getBody());
-
     }
 }
