@@ -110,7 +110,7 @@ Resources:
           EXPERIAN_API_WRAPPER_SAA_RESOURCE: /question-request
           EXPERIAN_API_WRAPPER_URL: https://zn3dus332j.execute-api.eu-west-2.amazonaws.com/dev
       Events:
-        KBVQuestionApi:
+        KBVQuestionFunctionApi:
           Type: Api
           Properties:
             Path: /question
