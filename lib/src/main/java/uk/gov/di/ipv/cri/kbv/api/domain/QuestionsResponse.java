@@ -1,5 +1,9 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
+import com.nimbusds.oauth2.sdk.util.StringUtils;
+
+import java.util.stream.Collectors;
+
 public class QuestionsResponse {
 
     protected Control control;
@@ -23,8 +27,28 @@ public class QuestionsResponse {
         this.questions = questions;
     }
 
+    public boolean hasQuestions() {
+        return this.getQuestions() != null;
+    }
+
     public Results getResults() {
         return results;
+    }
+
+    public boolean hasQuestionRequestEnded() {
+        if (StringUtils.isNotBlank(this.getQuestionStatus())) {
+            return this.getQuestionStatus().equalsIgnoreCase("END");
+        }
+        return false;
+    }
+
+    public String getQuestionStatus() {
+        return results.getNextTransId().getTransactionValue().stream()
+                .collect(Collectors.joining(""));
+    }
+
+    public String getStatus() {
+        return results.getAuthenticationResult();
     }
 
     public void setResults(Results results) {

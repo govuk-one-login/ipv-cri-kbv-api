@@ -7,6 +7,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -32,7 +33,7 @@ class QuestionStateTest {
                 .getQaPairs()
                 .addAll(List.of(questionAnswerPairMock1, questionAnswerPairMock2));
 
-        boolean allQuestionsAnswered = questionState.canSubmitAnswers();
+        boolean allQuestionsAnswered = questionState.questionsHaveAllBeenAnswered();
         assertTrue(allQuestionsAnswered);
     }
 
@@ -45,7 +46,7 @@ class QuestionStateTest {
                 .getQaPairs()
                 .addAll(List.of(questionAnswerPairMock1, questionAnswerPairMock2));
 
-        boolean allQuestionsAnswered = questionState.canSubmitAnswers();
+        boolean allQuestionsAnswered = questionState.questionsHaveAllBeenAnswered();
         assertFalse(allQuestionsAnswered);
     }
 
@@ -78,5 +79,13 @@ class QuestionStateTest {
 
         boolean hasMoreQuestions = questionState.setQuestionsResponse(questionsResponse);
         assertFalse(hasMoreQuestions);
+    }
+
+    @Test
+    void shouldReduceArray() {
+        List<String> sample = List.of("END");
+        String result = sample.stream().reduce("", String::concat);
+
+        assertEquals("END", result);
     }
 }

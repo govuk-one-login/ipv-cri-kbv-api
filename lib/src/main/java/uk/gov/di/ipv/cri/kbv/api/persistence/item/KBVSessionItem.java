@@ -13,6 +13,7 @@ public class KBVSessionItem {
     private String authRefNo;
     private String urn;
     private String userAttributes;
+    private String status;
 
     public void setAuthorizationCode(String authorizationCode) {
         this.authorizationCode = authorizationCode;
@@ -77,5 +78,13 @@ public class KBVSessionItem {
     @DynamoDbPartitionKey
     public String getSessionId() {
         return sessionId;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

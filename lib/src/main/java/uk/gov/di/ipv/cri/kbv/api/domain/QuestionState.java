@@ -7,8 +7,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class QuestionState {
-
-    private Control control;
     private Integer skipsRemaining;
     private String skipWarning;
     private List<QuestionAnswerPair> qaPairs = new ArrayList<>();
@@ -16,24 +14,55 @@ public class QuestionState {
 
     public QuestionState() {}
 
+    public void setAnswer(QuestionAnswer questionAnswer) {
+        this.getQaPairs().stream()
+                .filter(
+                        pair ->
+                                pair.getQuestion()
+                                        .getQuestionID()
+                                        .equals(questionAnswer.getQuestionId()))
+                .findFirst()
+                .orElseThrow(
+                        () ->
+                                new IllegalStateException(
+                                        "Question not found for questionID: "
+                                                + questionAnswer.getQuestionId()))
+                .setAnswer(questionAnswer.getAnswer());
+    }
+
     public boolean setQuestionsResponse(QuestionsResponse questionsResponse) {
-        setControl(questionsResponse.getControl());
         Questions questions = questionsResponse.getQuestions();
         boolean hasQuestions = questions != null && questions.getQuestion() != null;
         if (hasQuestions) {
             skipsRemaining = questions.getSkipsRemaining();
             skipWarning = questions.getSkipWarning();
 
-            qaPairs =
-                    Arrays.stream(questions.getQuestion())
-                            .map(QuestionAnswerPair::new)
-                            .collect(Collectors.toList());
+            setQAPairs(questions);
         }
         return hasQuestions;
     }
 
+    public void setQAPairs(Questions questions) {
+        qaPairs =
+                Arrays.stream(questions.getQuestion())
+                        .map(QuestionAnswerPair::new)
+                        .collect(Collectors.toList());
+    }
+
     public List<QuestionAnswerPair> getQaPairs() {
         return qaPairs;
+    }
+
+    public List<QuestionAnswer> getAnswers() {
+        return getQaPairs().stream()
+                .map(
+                        pair -> {
+                            QuestionAnswer questionAnswer = new QuestionAnswer();
+                            questionAnswer.setAnswer(pair.getAnswer());
+                            questionAnswer.setQuestionId(pair.getQuestion().getQuestionID());
+                            return questionAnswer;
+                        })
+                .collect(Collectors.toList());
     }
 
     public Optional<Question> getNextQuestion() {
@@ -43,15 +72,11 @@ public class QuestionState {
                 .findFirst();
     }
 
-    public void setControl(Control control) {
-        this.control = control;
-    }
-
-    public Control getControl() {
-        return control;
-    }
-
-    public boolean canSubmitAnswers() {
+    public boolean questionsHaveAllBeenAnswered() {
         return qaPairs.stream().allMatch(qa -> qa.getAnswer() != null);
+    }
+
+    public boolean hasAtLeastOneUnAnswered() {
+        return qaPairs.stream().anyMatch(qa -> qa.getAnswer() == null);
     }
 }
