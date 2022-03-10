@@ -7,9 +7,6 @@ import com.amazonaws.services.dynamodbv2.model.InternalServerErrorException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.amazonaws.xray.AWSXRay;
-import com.amazonaws.xray.AWSXRayRecorderBuilder;
-import com.amazonaws.xray.strategy.LogErrorContextMissingStrategy;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpStatus;
@@ -56,10 +53,6 @@ class QuestionHandlerTest {
 
     @BeforeEach
     void setUp() {
-        AWSXRay.setGlobalRecorder(
-                AWSXRayRecorderBuilder.standard()
-                        .withContextMissingStrategy(new LogErrorContextMissingStrategy())
-                        .build());
         Logger logger = (Logger) LoggerFactory.getLogger(QuestionHandler.class);
         logger.addAppender(appender);
         questionHandler =

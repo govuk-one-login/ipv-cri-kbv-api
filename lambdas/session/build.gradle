@@ -5,14 +5,13 @@ plugins {
 
 dependencies {
 	implementation project(":lib")
-	implementation configurations.jackson
-	implementation configurations.hibernate
-	implementation configurations.dynamodb
-	implementation configurations.lambda
-	implementation configurations.log
-
-	implementation configurations.powertools
-	testImplementation configurations.tests
+	implementation configurations.jackson,
+			configurations.hibernate,
+			configurations.dynamodb,
+			configurations.lambda,
+			configurations.powertools
+	testImplementation configurations.tests,
+			configurations.log
 }
 
 

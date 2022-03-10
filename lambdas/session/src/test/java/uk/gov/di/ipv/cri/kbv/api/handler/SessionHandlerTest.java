@@ -7,12 +7,10 @@ import com.amazonaws.services.dynamodbv2.model.InternalServerErrorException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.amazonaws.xray.AWSXRay;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,7 +46,6 @@ public class SessionHandlerTest {
 
     @BeforeEach
     void setUp() {
-        AWSXRay.beginSegment("handleRequest");
         Logger logger = (Logger) LoggerFactory.getLogger(SessionHandler.class);
         logger.addAppender(appender);
         this.sessionHandler =
@@ -57,11 +54,6 @@ public class SessionHandlerTest {
                         this.mockApiGatewayProxyResponseEvent,
                         this.mockParseJWT);
         objectMapper.registerModule(new JavaTimeModule());
-    }
-
-    @AfterEach
-    void tearDown() {
-        AWSXRay.endSegment();
     }
 
     @Test
