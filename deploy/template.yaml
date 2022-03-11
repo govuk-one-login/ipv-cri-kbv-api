@@ -10,6 +10,10 @@ Globals:
     Runtime: java11
     MemorySize: 512
     Tracing: Active
+    Environment:
+      Variables:
+        AWS_STACK_NAME: !Sub ${AWS::StackName}
+        POWERTOOLS_LOG_LEVEL: INFO
 
 Parameters:
   Environment:
