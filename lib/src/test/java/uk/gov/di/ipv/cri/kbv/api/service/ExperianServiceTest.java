@@ -1,6 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,11 +10,9 @@ import uk.org.webcompere.systemstubs.jupiter.SystemStub;
 import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,19 +40,8 @@ class ExperianServiceTest {
         environmentVariables.set("EXPERIAN_API_WRAPPER_URL", experianURL);
     }
 
-    @AfterEach
-    void tearDown() {}
-
     @Test
-    void shouldCreateExperianUriForRTQEndpoint() {
-        environmentVariables.set("EXPERIAN_API_WRAPPER_RTQ_RESOURCE", RTQ);
-        URI uri = experianService.createExperianUri("EXPERIAN_API_WRAPPER_RTQ_RESOURCE");
-        assertNotNull(uri);
-        assertEquals(uri, URI.create(experianURL + RTQ));
-    }
-
-    @Test
-    void shouldReturnResponseFromKBVExperianAPIForRTQEndpoint()
+    void shouldReturnResponseFromKBVExperianAPIForQuestionAnswerEndpoint()
             throws IOException, InterruptedException {
         environmentVariables.set("EXPERIAN_API_WRAPPER_RTQ_RESOURCE", RTQ);
         HttpResponse mockResponse = mock(HttpResponse.class);
@@ -71,15 +57,7 @@ class ExperianServiceTest {
     }
 
     @Test
-    void shouldCreateExperianUriForSAAEndpoint() {
-        environmentVariables.set("EXPERIAN_API_WRAPPER_SAA_RESOURCE", SAA);
-        URI uri = experianService.createExperianUri("EXPERIAN_API_WRAPPER_SAA_RESOURCE");
-        assertNotNull(uri);
-        assertEquals(uri, URI.create(experianURL + SAA));
-    }
-
-    @Test
-    void shouldReturnResponseFromKBVExperianAPIForSAAEndpoint()
+    void shouldReturnResponseFromKBVExperianAPIForQuestionRequestEndpoint()
             throws IOException, InterruptedException {
         environmentVariables.set("EXPERIAN_API_WRAPPER_SAA_RESOURCE", SAA);
         HttpResponse mockResponse = mock(HttpResponse.class);
