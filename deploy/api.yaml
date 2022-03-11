@@ -43,12 +43,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Question"
-        "201":
-          description: "201 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Question"
+        "204":
+          description: "204 response"
         "400":
           description: "400 response"
           content:
