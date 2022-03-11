@@ -10,8 +10,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.lambda.powertools.tracing.CaptureMode;
-import software.amazon.lambda.powertools.tracing.Tracing;
+import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
+import software.amazon.lambda.powertools.logging.Logging;
+import software.amazon.lambda.powertools.metrics.Metrics;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
@@ -62,7 +63,8 @@ public class QuestionAnswerHandler
     }
 
     @Override
-    @Tracing(captureMode = CaptureMode.DISABLED)
+    @Logging(correlationIdPath = CorrelationIdPathConstants.API_GATEWAY_REST)
+    @Metrics(captureColdStart = true)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
         response.withHeaders(Map.of("Content-Type", "application/json"));

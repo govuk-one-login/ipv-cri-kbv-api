@@ -16,6 +16,7 @@ ext {
 		protobuf_version         : "3.19.4",
 		junit                    : "5.8.2",
 		glassfish_version        : "3.0.3",
+		powertools_version       : "1.12.0"
 	]
 }
 
@@ -64,7 +65,6 @@ subprojects {
 				"javax.el:javax.el-api:3.0.0",
 				"org.glassfish:javax.el:3.0.0"
 
-
 		tests "org.junit.jupiter:junit-jupiter-api:${dependencyVersions.junit}",
 				"org.junit.jupiter:junit-jupiter-params:${dependencyVersions.junit}",
 				"org.junit.jupiter:junit-jupiter:${dependencyVersions.junit}",
@@ -77,19 +77,18 @@ subprojects {
 		log 	"ch.qos.logback:logback-classic:1.2.10",
 				"ch.qos.logback:logback-access:1.2.10"
 
-		logging_runtime "com.amazonaws:aws-lambda-java-log4j2:1.5.1",
-				"org.slf4j:slf4j-nop:1.7.36"
+		logging_runtime "com.amazonaws:aws-lambda-java-log4j2:1.5.1"
 
 		hibernate "org.hibernate.validator:hibernate-validator:7.0.1.Final",
 				"org.hibernate:hibernate-validator-annotation-processor:7.0.1.Final"
 
-
 		lambda "com.amazonaws:aws-lambda-java-core:${dependencyVersions.aws_lambda_core_version}",
-				"com.amazonaws:aws-lambda-java-events:${dependencyVersions.aws_lambda_events_version}"
+				"com.amazonaws:aws-lambda-java-events:${dependencyVersions.aws_lambda_events_version}",
+				"com.amazonaws:aws-lambda-java-log4j2:1.5.1",
+				"software.amazon.lambda:powertools-parameters:${dependencyVersions.aws_powertools_version}"
 
-		powertools "software.amazon.lambda:powertools-tracing:1.10.2",
-				"software.amazon.lambda:powertools-parameters:1.10.2"
-
+		powertools "software.amazon.lambda:powertools-logging:${dependencyVersions.powertools_version}",
+				"software.amazon.lambda:powertools-metrics:${dependencyVersions.powertools_version}"
 
 		nimbus "com.nimbusds:oauth2-oidc-sdk:${dependencyVersions.nimbusds_oauth_version}",
 				"com.nimbusds:nimbus-jose-jwt:${dependencyVersions.nimbusds_jwt_version}"
