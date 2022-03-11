@@ -45,7 +45,7 @@ public class ExperianService {
         return body;
     }
 
-    URI createExperianUri(String uriEndpoint) {
+    private URI createExperianUri(String uriEndpoint) {
         String baseURL = System.getenv(EXPERIAN_API_WRAPPER_URL);
         String resource = System.getenv(uriEndpoint);
         return URI.create(baseURL + resource);
