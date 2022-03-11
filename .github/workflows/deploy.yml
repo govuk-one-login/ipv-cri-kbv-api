@@ -44,14 +44,14 @@ jobs:
         run: ./gradlew clean build
 
       - name: SAM build
-        run: sam build -t template.yaml --config-env ${{ env.ENVIRONMENT }}
+        run: sam build -t deploy/template.yaml --config-env ${{ env.ENVIRONMENT }}
 
       - name: SAM Validate
-        run: sam validate --region ${{ env.AWS_REGION }} -t template.yaml --config-env ${{ env.ENVIRONMENT }}
+        run: sam validate --region ${{ env.AWS_REGION }} -t deploy/template.yaml --config-env ${{ env.ENVIRONMENT }}
 
       - name: SAM deploy
         run: |
-          sam deploy -t template.yaml --config-env ${{ env.ENVIRONMENT }} \
+          sam deploy -t deploy/template.yaml --config-env ${{ env.ENVIRONMENT }} \
             --no-fail-on-empty-changeset --no-confirm-changeset ${{ env.ROLLBACK_ACTION }} \
             --signing-profiles KBVSessionFunction=${{ steps.code_signing.outputs.profile }} \
             KBVQuestionFunction=${{ steps.code_signing.outputs.profile }} \
