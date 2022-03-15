@@ -7,8 +7,16 @@ public class Question {
     private String answerHeldFlag;
     private AnswerFormat answerFormat;
 
+    public void setQuestionID(String value) {
+        this.questionID = value;
+    }
+
     public String getQuestionID() {
         return questionID;
+    }
+
+    public void setText(String value) {
+        this.text = value;
     }
 
     public String getText() {

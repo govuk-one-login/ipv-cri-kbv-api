@@ -7,8 +7,8 @@ import com.amazonaws.services.dynamodbv2.model.InternalServerErrorException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,12 +17,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
-import uk.gov.di.ipv.cri.kbv.api.domain.Control;
 import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
-import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsRequest;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.service.ExperianService;
 import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
@@ -35,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -46,7 +44,7 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.HEADER_SESSION_I
 class QuestionHandlerTest {
 
     private QuestionHandler questionHandler;
-    @Mock private ObjectMapper mockObjectMapper;
+    private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     @Mock private StorageService mockStorageService;
     @Mock private ExperianService mockExperianService;
     @Mock private Appender<ILoggingEvent> appender;
@@ -55,8 +53,7 @@ class QuestionHandlerTest {
     void setUp() {
         Logger logger = (Logger) LoggerFactory.getLogger(QuestionHandler.class);
         logger.addAppender(appender);
-        questionHandler =
-                new QuestionHandler(mockObjectMapper, mockStorageService, mockExperianService);
+        questionHandler = new QuestionHandler(mockStorageService, mockExperianService);
     }
 
     @Test
@@ -69,51 +66,33 @@ class QuestionHandlerTest {
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
         QuestionState questionStateMock = mock(QuestionState.class);
+        String questionsResponse =
+                "{\"control\":{\"urn\":\"f0746bbd-ed6f-44c7-bc3b-82c336c10815\",\"authRefNo\":\"7DCTWBC7LR\",\"dateTime\":null,\"testDatabase\":\"A\",\"clientAccountNo\":\"J8193\",\"clientBranchNo\":null,\"operatorID\":\"GDSCABINETUIIQ01U\",\"parameters\":{\"oneShotAuthentication\":\"N\",\"storeCaseData\":\"P\"}},\"questions\":{\"question\":[{\"questionID\":\"Q00015\",\"text\":\"What is the first James Bond movie?\",\"tooltip\":\"It was released in the 1960s.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"Movie 1\",\"Movie 2\",\"Movie 3\"]}},{\"questionID\":\"Q00040\",\"text\":\"How much was your recent loan for?\",\"tooltip\":\"The approximate starting balance, in £s, on an active personal loan. Does not include HP Loans, 2nd Mortgages or Home Credit.\",\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £8,500\",\"OVER £8,500 UP TO £9,000\",\"OVER £9,000 UP TO £9,500\",\"OVER £9,500 UP TO £10,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]},\"answerHeldFlag\":null}],\"skipsRemaining\":null,\"skipWarning\":null},\"results\":{\"outcome\":\"Authentication Questions returned\",\"authenticationResult\":null,\"questions\":null,\"alerts\":null,\"nextTransId\":{\"string\":[\"RTQ\"]},\"caseFoundFlag\":null,\"confirmationCode\":null},\"error\":null}";
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
-        when(mockObjectMapper.readValue(
-                        kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
-                .thenReturn(personIdentityMock);
-        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
-                .thenReturn(questionStateMock);
+        String personIdentity = objectMapper.writeValueAsString(personIdentityMock);
+        String questionState = objectMapper.writeValueAsString(questionStateMock);
 
-        when(mockObjectMapper.writeValueAsString(any(QuestionsRequest.class)))
-                .thenReturn("questions-request");
+        when(kbvSessionItemMock.getUserAttributes()).thenReturn(personIdentity);
+        when(kbvSessionItemMock.getQuestionState()).thenReturn(questionState);
 
-        QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
+        QuestionsRequest questionsRequest = new QuestionsRequest();
+        questionsRequest.setPersonIdentity(personIdentityMock);
+
+        String json = objectMapper.writeValueAsString(questionsRequest);
 
         when(mockExperianService.getResponseFromKBVExperianAPI(
-                        "questions-request", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
-                .thenReturn("questionsResponseMock");
-        when(mockObjectMapper.readValue("questionsResponseMock", QuestionsResponse.class))
-                .thenReturn(questionsResponseMock);
+                        json, "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
+                .thenReturn(questionsResponse);
 
-        when(questionsResponseMock.hasQuestions()).thenReturn(true);
-        String state = "question-state";
-        when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn(state);
-        Control controlMock = mock(Control.class);
-        when(questionsResponseMock.getControl()).thenReturn(controlMock);
-        String authRefNo = "auth-ref-no";
-        when(controlMock.getAuthRefNo()).thenReturn(authRefNo);
-        String ipvSessionId = "ipv-session-id";
-        when(controlMock.getURN()).thenReturn(ipvSessionId);
         doNothing().when(mockStorageService).update(kbvSessionItemMock);
-
-        Question expectedQuestion = mock(Question.class);
-
-        when(questionStateMock.getNextQuestion()) // we have to do this to get it to work
-                .thenReturn(Optional.empty()) // otherwise the second overrides the first
-                .thenReturn(Optional.ofNullable(expectedQuestion));
-
-        when(mockObjectMapper.writeValueAsString(expectedQuestion))
-                .thenReturn(TestData.EXPECTED_QUESTION);
 
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
+        assertEquals(TestData.EXPECTED_QUESTION_ONE, response.getBody());
     }
 
     @Test
@@ -125,30 +104,21 @@ class QuestionHandlerTest {
         Context contextMock = mock(Context.class);
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
-        QuestionState questionStateMock = mock(QuestionState.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
-        when(mockObjectMapper.readValue(
-                        kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
-                .thenReturn(personIdentityMock);
-        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
-                .thenReturn(questionStateMock);
+        String personIdentity = objectMapper.writeValueAsString(personIdentityMock);
+        String questionState =
+                "{\"qaPairs\":[{\"question\":{\"questionID\":\"Q00015\",\"text\":\"What is the outstanding balance of your current mortgage?\",\"tooltip\":\"The approximate amount in £s, including interest. A loan to buy property (or land) where the loan is secured by a charge on that property.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £10,000\",\"OVER £10,000 UP TO £35,000\",\"OVER £35,000 UP TO £60,000\",\"OVER £60,000 UP TO £85,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]}},\"answer\":\"Answer given here\"},{\"question\":{\"questionID\":\"Q00040\",\"text\":\"How much was your recent loan for?\",\"tooltip\":\"The approximate starting balance, in £s, on an active personal loan. Does not include HP Loans, 2nd Mortgages or Home Credit.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £8,500\",\"OVER £8,500 UP TO £9,000\",\"OVER £9,000 UP TO £9,500\",\"OVER £9,500 UP TO £10,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]}},\"answer\":null}],\"nextQuestion\":{\"empty\":false,\"present\":true},\"state\":\"RTQ\",\"answers\":[{\"questionId\":\"Q00040\",\"answer\":null},{\"questionId\":\"Q00015\",\"answer\":null}]}";
 
-        when(mockObjectMapper.writeValueAsString(any(QuestionsRequest.class)))
-                .thenReturn("questions-request");
-
-        Question question2 = mock(Question.class);
-
-        when(questionStateMock.getNextQuestion()).thenReturn(Optional.ofNullable(question2));
-
-        when(mockObjectMapper.writeValueAsString(question2)).thenReturn(TestData.EXPECTED_QUESTION);
+        when(kbvSessionItemMock.getUserAttributes()).thenReturn(personIdentity);
+        when(kbvSessionItemMock.getQuestionState()).thenReturn(questionState);
 
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
+        assertEquals(TestData.EXPECTED_QUESTION_TWO, response.getBody());
     }
 
     @Test
@@ -159,31 +129,25 @@ class QuestionHandlerTest {
         Context contextMock = mock(Context.class);
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
-        QuestionState questionStateMock = mock(QuestionState.class);
+
+        String personIdentity = objectMapper.writeValueAsString(personIdentityMock);
+        String questionState =
+                "{\"qaPairs\":[{\"question\":{\"questionID\":\"Q00015\",\"text\":\"What is the outstanding balance of your current mortgage?\",\"tooltip\":\"The approximate amount in £s, including interest. A loan to buy property (or land) where the loan is secured by a charge on that property.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £10,000\",\"OVER £10,000 UP TO £35,000\",\"OVER £35,000 UP TO £60,000\",\"OVER £60,000 UP TO £85,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]}},\"answer\":\"Answer given here\"},{\"question\":{\"questionID\":\"Q00040\",\"text\":\"How much was your recent loan for?\",\"tooltip\":\"The approximate starting balance, in £s, on an active personal loan. Does not include HP Loans, 2nd Mortgages or Home Credit.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £8,500\",\"OVER £8,500 UP TO £9,000\",\"OVER £9,000 UP TO £9,500\",\"OVER £9,500 UP TO £10,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]}},\"answer\":\"another answer given\"}],\"nextQuestion\":{\"empty\":false,\"present\":true},\"state\":\"RTQ\",\"answers\":[{\"questionId\":\"Q00040\",\"answer\":null},{\"questionId\":\"Q00015\",\"answer\":null}]}";
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
-        when(mockObjectMapper.readValue(
-                        kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
-                .thenReturn(personIdentityMock);
-        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
-                .thenReturn(questionStateMock);
+        when(kbvSessionItemMock.getUserAttributes()).thenReturn(personIdentity);
+        when(kbvSessionItemMock.getQuestionState()).thenReturn(questionState);
 
-        when(mockObjectMapper.writeValueAsString(any())).thenReturn("questions-request");
-
-        QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
-
-        String questionsResponsePayload = "questionsResponse";
+        String questionsResponse =
+                "{\"control\":{\"urn\":\"e57adf7a-f4d9-4cae-a071-2742fb72c42b\",\"authRefNo\":\"7DCTTAC7HT\",\"dateTime\":null,\"testDatabase\":null,\"clientAccountNo\":null,\"clientBranchNo\":null,\"operatorID\":null,\"parameters\":null},\"questions\":null,\"results\":{\"outcome\":\"Insufficient Questions (Unable to Authenticate)\",\"authenticationResult\":\"Unable to Authenticate\",\"questions\":null,\"alerts\":null,\"nextTransId\":{\"string\":[\"END\"]},\"caseFoundFlag\":null,\"confirmationCode\":null},\"error\":null}";
         when(mockExperianService.getResponseFromKBVExperianAPI(
-                        "questions-request", "EXPERIAN_API_WRAPPER_SAA_RESOURCE"))
-                .thenReturn(questionsResponsePayload);
-
-        when(mockObjectMapper.readValue(questionsResponsePayload, QuestionsResponse.class))
-                .thenReturn(questionsResponseMock);
+                        any(), eq("EXPERIAN_API_WRAPPER_SAA_RESOURCE")))
+                .thenReturn(questionsResponse);
 
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
-        assertEquals("questionsResponse", response.getBody());
+        assertEquals(questionsResponse, response.getBody());
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 
@@ -203,7 +167,7 @@ class QuestionHandlerTest {
     }
 
     @Test
-    void shouldReturn500ErrorWhenAWSDynamoDBServiceDown() throws IOException, InterruptedException {
+    void shouldReturn500ErrorWhenAWSDynamoDBServiceDown() {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
@@ -224,19 +188,19 @@ class QuestionHandlerTest {
     }
 
     @Test
-    void shouldReturn500ErrorWhenPersonIdentityCannotBeParsedToJSON() throws IOException {
+    void shouldReturn500ErrorWhenPersonIdentityCannotBeParsedToJSON() {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
-        KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
                 ArgumentCaptor.forClass(ILoggingEvent.class);
+
+        KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
-        when(mockObjectMapper.readValue(
-                        kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
-                .thenThrow(JsonProcessingException.class);
+        when(kbvSessionItemMock.getUserAttributes()).thenReturn(TestData.EXPECTED_QUESTION_ONE);
+        when(input.getHeaders()).thenReturn(sessionHeader);
 
         APIGatewayProxyResponseEvent response =
                 questionHandler.handleRequest(input, mock(Context.class));
@@ -249,25 +213,22 @@ class QuestionHandlerTest {
 
     @Test
     void shouldReturn500ErrorWhenExperianServiceIsDown() throws IOException, InterruptedException {
-
-        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
-        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
                 ArgumentCaptor.forClass(ILoggingEvent.class);
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
+        APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
+        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
         QuestionState questionStateMock = mock(QuestionState.class);
+        String personIdentity = objectMapper.writeValueAsString(personIdentityMock);
+        String questionState = objectMapper.writeValueAsString(questionStateMock);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
-        when(mockObjectMapper.readValue(
-                        kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
-                .thenReturn(personIdentityMock);
-        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
-                .thenReturn(questionStateMock);
-
-        when(mockObjectMapper.writeValueAsString(any())).thenReturn("questions-request");
+        when(kbvSessionItemMock.getUserAttributes()).thenReturn(personIdentity);
+        when(kbvSessionItemMock.getQuestionState()).thenReturn(questionState);
 
         doThrow(InterruptedException.class)
                 .when(mockExperianService)
@@ -284,8 +245,7 @@ class QuestionHandlerTest {
     }
 
     @Test
-    void shouldReturn204WhenAGivenSessionHasReceivedFinalResponseFromExperian()
-            throws IOException, InterruptedException {
+    void shouldReturn204WhenAGivenSessionHasReceivedFinalResponseFromExperian() throws IOException {
 
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
@@ -294,15 +254,14 @@ class QuestionHandlerTest {
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
         QuestionState questionStateMock = mock(QuestionState.class);
+        String personIdentity = objectMapper.writeValueAsString(personIdentityMock);
+        String questionState = objectMapper.writeValueAsString(questionStateMock);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
-        when(mockObjectMapper.readValue(
-                        kbvSessionItemMock.getUserAttributes(), PersonIdentity.class))
-                .thenReturn(personIdentityMock);
-        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
-                .thenReturn(questionStateMock);
+        when(kbvSessionItemMock.getUserAttributes()).thenReturn(personIdentity);
+        when(kbvSessionItemMock.getQuestionState()).thenReturn(questionState);
 
         when(kbvSessionItemMock.getAuthorizationCode()).thenReturn("authorisation-code");
 

@@ -88,6 +88,7 @@ subprojects {
 				"software.amazon.lambda:powertools-parameters:${dependencyVersions.aws_powertools_version}"
 
 		powertools "software.amazon.lambda:powertools-logging:${dependencyVersions.powertools_version}",
+				"software.amazon.lambda:powertools-tracing:${dependencyVersions.powertools_version}",
 				"software.amazon.lambda:powertools-metrics:${dependencyVersions.powertools_version}"
 
 		nimbus "com.nimbusds:oauth2-oidc-sdk:${dependencyVersions.nimbusds_oauth_version}",

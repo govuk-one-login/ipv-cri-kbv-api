@@ -41,7 +41,6 @@ public class QuestionAnswerHandler
 
     public QuestionAnswerHandler() {
         this(
-                new ObjectMapper(),
                 new StorageService(
                         new DataStore<>(
                                 ConfigurationService.getInstance().getKBVSessionTableName(),
@@ -51,12 +50,8 @@ public class QuestionAnswerHandler
                 new ExperianService());
     }
 
-    public QuestionAnswerHandler(
-            ObjectMapper objectMapper,
-            StorageService storageService,
-            ExperianService experianService) {
-        this.objectMapper = objectMapper;
-        this.objectMapper.registerModule(new JavaTimeModule());
+    public QuestionAnswerHandler(StorageService storageService, ExperianService experianService) {
+        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.storageService = storageService;
         this.experianService = experianService;
         this.response = new APIGatewayProxyResponseEvent();
@@ -93,45 +88,21 @@ public class QuestionAnswerHandler
 
     public void processAnswerResponse(APIGatewayProxyRequestEvent input)
             throws IOException, InterruptedException {
-        QuestionState questionState;
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
         KBVSessionItem kbvSessionItem =
                 storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
-        questionState =
+        QuestionState questionState =
                 objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
         QuestionAnswer answer = objectMapper.readValue(input.getBody(), QuestionAnswer.class);
 
-        if (respondWithAnswerFromDbStore(answer, questionState, kbvSessionItem)) return;
-        respondWithAnswerFromExperianThenStoreInDb(questionState, kbvSessionItem);
-    }
-
-    private void respondWithAnswerFromExperianThenStoreInDb(
-            QuestionState questionState, KBVSessionItem kbvSessionItem)
-            throws IOException, InterruptedException {
         QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
         questionAnswerRequest.setUrn(kbvSessionItem.getUrn());
         questionAnswerRequest.setAuthRefNo(kbvSessionItem.getAuthRefNo());
         questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
-        String body =
-                experianService.getResponseFromKBVExperianAPI(
-                        objectMapper.writeValueAsString(questionAnswerRequest),
-                        "EXPERIAN_API_WRAPPER_RTQ_RESOURCE");
-        QuestionsResponse questionsResponse = objectMapper.readValue(body, QuestionsResponse.class);
+        String json = objectMapper.writeValueAsString(questionAnswerRequest);
 
-        if (questionsResponse.hasQuestions()) {
-            questionState.setQAPairs(questionsResponse.getQuestions());
-            kbvSessionItem.setQuestionState(objectMapper.writeValueAsString(questionState));
-            storageService.update(kbvSessionItem);
-        } else if (questionsResponse.hasQuestionRequestEnded()) {
-            String state = objectMapper.writeValueAsString(questionState);
-            kbvSessionItem.setQuestionState(state);
-            kbvSessionItem.setAuthorizationCode(UUID.randomUUID().toString());
-            kbvSessionItem.setStatus(questionsResponse.getStatus());
-            storageService.update(kbvSessionItem);
-        } else {
-            // TODO: alternate flow could end of transaction / or others
-        }
-        response.withStatusCode(HttpStatus.SC_OK);
+        if (respondWithAnswerFromDbStore(answer, questionState, kbvSessionItem)) return;
+        respondWithAnswerFromExperianThenStoreInDb(json, questionState, kbvSessionItem);
     }
 
     private boolean respondWithAnswerFromDbStore(
@@ -144,5 +115,31 @@ public class QuestionAnswerHandler
         response.withStatusCode(HttpStatus.SC_OK);
 
         return questionState.hasAtLeastOneUnAnswered();
+    }
+
+    private void respondWithAnswerFromExperianThenStoreInDb(
+            String json, QuestionState questionState, KBVSessionItem kbvSessionItem)
+            throws IOException, InterruptedException {
+
+        String body =
+                experianService.getResponseFromKBVExperianAPI(
+                        json, "EXPERIAN_API_WRAPPER_RTQ_RESOURCE");
+        QuestionsResponse questionsResponse = objectMapper.readValue(body, QuestionsResponse.class);
+
+        if (questionsResponse.hasQuestions()) {
+            questionState.setQAPairs(questionsResponse.getQuestions());
+            questionState.setState(questionsResponse.getQuestionStatus());
+            kbvSessionItem.setQuestionState(objectMapper.writeValueAsString(questionState));
+            storageService.update(kbvSessionItem);
+        } else if (questionsResponse.hasQuestionRequestEnded()) {
+            String state = objectMapper.writeValueAsString(questionState);
+            kbvSessionItem.setQuestionState(state);
+            kbvSessionItem.setAuthorizationCode(UUID.randomUUID().toString());
+            kbvSessionItem.setStatus(questionsResponse.getStatus());
+            storageService.update(kbvSessionItem);
+        } else {
+            // TODO: alternate flow could end of transaction / or others
+        }
+        response.withStatusCode(HttpStatus.SC_OK);
     }
 }

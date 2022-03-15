@@ -1,5 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
+import com.amazonaws.util.StringUtils;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -11,6 +13,7 @@ public class QuestionState {
     private String skipWarning;
     private List<QuestionAnswerPair> qaPairs = new ArrayList<>();
     private NextQuestion nextQuestion;
+    private String state = "";
 
     public QuestionState() {}
 
@@ -28,18 +31,6 @@ public class QuestionState {
                                         "Question not found for questionID: "
                                                 + questionAnswer.getQuestionId()))
                 .setAnswer(questionAnswer.getAnswer());
-    }
-
-    public boolean setQuestionsResponse(QuestionsResponse questionsResponse) {
-        Questions questions = questionsResponse.getQuestions();
-        boolean hasQuestions = questions != null && questions.getQuestion() != null;
-        if (hasQuestions) {
-            skipsRemaining = questions.getSkipsRemaining();
-            skipWarning = questions.getSkipWarning();
-
-            setQAPairs(questions);
-        }
-        return hasQuestions;
     }
 
     public void setQAPairs(Questions questions) {
@@ -78,5 +69,13 @@ public class QuestionState {
 
     public boolean hasAtLeastOneUnAnswered() {
         return qaPairs.stream().anyMatch(qa -> qa.getAnswer() == null);
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getState() {
+        return StringUtils.isNullOrEmpty(state) ? "" : state;
     }
 }

@@ -25,7 +25,6 @@ import uk.gov.di.ipv.cri.kbv.api.service.ExperianService;
 import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Optional;
 
 public class QuestionHandler
@@ -41,7 +40,6 @@ public class QuestionHandler
 
     public QuestionHandler() {
         this(
-                new ObjectMapper(),
                 new StorageService(
                         new DataStore<>(
                                 ConfigurationService.getInstance().getKBVSessionTableName(),
@@ -51,12 +49,8 @@ public class QuestionHandler
                 new ExperianService());
     }
 
-    public QuestionHandler(
-            ObjectMapper objectMapper,
-            StorageService storageService,
-            ExperianService experianService) {
-        this.objectMapper = objectMapper;
-        this.objectMapper.registerModule(new JavaTimeModule());
+    public QuestionHandler(StorageService storageService, ExperianService experianService) {
+        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.storageService = storageService;
         this.experianService = experianService;
         this.response = new APIGatewayProxyResponseEvent();
@@ -67,7 +61,6 @@ public class QuestionHandler
     @Metrics(captureColdStart = true)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
-
         try {
             processQuestionRequest(input);
         } catch (JsonProcessingException jsonProcessingException) {
@@ -92,7 +85,6 @@ public class QuestionHandler
 
     public void processQuestionRequest(APIGatewayProxyRequestEvent input)
             throws IOException, InterruptedException {
-        response.withHeaders(Map.of("Content-Type", "application/json"));
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
         KBVSessionItem kbvSessionItem =
                 storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
@@ -102,6 +94,7 @@ public class QuestionHandler
                 objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
 
         QuestionsRequest questionsRequest = new QuestionsRequest();
+        questionsRequest.setUrn(kbvSessionItem.getUrn());
         questionsRequest.setPersonIdentity(personIdentity);
         String json = objectMapper.writeValueAsString(questionsRequest);
 
@@ -116,9 +109,9 @@ public class QuestionHandler
         if (nextQuestion.isPresent()) {
             response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
             response.withStatusCode(HttpStatus.SC_OK);
-            return true;
+            return nextQuestion.isPresent();
         }
-        return false;
+        return nextQuestion.isPresent();
     }
 
     private void respondWithQuestionFromExperianThenStoreInDb(
@@ -130,13 +123,13 @@ public class QuestionHandler
             response.withStatusCode(HttpStatus.SC_NO_CONTENT);
             return;
         }
-        String questionsResponsePayload =
+        String body =
                 experianService.getResponseFromKBVExperianAPI(
                         json, "EXPERIAN_API_WRAPPER_SAA_RESOURCE");
-        QuestionsResponse questionsResponse =
-                objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
+        QuestionsResponse questionsResponse = objectMapper.readValue(body, QuestionsResponse.class);
         if (questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
+            questionState.setState(questionsResponse.getQuestionStatus());
             Optional<Question> nextQuestion = questionState.getNextQuestion();
             response.withStatusCode(HttpStatus.SC_OK);
             response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
@@ -148,7 +141,7 @@ public class QuestionHandler
             storageService.update(kbvSessionItem);
         } else { // TODO: Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
-            response.withBody(questionsResponsePayload);
+            response.withBody(body);
         }
     }
 }
