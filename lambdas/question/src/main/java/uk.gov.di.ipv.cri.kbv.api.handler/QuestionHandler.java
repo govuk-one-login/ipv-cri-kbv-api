@@ -18,6 +18,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.service.ConfigurationService;
@@ -39,6 +40,7 @@ public class QuestionHandler
     private final ExperianService experianService;
     private APIGatewayProxyResponseEvent response;
 
+    @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
         this(
                 new ObjectMapper(),

@@ -5,7 +5,7 @@ public class Results {
     private String authenticationResult;
     private NextTransId nextTransId;
     private ResultQuestions questions;
-    private String alerts;
+    private Alerts alerts;
     private String caseFoundFlag;
     private String confirmationCode;
 
@@ -41,11 +41,11 @@ public class Results {
         this.questions = questions;
     }
 
-    public String getAlerts() {
+    public Alerts getAlerts() {
         return alerts;
     }
 
-    public void setAlerts(String alerts) {
+    public void setAlerts(Alerts alerts) {
         this.alerts = alerts;
     }
 
