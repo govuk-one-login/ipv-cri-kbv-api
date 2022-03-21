@@ -43,7 +43,7 @@ public class ParseJWT {
         PersonIdentity identity = new PersonIdentity();
         identity.setDateOfBirth(
                 LocalDate.parse(personIdentitySharedAttribute.getDatesOfBirth().get(0)));
-        identity.setAddresses(mapAddresses(personIdentitySharedAttribute.getUKAddresses()));
+        identity.setAddresses(mapAddresses(personIdentitySharedAttribute.getUkAddresses()));
         identity.setFirstName(personIdentitySharedAttribute.getNames().get(0).getFirstName());
         identity.setSurname(personIdentitySharedAttribute.getNames().get(0).getSurname());
         return objectMapper.writeValueAsString(identity);

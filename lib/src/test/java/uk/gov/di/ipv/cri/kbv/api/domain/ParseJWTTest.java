@@ -56,22 +56,22 @@ public class ParseJWTTest {
                             p.getAddresses()
                                     .get(0)
                                     .getHouseNumber()
-                                    .equals(person.getUKAddresses().get(0).getStreet1()));
+                                    .equals(person.getUkAddresses().get(0).getStreet1()));
                     assertTrue(
                             p.getAddresses()
                                     .get(0)
                                     .getStreet()
-                                    .equals(person.getUKAddresses().get(0).getStreet2()));
+                                    .equals(person.getUkAddresses().get(0).getStreet2()));
                     assertTrue(
                             p.getAddresses()
                                     .get(0)
                                     .getTownCity()
-                                    .equals(person.getUKAddresses().get(0).getTownCity()));
+                                    .equals(person.getUkAddresses().get(0).getTownCity()));
                     assertTrue(
                             p.getAddresses()
                                     .get(0)
                                     .getPostcode()
-                                    .equals(person.getUKAddresses().get(0).getPostCode()));
+                                    .equals(person.getUkAddresses().get(0).getPostCode()));
                     assertTrue(
                             p.getAddresses().get(0).getAddressType().equals(AddressType.CURRENT));
                 });

@@ -45,7 +45,7 @@ public class SessionHandler
     @ExcludeFromGeneratedCoverageReport
     public SessionHandler() {
         this(
-                new ValidatorService(ConfigurationService.getInstance()),
+                new ValidatorService(),
                 new StorageService(
                         new DataStore<>(
                                 ConfigurationService.getInstance().getKBVSessionTableName(),

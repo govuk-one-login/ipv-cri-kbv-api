@@ -31,12 +31,6 @@ import java.util.Map;
 
 public class ValidatorService {
 
-    private final ConfigurationService configurationService;
-
-    public ValidatorService(ConfigurationService configurationService) {
-        this.configurationService = configurationService;
-    }
-
     public SessionRequest validateSessionRequest(String requestBody)
             throws ValidationException, ClientConfigurationException {
         SessionRequest sessionRequest = parseSessionRequest(requestBody);
@@ -139,7 +133,7 @@ public class ValidatorService {
             }
         } catch (JOSEException e) {
             throw new ValidationException("JWT signature verification failed", e);
-        } catch (CertificateException | ParseException e) {
+        } catch (CertificateException e) {
             throw new ClientConfigurationException(e);
         }
     }
@@ -153,7 +147,7 @@ public class ValidatorService {
     }
 
     private boolean validSignature(SignedJWT signedJWT, PublicKey clientPublicKey)
-            throws JOSEException, ClientConfigurationException, ParseException {
+            throws JOSEException, ClientConfigurationException {
         if (clientPublicKey instanceof RSAPublicKey) {
             RSASSAVerifier rsassaVerifier = new RSASSAVerifier((RSAPublicKey) clientPublicKey);
             return signedJWT.verify(rsassaVerifier);

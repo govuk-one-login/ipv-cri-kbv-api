@@ -11,7 +11,7 @@ public class PersonIdentitySharedAttribute {
     private List<String> datesOfBirth;
 
     @JsonProperty("UKAddresses")
-    private List<UKAddresses> UKAddresses;
+    private List<UKAddresses> ukAddresses;
 
     public List<Names> getNames() {
         return names;
@@ -29,11 +29,11 @@ public class PersonIdentitySharedAttribute {
         this.datesOfBirth = datesOfBirth;
     }
 
-    public List<uk.gov.di.ipv.cri.kbv.api.domain.UKAddresses> getUKAddresses() {
-        return UKAddresses;
+    public List<UKAddresses> getUkAddresses() {
+        return ukAddresses;
     }
 
-    public void setUKAddresses(List<uk.gov.di.ipv.cri.kbv.api.domain.UKAddresses> UKAddresses) {
-        this.UKAddresses = UKAddresses;
+    public void setUkAddresses(List<UKAddresses> ukAddresses) {
+        this.ukAddresses = ukAddresses;
     }
 }

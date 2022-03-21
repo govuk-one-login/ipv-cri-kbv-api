@@ -166,7 +166,7 @@ public class SessionHandlerTest {
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
 
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
-        assertEquals(event.getMessage(), "Session Validation Exception");
+        assertEquals("Session Validation Exception", event.getMessage());
 
         verify(parseJWTMock, never()).getPersonIdentity(anyString());
         verify(mockStorageService, never()).save(anyString(), anyString(), anyString());
@@ -194,7 +194,7 @@ public class SessionHandlerTest {
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
 
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
-        assertEquals(event.getMessage(), "Server Configuration Error");
+        assertEquals("Server Configuration Error", event.getMessage());
 
         verify(parseJWTMock, never()).getPersonIdentity(anyString());
         verify(mockStorageService, never()).save(anyString(), anyString(), anyString());
