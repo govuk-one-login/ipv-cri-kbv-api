@@ -64,19 +64,21 @@ public class SessionHandlerTest {
         objectMapper.registerModule(new JavaTimeModule());
     }
 
-        @Test
+    @Test
     void shouldReturn201ResponseWhenRequestIsValid()
             throws JsonProcessingException, ParseException, ValidationException,
                     ClientConfigurationException {
 
         APIGatewayProxyRequestEvent mockRequest = mock(APIGatewayProxyRequestEvent.class);
         when(mockRequest.getBody()).thenReturn(TestData.REQUEST_PAYLOAD);
-        SessionRequest sessionRequest = objectMapper.readValue(mockRequest.getBody(), SessionRequest.class);
+        SessionRequest sessionRequest =
+                objectMapper.readValue(mockRequest.getBody(), SessionRequest.class);
 
         when(validatorServiceMock.validateSessionRequest(anyString())).thenReturn(sessionRequest);
 
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
-        when(parseJWTMock.getPersonIdentity(sessionRequest.getRequestJWT())).thenReturn(Optional.of(personIdentityMock));
+        when(parseJWTMock.getPersonIdentity(sessionRequest.getRequestJWT()))
+                .thenReturn(Optional.of(personIdentityMock));
 
         String expectedBody = "{\"session-id\":\"new-session-id\"}";
         when(mockApiGatewayProxyResponseEvent.getBody()).thenReturn(expectedBody);
@@ -90,7 +92,8 @@ public class SessionHandlerTest {
 
     @Test
     void shouldReturn500ErrorWhenIncorrectStorageServiceIsNotResponsive()
-            throws ParseException, JsonProcessingException, ValidationException, ClientConfigurationException {
+            throws ParseException, JsonProcessingException, ValidationException,
+                    ClientConfigurationException {
         APIGatewayProxyRequestEvent mockRequest = mock(APIGatewayProxyRequestEvent.class);
 
         when(mockRequest.getBody()).thenReturn(TestData.REQUEST_PAYLOAD);
@@ -98,13 +101,16 @@ public class SessionHandlerTest {
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
                 ArgumentCaptor.forClass(ILoggingEvent.class);
 
-        SessionRequest sessionRequestMock = objectMapper.readValue(mockRequest.getBody(), SessionRequest.class);
+        SessionRequest sessionRequestMock =
+                objectMapper.readValue(mockRequest.getBody(), SessionRequest.class);
 
-        when(validatorServiceMock.validateSessionRequest(mockRequest.getBody())).thenReturn(sessionRequestMock);
+        when(validatorServiceMock.validateSessionRequest(mockRequest.getBody()))
+                .thenReturn(sessionRequestMock);
 
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
 
-        when(parseJWTMock.getPersonIdentity(sessionRequestMock.getRequestJWT())).thenReturn(Optional.ofNullable(personIdentityMock));
+        when(parseJWTMock.getPersonIdentity(sessionRequestMock.getRequestJWT()))
+                .thenReturn(Optional.ofNullable(personIdentityMock));
 
         doThrow(InternalServerErrorException.class)
                 .when(mockStorageService)
@@ -140,12 +146,12 @@ public class SessionHandlerTest {
 
     @Test
     void shouldCatchValidationExceptionAndReturn400Response()
-            throws ValidationException, ClientConfigurationException,
-            JsonProcessingException, ParseException {
+            throws ValidationException, ClientConfigurationException, JsonProcessingException,
+                    ParseException {
 
         APIGatewayProxyRequestEvent mockRequest = mock(APIGatewayProxyRequestEvent.class);
         String mockRequestBody = "{invalid:json-jwt}";
-       when(mockRequest.getBody()).thenReturn(mockRequestBody);
+        when(mockRequest.getBody()).thenReturn(mockRequestBody);
         ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
                 ArgumentCaptor.forClass(ILoggingEvent.class);
 
@@ -153,10 +159,10 @@ public class SessionHandlerTest {
                 .when(validatorServiceMock)
                 .validateSessionRequest(mockRequestBody);
 
-        APIGatewayProxyResponseEvent response = sessionHandler.handleRequest(mockRequest, mockContext);
+        APIGatewayProxyResponseEvent response =
+                sessionHandler.handleRequest(mockRequest, mockContext);
 
-        verify(response)
-                .withStatusCode(HttpStatus.SC_BAD_REQUEST);
+        verify(response).withStatusCode(HttpStatus.SC_BAD_REQUEST);
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
 
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();
@@ -168,8 +174,8 @@ public class SessionHandlerTest {
 
     @Test
     void shouldCatchServerConfigurationExceptionAndReturn400Response()
-            throws ValidationException, ClientConfigurationException,
-            JsonProcessingException, ParseException {
+            throws ValidationException, ClientConfigurationException, JsonProcessingException,
+                    ParseException {
 
         APIGatewayProxyRequestEvent mockRequest = mock(APIGatewayProxyRequestEvent.class);
         String mockRequestBody = "{invalid:json-jwt}";
@@ -181,10 +187,10 @@ public class SessionHandlerTest {
                 .when(validatorServiceMock)
                 .validateSessionRequest(mockRequestBody);
 
-        APIGatewayProxyResponseEvent response = sessionHandler.handleRequest(mockRequest, mockContext);
+        APIGatewayProxyResponseEvent response =
+                sessionHandler.handleRequest(mockRequest, mockContext);
 
-        verify(response)
-                .withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        verify(response).withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
         verify(appender).doAppend(loggingEventArgumentCaptor.capture());
 
         ILoggingEvent event = loggingEventArgumentCaptor.getValue();

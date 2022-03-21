@@ -28,7 +28,8 @@ public class ParseJWT {
             String payload = jwtString.getJWTClaimsSet().getClaim(CLAIMS).toString();
             JsonNode jsonNode = objectMapper.readTree(payload).get(VC_HTTP_API);
             PersonIdentitySharedAttribute personIdentitySharedAttribute =
-                    objectMapper.readValue(jsonNode.toString(), PersonIdentitySharedAttribute.class);
+                    objectMapper.readValue(
+                            jsonNode.toString(), PersonIdentitySharedAttribute.class);
             String personIdentity = from(personIdentitySharedAttribute);
             return Optional.ofNullable(
                     objectMapper.readValue(personIdentity, PersonIdentity.class));
@@ -37,7 +38,8 @@ public class ParseJWT {
         }
     }
 
-    public String from(PersonIdentitySharedAttribute personIdentitySharedAttribute) throws JsonProcessingException {
+    public String from(PersonIdentitySharedAttribute personIdentitySharedAttribute)
+            throws JsonProcessingException {
         PersonIdentity identity = new PersonIdentity();
         identity.setDateOfBirth(
                 LocalDate.parse(personIdentitySharedAttribute.getDatesOfBirth().get(0)));

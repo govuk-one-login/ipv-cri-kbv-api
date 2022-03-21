@@ -9,24 +9,25 @@ public final class TestData {
     public static final String BADJWT =
             "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJlNWI1MDhiMC0xNDcyLTRmY2YtODYyYS0zNmZlMDFiMTAyYTYiLCJuYmYiOjE2NDc4NzQ3MzQsImlzcyI6Imlwdi1jb3JlLXN0dWIiLCJjbGFpbXMiOnsidmNfaHR0cF9hcGkiOnsibmFtZXMiOlt7InN1cm5hbWUiOiJERUNFUlFVRUlSQSIsImZpcnN0TmFtZTEyMzQiOiJLRU5ORVRIIn1dLCJkYXRlc09mQmlydGgiOlsiMTk0OC0wOS0yNiJdLCJVS0FkZHJlc3NlcyI6W3sic3RyZWV0MSI6IjgiLCJzdHJlZXQyIjoiSEFETEVZIFJPQUQiLCJ0b3duQ2l0eSI6IkJBVEgiLCJjdXJyZW50QWRkcmVzcyI6dHJ1ZSwicG9zdENvZGUiOiJCQTIgNUFBIn1dfX0sImV4cCI6MTY0Nzg3ODMzNCwiaWF0IjoxNjQ3ODc0NzM0fQ.aVSD7v-cTCC2MmO3rbfORqrBs6z6OT-UIPyxexkgfln1qLbHiCch1FvGXpKONqxiX6MhfevZA3hdQQVy6--MsXACKubQy9HxLNHK8wJx9LB7r9woLS4QizG0niLr6YkFbF1ARQimBBGjmhb9KjUSYU3Yn-lD_naXfwvnr4FpS9Uy9MTpaSspdW4mzen5iJuEOornyVb7IXo9J4UJAkDM2KeDvYJIcHA_mzjrdxyADT8alYp0Z2yZ-sXdGbG5kZ7ADZ4yKlMubMjnNlqmir0LE5vklYE9b9qwJIwOTkA60tBvOCm7hGtdVrjVBO5LaCoVre1xzaE9HC_a9xfzHtWx9R-pVx5nyww4_7s48F7Jtd25DtOaoif-5otpTmh8Xu5sVLQ2lwpR-57Q0Nbcwq4JvgbTgEhJUk6G2SrCNvoy3wTrOJ9iPOR-r_3WVl-WbRCtNurjO2f2PQNZVLgQPygQSSwPwuD-tb7ah7brbisf6fBxid6ceBftGyIMvUwpYbVNB6EG3HjPQdT-XYZQWVQSmL2Lzck7-75b4onxP6jvIx92wQiZ3cXs27VZfpFCKNZPj36PcQIPnLnHn-5q8nM6VOCrPxZsUp-rKjtflWzK92kkzxLMMOFlLrfW3XlG6YANju3si4vcIQGL3cCzVQ0ocCd9xLKGHnEzGv-OznQ6dAA";
 
-    public static final String PERSON_SHARED_ATTRIBUTE = "{\n" +
-            "    \"datesOfBirth\": [\n" +
-            "        \"1948-09-26\"\n" +
-            "    ],\n" +
-            "    \"names\": [\n" +
-            "        {\n" +
-            "            \"firstName\": \"KENNETH\",\n" +
-            "            \"surname\": \"DECERQUEIRA\"\n" +
-            "        }\n" +
-            "    ],\n" +
-            "    \"UKAddresses\": [\n" +
-            "        {\n" +
-            "            \"currentAddress\": true,\n" +
-            "            \"townCity\": \"BATH\",\n" +
-            "            \"street2\": \"HADLEY ROAD\",\n" +
-            "            \"street1\": \"8\",\n" +
-            "            \"postCode\": \"BA2 5AA\"\n" +
-            "        }\n" +
-            "    ]\n" +
-            "}";
+    public static final String PERSON_SHARED_ATTRIBUTE =
+            "{\n"
+                    + "    \"datesOfBirth\": [\n"
+                    + "        \"1948-09-26\"\n"
+                    + "    ],\n"
+                    + "    \"names\": [\n"
+                    + "        {\n"
+                    + "            \"firstName\": \"KENNETH\",\n"
+                    + "            \"surname\": \"DECERQUEIRA\"\n"
+                    + "        }\n"
+                    + "    ],\n"
+                    + "    \"UKAddresses\": [\n"
+                    + "        {\n"
+                    + "            \"currentAddress\": true,\n"
+                    + "            \"townCity\": \"BATH\",\n"
+                    + "            \"street2\": \"HADLEY ROAD\",\n"
+                    + "            \"street1\": \"8\",\n"
+                    + "            \"postCode\": \"BA2 5AA\"\n"
+                    + "        }\n"
+                    + "    ]\n"
+                    + "}";
 }

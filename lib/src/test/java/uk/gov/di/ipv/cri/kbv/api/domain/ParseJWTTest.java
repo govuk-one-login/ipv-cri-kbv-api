@@ -8,9 +8,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,43 +37,44 @@ public class ParseJWTTest {
     public void shouldReturnPersonIdentityForAValidJWT()
             throws ParseException, JsonProcessingException {
 
-
         Optional<PersonIdentity> personIdentity = parseJWT.getPersonIdentity(GOODJWT);
 
-        PersonIdentitySharedAttribute person = objectMapper.readValue(PERSON_SHARED_ATTRIBUTE, PersonIdentitySharedAttribute.class);
+        PersonIdentitySharedAttribute person =
+                objectMapper.readValue(
+                        PERSON_SHARED_ATTRIBUTE, PersonIdentitySharedAttribute.class);
 
-                assertFalse(personIdentity.isEmpty());
-                personIdentity.ifPresent(
-                        p -> {
-                            assertTrue(p.getFirstName().equals(person.getNames().get(0).getFirstName()));
-                            assertTrue(p.getSurname().equals(person.getNames().get(0).getSurname()));
-                            assertTrue(p.getDateOfBirth().isEqual(LocalDate.parse(person.getDatesOfBirth().get(0))));
-                            assertFalse(p.getAddresses().isEmpty());
-                            assertTrue(
-                                    p.getAddresses()
-                                            .get(0)
-                                            .getHouseNumber()
-
-         .equals(person.getUKAddresses().get(0).getStreet1()));
-                            assertTrue(
-                                    p.getAddresses()
-                                            .get(0)
-                                            .getStreet()
-                                            .equals(person.getUKAddresses().get(0).getStreet2()));
-                            assertTrue(
-                                    p.getAddresses()
-                                            .get(0)
-                                            .getTownCity()
-                                            .equals(person.getUKAddresses().get(0).getTownCity()));
-                            assertTrue(
-                                    p.getAddresses()
-                                            .get(0)
-                                            .getPostcode()
-                                            .equals(person.getUKAddresses().get(0).getPostCode()));
-                            assertTrue(
-
-         p.getAddresses().get(0).getAddressType().equals(AddressType.CURRENT));
-                        });
+        assertFalse(personIdentity.isEmpty());
+        personIdentity.ifPresent(
+                p -> {
+                    assertTrue(p.getFirstName().equals(person.getNames().get(0).getFirstName()));
+                    assertTrue(p.getSurname().equals(person.getNames().get(0).getSurname()));
+                    assertTrue(
+                            p.getDateOfBirth()
+                                    .isEqual(LocalDate.parse(person.getDatesOfBirth().get(0))));
+                    assertFalse(p.getAddresses().isEmpty());
+                    assertTrue(
+                            p.getAddresses()
+                                    .get(0)
+                                    .getHouseNumber()
+                                    .equals(person.getUKAddresses().get(0).getStreet1()));
+                    assertTrue(
+                            p.getAddresses()
+                                    .get(0)
+                                    .getStreet()
+                                    .equals(person.getUKAddresses().get(0).getStreet2()));
+                    assertTrue(
+                            p.getAddresses()
+                                    .get(0)
+                                    .getTownCity()
+                                    .equals(person.getUKAddresses().get(0).getTownCity()));
+                    assertTrue(
+                            p.getAddresses()
+                                    .get(0)
+                                    .getPostcode()
+                                    .equals(person.getUKAddresses().get(0).getPostCode()));
+                    assertTrue(
+                            p.getAddresses().get(0).getAddressType().equals(AddressType.CURRENT));
+                });
     }
 
     @Test
@@ -92,15 +95,14 @@ public class ParseJWTTest {
 
     @Test
     public void shouldThrowJsonProcessingException() {
-        Exception exception = assertThrows(
-                JsonProcessingException.class,
-                () -> {
-                    parseJWT.getPersonIdentity(BADJWT);
-                });
+        Exception exception =
+                assertThrows(
+                        JsonProcessingException.class,
+                        () -> {
+                            parseJWT.getPersonIdentity(BADJWT);
+                        });
         String expectedMessage = "Unrecognized field \"firstName1234\"";
         String actualMessage = exception.getMessage();
         assertTrue(actualMessage.contains(expectedMessage));
     }
-
-
 }
