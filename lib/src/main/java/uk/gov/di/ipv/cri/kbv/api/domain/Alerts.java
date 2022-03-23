@@ -1,16 +1,19 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 
 public class Alerts {
 
-    List<String> alerts;
+    @JsonProperty("alerts")
+    List<String> alertMessages;
 
-    public List<String> getAlerts() {
-        return alerts;
+    public List<String> getAlertMessages() {
+        return alertMessages;
     }
 
-    public void setAlerts(List<String> alerts) {
-        this.alerts = alerts;
+    public void setAlertMessages(List<String> alertMessages) {
+        this.alertMessages = alertMessages;
     }
 }

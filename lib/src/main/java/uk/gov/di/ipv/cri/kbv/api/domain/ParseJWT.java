@@ -7,9 +7,9 @@ import com.nimbusds.jwt.SignedJWT;
 
 import java.text.ParseException;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class ParseJWT {
 
@@ -38,7 +38,7 @@ public class ParseJWT {
         }
     }
 
-    public String from(PersonIdentitySharedAttribute personIdentitySharedAttribute)
+    private String from(PersonIdentitySharedAttribute personIdentitySharedAttribute)
             throws JsonProcessingException {
         PersonIdentity identity = new PersonIdentity();
         identity.setDateOfBirth(
@@ -50,21 +50,20 @@ public class ParseJWT {
     }
 
     private List<PersonAddress> mapAddresses(List<UKAddresses> ukPersonAddresses) {
-        List<PersonAddress> addresses = new ArrayList<>();
-        ukPersonAddresses.forEach(
-                ukPersonAddress -> {
-                    PersonAddress address = new PersonAddress();
-                    address.setHouseNumber(ukPersonAddress.getStreet1());
-                    address.setStreet(ukPersonAddress.getStreet2());
-                    address.setTownCity(ukPersonAddress.getTownCity());
-                    address.setPostcode(ukPersonAddress.getPostCode());
-                    address.setAddressType(
-                            ukPersonAddress.isCurrentAddress()
-                                    ? AddressType.CURRENT
-                                    : AddressType.PREVIOUS);
-                    addresses.add(address);
-                });
-
-        return addresses;
+        return ukPersonAddresses.stream()
+                .map(
+                        ukPersonAddress -> {
+                            PersonAddress address = new PersonAddress();
+                            address.setHouseNumber(ukPersonAddress.getStreet1());
+                            address.setStreet(ukPersonAddress.getStreet2());
+                            address.setTownCity(ukPersonAddress.getTownCity());
+                            address.setPostcode(ukPersonAddress.getPostCode());
+                            address.setAddressType(
+                                    ukPersonAddress.isCurrentAddress()
+                                            ? AddressType.CURRENT
+                                            : AddressType.PREVIOUS);
+                            return address;
+                        })
+                .collect(Collectors.toList());
     }
 }

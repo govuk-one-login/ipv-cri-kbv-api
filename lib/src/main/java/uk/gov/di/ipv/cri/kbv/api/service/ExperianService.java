@@ -37,11 +37,13 @@ public class ExperianService {
 
         HttpResponse<String> res =
                 this.httpClient.send(httpReq, HttpResponse.BodyHandlers.ofString());
-
-        LOGGER.debug(
-                (String.format("KBV Experian API response status code: %s", res.statusCode())));
         String body = res.body();
-        LOGGER.debug((String.format("KBV Experian API response: %s", body)));
+
+        if (LOGGER.isDebugEnabled())
+            LOGGER.debug(
+                    String.format(
+                            "KBV Experian API response status code: %s with response body: %s",
+                            res.statusCode(), body));
 
         return body;
     }
