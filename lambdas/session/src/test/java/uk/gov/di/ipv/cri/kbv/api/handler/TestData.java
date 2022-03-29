@@ -1,29 +1,6 @@
 package uk.gov.di.ipv.cri.kbv.api.handler;
 
 public final class TestData {
-
-    public static final String A_PERSONIDENTITY =
-            "{\n"
-                    + "      \"datesOfBirth\": [\n"
-                    + "        \"1900-06-18\"\n"
-                    + "      ],\n"
-                    + "      \"names\": [\n"
-                    + "        {\n"
-                    + "          \"surname\": \"Foo\",\n"
-                    + "          \"firstName\": \"Bar\"\n"
-                    + "        }\n"
-                    + "      ],\n"
-                    + "      \"UKAddresses\": [\n"
-                    + "        {\n"
-                    + "          \"currentAddress\": true,\n"
-                    + "          \"townCity\": \"LONDON\",\n"
-                    + "          \"street2\": \"KING ROAD\",\n"
-                    + "          \"street1\": \"12\",\n"
-                    + "          \"postCode\": \"FA2 5AA\"\n"
-                    + "        }\n"
-                    + "      ]\n"
-                    + " }";
-
     public static final String REQUEST_PAYLOAD =
             "{\n"
                     + "  \"response_type\": \"some-code\",\n"

@@ -1,8 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.handler;
 
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.Appender;
 import com.amazonaws.services.dynamodbv2.model.InternalServerErrorException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
@@ -11,27 +8,28 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.http.HttpStatus;
+import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.LoggerFactory;
-import uk.gov.di.ipv.cri.kbv.api.domain.ParseJWT;
-import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
-import uk.gov.di.ipv.cri.kbv.api.domain.SessionRequest;
-import uk.gov.di.ipv.cri.kbv.api.exception.ClientConfigurationException;
-import uk.gov.di.ipv.cri.kbv.api.exception.ValidationException;
-import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
-import uk.gov.di.ipv.cri.kbv.api.validation.ValidatorService;
+import uk.gov.di.ipv.cri.kbv.api.library.domain.ParseJWT;
+import uk.gov.di.ipv.cri.kbv.api.library.domain.PersonIdentity;
+import uk.gov.di.ipv.cri.kbv.api.library.domain.SessionRequest;
+import uk.gov.di.ipv.cri.kbv.api.library.exception.ClientConfigurationException;
+import uk.gov.di.ipv.cri.kbv.api.library.exception.ValidationException;
+import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
+import uk.gov.di.ipv.cri.kbv.api.library.service.StorageService;
+import uk.gov.di.ipv.cri.kbv.api.library.validation.ValidatorService;
 
 import java.text.ParseException;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -45,22 +43,20 @@ public class SessionHandlerTest {
     private ObjectMapper objectMapper = new ObjectMapper();
     @Mock private StorageService mockStorageService;
     @Mock private ParseJWT parseJWTMock;
-    @Mock private APIGatewayProxyRequestEvent apiGatewayProxyRequestEvent;
     @Mock private APIGatewayProxyResponseEvent mockApiGatewayProxyResponseEvent;
     @Mock private Context mockContext;
-    @Mock private Appender<ILoggingEvent> appender;
-    @Mock private ValidatorService validatorServiceMock;
+    @Mock private ValidatorService mockValidatorService;
+    @Mock private EventProbe mockEventProbe;
 
     @BeforeEach
     void setUp() {
-        Logger logger = (Logger) LoggerFactory.getLogger(SessionHandler.class);
-        logger.addAppender(appender);
         this.sessionHandler =
                 new SessionHandler(
-                        validatorServiceMock,
+                        mockValidatorService,
                         this.mockStorageService,
                         this.mockApiGatewayProxyResponseEvent,
-                        this.parseJWTMock);
+                        this.parseJWTMock,
+                        this.mockEventProbe);
         objectMapper.registerModule(new JavaTimeModule());
     }
 
@@ -69,12 +65,14 @@ public class SessionHandlerTest {
             throws JsonProcessingException, ParseException, ValidationException,
                     ClientConfigurationException {
 
+        when(mockEventProbe.counterMetric(anyString())).thenReturn(mockEventProbe);
+
         APIGatewayProxyRequestEvent mockRequest = mock(APIGatewayProxyRequestEvent.class);
         when(mockRequest.getBody()).thenReturn(TestData.REQUEST_PAYLOAD);
         SessionRequest sessionRequest =
                 objectMapper.readValue(mockRequest.getBody(), SessionRequest.class);
 
-        when(validatorServiceMock.validateSessionRequest(anyString())).thenReturn(sessionRequest);
+        when(mockValidatorService.validateSessionRequest(anyString())).thenReturn(sessionRequest);
 
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
         when(parseJWTMock.getPersonIdentity(sessionRequest.getRequestJWT()))
@@ -88,6 +86,8 @@ public class SessionHandlerTest {
                 .withHeaders(Map.of("Content-Type", "application/json"));
         verify(mockApiGatewayProxyResponseEvent).withStatusCode(HttpStatus.SC_CREATED);
         assertTrue(mockApiGatewayProxyResponseEvent.getBody().contains("session-id"));
+        verify(mockEventProbe).addDimensions(Map.of("issuer", "some-stub"));
+        verify(mockEventProbe).counterMetric("session_created");
     }
 
     @Test
@@ -98,13 +98,10 @@ public class SessionHandlerTest {
 
         when(mockRequest.getBody()).thenReturn(TestData.REQUEST_PAYLOAD);
 
-        ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
-                ArgumentCaptor.forClass(ILoggingEvent.class);
-
         SessionRequest sessionRequestMock =
                 objectMapper.readValue(mockRequest.getBody(), SessionRequest.class);
 
-        when(validatorServiceMock.validateSessionRequest(mockRequest.getBody()))
+        when(mockValidatorService.validateSessionRequest(mockRequest.getBody()))
                 .thenReturn(sessionRequestMock);
 
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
@@ -116,57 +113,33 @@ public class SessionHandlerTest {
                 .when(mockStorageService)
                 .save(anyString(), anyString(), anyString());
 
+        setupEventProbeErrorBehaviour();
+
         mockApiGatewayProxyResponseEvent = sessionHandler.handleRequest(mockRequest, mockContext);
 
         verify(mockApiGatewayProxyResponseEvent)
                 .withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-        verify(appender).doAppend(loggingEventArgumentCaptor.capture());
-
-        ILoggingEvent event = loggingEventArgumentCaptor.getValue();
-        assertEquals(event.getMessage(), "AWS Server error occurred.");
+        verify(mockEventProbe).counterMetric("session_created", 0d);
     }
 
     @Test
-    void shouldReturn400BadRequestWhenIncorrectJWTIsProvided() {
+    void shouldReturn400BadRequestWhenIncorrectJWTIsProvided()
+            throws ValidationException, ClientConfigurationException, ParseException,
+                    JsonProcessingException {
         APIGatewayProxyRequestEvent mockRequest = mock(APIGatewayProxyRequestEvent.class);
-        when(mockRequest.getBody()).thenReturn(TestData.A_PERSONIDENTITY);
-        ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
-                ArgumentCaptor.forClass(ILoggingEvent.class);
+        when(mockRequest.getBody()).thenReturn("some json");
+
+        doThrow(ValidationException.class)
+                .when(mockValidatorService)
+                .validateSessionRequest("some json");
+
+        setupEventProbeErrorBehaviour();
         APIGatewayProxyResponseEvent response =
                 sessionHandler.handleRequest(mockRequest, mockContext);
 
         verify(response).withHeaders(Map.of("Content-Type", "application/json"));
         verify(response).withStatusCode(HttpStatus.SC_BAD_REQUEST);
-        verify(response).withBody("{ \"error\":\"java.lang.NullPointerException\" }");
-        verify(appender).doAppend(loggingEventArgumentCaptor.capture());
-        ILoggingEvent event = loggingEventArgumentCaptor.getValue();
-
-        assertEquals(event.getMessage(), "The supplied JWT was not of the expected format.");
-    }
-
-    @Test
-    void shouldCatchValidationExceptionAndReturn400Response()
-            throws ValidationException, ClientConfigurationException, JsonProcessingException,
-                    ParseException {
-
-        APIGatewayProxyRequestEvent mockRequest = mock(APIGatewayProxyRequestEvent.class);
-        String mockRequestBody = "{invalid:json-jwt}";
-        when(mockRequest.getBody()).thenReturn(mockRequestBody);
-        ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
-                ArgumentCaptor.forClass(ILoggingEvent.class);
-
-        doThrow(ValidationException.class)
-                .when(validatorServiceMock)
-                .validateSessionRequest(mockRequestBody);
-
-        APIGatewayProxyResponseEvent response =
-                sessionHandler.handleRequest(mockRequest, mockContext);
-
-        verify(response).withStatusCode(HttpStatus.SC_BAD_REQUEST);
-        verify(appender).doAppend(loggingEventArgumentCaptor.capture());
-
-        ILoggingEvent event = loggingEventArgumentCaptor.getValue();
-        assertEquals("Session Validation Exception", event.getMessage());
+        verify(mockEventProbe).counterMetric("session_created", 0d);
 
         verify(parseJWTMock, never()).getPersonIdentity(anyString());
         verify(mockStorageService, never()).save(anyString(), anyString(), anyString());
@@ -180,23 +153,25 @@ public class SessionHandlerTest {
         APIGatewayProxyRequestEvent mockRequest = mock(APIGatewayProxyRequestEvent.class);
         String mockRequestBody = "{invalid:json-jwt}";
         when(mockRequest.getBody()).thenReturn(mockRequestBody);
-        ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
-                ArgumentCaptor.forClass(ILoggingEvent.class);
 
+        setupEventProbeErrorBehaviour();
         doThrow(ClientConfigurationException.class)
-                .when(validatorServiceMock)
+                .when(mockValidatorService)
                 .validateSessionRequest(mockRequestBody);
 
         APIGatewayProxyResponseEvent response =
                 sessionHandler.handleRequest(mockRequest, mockContext);
 
         verify(response).withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-        verify(appender).doAppend(loggingEventArgumentCaptor.capture());
 
-        ILoggingEvent event = loggingEventArgumentCaptor.getValue();
-        assertEquals("Server Configuration Error", event.getMessage());
+        verify(mockEventProbe).counterMetric("session_created", 0d);
 
         verify(parseJWTMock, never()).getPersonIdentity(anyString());
         verify(mockStorageService, never()).save(anyString(), anyString(), anyString());
+    }
+
+    private void setupEventProbeErrorBehaviour() {
+        when(mockEventProbe.counterMetric(anyString(), anyDouble())).thenReturn(mockEventProbe);
+        when(mockEventProbe.log(any(Level.class), any(Exception.class))).thenReturn(mockEventProbe);
     }
 }
