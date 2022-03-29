@@ -9,8 +9,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
@@ -42,7 +40,6 @@ public class SessionHandler
     private static final String HEADER_SESSION_ID = "session-id";
     public static final String EVENT_SESSION_CREATED = "session_created";
     private static ObjectMapper objectMapper = new ObjectMapper();
-    private static final Logger LOGGER = LoggerFactory.getLogger(SessionHandler.class);
     private final EventProbe eventProbe;
     private APIGatewayProxyResponseEvent response;
     private final ValidatorService validatorService;

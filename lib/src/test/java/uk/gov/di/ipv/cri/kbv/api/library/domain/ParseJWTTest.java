@@ -13,6 +13,7 @@ import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -21,7 +22,7 @@ import static uk.gov.di.ipv.cri.kbv.api.library.data.TestData.GOODJWT;
 import static uk.gov.di.ipv.cri.kbv.api.library.data.TestData.PERSON_SHARED_ATTRIBUTE;
 
 @ExtendWith(MockitoExtension.class)
-public class ParseJWTTest {
+class ParseJWTTest {
 
     private ObjectMapper objectMapper;
     private ParseJWT parseJWT;
@@ -34,8 +35,7 @@ public class ParseJWTTest {
     }
 
     @Test
-    public void shouldReturnPersonIdentityForAValidJWT()
-            throws ParseException, JsonProcessingException {
+    void shouldReturnPersonIdentityForAValidJWT() throws ParseException, JsonProcessingException {
 
         Optional<PersonIdentity> personIdentity = parseJWT.getPersonIdentity(GOODJWT);
 
@@ -46,39 +46,30 @@ public class ParseJWTTest {
         assertFalse(personIdentity.isEmpty());
         personIdentity.ifPresent(
                 p -> {
-                    assertTrue(p.getFirstName().equals(person.getNames().get(0).getFirstName()));
-                    assertTrue(p.getSurname().equals(person.getNames().get(0).getSurname()));
+                    assertEquals(p.getFirstName(), person.getNames().get(0).getFirstName());
+                    assertEquals(p.getSurname(), person.getNames().get(0).getSurname());
                     assertTrue(
                             p.getDateOfBirth()
                                     .isEqual(LocalDate.parse(person.getDatesOfBirth().get(0))));
                     assertFalse(p.getAddresses().isEmpty());
-                    assertTrue(
-                            p.getAddresses()
-                                    .get(0)
-                                    .getHouseNumber()
-                                    .equals(person.getUkAddresses().get(0).getStreet1()));
-                    assertTrue(
-                            p.getAddresses()
-                                    .get(0)
-                                    .getStreet()
-                                    .equals(person.getUkAddresses().get(0).getStreet2()));
-                    assertTrue(
-                            p.getAddresses()
-                                    .get(0)
-                                    .getTownCity()
-                                    .equals(person.getUkAddresses().get(0).getTownCity()));
-                    assertTrue(
-                            p.getAddresses()
-                                    .get(0)
-                                    .getPostcode()
-                                    .equals(person.getUkAddresses().get(0).getPostCode()));
-                    assertTrue(
-                            p.getAddresses().get(0).getAddressType().equals(AddressType.CURRENT));
+                    assertEquals(
+                            p.getAddresses().get(0).getHouseNumber(),
+                            person.getUkAddresses().get(0).getStreet1());
+                    assertEquals(
+                            p.getAddresses().get(0).getStreet(),
+                            person.getUkAddresses().get(0).getStreet2());
+                    assertEquals(
+                            p.getAddresses().get(0).getTownCity(),
+                            person.getUkAddresses().get(0).getTownCity());
+                    assertEquals(
+                            p.getAddresses().get(0).getPostcode(),
+                            person.getUkAddresses().get(0).getPostCode());
+                    assertEquals(AddressType.CURRENT, p.getAddresses().get(0).getAddressType());
                 });
     }
 
     @Test
-    public void shouldThrowParseExceptionForIncorrectJWT() {
+    void shouldThrowParseExceptionForIncorrectJWT() {
         APIGatewayProxyRequestEvent apiGatewayProxyRequestEvent = new APIGatewayProxyRequestEvent();
         apiGatewayProxyRequestEvent.setBody("{request:incorrect-jwt}");
         Exception exception =
@@ -94,7 +85,7 @@ public class ParseJWTTest {
     }
 
     @Test
-    public void shouldThrowJsonProcessingException() {
+    void shouldThrowJsonProcessingException() {
         Exception exception =
                 assertThrows(
                         JsonProcessingException.class,

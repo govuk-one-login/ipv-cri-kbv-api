@@ -34,9 +34,7 @@ public class ExperianService {
 
         HttpResponse<String> res =
                 this.httpClient.send(httpReq, HttpResponse.BodyHandlers.ofString());
-        String body = res.body();
-
-        return body;
+        return res.body();
     }
 
     private URI createExperianUri(String uriEndpoint) {

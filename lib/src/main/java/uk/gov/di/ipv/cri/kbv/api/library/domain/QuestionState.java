@@ -12,8 +12,6 @@ public class QuestionState {
     private List<QuestionAnswerPair> qaPairs = new ArrayList<>();
     private NextQuestion nextQuestion;
 
-    public QuestionState() {}
-
     public void setAnswer(QuestionAnswer questionAnswer) {
         this.getQaPairs().stream()
                 .filter(
@@ -68,7 +66,7 @@ public class QuestionState {
     public Optional<Question> getNextQuestion() {
         return qaPairs.stream()
                 .filter(pair -> pair.getAnswer() == null)
-                .map(pair -> pair.getQuestion())
+                .map(QuestionAnswerPair::getQuestion)
                 .findFirst();
     }
 

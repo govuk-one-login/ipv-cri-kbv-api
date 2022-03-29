@@ -1,7 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.handler;
 
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.Appender;
 import com.amazonaws.services.dynamodbv2.model.InternalServerErrorException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
@@ -53,7 +51,6 @@ class QuestionAnswerHandlerTest {
     @Mock private ObjectMapper mockObjectMapper;
     @Mock private StorageService mockStorageService;
     @Mock private ExperianService mockExperianService;
-    @Mock private Appender<ILoggingEvent> appender;
     @Mock private APIGatewayProxyRequestEvent input;
     @Mock private Context contextMock;
     @Mock private EventProbe mockEventProbe;

@@ -50,7 +50,6 @@ subprojects {
 		powertools
 		hibernate
 		nimbus
-		log
 	}
 
 	dependencies {
@@ -73,9 +72,6 @@ subprojects {
 				"uk.org.webcompere:system-stubs-jupiter:2.0.1"
 
 		test_runtime "org.junit.jupiter:junit-jupiter-engine:${dependencyVersions.junit}"
-
-		log 	"ch.qos.logback:logback-classic:1.2.10",
-				"ch.qos.logback:logback-access:1.2.10"
 
 		logging_runtime "com.amazonaws:aws-lambda-java-log4j2:1.5.1"
 

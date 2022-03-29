@@ -12,8 +12,7 @@ dependencies {
 
 	aspect configurations.powertools
 
-	testImplementation configurations.tests,
-			configurations.log
+	testImplementation configurations.tests
 }
 
 test {
