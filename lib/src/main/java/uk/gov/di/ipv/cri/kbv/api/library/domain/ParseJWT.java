@@ -21,15 +21,10 @@ public class ParseJWT {
 
     public Optional<PersonIdentity> getPersonIdentity(String jwt)
             throws ParseException, JsonProcessingException {
-        System.out.println("ParseJWT===>getPersonIdentity");
         SignedJWT jwtString = SignedJWT.parse(jwt);
-        System.out.println("ParseJWT===>jwtString" + jwtString);
         String payload = jwtString.getJWTClaimsSet().getClaim(SHARED_CLAIMS).toString();
-        System.out.println("Payload===>" + payload);
-        //        JsonNode jsonNode = objectMapper.readTree(payload).get(VC_HTTP_API);
         SharedClaims sharedClaims = objectMapper.readValue(payload, SharedClaims.class);
         String personIdentity = from(sharedClaims);
-        System.out.println(personIdentity.toString());
         return Optional.ofNullable(objectMapper.readValue(personIdentity, PersonIdentity.class));
     }
 
