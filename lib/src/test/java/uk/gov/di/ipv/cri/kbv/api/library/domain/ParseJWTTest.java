@@ -39,18 +39,20 @@ class ParseJWTTest {
 
         Optional<PersonIdentity> personIdentity = parseJWT.getPersonIdentity(GOODJWT);
 
-        PersonIdentitySharedAttribute person =
-                objectMapper.readValue(
-                        PERSON_SHARED_ATTRIBUTE, PersonIdentitySharedAttribute.class);
+        SharedClaims person = objectMapper.readValue(PERSON_SHARED_ATTRIBUTE, SharedClaims.class);
 
         assertFalse(personIdentity.isEmpty());
         personIdentity.ifPresent(
                 p -> {
-                    assertEquals(p.getFirstName(), person.getNames().get(0).getFirstName());
-                    assertEquals(p.getSurname(), person.getNames().get(0).getSurname());
+                    assertEquals(
+                            p.getFirstName(), person.getNames().get(0).nameParts.get(0).getValue());
+                    assertEquals(
+                            p.getSurname(), person.getNames().get(0).nameParts.get(1).getValue());
                     assertTrue(
                             p.getDateOfBirth()
-                                    .isEqual(LocalDate.parse(person.getDatesOfBirth().get(0))));
+                                    .isEqual(
+                                            LocalDate.parse(
+                                                    person.getBirthDate().get(0).getValue())));
                     assertFalse(p.getAddresses().isEmpty());
                     assertEquals(
                             p.getAddresses().get(0).getHouseNumber(),
@@ -92,7 +94,7 @@ class ParseJWTTest {
                         () -> {
                             parseJWT.getPersonIdentity(BADJWT);
                         });
-        String expectedMessage = "Unrecognized field \"firstName1234\"";
+        String expectedMessage = "Unrecognized field \"nameParts1234\"";
         String actualMessage = exception.getMessage();
         assertTrue(actualMessage.contains(expectedMessage));
     }

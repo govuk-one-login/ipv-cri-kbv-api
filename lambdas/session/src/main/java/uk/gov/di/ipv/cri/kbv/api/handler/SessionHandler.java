@@ -30,12 +30,13 @@ import java.text.ParseException;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.apache.logging.log4j.Level.ERROR;
 import static org.apache.logging.log4j.Level.INFO;
 
 public class SessionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-    private final ParseJWT jwtParser;
+    private final ParseJWT parseJWT;
     private final StorageService storageService;
     private static final String HEADER_SESSION_ID = "session-id";
     public static final String EVENT_SESSION_CREATED = "session_created";
@@ -63,12 +64,12 @@ public class SessionHandler
             ValidatorService validatorService,
             StorageService storageService,
             APIGatewayProxyResponseEvent apiGatewayProxyResponseEvent,
-            ParseJWT jwtParser,
+            ParseJWT parseJWT,
             EventProbe eventProbe) {
         this.validatorService = validatorService;
         this.storageService = storageService;
         this.response = apiGatewayProxyResponseEvent;
-        this.jwtParser = jwtParser;
+        this.parseJWT = parseJWT;
         this.objectMapper.registerModule(new JavaTimeModule());
         this.eventProbe = eventProbe;
     }
@@ -83,12 +84,9 @@ public class SessionHandler
         try {
             SessionRequest sessionRequest =
                     validatorService.validateSessionRequest(input.getBody());
-
             eventProbe.addDimensions(Map.of("issuer", sessionRequest.getClientId()));
-
             PersonIdentity identity =
-                    jwtParser
-                            .getPersonIdentity(sessionRequest.getRequestJWT())
+                    parseJWT.getPersonIdentity(sessionRequest.getRequestJWT())
                             .orElseThrow(NullPointerException::new);
             String key = UUID.randomUUID().toString();
             storageService.save(
@@ -104,7 +102,7 @@ public class SessionHandler
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
             response.withBody("{ \"error\":\"The supplied JWT was not of the expected format.\" }");
         } catch (AmazonServiceException e) {
-            eventProbe.log(INFO, e).counterMetric(EVENT_SESSION_CREATED, 0d);
+            eventProbe.log(ERROR, e).counterMetric(EVENT_SESSION_CREATED, 0d);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.withBody("{ \"error\":\"AWS Server error occurred.\" }");
         } catch (ValidationException e) {
@@ -112,7 +110,7 @@ public class SessionHandler
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
             response.withBody("{ \"error\":\"Session Validation Exception.\" }");
         } catch (ClientConfigurationException e) {
-            eventProbe.log(INFO, e).counterMetric(EVENT_SESSION_CREATED, 0d);
+            eventProbe.log(ERROR, e).counterMetric(EVENT_SESSION_CREATED, 0d);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.withBody("{ \"error\":\"Server Configuration Error.\" }");
         }

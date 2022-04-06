@@ -3,29 +3,43 @@ package uk.gov.di.ipv.cri.kbv.api.library.data;
 public final class TestData {
 
     public static final String GOODJWT =
-            "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJlNWE0ODZjOC1jM2VjLTQ1NTYtOTc0NS05NWZjOTQzY2UxZGMiLCJuYmYiOjE2NDc4NzUxMjMsImlzcyI6Imlwdi1jb3JlLXN0dWIiLCJjbGFpbXMiOnsidmNfaHR0cF9hcGkiOnsiZGF0ZXNPZkJpcnRoIjpbIjE5NDgtMDktMjYiXSwibmFtZXMiOlt7ImZpcnN0TmFtZSI6IktFTk5FVEgiLCJzdXJuYW1lIjoiREVDRVJRVUVJUkEifV0sIlVLQWRkcmVzc2VzIjpbeyJjdXJyZW50QWRkcmVzcyI6dHJ1ZSwidG93bkNpdHkiOiJCQVRIIiwic3RyZWV0MiI6IkhBRExFWSBST0FEIiwic3RyZWV0MSI6IjgiLCJwb3N0Q29kZSI6IkJBMiA1QUEifV19fSwiZXhwIjoxNjQ3ODc4NzIzLCJpYXQiOjE2NDc4NzUxMjN9.A5BRNmJTa2pvbvOelDUBRN-4tRppXuJCekz_H_EDrkcqQRBpu2dfmKz6XdLYjNWTaTfg_iKS_xJUBsH8WXHdv2SqUnaofBjfTxURtM-ztwioXTsuKayjK103HHfKdcYgHMJRdgbpdK2EYD9wvxfIHISH9EH4tgJqv2xQ54tT4qpGEaEN0DOkXQhr6RW0a5B5NeQyzckjiODKf-cVJifklZ6VjJNTXGxCKU8v8ouQYAt6AJvSwmPqjpbjbWNRBwFP9xAFwGy5phXnPtzyyvSrviSIqkwIBx6X4-NLr7PJurNXX0HJYD1voPV8S0QlrrFoL0GV_sQn-9MgA13bOJ5mJgisLEuwFFQ3ksjw52FUM_mn0accWIr52nN62U85l550hOr35xvwfCyIdnRbCtythQu-uOpQ2z_wBWfvB-MCppLpxLeX6bdDuoQM3LglS0WnLD7dzxjGcG1f7Z8HQkdDefHtpjfawN2op0oqt3If4FO6Jvhq473D97Pa72tp746h2Lo5ROQKNmqoPaKIsbncVpPXis7D-R9z_ak4IXuoAE-6iABFjGVSfy354ndY9JruoBYiNH0U8XMk_FI4CgzIvhN22qOUgME--hpJdJ4z-vjD0gyPxx0xlioY4caWBVYiMrN7p9e1t86SHw7WpLudeRAGKYs0-hGBolXt_0B-0B0";
+            "eyJraWQiOiJpcHYtY29yZS1zdHViIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJ1cm46dXVpZDpiMzRjNjQwMi1kZmVjLTRjMjItYTkzOS1lZDJkZjBhM2MzZjUiLCJhdWQiOiJodHRwczpcL1wvZXhwZXJpYW4uY3JpLmFjY291bnQuZ292LnVrIiwibmJmIjoxNjQ5MTc0NTg3LCJzaGFyZWRfY2xhaW1zIjp7ImJpcnRoRGF0ZSI6W3sidmFsdWUiOiIxOTY0LTA5LTAzIn1dLCJuYW1lIjpbeyJuYW1lUGFydHMiOlt7InR5cGUiOiJHaXZlbk5hbWUiLCJ2YWx1ZSI6IktFTk5FVEgifSx7InR5cGUiOiJGYW1pbHlOYW1lIiwidmFsdWUiOiJERUNFUlFVRUlSQSJ9XX1dLCJhZGRyZXNzZXMiOlt7ImN1cnJlbnRBZGRyZXNzIjp0cnVlLCJ0b3duQ2l0eSI6IkJBVEgiLCJzdHJlZXQyIjoiSEFETEVZIFJPQUQiLCJzdHJlZXQxIjoiOCIsInBvc3RDb2RlIjoiQkEyIDVBQSJ9XSwiQGNvbnRleHQiOlsiaHR0cHM6XC9cL3d3dy53My5vcmdcLzIwMThcL2NyZWRlbnRpYWxzXC92MSIsImh0dHBzOlwvXC92b2NhYi5sb25kb24uY2xvdWRhcHBzLmRpZ2l0YWxcL2NvbnRleHRzXC9pZGVudGl0eS12MS5qc29ubGQiXX0sImlzcyI6Imh0dHBzOlwvXC9kZXYuY29yZS5pcHYuYWNjb3VudC5nb3YudWsiLCJleHAiOjE2NDkxNzgxODcsImlhdCI6MTY0OTE3NDU4N30.nLgsh1j_W-iU1qNM-slrwRbK3PfZ2EOnht8jOriTsmu8qdZju-JxAeM612EC-6eMvmqi92shBVUFjrJhC9wN7UVFYaRaFmyk-IZY5fcUEdOnebz9bj5b9O7S_hRERgA8SScy4yVuy5PHXvueQjq4p5Hx-wNz-JA5NcqV4bkCAN7FTExLRTLPWoRsUdKvrxLOrLFfBs7LSv03kTslZwV4_SSZrUnCUellSr_pqDaMIc9qp9TdS6IYOSL14tfoSt_4ccIAFR-wZ8nFdj9nNk_tmGENRs8wEkncaHMSut40tAeHwjN2cCJd2DwIp-Y4OyJbV413Y0e7sub6p1BrEh1qlN1zAncMmMXOu5ak3GGJbfEJTbJoI58O5Ep4wueFA_qDXAivCbH_-MLjkDGsDoIdAXJbbO-ZkmDM3Cs0Y6gRuPv6v3lkejW5Q6joJ0-QNLQj5dcK_vQOHt9FzPaLBaIr03KebCuSjL08bCOnl4G67icgxzxbI3ci_Y1KkR1ucRJYG0DFjCGGocKy7mSB2zwOpPeUq66SYlf__c5DXhTdzl5kh6Xa5PsESaX9lD33SQLYSS0mqBQ3RMPFEp2iMnJWjhc4gOZdyJDAcrIntxkn_DN8qVFphDAeYrv2IfOz4Mo7iEpJpRYKJscaNufZOARUylB-ih_-2DGpgkgBrQ0hxqI";
     public static final String BADJWT =
-            "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJlNWI1MDhiMC0xNDcyLTRmY2YtODYyYS0zNmZlMDFiMTAyYTYiLCJuYmYiOjE2NDc4NzQ3MzQsImlzcyI6Imlwdi1jb3JlLXN0dWIiLCJjbGFpbXMiOnsidmNfaHR0cF9hcGkiOnsibmFtZXMiOlt7InN1cm5hbWUiOiJERUNFUlFVRUlSQSIsImZpcnN0TmFtZTEyMzQiOiJLRU5ORVRIIn1dLCJkYXRlc09mQmlydGgiOlsiMTk0OC0wOS0yNiJdLCJVS0FkZHJlc3NlcyI6W3sic3RyZWV0MSI6IjgiLCJzdHJlZXQyIjoiSEFETEVZIFJPQUQiLCJ0b3duQ2l0eSI6IkJBVEgiLCJjdXJyZW50QWRkcmVzcyI6dHJ1ZSwicG9zdENvZGUiOiJCQTIgNUFBIn1dfX0sImV4cCI6MTY0Nzg3ODMzNCwiaWF0IjoxNjQ3ODc0NzM0fQ.aVSD7v-cTCC2MmO3rbfORqrBs6z6OT-UIPyxexkgfln1qLbHiCch1FvGXpKONqxiX6MhfevZA3hdQQVy6--MsXACKubQy9HxLNHK8wJx9LB7r9woLS4QizG0niLr6YkFbF1ARQimBBGjmhb9KjUSYU3Yn-lD_naXfwvnr4FpS9Uy9MTpaSspdW4mzen5iJuEOornyVb7IXo9J4UJAkDM2KeDvYJIcHA_mzjrdxyADT8alYp0Z2yZ-sXdGbG5kZ7ADZ4yKlMubMjnNlqmir0LE5vklYE9b9qwJIwOTkA60tBvOCm7hGtdVrjVBO5LaCoVre1xzaE9HC_a9xfzHtWx9R-pVx5nyww4_7s48F7Jtd25DtOaoif-5otpTmh8Xu5sVLQ2lwpR-57Q0Nbcwq4JvgbTgEhJUk6G2SrCNvoy3wTrOJ9iPOR-r_3WVl-WbRCtNurjO2f2PQNZVLgQPygQSSwPwuD-tb7ah7brbisf6fBxid6ceBftGyIMvUwpYbVNB6EG3HjPQdT-XYZQWVQSmL2Lzck7-75b4onxP6jvIx92wQiZ3cXs27VZfpFCKNZPj36PcQIPnLnHn-5q8nM6VOCrPxZsUp-rKjtflWzK92kkzxLMMOFlLrfW3XlG6YANju3si4vcIQGL3cCzVQ0ocCd9xLKGHnEzGv-OznQ6dAA";
+            "eyJraWQiOiJpcHYtY29yZS1zdHViIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJ1cm46dXVpZDpkZTc1ZjM5Ny0xYzdlLTQ0NDMtYWUzNi0xZGE3Njk3YzYzNzciLCJhdWQiOiJodHRwczpcL1wvZXhwZXJpYW4uY3JpLmFjY291bnQuZ292LnVrIiwibmJmIjoxNjQ5MTc1NDU1LCJzaGFyZWRfY2xhaW1zIjp7IkBjb250ZXh0IjpbImh0dHBzOlwvXC93d3cudzMub3JnXC8yMDE4XC9jcmVkZW50aWFsc1wvdjEiLCJodHRwczpcL1wvdm9jYWIubG9uZG9uLmNsb3VkYXBwcy5kaWdpdGFsXC9jb250ZXh0c1wvaWRlbnRpdHktdjEuanNvbmxkIl0sImJpcnRoRGF0ZSI6W3sidmFsdWUiOiIxOTY0LTA5LTAzIn1dLCJuYW1lIjpbeyJuYW1lUGFydHMxMjM0IjpbeyJ0eXBlIjoiR2l2ZW5OYW1lIiwidmFsdWUiOiJLRU5ORVRIIn0seyJ0eXBlIjoiRmFtaWx5TmFtZSIsInZhbHVlIjoiREVDRVJRVUVJUkEifV19XSwiYWRkcmVzc2VzIjpbeyJjdXJyZW50QWRkcmVzcyI6dHJ1ZSwidG93bkNpdHkiOiJCQVRIIiwic3RyZWV0MiI6IkhBRExFWSBST0FEIiwic3RyZWV0MSI6IjgiLCJwb3N0Q29kZSI6IkJBMiA1QUEifV19LCJpc3MiOiJodHRwczpcL1wvZGV2LmNvcmUuaXB2LmFjY291bnQuZ292LnVrIiwiZXhwIjoxNjQ5MTc5MDU1LCJpYXQiOjE2NDkxNzU0NTV9.Oh4Lraq0NBykGkG1QmgJO0uqO2lh-b2fyBIVyEs_pBj5euG2ea-XfOuC6ehkYJGTxiBFxeel7bA_EvZ_7yWFqp1f0ZP-i-N3CMWCOahXTM4W27CpgUzXU5TexFAzE5ikzFGWBb8Rtap1ajhOOALLSynY9sjo2oX18aTSCBM9l20093MMoaTX-vLwIB95scETK31ccV7-VvDkCdhw6ApneWLOyF0pADzP4Zr3cJU298pk6FBAfQch4swDWmLVqVkjo-Zq6CUlLQxRLWVwWlf4sOH39g_Fu_fgKIS_1XKAv-RnkrQpO1v5og2Av8hOKf1cwYSKsUwsxukgCI6AO8pzKFsEYA3aK5LE__WFZu4PFnACzhv5-HzLpS1O80YphchR9LwJUSdlgri9UmFgtVFj7-_Et-W0MGuQ7SQ5mOLEigGxnhGkRSw7nzWvV6hTs16-KAbqGtf1DiBZ4rpIyp30b2stLG2SE9IPFO4pGocfofGmB2B7_v5hUlAcBejekzlxtKFrIBSvZWlkAEkpdO5lTD7L9mpcUiOns1qCZWjEKeoGUMz5D3pKyZS9ceV-cagBRBN7QGTmHnvTDdmOKFiPx_xux-xDMd5LU8GWyl0WZumVDMj9VvQGimSCxi_jhAW2CS5K6_IvUSfQSR17b2fZNhhBGJjqTK-j0X4FwYwr0a0";
 
     public static final String PERSON_SHARED_ATTRIBUTE =
             "{\n"
-                    + "    \"datesOfBirth\": [\n"
-                    + "        \"1948-09-26\"\n"
+                    + "    \"addresses\": [\n"
+                    + "      {\n"
+                    + "        \"townCity\": \"BATH\",\n"
+                    + "        \"street1\": \"8\",\n"
+                    + "        \"postCode\": \"BA2 5AA\",\n"
+                    + "        \"street2\": \"HADLEY ROAD\",\n"
+                    + "        \"currentAddress\": true\n"
+                    + "      }\n"
                     + "    ],\n"
-                    + "    \"names\": [\n"
-                    + "        {\n"
-                    + "            \"firstName\": \"KENNETH\",\n"
-                    + "            \"surname\": \"DECERQUEIRA\"\n"
-                    + "        }\n"
+                    + "    \"name\": [\n"
+                    + "      {\n"
+                    + "        \"nameParts\": [\n"
+                    + "          {\n"
+                    + "            \"type\": \"GivenName\",\n"
+                    + "            \"value\": \"KENNETH\"\n"
+                    + "          },\n"
+                    + "          {\n"
+                    + "            \"type\": \"FamilyName\",\n"
+                    + "            \"value\": \"DECERQUEIRA\"\n"
+                    + "          }\n"
+                    + "        ]\n"
+                    + "      }\n"
                     + "    ],\n"
-                    + "    \"UKAddresses\": [\n"
-                    + "        {\n"
-                    + "            \"currentAddress\": true,\n"
-                    + "            \"townCity\": \"BATH\",\n"
-                    + "            \"street2\": \"HADLEY ROAD\",\n"
-                    + "            \"street1\": \"8\",\n"
-                    + "            \"postCode\": \"BA2 5AA\"\n"
-                    + "        }\n"
+                    + "    \"@context\": [\n"
+                    + "      \"https://www.w3.org/2018/credentials/v1\",\n"
+                    + "      \"https://vocab.london.cloudapps.digital/contexts/identity-v1.jsonld\"\n"
+                    + "    ],\n"
+                    + "    \"birthDate\": [\n"
+                    + "      {\n"
+                    + "        \"value\": \"1964-09-03\"\n"
+                    + "      }\n"
                     + "    ]\n"
-                    + "}";
+                    + "  }";
 }

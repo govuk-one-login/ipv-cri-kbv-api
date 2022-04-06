@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.apache.logging.log4j.Level.ERROR;
 import static org.apache.logging.log4j.Level.INFO;
 
 public class QuestionAnswerHandler
@@ -40,7 +41,7 @@ public class QuestionAnswerHandler
 
     private APIGatewayProxyResponseEvent response;
     public static final String HEADER_SESSION_ID = "session-id";
-    public static final String ERROR = "\"error\"";
+    public static final String ERROR_KEY = "\"error\"";
     private EventProbe eventProbe;
 
     @ExcludeFromGeneratedCoverageReport
@@ -79,27 +80,28 @@ public class QuestionAnswerHandler
         try {
             processAnswerResponse(input);
         } catch (JsonProcessingException jsonProcessingException) {
-            eventProbe.log(INFO, jsonProcessingException).counterMetric(POST_ANSWER, 0d);
+            eventProbe.log(ERROR, jsonProcessingException).counterMetric(POST_ANSWER, 0d);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR + ":\"Failed to parse object using ObjectMapper.\" }");
+            response.withBody(
+                    "{ " + ERROR_KEY + ":\"Failed to parse object using ObjectMapper.\" }");
         } catch (NullPointerException npe) {
             eventProbe.log(INFO, npe).counterMetric(POST_ANSWER, 0d);
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
-            response.withBody("{ " + ERROR + ":\"Error finding the requested resource.\" }");
+            response.withBody("{ " + ERROR_KEY + ":\"Error finding the requested resource.\" }");
         } catch (IOException | InterruptedException e) {
-            eventProbe.log(INFO, e).counterMetric(POST_ANSWER, 0d);
+            eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.withBody(
                     "{ "
-                            + ERROR
+                            + ERROR_KEY
                             + ":\""
                             + String.format("Retrieving questions failed: %s", e)
                             + "\" }");
             Thread.currentThread().interrupt();
         } catch (AmazonServiceException e) {
-            eventProbe.log(INFO, e).counterMetric(POST_ANSWER, 0d);
+            eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR + ":\"AWS Server error occurred.\" }");
+            response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
         }
         return response;
     }

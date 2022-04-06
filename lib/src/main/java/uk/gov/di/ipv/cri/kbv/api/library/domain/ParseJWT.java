@@ -1,7 +1,6 @@
 package uk.gov.di.ipv.cri.kbv.api.library.domain;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 
@@ -13,8 +12,7 @@ import java.util.stream.Collectors;
 
 public class ParseJWT {
 
-    public static final String CLAIMS = "claims";
-    public static final String VC_HTTP_API = "vc_http_api";
+    public static final String SHARED_CLAIMS = "shared_claims";
     private final ObjectMapper objectMapper;
 
     public ParseJWT(ObjectMapper objectMapper) {
@@ -23,29 +21,24 @@ public class ParseJWT {
 
     public Optional<PersonIdentity> getPersonIdentity(String jwt)
             throws ParseException, JsonProcessingException {
-        try {
-            SignedJWT jwtString = SignedJWT.parse(jwt);
-            String payload = jwtString.getJWTClaimsSet().getClaim(CLAIMS).toString();
-            JsonNode jsonNode = objectMapper.readTree(payload).get(VC_HTTP_API);
-            PersonIdentitySharedAttribute personIdentitySharedAttribute =
-                    objectMapper.readValue(
-                            jsonNode.toString(), PersonIdentitySharedAttribute.class);
-            String personIdentity = from(personIdentitySharedAttribute);
-            return Optional.ofNullable(
-                    objectMapper.readValue(personIdentity, PersonIdentity.class));
-        } catch (ParseException | JsonProcessingException e) {
-            throw e;
-        }
+        System.out.println("ParseJWT===>getPersonIdentity");
+        SignedJWT jwtString = SignedJWT.parse(jwt);
+        System.out.println("ParseJWT===>jwtString" + jwtString);
+        String payload = jwtString.getJWTClaimsSet().getClaim(SHARED_CLAIMS).toString();
+        System.out.println("Payload===>" + payload);
+        //        JsonNode jsonNode = objectMapper.readTree(payload).get(VC_HTTP_API);
+        SharedClaims sharedClaims = objectMapper.readValue(payload, SharedClaims.class);
+        String personIdentity = from(sharedClaims);
+        System.out.println(personIdentity.toString());
+        return Optional.ofNullable(objectMapper.readValue(personIdentity, PersonIdentity.class));
     }
 
-    private String from(PersonIdentitySharedAttribute personIdentitySharedAttribute)
-            throws JsonProcessingException {
+    private String from(SharedClaims sharedClaims) throws JsonProcessingException {
         PersonIdentity identity = new PersonIdentity();
-        identity.setDateOfBirth(
-                LocalDate.parse(personIdentitySharedAttribute.getDatesOfBirth().get(0)));
-        identity.setAddresses(mapAddresses(personIdentitySharedAttribute.getUkAddresses()));
-        identity.setFirstName(personIdentitySharedAttribute.getNames().get(0).getFirstName());
-        identity.setSurname(personIdentitySharedAttribute.getNames().get(0).getSurname());
+        identity.setDateOfBirth(LocalDate.parse(sharedClaims.getBirthDate().get(0).getValue()));
+        identity.setAddresses(mapAddresses(sharedClaims.getUkAddresses()));
+        identity.setFirstName(sharedClaims.getNames().get(0).getNameParts().get(0).getValue());
+        identity.setSurname(sharedClaims.getNames().get(0).getNameParts().get(1).getValue());
         return objectMapper.writeValueAsString(identity);
     }
 
