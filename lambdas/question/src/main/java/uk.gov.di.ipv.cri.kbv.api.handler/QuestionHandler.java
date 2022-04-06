@@ -1,5 +1,6 @@
 package uk.gov.di.ipv.cri.kbv.api.handler;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
@@ -8,37 +9,42 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
-import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
-import uk.gov.di.ipv.cri.kbv.api.domain.Question;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsRequest;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
-import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
-import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
-import uk.gov.di.ipv.cri.kbv.api.service.ConfigurationService;
-import uk.gov.di.ipv.cri.kbv.api.service.ExperianService;
-import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
+import uk.gov.di.ipv.cri.kbv.api.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.kbv.api.library.domain.PersonIdentity;
+import uk.gov.di.ipv.cri.kbv.api.library.domain.Question;
+import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionsRequest;
+import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
+import uk.gov.di.ipv.cri.kbv.api.library.persistence.DataStore;
+import uk.gov.di.ipv.cri.kbv.api.library.persistence.item.KBVSessionItem;
+import uk.gov.di.ipv.cri.kbv.api.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.kbv.api.library.service.ExperianService;
+import uk.gov.di.ipv.cri.kbv.api.library.service.StorageService;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.apache.logging.log4j.Level.ERROR;
+import static org.apache.logging.log4j.Level.INFO;
+
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(QuestionHandler.class);
     public static final String HEADER_SESSION_ID = "session-id";
-    public static final String ERROR = "\"error\"";
+    public static final String GET_QUESTION = "get_question";
+    public static final String ERROR_KEY = "\"error\"";
     private static ObjectMapper objectMapper;
     private final StorageService storageService;
     private final ExperianService experianService;
     private APIGatewayProxyResponseEvent response;
+    private EventProbe eventProbe;
 
+    @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
         this(
                 new ObjectMapper(),
@@ -48,18 +54,21 @@ public class QuestionHandler
                                 KBVSessionItem.class,
                                 DataStore.getClient(
                                         ConfigurationService.getInstance().isRunningLocally()))),
-                new ExperianService());
+                new ExperianService(),
+                new EventProbe());
     }
 
     public QuestionHandler(
             ObjectMapper objectMapper,
             StorageService storageService,
-            ExperianService experianService) {
+            ExperianService experianService,
+            EventProbe eventProbe) {
         this.objectMapper = objectMapper;
         this.objectMapper.registerModule(new JavaTimeModule());
         this.storageService = storageService;
         this.experianService = experianService;
         this.response = new APIGatewayProxyResponseEvent();
+        this.eventProbe = eventProbe;
     }
 
     @Override
@@ -71,21 +80,22 @@ public class QuestionHandler
         try {
             processQuestionRequest(input);
         } catch (JsonProcessingException jsonProcessingException) {
-            LOGGER.error("Failed to parse object using ObjectMapper");
+            eventProbe.log(ERROR, jsonProcessingException).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR + ":\"" + jsonProcessingException.getMessage() + "\" }");
+            response.withBody(
+                    "{ " + ERROR_KEY + ":\"Failed to parse object using ObjectMapper.\" }");
         } catch (NullPointerException npe) {
-            LOGGER.error("Error finding the requested resource");
+            eventProbe.log(INFO, npe).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
-            response.withBody("{ " + ERROR + ":\"" + npe.getMessage() + "\" }");
+            response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
         } catch (IOException | InterruptedException e) {
-            LOGGER.error("Retrieving questions failed: " + e);
+            eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR + ":\"" + e.getMessage() + "\" }");
-        } catch (com.amazonaws.AmazonServiceException e) {
-            LOGGER.error("AWS Server error occurred.");
+            response.withBody("{ " + ERROR_KEY + ":\"Retrieving questions failed.\" }");
+        } catch (AmazonServiceException e) {
+            eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR + ":\"" + e.getMessage() + "\" }");
+            response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
         }
         return response;
     }

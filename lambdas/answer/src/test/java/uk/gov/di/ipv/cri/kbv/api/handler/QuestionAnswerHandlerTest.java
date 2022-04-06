@@ -1,8 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.handler;
 
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.Appender;
 import com.amazonaws.services.dynamodbv2.model.InternalServerErrorException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
@@ -10,21 +7,21 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpStatus;
+import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.LoggerFactory;
-import uk.gov.di.ipv.cri.kbv.api.domain.NextTransId;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
-import uk.gov.di.ipv.cri.kbv.api.domain.Results;
-import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
-import uk.gov.di.ipv.cri.kbv.api.service.ExperianService;
-import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
+import uk.gov.di.ipv.cri.kbv.api.library.domain.NextTransId;
+import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionAnswer;
+import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.library.domain.Results;
+import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
+import uk.gov.di.ipv.cri.kbv.api.library.persistence.item.KBVSessionItem;
+import uk.gov.di.ipv.cri.kbv.api.library.service.ExperianService;
+import uk.gov.di.ipv.cri.kbv.api.library.service.StorageService;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -35,6 +32,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -43,7 +41,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionAnswerHandler.HEADER_SESSION_ID;
 
 @ExtendWith(MockitoExtension.class)
 class QuestionAnswerHandlerTest {
@@ -54,28 +51,27 @@ class QuestionAnswerHandlerTest {
     @Mock private ObjectMapper mockObjectMapper;
     @Mock private StorageService mockStorageService;
     @Mock private ExperianService mockExperianService;
-    @Mock private Appender<ILoggingEvent> appender;
     @Mock private APIGatewayProxyRequestEvent input;
     @Mock private Context contextMock;
+    @Mock private EventProbe mockEventProbe;
 
     @BeforeEach
     void setUp() {
-        Logger logger = (Logger) LoggerFactory.getLogger(QuestionAnswerHandler.class);
-        logger.addAppender(appender);
-
         questionAnswerHandler =
                 new QuestionAnswerHandler(
-                        mockObjectMapper, mockStorageService, mockExperianService);
+                        mockObjectMapper, mockStorageService, mockExperianService, mockEventProbe);
     }
 
     @Test
     void shouldReturn200WithWhen1stAnswerIsSubmitted() throws JsonProcessingException {
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
-        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+        Map<String, String> sessionHeader =
+                Map.of(QuestionAnswerHandler.HEADER_SESSION_ID, "new-session-id");
         QuestionState questionStateMock = mock(QuestionState.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
-        when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
+        when(mockStorageService.getSessionId(
+                        sessionHeader.get(QuestionAnswerHandler.HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
         when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
@@ -100,7 +96,8 @@ class QuestionAnswerHandlerTest {
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         QuestionState questionStateMock = mock(QuestionState.class);
         QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
-        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+        Map<String, String> sessionHeader =
+                Map.of(QuestionAnswerHandler.HEADER_SESSION_ID, "new-session-id");
         String responseBodyExperian = "experian-response-body";
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
         Results resultsMock = mock(Results.class);
@@ -108,7 +105,8 @@ class QuestionAnswerHandlerTest {
         NextTransId nextTransIdMock = mock(NextTransId.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
-        when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
+        when(mockStorageService.getSessionId(
+                        sessionHeader.get(QuestionAnswerHandler.HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
 
         when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
@@ -144,12 +142,14 @@ class QuestionAnswerHandlerTest {
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         QuestionState questionStateMock = mock(QuestionState.class);
         QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
-        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+        Map<String, String> sessionHeader =
+                Map.of(QuestionAnswerHandler.HEADER_SESSION_ID, "new-session-id");
         String responseBodyExperian = "experian-response-body";
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
-        when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
+        when(mockStorageService.getSessionId(
+                        sessionHeader.get(QuestionAnswerHandler.HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
 
         when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
@@ -179,71 +179,68 @@ class QuestionAnswerHandlerTest {
 
     @Test
     void shouldReturn500ErrorWhenAWSDynamoDBServiceDown() {
-        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
-        ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
-                ArgumentCaptor.forClass(ILoggingEvent.class);
+        Map<String, String> sessionHeader =
+                Map.of(QuestionAnswerHandler.HEADER_SESSION_ID, "new-session-id");
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         doThrow(InternalServerErrorException.class)
                 .when(mockStorageService)
                 .getSessionId(anyString());
 
+        setupEventProbeErrorBehaviour();
         APIGatewayProxyResponseEvent response =
                 questionAnswerHandler.handleRequest(input, contextMock);
 
-        verify(appender).doAppend(loggingEventArgumentCaptor.capture());
-        ILoggingEvent event = loggingEventArgumentCaptor.getValue();
-        assertEquals("AWS Server error occurred.", event.getMessage());
+        assertEquals("{ \"error\":\"AWS Server error occurred.\" }", response.getBody());
         assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        verify(mockEventProbe).counterMetric("post_answer", 0d);
     }
 
     @Test
     void shouldReturn400ErrorWhenNoSessionIdProvided() {
-        ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
-                ArgumentCaptor.forClass(ILoggingEvent.class);
-
+        setupEventProbeErrorBehaviour();
         APIGatewayProxyResponseEvent response =
                 questionAnswerHandler.handleRequest(input, contextMock);
 
-        verify(appender).doAppend(loggingEventArgumentCaptor.capture());
-        ILoggingEvent event = loggingEventArgumentCaptor.getValue();
-        assertEquals("Error finding the requested resource", event.getMessage());
+        assertEquals("{ \"error\":\"Error finding the requested resource.\" }", response.getBody());
+
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        verify(mockEventProbe).counterMetric("post_answer", 0d);
     }
 
     @Test
     void shouldReturn500ErrorWhenQuestionStateCannotBeParsedToJSON() throws IOException {
-        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+        Map<String, String> sessionHeader =
+                Map.of(QuestionAnswerHandler.HEADER_SESSION_ID, "new-session-id");
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
-        ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
-                ArgumentCaptor.forClass(ILoggingEvent.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
-        when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
+        when(mockStorageService.getSessionId(
+                        sessionHeader.get(QuestionAnswerHandler.HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
         when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
                 .thenThrow(JsonProcessingException.class);
-
+        setupEventProbeErrorBehaviour();
         APIGatewayProxyResponseEvent response =
                 questionAnswerHandler.handleRequest(input, contextMock);
 
-        verify(appender).doAppend(loggingEventArgumentCaptor.capture());
-        ILoggingEvent event = loggingEventArgumentCaptor.getValue();
-        assertEquals("Failed to parse object using ObjectMapper", event.getMessage());
+        assertEquals(
+                "{ \"error\":\"Failed to parse object using ObjectMapper.\" }", response.getBody());
         assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        verify(mockEventProbe).counterMetric("post_answer", 0d);
     }
 
     @Test
     void shouldReturn500ErrorWhenExperianAPIIsDown() throws IOException, InterruptedException {
-        ArgumentCaptor<ILoggingEvent> loggingEventArgumentCaptor =
-                ArgumentCaptor.forClass(ILoggingEvent.class);
 
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         QuestionState questionStateMock = mock(QuestionState.class);
 
-        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, "new-session-id");
+        Map<String, String> sessionHeader =
+                Map.of(QuestionAnswerHandler.HEADER_SESSION_ID, "new-session-id");
         when(input.getHeaders()).thenReturn(sessionHeader);
-        when(mockStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
+        when(mockStorageService.getSessionId(
+                        sessionHeader.get(QuestionAnswerHandler.HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
 
         QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
@@ -259,13 +256,18 @@ class QuestionAnswerHandlerTest {
                         null, "EXPERIAN_API_WRAPPER_RTQ_RESOURCE"))
                 .thenThrow(InterruptedException.class);
 
+        setupEventProbeErrorBehaviour();
         APIGatewayProxyResponseEvent response =
                 questionAnswerHandler.handleRequest(input, contextMock);
-
-        verify(appender).doAppend(loggingEventArgumentCaptor.capture());
-        ILoggingEvent event = loggingEventArgumentCaptor.getValue();
         assertEquals(
-                "Retrieving questions failed: java.lang.InterruptedException", event.getMessage());
+                "{ \"error\":\"Retrieving questions failed: java.lang.InterruptedException\" }",
+                response.getBody());
         assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        verify(mockEventProbe).counterMetric("post_answer", 0d);
+    }
+
+    private void setupEventProbeErrorBehaviour() {
+        when(mockEventProbe.counterMetric(anyString(), anyDouble())).thenReturn(mockEventProbe);
+        when(mockEventProbe.log(any(Level.class), any(Exception.class))).thenReturn(mockEventProbe);
     }
 }
