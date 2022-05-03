@@ -4,8 +4,47 @@ Description: >
   di-ipv-cri-kbv-api
   SAM Template for the kbv api v0.5
 
+Parameters:
+  CodeSigningConfigArn:
+    Type: String
+    Default: "none"
+    Description: >
+      The ARN of the Code Signing Config to use, provided by the deployment pipeline
+  Environment:
+    Description: "The environment type"
+    Type: "String"
+    AllowedValues:
+      - "dev"
+      - "build"
+      - "staging"
+      - "integration"
+      - "production"
+    ConstraintDescription: must be dev, build, staging, integration or production
+  PermissionsBoundary:
+    Description: "The ARN of the permissions boundary to apply when creating IAM roles"
+    Type: String
+    Default: "none"
+
+Conditions:
+  CreateDevResources: !Equals
+    - !Ref Environment
+    - dev
+  UsePermissionsBoundary:
+    Fn::Not:
+      - Fn::Equals:
+          - !Ref PermissionsBoundary
+          - "none"
+          -
 Globals:
   Function:
+    PermissionsBoundary: !If
+      - UsePermissionsBoundary
+      - !Ref PermissionsBoundary
+      - !Ref AWS::NoValue
+    CodeSigningConfigArn: !If
+      - CreateDevResources
+      - !Ref AWS::NoValue
+      - !Ref CodeSigningConfigArn
     Timeout: 60
     Runtime: java11
     MemorySize: 512
@@ -14,18 +53,6 @@ Globals:
       Variables:
         AWS_STACK_NAME: !Sub ${AWS::StackName}
         POWERTOOLS_LOG_LEVEL: INFO
-
-Parameters:
-  Environment:
-    Description: environment name
-    Default: dev
-    Type: String
-    AllowedValues:
-      - dev
-      - staging
-      - integration
-      - prod
-    ConstraintDescription: specify dev, staging, integration or prod for environment
 
 Resources:
 
