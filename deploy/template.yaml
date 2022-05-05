@@ -89,7 +89,12 @@ Resources:
         - LoggingLevel: INFO
           ResourcePath: '/*'
           HttpMethod: '*'
+          DataTraceEnabled: true
+          MetricsEnabled: true
+          ThrottlingRateLimit: 5
+          ThrottlingBurstLimit: 10
       AccessLogSetting:
+        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${ApiAccessLogGroup}'
         Format: '{ "requestId":"$context.requestId", "ip": "$context.identity.sourceIp", "caller":"$context.identity.caller", "user":"$context.identity.user","requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath", "status":"$context.status","protocol":"$context.protocol", "responseLength":"$context.responseLength" }'
       TracingEnabled: true
       Name: !Sub "KBVSessionApi-${Environment}"
@@ -107,7 +112,13 @@ Resources:
       EndpointConfiguration:
         Type: REGIONAL
 
-  KBVSessionTable:
+  ApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/apigateway/AccessLog-${KBVSessionApi}/${Environment}
+      RetentionInDays: 365
+
+  SessionTable:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Sub "session-${AWS::StackName}"
@@ -204,7 +215,7 @@ Resources:
         - AWSXrayWriteOnlyAccess
         - DynamoDBWritePolicy:
             TableName:
-              Ref: KBVSessionTable
+              Ref: SessionTable
         - SQSSendMessagePolicy:
             QueueName: !ImportValue AuditEventQueueName
         - KMSDecryptPolicy:
@@ -233,6 +244,13 @@ Resources:
               Resource:
                 - !ImportValue AuditEventQueueEncryptionKeyArn
 
+  SessionFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt KBVSessionFunction.Arn
+      Principal: apigateway.amazonaws.com
+
   KBVQuestionFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -242,13 +260,13 @@ Resources:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
         - DynamoDBReadPolicy:
-            TableName: !Ref KBVSessionTable
+            TableName: !Ref SessionTable
         - DynamoDBWritePolicy:
-            TableName: !Ref KBVSessionTable
+            TableName: !Ref SessionTable
       Environment:
         Variables:
           IS_LOCAL: false
-          KBV_SESSION_TABLE_NAME: !Ref KBVSessionTable
+          KBV_SESSION_TABLE_NAME: !Ref SessionTable
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
           EXPERIAN_API_WRAPPER_SAA_RESOURCE: /question-request
           EXPERIAN_API_WRAPPER_URL: https://zn3dus332j.execute-api.eu-west-2.amazonaws.com/dev
@@ -269,13 +287,13 @@ Resources:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
         - DynamoDBReadPolicy:
-            TableName: !Ref KBVSessionTable
+            TableName: !Ref SessionTable
         - DynamoDBWritePolicy:
-            TableName: !Ref KBVSessionTable
+            TableName: !Ref SessionTable
       Environment:
         Variables:
           IS_LOCAL: false
-          KBV_SESSION_TABLE_NAME: !Ref KBVSessionTable
+          KBV_SESSION_TABLE_NAME: !Ref SessionTable
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
           EXPERIAN_API_WRAPPER_RTQ_RESOURCE: /question-answer
           EXPERIAN_API_WRAPPER_URL: https://zn3dus332j.execute-api.eu-west-2.amazonaws.com/dev
@@ -296,6 +314,14 @@ Resources:
           - "{{resolve:ssm:/dev/credentialIssuers/cri/sam/signingProfileVersionArn}}"
       CodeSigningPolicies:
         UntrustedArtifactOnDeployment: "Enforce"
+
+  ParameterSessionTableName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/SessionTableName"
+      Value: !Sub session-${AWS::StackName}
+      Type: String
+      Description: session dynamodb table name
 
   ParameterIPVCoreStubPublicCertificateToVerify:
     Type: AWS::SSM::Parameter
