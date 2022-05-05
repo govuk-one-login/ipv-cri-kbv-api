@@ -33,11 +33,16 @@ paths:
                 $ref: "#/components/schemas/Error"
       x-amazon-apigateway-request-validators: "Validate body"
       x-amazon-apigateway-integration:
-        type: "aws_proxy"
         httpMethod: "POST"
         uri:
           Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KBVSessionFunction.Arn}/invocations"
+        responses:
+          default:
+            statusCode: "200"
         passthroughBehavior: "when_no_match"
+        contentHandling: "CONVERT_TO_TEXT"
+        type: "aws_proxy"
+
   /question:
     get:
       parameters:
@@ -111,9 +116,11 @@ components:
         type: string
   schemas:
     Session:
+      required:
+        - "session_id"
       type: "object"
       properties:
-        session-id:
+        session_id:
           type: "string"
     Error:
       title: "Error Schema"
@@ -160,28 +167,13 @@ components:
     Authorization:
       required:
         - "client_id"
-        - "redirect_uri"
         - "request"
-        - "response_type"
-        - "state"
       type: "object"
       properties:
-        response_type:
-          type: "string"
-          pattern: "^code$"
-          example: "code"
         client_id:
           type: "string"
           minLength: 1
           example: "ipv-core-stub"
-        state:
-          type: "string"
-          example: "state"
-          minLength: 1
-        redirect_uri:
-          type: "string"
-          format: "uri"
-          example: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
         request:
           type: "string"
           pattern: "[a-zA-Z0-9_=]+\\.[a-zA-Z0-9_=]+\\.[a-zA-Z0-9_\\-\\+\\/=]+"

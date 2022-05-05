@@ -15,6 +15,59 @@ Globals:
         AWS_STACK_NAME: !Sub ${AWS::StackName}
         POWERTOOLS_LOG_LEVEL: INFO
 
+Conditions:
+  CreateDevResources: !Equals
+    - !Ref Environment
+    - dev
+  IsStubEnvironment: !Or
+    - !Equals [ !Ref Environment, dev]
+    - !Equals [ !Ref Environment, build ]
+  IsProdLikeEnvironment:
+    !Not [Condition: IsStubEnvironment]
+
+Mappings:
+  SessionTtlMapping:
+    Environment:
+      dev: "172800" # 2 days
+#        build: "172800" # 2 days
+#        staging: "172800" # 2 days
+#        integration: "172800" # 2 days
+#        production: "172800" # 2 days
+
+  IPVCoreStubAudienceMapping:
+    Environment:
+      dev: "https://dev.kbv.cri.account.gov.uk"
+      build: "https://build.kbv.cri.account.gov.uk"
+
+  IPVCoreStubAuthenticationAlgMapping:
+    Environment:
+      dev: "ES256"
+      build: "ES256"
+
+  IPVCoreStubIssuerMapping:
+    Environment:
+      dev: "ipv-core-stub"
+      build: "ipv-core-stub"
+
+  IPVCoreStubPublicSigningJwkBase64Mapping:
+    Environment:
+      dev: "ewogICAgImt0eSI6ICJFQyIsCiAgICAidXNlIjogInNpZyIsCiAgICAiY3J2IjogIlAtMjU2IiwKICAgICJraWQiOiAiaXB2LWNvcmUtc3R1Yi0xLWZyb20tbWtqd2sub3JnIiwKICAgICJ4IjogIklmUjFQejlPdWNJMll3YldKVGEtT3h0MDJ6X3pnTkR5RmtocGZ3OFFXcjAiLAogICAgInkiOiAiWGo2alJ6S0EwUWVTTEMtZTE1bVg3U2hucG9xZ0c4d1F3ZWcwNlhJYTBEcyIsCiAgICAiYWxnIjogIkVTMjU2Igp9"
+      build: "ewogICAgImt0eSI6ICJFQyIsCiAgICAidXNlIjogInNpZyIsCiAgICAiY3J2IjogIlAtMjU2IiwKICAgICJraWQiOiAiaXB2LWNvcmUtc3R1Yi0xLWZyb20tbWtqd2sub3JnIiwKICAgICJ4IjogIklmUjFQejlPdWNJMll3YldKVGEtT3h0MDJ6X3pnTkR5RmtocGZ3OFFXcjAiLAogICAgInkiOiAiWGo2alJ6S0EwUWVTTEMtZTE1bVg3U2hucG9xZ0c4d1F3ZWcwNlhJYTBEcyIsCiAgICAiYWxnIjogIkVTMjU2Igp9"
+
+  IPVCoreStubRedirectURIMapping:
+    Environment:
+      dev: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
+      build: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
+
+  KBVCriAudienceMapping:
+    Environment:
+      dev: "https://dev.kbv.cri.account.gov.uk"
+      build: "kbv-cri-build"
+      staging: "kbv-cri-staging"
+      integration: "kbv-cri-integration"
+      production: "kbv-cri"
+
+
 Parameters:
   Environment:
     Description: environment name
@@ -57,48 +110,128 @@ Resources:
   KBVSessionTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub "kbv-session-${AWS::StackName}"
+      TableName: !Sub "session-${AWS::StackName}"
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
-        -
-          AttributeName: "sessionId"
+        - AttributeName: "sessionId"
+          AttributeType: "S"
+        - AttributeName: "authorizationCode"
+          AttributeType: "S"
+        - AttributeName: "accessToken"
           AttributeType: "S"
       KeySchema:
-        -
-          AttributeName: "sessionId"
+        - AttributeName: "sessionId"
           KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        - IndexName: "authorizationCode-index"
+          KeySchema:
+            - AttributeName: "authorizationCode"
+              KeyType: "HASH"
+          Projection:
+            NonKeyAttributes:
+              - "sessionId"
+              - "redirectUri"
+            ProjectionType: "INCLUDE"
+        - IndexName: "access-token-index"
+          KeySchema:
+            - AttributeName: "accessToken"
+              KeyType: "HASH"
+          Projection:
+            NonKeyAttributes:
+              - "sessionId"
+            ProjectionType: "INCLUDE"
       TimeToLiveSpecification:
-        AttributeName: "expiryDate"
+        AttributeName: expiry-date
         Enabled: true
+
+  KBVCriDecryptionKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Asymmetric key used by KBV CRI to decrypt the Authorization JAR JWE
+      Enabled: true
+      KeySpec: RSA_2048
+      KeyUsage: ENCRYPT_DECRYPT
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: 'Enable Root access'
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action:
+              - 'kms:*'
+            Resource: '*'
+      Tags:
+        - Key: "jwkset"
+          Value: "true"
+        - Key: "awsStackName"
+          Value: !Sub "${AWS::StackName}"
+
+  DecryptionKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub alias/${AWS::StackName}/${Environment}/KBVCriDecryptionKey
+      TargetKeyId: !Ref KBVCriDecryptionKey
+
+  SessionTtlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/SessionTtl"
+      Type: String
+      Value: !FindInMap [ SessionTtlMapping, Environment, !Ref 'Environment' ]
+      Description: default time to live for an address session item (seconds)
+
+  KBVCriAudienceParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/KBVCriAudience"
+      Type: String
+      Value: !FindInMap [ KBVCriAudienceMapping, Environment, !Ref 'Environment' ]
+      Description: The KBV credential issuer (audience) identifier
 
   KBVSessionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../lambdas/session
-      Handler: uk.gov.di.ipv.cri.kbv.api.handler.SessionHandler::handleRequest
+      CodeUri: /Users/amanmohammed/workspace/techaman/gds/code/di-ipv-cri-address-api/lambdas/session/build/distributions/session.zip
+      Handler: uk.gov.di.ipv.cri.address.api.handler.SessionHandler::handleRequest
+      Environment:
+        Variables:
+          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-session
+          SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
         - DynamoDBWritePolicy:
-            TableName: !Ref KBVSessionTable
+            TableName:
+              Ref: KBVSessionTable
+        - SQSSendMessagePolicy:
+            QueueName: !ImportValue AuditEventQueueName
+        - KMSDecryptPolicy:
+            KeyId: !Ref KBVCriDecryptionKey
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/AddressCriAudience"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/AuthRequestKmsEncryptionKeyId"
         - Statement:
             - Effect: Allow
               Action:
                 - ssm:GetParametersByPath
               Resource:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
-      Environment:
-        Variables:
-          IS_LOCAL: false
-          KBV_SESSION_TABLE_NAME: !Ref KBVSessionTable
-          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
-      Events:
-        KBVSessionFunctionApi:
-          Type: Api
-          Properties:
-            Path: /session
-            Method: post
-            RestApiId: !Ref KBVSessionApi
+        - Statement:
+            - Sid: auditEventQueueKmsEncryptionKeyPermission
+              Effect: Allow
+              Action:
+                - 'kms:Decrypt'
+                - 'kms:GenerateDataKey'
+              Resource:
+                - !ImportValue AuditEventQueueEncryptionKeyArn
 
   KBVQuestionFunction:
     Type: AWS::Serverless::Function
@@ -171,26 +304,53 @@ Resources:
       Value: MIIFVjCCAz4CCQDGbJ/u6uFT6DANBgkqhkiG9w0BAQsFADBtMQswCQYDVQQGEwJHQjENMAsGA1UECAwEVGVzdDENMAsGA1UEBwwEVGVzdDENMAsGA1UECgwEVEVzdDENMAsGA1UECwwEVEVzdDENMAsGA1UEAwwEVEVzdDETMBEGCSqGSIb3DQEJARYEVGVzdDAeFw0yMjAxMDcxNTM0NTlaFw0yMzAxMDcxNTM0NTlaMG0xCzAJBgNVBAYTAkdCMQ0wCwYDVQQIDARUZXN0MQ0wCwYDVQQHDARUZXN0MQ0wCwYDVQQKDARURXN0MQ0wCwYDVQQLDARURXN0MQ0wCwYDVQQDDARURXN0MRMwEQYJKoZIhvcNAQkBFgRUZXN0MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAy1cVZ1KfFmgFlDQyf/R3LF/Js6jAS2Zzbs8WGSS0ys6Z+XR4x5DTIznZp5cHuuQmqOFylXSw5oGBwMXd2L6NimG9rJnJ4w8Gy5A6ImGsiDZC+3AXRBb5hq/IdDTBjbUqRxAKokSVwotWZt554BdSRPTmlYDujzxnClNKA06Xb/X3rTsgCUmZhUnSVtOzKytP3Bdv88VI5gq5tlZOtKXCB0PnJOqRbBmuL1RNkeTny4ZJW3I2ywSATwDDyDm4pJ8XGGNFKaYYTwr6uNTQ2VHb1FVC33oWbg+Zu9D4p5l7ONicCCF3V+GbvmyeCmHGnXznz0nYX1LFqaKtruEh3/GXyLy5X03Jzq6HhTf1SNFBmzziuCovhbR4v5aFDqAYNPWz+ajOdTUfP1I18c5jR1xGUxEiiLKBZWU1J5mhqCa+0CdI0mi3HwFmluudh47I2Xw++JiqZQpxRqNGcKJOPnWDgKOKXQ/ag37aJkxqoYWk9pQ/pXOdIKm//+B//8nWGo8BA/bfdmMHyzhWWxqtydjie2EZ5ODSdQ+yu1xU5cwP59BEQoU7FKVEGiJa4kzrsI2cgloUPlsPfLENMa5i09exDo//eDB/zNy9ACgGCriov1ex3uv4vHp3WtpZYe+akGEJeP0N5dejs0hkBuX+LUcM30TnQ424tEzcuaJ1F7r4FP0CAwEAATANBgkqhkiG9w0BAQsFAAOCAgEAUh5gZx8S/XoZZoQai2uTyW/lyr1LpXMQyfvdWRr5+/OtFuASG3fAPXOTiUfuqH6Uma8BaXPRbSGWxBOFg0EbyvUY4UczZXZgVqyzkGjD2bVcnGra1OHz2AkcJm7OvzjMUvmXdDiQ8WcKIH16BZVsJFveTffJbM/KxL9UUdSLT0fNw1OvZWN1LxRj+X16B26ZnmaXPdmEC8MfwNcEU63qSlIbAvLg9Dp03weqO1qWR1vI/n1jwqidCUVwT0XF88/pJrds8/8guKlawhp9Yv+jMVYaawBiALR+5PFN56DivtmSVI5uv3oFh5tqJXXn9PhsPcIq0YKGQvvcdZl7vCikS65VzmswXBVFJNsYeeZ5NmiH2ANQd4+BLetgLAoXZxaOJ4nK+3Ml+gMwpZRRAbtixKJQDtVy+Ahuh1TEwTS1CERDYq43LhVYbMcgxdOLpZLvMew2tvJc3HfSWQKuF+NjGn/RwG54GyhjpdbfNZMB/EJXNJMt1j9RSVbPLsWjaENUkZoXE0otSou9tJOR0fwoqBJGUi5GCp98+iBdIQMAvXW5JkoDS6CM1FOfSv9ZXLvfXHOuBfKTDeVNy7u3QvyJ+BdkSc0iH4gj1F2zLHNIaZbDzwRzcDf2s3D1wTtoJ/WxfRSLGBMuUsXSduh9Md1S862N3Ce6wpri1IsgySCP84Y=
       Type: String
 
-  ParameterIPVCoreStubAuthenticationAlg:
+  IPVCoreStubAuthenticationAlgParameter:
+    Condition: IsStubEnvironment
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/authenticationAlg
-      Value: RS256
+      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/authenticationAlg"
       Type: String
+      Value: !FindInMap [ IPVCoreStubAuthenticationAlgMapping, Environment, !Ref 'Environment' ]
 
-  ParameterIPVCoreStubRedirectURI:
+  IPVCoreStubAudienceParameter:
+    Condition: IsStubEnvironment
     Type: AWS::SSM::Parameter
     Properties:
+      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/audience"
       Type: String
-      Name: !Sub /${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/redirectUri
-      Value: https://di-ipv-core-stub.london.cloudapps.digital/callback
+      Value: !FindInMap [ IPVCoreStubAudienceMapping, Environment, !Ref 'Environment' ]
 
-  ParameterIPVCoreStubIssuer:
+  IPVCoreStubIssuerParameter:
+    Condition: IsStubEnvironment
     Type: AWS::SSM::Parameter
     Properties:
+      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/issuer"
       Type: String
-      Name: !Sub /${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/issuer
-      Value: ipv-core-stub
+      Value: !FindInMap [ IPVCoreStubIssuerMapping, Environment, !Ref 'Environment' ]
+
+  IPVCoreStubPublicSigningJwkBase64Parameter:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/publicSigningJwkBase64"
+      Type: String
+      Value: !FindInMap [ IPVCoreStubPublicSigningJwkBase64Mapping, Environment, !Ref 'Environment' ]
+
+  IPVCoreStubRedirectURIParameter:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/redirectUri"
+      Type: String
+      Value: !FindInMap [ IPVCoreStubRedirectURIMapping, Environment, !Ref 'Environment' ]
+
+  AuthRequestKmsEncryptionKeyIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/AuthRequestKmsEncryptionKeyId"
+      Type: String
+      Value: !Ref KBVCriDecryptionKey
+      Description: The (KMS) encryption key identifier for decrypting authorisation requests
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function

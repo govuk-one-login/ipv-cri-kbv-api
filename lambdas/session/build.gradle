@@ -16,6 +16,15 @@ dependencies {
 	testImplementation configurations.tests
 }
 
+task buildZip(type: Zip) {
+	from compileJava
+	from processResources
+	into('lib') {
+		from configurations.runtimeClasspath
+	}
+}
+
+build.finalizedBy(buildZip)
 
 test {
 	useJUnitPlatform ()
