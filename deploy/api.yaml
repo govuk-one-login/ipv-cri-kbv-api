@@ -31,7 +31,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-      x-amazon-apigateway-request-validators: "Validate body"
+      x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         type: "aws_proxy"
         httpMethod: "POST"
@@ -63,7 +63,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-      x-amazon-apigateway-request-validators: "Validate body"
+      x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         type: "aws_proxy"
         httpMethod: "POST"
@@ -93,7 +93,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-      x-amazon-apigateway-request-validators: "Validate body"
+      x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         type: "aws_proxy"
         httpMethod: "POST"
@@ -133,7 +133,6 @@ components:
         answerHeldFlag:
           type: "string"
         answerFormat:
-          type: "object"
           $ref: "#/components/schemas/AnswerFormat"
     AnswerFormat:
       type: "object"
@@ -186,3 +185,8 @@ components:
           type: "string"
           pattern: "[a-zA-Z0-9_=]+\\.[a-zA-Z0-9_=]+\\.[a-zA-Z0-9_\\-\\+\\/=]+"
           example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0dCIsImlhdCI6MTUxNjIzOTAyMn0.SbcN-ywpLObhMbbaMCtW1Un8LYhQzHsEth9LvTk4oQQ"
+
+x-amazon-apigateway-request-validators:
+  Validate both:
+    validateRequestBody: true
+    validateRequestParameters: true

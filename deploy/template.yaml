@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   di-ipv-cri-kbv-api
-  SAM Template for the kbv api v0.5
+  SAM Template for the kbv api v0.6
 
 Parameters:
   CodeSigningConfigArn:
@@ -120,13 +120,6 @@ Resources:
           IS_LOCAL: false
           KBV_SESSION_TABLE_NAME: !Ref KBVSessionTable
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
-      Events:
-        KBVSessionFunctionApi:
-          Type: Api
-          Properties:
-            Path: /session
-            Method: post
-            RestApiId: !Ref KBVSessionApi
 
   KBVQuestionFunction:
     Type: AWS::Serverless::Function
@@ -153,13 +146,6 @@ Resources:
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
           EXPERIAN_API_WRAPPER_SAA_RESOURCE: /question-request
           EXPERIAN_API_WRAPPER_URL: https://zn3dus332j.execute-api.eu-west-2.amazonaws.com/dev
-      Events:
-        KBVQuestionFunctionApi:
-          Type: Api
-          Properties:
-            Path: /question
-            Method: get
-            RestApiId: !Ref KBVSessionApi
 
   KBVAnswerFunction:
     Type: AWS::Serverless::Function
@@ -186,13 +172,27 @@ Resources:
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
           EXPERIAN_API_WRAPPER_RTQ_RESOURCE: /question-answer
           EXPERIAN_API_WRAPPER_URL: https://zn3dus332j.execute-api.eu-west-2.amazonaws.com/dev
-      Events:
-        KBVAnswerFunctionApi:
-          Type: Api
-          Properties:
-            Path: /answer
-            Method: post
-            RestApiId: !Ref KBVSessionApi
+
+  KBVSessionFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt KBVSessionFunction.Arn
+      Principal: apigateway.amazonaws.com
+
+  KBVQuestionFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt KBVQuestionFunction.Arn
+      Principal: apigateway.amazonaws.com
+
+  KBVAnswerFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt KBVAnswerFunction.Arn
+      Principal: apigateway.amazonaws.com
 
   KBVFunctionsCodeSigning:
     Type: AWS::Lambda::CodeSigningConfig
