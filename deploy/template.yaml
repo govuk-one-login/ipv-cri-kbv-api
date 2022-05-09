@@ -34,7 +34,7 @@ Conditions:
       - Fn::Equals:
           - !Ref PermissionsBoundary
           - "none"
-          -
+
 Globals:
   Function:
     PermissionsBoundary: !If
