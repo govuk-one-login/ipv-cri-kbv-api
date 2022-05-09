@@ -14,7 +14,6 @@ import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import uk.gov.di.ipv.cri.kbv.api.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.kbv.api.library.domain.ParseJWT;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.library.domain.SessionRequest;
 import uk.gov.di.ipv.cri.kbv.api.library.exception.ClientConfigurationException;
@@ -85,7 +84,7 @@ public class SessionHandler
             SessionRequest sessionRequest =
                     validatorService.validateSessionRequest(input.getBody());
             eventProbe.addDimensions(Map.of("issuer", sessionRequest.getClientId()));
-            PersonIdentity identity =
+            var identity =
                     parseJWT.getPersonIdentity(sessionRequest.getRequestJWT())
                             .orElseThrow(NullPointerException::new);
             String key = UUID.randomUUID().toString();

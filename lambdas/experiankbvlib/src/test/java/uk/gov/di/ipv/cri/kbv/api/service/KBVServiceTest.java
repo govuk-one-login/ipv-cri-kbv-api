@@ -6,8 +6,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,11 +36,15 @@ class KBVServiceTest {
     void shouldReturnNullWhenAnExceptionOccursWhenInvokingKbvService() throws InterruptedException {
         QuestionAnswerRequest mockQuestionAnswerRequest = mock(QuestionAnswerRequest.class);
 
-        when(mockKbvGateway.submitAnswers(mockQuestionAnswerRequest))
-                .thenThrow(new InterruptedException());
+        InterruptedException expectedException = new InterruptedException();
 
-        QuestionsResponse result = kbvService.submitAnswers(mockQuestionAnswerRequest);
+        when(mockKbvGateway.submitAnswers(mockQuestionAnswerRequest)).thenThrow(expectedException);
 
-        assertNull(result);
+        var exception =
+                assertThrows(
+                        InterruptedException.class,
+                        () -> kbvService.submitAnswers(mockQuestionAnswerRequest));
+
+        assertEquals(expectedException, exception);
     }
 }

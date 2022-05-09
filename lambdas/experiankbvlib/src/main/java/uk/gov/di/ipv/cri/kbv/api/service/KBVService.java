@@ -18,20 +18,13 @@ public class KBVService {
         this.kbvGateway = kbvGateway;
     }
 
-    public QuestionsResponse getQuestions(QuestionRequest questionRequest) {
+    public QuestionsResponse getQuestions(QuestionRequest questionRequest)
+            throws InterruptedException {
         return this.kbvGateway.getQuestions(questionRequest);
     }
 
-    public QuestionsResponse submitAnswers(QuestionAnswerRequest answers) {
-        try {
-            return kbvGateway.submitAnswers(answers);
-        } catch (InterruptedException ie) {
-            LOGGER.error(ERROR_OCCURRED_ATTEMPTING_TO_INVOKE_EXPERIAN_API, ie);
-            Thread.currentThread().interrupt();
-            return null;
-        } catch (Exception e) {
-            LOGGER.error(ERROR_OCCURRED_ATTEMPTING_TO_INVOKE_EXPERIAN_API, e);
-            return null;
-        }
+    public QuestionsResponse submitAnswers(QuestionAnswerRequest answers)
+            throws InterruptedException {
+        return kbvGateway.submitAnswers(answers);
     }
 }

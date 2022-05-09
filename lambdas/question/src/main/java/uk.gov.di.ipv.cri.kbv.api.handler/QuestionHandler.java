@@ -5,6 +5,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -12,18 +13,21 @@ import org.apache.http.HttpStatus;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
+import software.amazon.lambda.powertools.parameters.ParamManager;
+import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.library.annotations.ExcludeFromGeneratedCoverageReport;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.PersonIdentity;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.Question;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionsRequest;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.library.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.library.persistence.item.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.library.service.ConfigurationService;
-import uk.gov.di.ipv.cri.kbv.api.library.service.ExperianService;
 import uk.gov.di.ipv.cri.kbv.api.library.service.StorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
+import uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService;
 
 import java.io.IOException;
 import java.util.Map;
@@ -40,9 +44,10 @@ public class QuestionHandler
     public static final String ERROR_KEY = "\"error\"";
     private static ObjectMapper objectMapper;
     private final StorageService storageService;
-    private final ExperianService experianService;
     private APIGatewayProxyResponseEvent response;
     private EventProbe eventProbe;
+
+    private KBVService kbvService;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
@@ -54,21 +59,26 @@ public class QuestionHandler
                                 KBVSessionItem.class,
                                 DataStore.getClient(
                                         ConfigurationService.getInstance().isRunningLocally()))),
-                new ExperianService(),
+                new KBVSystemProperty(new KeyStoreService(ParamManager.getSecretsProvider())),
+                new KBVServiceFactory(),
                 new EventProbe());
     }
 
     public QuestionHandler(
             ObjectMapper objectMapper,
             StorageService storageService,
-            ExperianService experianService,
+            KBVSystemProperty systemProperty,
+            KBVServiceFactory kbvServiceFactory,
             EventProbe eventProbe) {
         this.objectMapper = objectMapper;
         this.objectMapper.registerModule(new JavaTimeModule());
         this.storageService = storageService;
-        this.experianService = experianService;
+        this.kbvService = kbvServiceFactory.create();
+
         this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = eventProbe;
+
+        systemProperty.save();
     }
 
     @Override
@@ -111,12 +121,12 @@ public class QuestionHandler
         QuestionState questionState =
                 objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
 
-        QuestionsRequest questionsRequest = new QuestionsRequest();
-        questionsRequest.setPersonIdentity(personIdentity);
-        String json = objectMapper.writeValueAsString(questionsRequest);
+        QuestionRequest questionRequest = new QuestionRequest();
+        questionRequest.setPersonIdentity(personIdentity);
 
         if (respondWithQuestionFromDbStore(questionState)) return;
-        respondWithQuestionFromExperianThenStoreInDb(json, kbvSessionItem, questionState);
+        respondWithQuestionFromExperianThenStoreInDb(
+                questionRequest, kbvSessionItem, questionState);
     }
 
     private boolean respondWithQuestionFromDbStore(QuestionState questionState)
@@ -132,7 +142,9 @@ public class QuestionHandler
     }
 
     private void respondWithQuestionFromExperianThenStoreInDb(
-            String json, KBVSessionItem kbvSessionItem, QuestionState questionState)
+            QuestionRequest questionRequest,
+            KBVSessionItem kbvSessionItem,
+            QuestionState questionState)
             throws IOException, InterruptedException {
         // we should fall in this block once only
         // fetch a batch of questions from experian kbv wrapper
@@ -140,11 +152,9 @@ public class QuestionHandler
             response.withStatusCode(HttpStatus.SC_NO_CONTENT);
             return;
         }
-        String questionsResponsePayload =
-                experianService.getResponseFromKBVExperianAPI(
-                        json, "EXPERIAN_API_WRAPPER_SAA_RESOURCE");
-        QuestionsResponse questionsResponse =
-                objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
+
+        QuestionsResponse questionsResponse = this.kbvService.getQuestions(questionRequest);
+
         if (questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
             Optional<Question> nextQuestion = questionState.getNextQuestion();
@@ -158,7 +168,7 @@ public class QuestionHandler
             storageService.update(kbvSessionItem);
         } else { // TODO: Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
-            response.withBody(questionsResponsePayload);
+            response.withBody(objectMapper.writeValueAsString(questionsResponse));
         }
     }
 }

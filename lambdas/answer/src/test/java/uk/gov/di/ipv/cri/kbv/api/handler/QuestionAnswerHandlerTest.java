@@ -13,15 +13,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.NextTransId;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionAnswer;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionsResponse;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.Results;
+import uk.gov.di.ipv.cri.kbv.api.domain.NextTransId;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.domain.Results;
 import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.library.persistence.item.KBVSessionItem;
-import uk.gov.di.ipv.cri.kbv.api.library.service.ExperianService;
 import uk.gov.di.ipv.cri.kbv.api.library.service.StorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -34,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -50,16 +51,26 @@ class QuestionAnswerHandlerTest {
     private QuestionAnswerHandler questionAnswerHandler;
     @Mock private ObjectMapper mockObjectMapper;
     @Mock private StorageService mockStorageService;
-    @Mock private ExperianService mockExperianService;
     @Mock private APIGatewayProxyRequestEvent input;
     @Mock private Context contextMock;
     @Mock private EventProbe mockEventProbe;
 
+    @Mock private KBVServiceFactory mockKbvServiceFactory;
+
+    @Mock private KBVService mockKbvService;
+    @Mock private KBVSystemProperty mockSystemProperty;
+
     @BeforeEach
     void setUp() {
+        when(mockKbvServiceFactory.create()).thenReturn(mockKbvService);
+        doNothing().when(mockSystemProperty).save();
         questionAnswerHandler =
                 new QuestionAnswerHandler(
-                        mockObjectMapper, mockStorageService, mockExperianService, mockEventProbe);
+                        mockObjectMapper,
+                        mockStorageService,
+                        mockSystemProperty,
+                        mockKbvServiceFactory,
+                        mockEventProbe);
     }
 
     @Test
@@ -96,6 +107,7 @@ class QuestionAnswerHandlerTest {
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         QuestionState questionStateMock = mock(QuestionState.class);
         QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
+
         Map<String, String> sessionHeader =
                 Map.of(QuestionAnswerHandler.HEADER_SESSION_ID, "new-session-id");
         String responseBodyExperian = "experian-response-body";
@@ -116,11 +128,7 @@ class QuestionAnswerHandlerTest {
                 .thenReturn(questionAnswerMock);
         when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
 
-        when(mockExperianService.getResponseFromKBVExperianAPI(
-                        any(), eq("EXPERIAN_API_WRAPPER_RTQ_RESOURCE")))
-                .thenReturn(responseBodyExperian);
-        when(mockObjectMapper.readValue(responseBodyExperian, QuestionsResponse.class))
-                .thenReturn(questionsResponseMock);
+        when(mockKbvService.submitAnswers(any())).thenReturn(questionsResponseMock);
 
         when(mockObjectMapper.writeValueAsString(any())).thenReturn("question-response");
 
@@ -160,11 +168,7 @@ class QuestionAnswerHandlerTest {
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
         when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
 
-        when(mockExperianService.getResponseFromKBVExperianAPI(
-                        any(), eq("EXPERIAN_API_WRAPPER_RTQ_RESOURCE")))
-                .thenReturn(responseBodyExperian);
-        when(mockObjectMapper.readValue(responseBodyExperian, QuestionsResponse.class))
-                .thenReturn(questionsResponseMock);
+        when(mockKbvService.submitAnswers(any())).thenReturn(questionsResponseMock);
         when(questionsResponseMock.hasQuestions()).thenReturn(true);
         doNothing().when(questionStateMock).setQAPairs(any());
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
@@ -252,9 +256,7 @@ class QuestionAnswerHandlerTest {
                 .thenReturn(questionAnswerMock);
 
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
-        when(mockExperianService.getResponseFromKBVExperianAPI(
-                        null, "EXPERIAN_API_WRAPPER_RTQ_RESOURCE"))
-                .thenThrow(InterruptedException.class);
+        when(mockKbvService.submitAnswers(any())).thenThrow(InterruptedException.class);
 
         setupEventProbeErrorBehaviour();
         APIGatewayProxyResponseEvent response =

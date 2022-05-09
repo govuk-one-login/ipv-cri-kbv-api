@@ -4,6 +4,9 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Questions;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
+import uk.gov.di.ipv.cri.kbv.api.util.StringUtils;
+
+import java.util.stream.Collectors;
 
 public class QuestionsResponse {
 
@@ -28,8 +31,27 @@ public class QuestionsResponse {
         this.questions = questions;
     }
 
+    public boolean hasQuestions() {
+        return this.getQuestions() != null;
+    }
+
     public Results getResults() {
         return results;
+    }
+
+    public boolean hasQuestionRequestEnded() {
+        if (StringUtils.isNotBlank(this.getQuestionStatus())) {
+            return this.getQuestionStatus().equalsIgnoreCase("END");
+        }
+        return false;
+    }
+
+    public String getQuestionStatus() {
+        return results.getNextTransId().getString().stream().collect(Collectors.joining(""));
+    }
+
+    public String getStatus() {
+        return results.getAuthenticationResult();
     }
 
     public void setResults(Results results) {

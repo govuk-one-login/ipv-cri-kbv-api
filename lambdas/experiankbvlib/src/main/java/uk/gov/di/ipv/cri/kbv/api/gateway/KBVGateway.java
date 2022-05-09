@@ -29,7 +29,8 @@ public class KBVGateway {
         this.identityIQWebServiceSoap = identityIQWebServiceSoap;
     }
 
-    public QuestionsResponse getQuestions(QuestionRequest questionRequest) {
+    public QuestionsResponse getQuestions(QuestionRequest questionRequest)
+            throws InterruptedException {
         SAARequest saaRequest = saaRequestMapper.mapQuestionRequest(questionRequest);
         SAAResponse2 saaResponse2 = identityIQWebServiceSoap.saa(saaRequest);
         return saaRequestMapper.mapSAAResponse2ToQuestionsResponse(saaResponse2);
