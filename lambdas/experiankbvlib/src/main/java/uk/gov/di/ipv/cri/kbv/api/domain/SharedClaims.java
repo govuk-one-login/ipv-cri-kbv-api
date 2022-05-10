@@ -1,4 +1,4 @@
-package uk.gov.di.ipv.cri.kbv.api.library.domain;
+package uk.gov.di.ipv.cri.kbv.api.domain;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

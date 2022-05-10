@@ -1,4 +1,4 @@
-package uk.gov.di.ipv.cri.kbv.api.library.domain;
+package uk.gov.di.ipv.cri.kbv.api.domain;
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -13,13 +13,8 @@ import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static uk.gov.di.ipv.cri.kbv.api.library.data.TestData.BADJWT;
-import static uk.gov.di.ipv.cri.kbv.api.library.data.TestData.GOODJWT;
-import static uk.gov.di.ipv.cri.kbv.api.library.data.TestData.PERSON_SHARED_ATTRIBUTE;
+import static org.junit.jupiter.api.Assertions.*;
+import static uk.gov.di.ipv.cri.kbv.api.data.TestData.*;
 
 @ExtendWith(MockitoExtension.class)
 class ParseJWTTest {

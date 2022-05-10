@@ -1,4 +1,4 @@
-package uk.gov.di.ipv.cri.kbv.api.library.domain;
+package uk.gov.di.ipv.cri.kbv.api.domain;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,7 +11,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ParseJWT {
-
     public static final String SHARED_CLAIMS = "shared_claims";
     private final ObjectMapper objectMapper;
 

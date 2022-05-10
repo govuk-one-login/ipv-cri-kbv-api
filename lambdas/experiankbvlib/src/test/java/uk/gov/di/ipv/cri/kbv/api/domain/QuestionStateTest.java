@@ -1,5 +1,7 @@
-package uk.gov.di.ipv.cri.kbv.api.library.domain;
+package uk.gov.di.ipv.cri.kbv.api.domain;
 
+import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
+import com.experian.uk.schema.experian.identityiq.services.webservice.Questions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -7,9 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -54,7 +54,7 @@ class QuestionStateTest {
     void shouldEvaluateToTrueWhenQuestionsResponseHasQuestions() {
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
         Questions questionsMock = mock(Questions.class);
-        when(questionsMock.getQuestion()).thenReturn(new Question[0]);
+        when(questionsMock.getQuestion()).thenReturn(List.of(new Question[0]));
         when(questionsResponseMock.getQuestions()).thenReturn(questionsMock);
 
         boolean hasMoreQuestions = questionState.setQuestionsResponse(questionsResponseMock);

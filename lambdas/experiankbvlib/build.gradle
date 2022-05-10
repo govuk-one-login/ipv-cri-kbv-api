@@ -15,6 +15,7 @@ dependencies {
 	implementation configurations.jackson
 	implementation configurations.hibernate
 	implementation configurations.powertools
+	implementation configurations.nimbus
 	implementation configurations.soap
 
 	runtimeOnly configurations.logging_runtime

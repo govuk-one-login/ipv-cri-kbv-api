@@ -1,4 +1,4 @@
-package uk.gov.di.ipv.cri.kbv.api.library.domain;
+package uk.gov.di.ipv.cri.kbv.api.domain;
 
 public class UKAddresses {
 

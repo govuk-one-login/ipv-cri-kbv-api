@@ -6,6 +6,8 @@ plugins {
 
 dependencies {
 	implementation project(":lib")
+	implementation project(":lambdas:experiankbvlib")
+
 	implementation configurations.jackson,
 			configurations.hibernate,
 			configurations.dynamodb,
