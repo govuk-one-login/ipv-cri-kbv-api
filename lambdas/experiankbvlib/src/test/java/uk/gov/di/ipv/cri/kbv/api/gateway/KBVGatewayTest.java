@@ -7,7 +7,6 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator;
 
 import java.util.Map;

@@ -16,7 +16,7 @@ import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.library.persistence.DataStore;
@@ -111,6 +111,10 @@ public class QuestionAnswerHandler
             eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
+        } catch (Exception e) {
+            eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
+            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
         }
         return response;
     }
@@ -130,8 +134,7 @@ public class QuestionAnswerHandler
     }
 
     private void respondWithAnswerFromExperianThenStoreInDb(
-            QuestionState questionState, KBVSessionItem kbvSessionItem)
-            throws IOException, InterruptedException {
+            QuestionState questionState, KBVSessionItem kbvSessionItem) throws IOException {
         QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
         questionAnswerRequest.setUrn(kbvSessionItem.getUrn());
         questionAnswerRequest.setAuthRefNo(kbvSessionItem.getAuthRefNo());

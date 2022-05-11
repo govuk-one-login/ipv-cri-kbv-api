@@ -11,7 +11,7 @@ import java.util.List;
 
 public class PersonIdentity {
     @NotBlank(message = "{personIdentity.title.required}")
-    private String title;
+    private String title = "MR";
 
     @NotBlank(message = "{personIdentity.firstname.required}")
     private String firstName;

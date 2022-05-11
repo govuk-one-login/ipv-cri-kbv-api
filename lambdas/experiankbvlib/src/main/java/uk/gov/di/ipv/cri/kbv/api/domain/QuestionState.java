@@ -1,6 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
 import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
+import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,8 +9,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class QuestionState {
-    private Integer skipsRemaining;
-    private String skipWarning;
+    // private Integer skipsRemaining;
+    // private String skipWarning;
     private List<QuestionAnswerPair> qaPairs = new ArrayList<>();
     private NextQuestion nextQuestion;
 
@@ -33,8 +34,8 @@ public class QuestionState {
         var questions = questionsResponse.getQuestions();
         boolean hasQuestions = questions != null && questions.getQuestion() != null;
         if (hasQuestions) {
-            skipsRemaining = questions.getSkipsRemaining();
-            skipWarning = questions.getSkipWarning();
+            // skipsRemaining = questions.getSkipsRemaining();
+            // skipWarning = questions.getSkipWarning();
 
             setQAPairs(questions);
         }

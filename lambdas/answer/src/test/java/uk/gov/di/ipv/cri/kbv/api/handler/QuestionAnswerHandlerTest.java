@@ -13,11 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.di.ipv.cri.kbv.api.domain.NextTransId;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
-import uk.gov.di.ipv.cri.kbv.api.domain.Results;
+import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.library.persistence.item.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.library.service.StorageService;
@@ -26,19 +24,20 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -101,8 +100,7 @@ class QuestionAnswerHandlerTest {
     }
 
     @Test
-    void shouldReturn200WithFinalResponseFromExperianAPI()
-            throws IOException, InterruptedException {
+    void shouldReturn200WithFinalResponseFromExperianAPI() throws IOException {
 
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         QuestionState questionStateMock = mock(QuestionState.class);
@@ -110,11 +108,7 @@ class QuestionAnswerHandlerTest {
 
         Map<String, String> sessionHeader =
                 Map.of(QuestionAnswerHandler.HEADER_SESSION_ID, "new-session-id");
-        String responseBodyExperian = "experian-response-body";
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
-        Results resultsMock = mock(Results.class);
-        List<String> transactionValue = Collections.singletonList("END");
-        NextTransId nextTransIdMock = mock(NextTransId.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockStorageService.getSessionId(
@@ -144,15 +138,14 @@ class QuestionAnswerHandlerTest {
     }
 
     @Test
-    void shouldReturn200WhenNextSetOfQuestionsAreReceivedFromExperian()
-            throws IOException, InterruptedException {
+    void shouldReturn200WhenNextSetOfQuestionsAreReceivedFromExperian() throws IOException {
 
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         QuestionState questionStateMock = mock(QuestionState.class);
         QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
         Map<String, String> sessionHeader =
                 Map.of(QuestionAnswerHandler.HEADER_SESSION_ID, "new-session-id");
-        String responseBodyExperian = "experian-response-body";
+
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
@@ -235,8 +228,7 @@ class QuestionAnswerHandlerTest {
     }
 
     @Test
-    void shouldReturn500ErrorWhenExperianAPIIsDown() throws IOException, InterruptedException {
-
+    void shouldReturn500ErrorWhenExperianAPIIsDown() throws IOException {
         KBVSessionItem kbvSessionItemMock = mock(KBVSessionItem.class);
         QuestionState questionStateMock = mock(QuestionState.class);
 
@@ -256,16 +248,25 @@ class QuestionAnswerHandlerTest {
                 .thenReturn(questionAnswerMock);
 
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
-        when(mockKbvService.submitAnswers(any())).thenThrow(InterruptedException.class);
 
-        setupEventProbeErrorBehaviour();
-        APIGatewayProxyResponseEvent response =
-                questionAnswerHandler.handleRequest(input, contextMock);
-        assertEquals(
-                "{ \"error\":\"Retrieving questions failed: java.lang.InterruptedException\" }",
-                response.getBody());
-        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
-        verify(mockEventProbe).counterMetric("post_answer", 0d);
+        Supplier<KBVServiceFactory> kbvServiceFactorySupplier = KBVServiceFactory::new;
+        KBVServiceFactory factory = spy(kbvServiceFactorySupplier.get());
+
+        questionAnswerHandler =
+                new QuestionAnswerHandler(
+                        mockObjectMapper,
+                        mockStorageService,
+                        mockSystemProperty,
+                        factory,
+                        mockEventProbe);
+
+        Exception unExpectedException = new Exception();
+        assertThrows(
+                unExpectedException.getClass(),
+                () -> questionAnswerHandler.handleRequest(input, contextMock));
+        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, 500);
+
+        verify(mockEventProbe).log(any(Level.class), any(Exception.class));
     }
 
     private void setupEventProbeErrorBehaviour() {

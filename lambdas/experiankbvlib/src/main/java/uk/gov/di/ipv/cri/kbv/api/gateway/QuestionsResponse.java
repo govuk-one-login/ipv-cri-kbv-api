@@ -1,4 +1,4 @@
-package uk.gov.di.ipv.cri.kbv.api.domain;
+package uk.gov.di.ipv.cri.kbv.api.gateway;
 
 import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Error;

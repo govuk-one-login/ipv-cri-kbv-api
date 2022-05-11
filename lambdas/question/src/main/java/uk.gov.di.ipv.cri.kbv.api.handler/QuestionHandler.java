@@ -17,7 +17,7 @@ import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.library.persistence.DataStore;
@@ -152,9 +152,7 @@ public class QuestionHandler
             response.withStatusCode(HttpStatus.SC_NO_CONTENT);
             return;
         }
-
         QuestionsResponse questionsResponse = this.kbvService.getQuestions(questionRequest);
-
         if (questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
             Optional<Question> nextQuestion = questionState.getNextQuestion();

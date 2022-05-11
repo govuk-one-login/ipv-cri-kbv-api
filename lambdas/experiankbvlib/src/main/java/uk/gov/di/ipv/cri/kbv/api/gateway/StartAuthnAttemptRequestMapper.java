@@ -13,7 +13,6 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
 import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.util.StringUtils;
 
 import java.util.Objects;

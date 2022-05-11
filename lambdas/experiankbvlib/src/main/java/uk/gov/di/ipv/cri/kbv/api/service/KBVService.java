@@ -4,8 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
+import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 
 public class KBVService {
 
@@ -18,13 +18,11 @@ public class KBVService {
         this.kbvGateway = kbvGateway;
     }
 
-    public QuestionsResponse getQuestions(QuestionRequest questionRequest)
-            throws InterruptedException {
+    public QuestionsResponse getQuestions(QuestionRequest questionRequest) {
         return this.kbvGateway.getQuestions(questionRequest);
     }
 
-    public QuestionsResponse submitAnswers(QuestionAnswerRequest answers)
-            throws InterruptedException {
+    public QuestionsResponse submitAnswers(QuestionAnswerRequest answers) {
         return kbvGateway.submitAnswers(answers);
     }
 }

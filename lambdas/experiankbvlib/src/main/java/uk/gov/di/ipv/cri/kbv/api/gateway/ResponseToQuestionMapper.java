@@ -7,7 +7,6 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Response;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Responses;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 
 import java.util.List;
 import java.util.Objects;
