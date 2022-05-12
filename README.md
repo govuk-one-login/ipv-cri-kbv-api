@@ -1,20 +1,31 @@
 # di-ipv-cri-kbv-api
 IPV Knowledge Based Verification Credential Issuer
 
-## Deploy to PaaS
+## Check out submodules (First Time)
+> The first time you check out or clone the repository, you will need to run the following commands:
 
-Set environment variables with:
-````
-cf set-env di-ipv-cri-kbv-api EXPERIAN_API_WRAPPER_URL  <experian api wrapper api url>
-cf set-env di-ipv-cri-kbv-api EXPERIAN_API_WRAPPER_SAA_RESOURCE  "/question-request"
+`git submodule update --init --recursive`
 
-````
+## Update submodules (Subsequent times)
+> Subsequent times you will need to run the following commands:
 
-Then build and push with:
-````
-./gradlew clean build
-cf push
-````
+`git submodule update --recursive`
+
+## Updating submodules to the latest "main" branch
+> You can also update the submodules to the latest "main" branch, but this is not done automatically
+> in case there have been changes made to the shared libraries you do not yet want to track
+
+cd into each submodule (folders are `/lib` and `/common-lambdas`) and run the following commands:
+
+`git checkout main && git pull`
+
+## Build
+
+> Ensure that you are using the java version specified in `.sdkmanrc`.
+
+Build with `./gradlew`
+
+This will run "build", "test", "buildZip", and "spotLess" reformatting
 
 ## Deploy to AWS lambda
 
