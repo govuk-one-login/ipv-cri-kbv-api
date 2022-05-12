@@ -9,8 +9,10 @@ project(':session').projectDir = new File('./common-lambdas/session')
 project(":accesstoken").projectDir = new File('./common-lambdas/accesstoken')
 project(':jwkset').projectDir = new File('./common-lambdas/jwkset')
 
-include "lib-old",
-		"lambdas:experiankbvlib",
-		"lambdas:session",
-		"lambdas:question",
-		"lambdas:answer"
+// CRI specific lambdas
+include "experiankbvlib", "question", "answer"
+project(':experiankbvlib').projectDir = new File('./lambdas/experiankbvlib')
+project(':question').projectDir = new File('./lambdas/question')
+project(':answer').projectDir = new File('./lambdas/answer')
+
+include "lib-old"
