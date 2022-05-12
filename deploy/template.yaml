@@ -140,6 +140,12 @@ Resources:
             TableName: !Ref KBVSessionTable
         - DynamoDBWritePolicy:
             TableName: !Ref KBVSessionTable
+        - Statement:
+            - Sid: ReadSecretsPolicy
+              Effect: Allow
+              Action:
+                - 'secretsmanager:GetSecretValue'
+              Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Environment}/di-ipv-cri-experian-kbv-api/experian*'
       Environment:
         Variables:
           IS_LOCAL: false
@@ -167,6 +173,12 @@ Resources:
             TableName: !Ref KBVSessionTable
         - DynamoDBWritePolicy:
             TableName: !Ref KBVSessionTable
+        - Statement:
+          - Sid: ReadSecretsPolicy
+            Effect: Allow
+            Action:
+              - 'secretsmanager:GetSecretValue'
+            Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Environment}/di-ipv-cri-experian-kbv-api/experian*'
       Environment:
         Variables:
           IS_LOCAL: false

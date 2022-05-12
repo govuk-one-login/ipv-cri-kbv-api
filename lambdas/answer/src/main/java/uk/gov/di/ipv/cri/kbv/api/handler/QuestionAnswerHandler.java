@@ -12,17 +12,21 @@ import org.apache.http.HttpStatus;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
+import software.amazon.lambda.powertools.parameters.ParamManager;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.library.annotations.ExcludeFromGeneratedCoverageReport;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionAnswer;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionAnswerRequest;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.library.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.library.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.library.persistence.item.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.library.service.ConfigurationService;
-import uk.gov.di.ipv.cri.kbv.api.library.service.ExperianService;
 import uk.gov.di.ipv.cri.kbv.api.library.service.StorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
+import uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService;
 
 import java.io.IOException;
 import java.util.Map;
@@ -37,7 +41,7 @@ public class QuestionAnswerHandler
     private static final String POST_ANSWER = "post_answer";
     private final ObjectMapper objectMapper;
     private final StorageService storageService;
-    private final ExperianService experianService;
+    private final KBVService kbvService;
 
     private APIGatewayProxyResponseEvent response;
     public static final String HEADER_SESSION_ID = "session-id";
@@ -54,21 +58,26 @@ public class QuestionAnswerHandler
                                 KBVSessionItem.class,
                                 DataStore.getClient(
                                         ConfigurationService.getInstance().isRunningLocally()))),
-                new ExperianService(),
+                new KBVSystemProperty(new KeyStoreService(ParamManager.getSecretsProvider())),
+                new KBVServiceFactory(),
                 new EventProbe());
     }
 
     public QuestionAnswerHandler(
             ObjectMapper objectMapper,
             StorageService storageService,
-            ExperianService experianService,
+            KBVSystemProperty systemProperty,
+            KBVServiceFactory kbvServiceFactory,
             EventProbe eventProbe) {
         this.objectMapper = objectMapper;
         this.objectMapper.registerModule(new JavaTimeModule());
         this.storageService = storageService;
-        this.experianService = experianService;
+        this.kbvService = kbvServiceFactory.create();
+
         this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = eventProbe;
+
+        systemProperty.save();
     }
 
     @Override
@@ -102,6 +111,10 @@ public class QuestionAnswerHandler
             eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
+        } catch (Exception e) {
+            eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
+            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
         }
         return response;
     }
@@ -121,17 +134,13 @@ public class QuestionAnswerHandler
     }
 
     private void respondWithAnswerFromExperianThenStoreInDb(
-            QuestionState questionState, KBVSessionItem kbvSessionItem)
-            throws IOException, InterruptedException {
+            QuestionState questionState, KBVSessionItem kbvSessionItem) throws IOException {
         QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
         questionAnswerRequest.setUrn(kbvSessionItem.getUrn());
         questionAnswerRequest.setAuthRefNo(kbvSessionItem.getAuthRefNo());
         questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
-        String body =
-                experianService.getResponseFromKBVExperianAPI(
-                        objectMapper.writeValueAsString(questionAnswerRequest),
-                        "EXPERIAN_API_WRAPPER_RTQ_RESOURCE");
-        QuestionsResponse questionsResponse = objectMapper.readValue(body, QuestionsResponse.class);
+
+        QuestionsResponse questionsResponse = kbvService.submitAnswers(questionAnswerRequest);
 
         if (questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
