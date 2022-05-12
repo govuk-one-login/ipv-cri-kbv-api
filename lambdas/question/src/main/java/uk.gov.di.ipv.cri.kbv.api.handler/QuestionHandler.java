@@ -14,19 +14,15 @@ import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.parameters.ParamManager;
-import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
+import uk.gov.di.ipv.cri.address.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.address.library.persistence.DataStore;
+import uk.gov.di.ipv.cri.address.library.persistence.item.SessionItem;
+import uk.gov.di.ipv.cri.address.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.address.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
-import uk.gov.di.ipv.cri.kbv.api.library.annotations.ExcludeFromGeneratedCoverageReport;
-import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
-import uk.gov.di.ipv.cri.kbv.api.library.persistence.DataStore;
-import uk.gov.di.ipv.cri.kbv.api.library.persistence.item.KBVSessionItem;
-import uk.gov.di.ipv.cri.kbv.api.library.service.ConfigurationService;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
-import uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService;
+import uk.gov.di.ipv.cri.kbv.api.service.*;
 
 import java.io.IOException;
 import java.util.Map;
@@ -54,10 +50,9 @@ public class QuestionHandler
                 new ObjectMapper(),
                 new StorageService(
                         new DataStore<>(
-                                ConfigurationService.getInstance().getKBVSessionTableName(),
-                                KBVSessionItem.class,
-                                DataStore.getClient(
-                                        ConfigurationService.getInstance().isRunningLocally()))),
+                                new ConfigurationService().getAddressTableName(),
+                                SessionItem.class,
+                                DataStore.getClient())),
                 new KBVSystemProperty(new KeyStoreService(ParamManager.getSecretsProvider())),
                 new KBVServiceFactory(),
                 new EventProbe());
@@ -113,19 +108,21 @@ public class QuestionHandler
             throws IOException, InterruptedException {
         response.withHeaders(Map.of("Content-Type", "application/json"));
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-        KBVSessionItem kbvSessionItem =
+        SessionItem kbvSessionItem =
                 storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
-        PersonIdentity personIdentity =
-                objectMapper.readValue(kbvSessionItem.getUserAttributes(), PersonIdentity.class);
-        QuestionState questionState =
-                objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
+        //        PersonIdentity personIdentity =
+        //                objectMapper.readValue(kbvSessionItem.getUserAttributes(),
+        // PersonIdentity.class);
+        //        QuestionState questionState =
+        //                objectMapper.readValue(kbvSessionItem.getQuestionState(),
+        // QuestionState.class);
 
         QuestionRequest questionRequest = new QuestionRequest();
-        questionRequest.setPersonIdentity(personIdentity);
-
-        if (respondWithQuestionFromDbStore(questionState)) return;
-        respondWithQuestionFromExperianThenStoreInDb(
-                questionRequest, kbvSessionItem, questionState);
+        //        questionRequest.setPersonIdentity(personIdentity);
+        //
+        //        if (respondWithQuestionFromDbStore(questionState)) return;
+        //        respondWithQuestionFromExperianThenStoreInDb(
+        //                questionRequest, kbvSessionItem, questionState);
     }
 
     private boolean respondWithQuestionFromDbStore(QuestionState questionState)
@@ -142,7 +139,7 @@ public class QuestionHandler
 
     private void respondWithQuestionFromExperianThenStoreInDb(
             QuestionRequest questionRequest,
-            KBVSessionItem kbvSessionItem,
+            SessionItem kbvSessionItem,
             QuestionState questionState)
             throws IOException, InterruptedException {
         // we should fall in this block once only
@@ -159,9 +156,10 @@ public class QuestionHandler
             response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
 
             String state = objectMapper.writeValueAsString(questionState);
-            kbvSessionItem.setQuestionState(state);
-            kbvSessionItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
-            kbvSessionItem.setUrn(questionsResponse.getControl().getURN());
+            //            kbvSessionItem.setQuestionState(state);
+            //
+            // kbvSessionItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
+            //            kbvSessionItem.setUrn(questionsResponse.getControl().getURN());
             storageService.update(kbvSessionItem);
         } else { // TODO: Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);

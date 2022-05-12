@@ -18,9 +18,20 @@ dependencies {
 
 	aspect configurations.powertools
 
-	testImplementation configurations.tests
+	testImplementation configurations.tests,
+			configurations.test_runtime
 }
 
 test {
 	useJUnitPlatform ()
 }
+
+task buildZip(type: Zip) {
+	from compileJava
+	from processResources
+	into('lib') {
+		from configurations.runtimeClasspath
+	}
+}
+
+build.finalizedBy(buildZip)
