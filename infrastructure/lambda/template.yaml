@@ -1,6 +1,10 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: "AWS::Serverless-2016-10-31"
+<<<<<<< HEAD
 Description: "Digital Identity IPV CRI KBV API"
+=======
+Description: "Digital Identity IPV CRI Address API"
+>>>>>>> fe4f638 (Add lambda sam templates from address cri)
 
 Parameters:
   CodeSigningConfigArn:
@@ -88,14 +92,14 @@ Mappings:
 
   IPVCoreStubAudienceMapping:
     Environment:
-      dev: "https://dev-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      build: "https://build-di-ipv-cri-kbv-front.london.cloudapps.digital"
+      dev: "https://dev-di-ipv-cri-address-front.london.cloudapps.digital"
+      build: "https://build-di-ipv-cri-address-front.london.cloudapps.digital"
 
   IPVCore1AudienceMapping:
     Environment:
-      staging: "https://staging-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      integration: "https://integration-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      production: "https://di-ipv-cri-kbv-front.london.cloudapps.digital"
+      staging: "https://staging-di-ipv-cri-address-front.london.cloudapps.digital"
+      integration: "https://integration-di-ipv-cri-address-front.london.cloudapps.digital"
+      production: "https://di-ipv-cri-address-front.london.cloudapps.digital"
 
   IPVCoreStubIssuerMapping:
     Environment:
@@ -126,28 +130,36 @@ Mappings:
 
   IPVCore1RedirectURIMapping:
     Environment:
-      staging: "https://staging-di-ipv-core-front.london.cloudapps.digital/credential-issuer/callback?id=debugKBV"
-      integration: "https://integration-di-ipv-core-front.london.cloudapps.digital/credential-issuer/callback?id=kbv"
-      production: "https://di-ipv-core-front.london.cloudapps.digital/credential-issuer/callback?id=kbv"
+      staging: "https://staging-di-ipv-core-front.london.cloudapps.digital/credential-issuer/callback?id=debugAddress"
+      integration: "https://integration-di-ipv-core-front.london.cloudapps.digital/credential-issuer/callback?id=address"
+      production: "https://di-ipv-core-front.london.cloudapps.digital/credential-issuer/callback?id=address"
+
+  OrdnanceSurveyAPIURLMapping:
+    Environment:
+      dev: "https://api.os.uk/search/places/v1/postcode"
+      build: "https://api.os.uk/search/places/v1/postcode"
+      staging: "https://api.os.uk/search/places/v1/postcode"
+      integration: "https://api.os.uk/search/places/v1/postcode"
+      production: "https://api.os.uk/search/places/v1/postcode"
 
   VerifiableCredentialIssuerMapping:
     Environment:
-      dev: "https://dev-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      build: "https://build-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      staging: "https://staging-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      integration: "https://integration-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      production: "https://di-ipv-cri-kbv-front.london.cloudapps.digital"
+      dev: "https://dev-di-ipv-cri-address-front.london.cloudapps.digital"
+      build: "https://build-di-ipv-cri-address-front.london.cloudapps.digital"
+      staging: "https://staging-di-ipv-cri-address-front.london.cloudapps.digital"
+      integration: "https://integration-di-ipv-cri-address-front.london.cloudapps.digital"
+      production: "https://di-ipv-cri-address-front.london.cloudapps.digital"
 
-  KBVCriAudienceMapping:
+  AddressCriAudienceMapping:
     Environment:
-      dev: "https://dev-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      build: "https://build-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      staging: "https://staging-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      integration: "https://integration-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      production: "https://di-ipv-cri-kbv-front.london.cloudapps.digital"
+      dev: "https://dev-di-ipv-cri-address-front.london.cloudapps.digital"
+      build: "https://build-di-ipv-cri-address-front.london.cloudapps.digital"
+      staging: "https://staging-di-ipv-cri-address-front.london.cloudapps.digital"
+      integration: "https://integration-di-ipv-cri-address-front.london.cloudapps.digital"
+      production: "https://di-ipv-cri-address-front.london.cloudapps.digital"
 
 Resources:
-  KBVApi:
+  AddressApi:
     Type: AWS::Serverless::Api
     Properties:
       MethodSettings:
@@ -163,7 +175,7 @@ Resources:
         DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${ApiAccessLogGroup}'
         Format: '{ "requestId":"$context.requestId", "ip": "$context.identity.sourceIp", "caller":"$context.identity.caller", "user":"$context.identity.user","requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath", "status":"$context.status","protocol":"$context.protocol", "responseLength":"$context.responseLength" }'
       TracingEnabled: true
-      Name: !Sub "kbv-cri-${AWS::StackName}"
+      Name: !Sub "address-cri-${AWS::StackName}"
       StageName: !Ref Environment
       DefinitionBody:
         openapi: "3.0.1" # workaround to get `sam validate` to work
@@ -181,7 +193,7 @@ Resources:
   ApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/apigateway/AccessLog-${KBVApi}/${Environment}
+      LogGroupName: !Sub /aws/apigateway/AccessLog-${AddressApi}/${Environment}
       RetentionInDays: 365
 
   SessionFunction:
@@ -191,8 +203,8 @@ Resources:
       Handler: uk.gov.di.ipv.cri.address.api.handler.SessionHandler::handleRequest
       Environment:
         Variables:
-          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
-          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-session
+          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-address-api
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-address-api-session
           SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -203,7 +215,7 @@ Resources:
         - SQSSendMessagePolicy:
             QueueName: !ImportValue AuditEventQueueName
         - KMSDecryptPolicy:
-            KeyId: !Ref KBVCriDecryptionKey
+            KeyId: !Ref AddressCriDecryptionKey
         - Statement:
             - Effect: Allow
               Action:
@@ -228,10 +240,171 @@ Resources:
               Resource:
                 - !ImportValue AuditEventQueueEncryptionKeyArn
 
-  KBVCriVcSigningKey:
+  PostcodeLookupFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../lambdas/postcode-lookup/build/distributions/postcode-lookup.zip
+      Handler: uk.gov.di.ipv.cri.address.api.handler.PostcodeLookupHandler::handleRequest
+      Environment:
+        Variables:
+          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-address-api
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-address-api-postcode-lookup
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBReadPolicy:
+            TableName:
+              Ref: SessionTable
+        - Statement:
+            - Sid: ReadSecretsPolicy
+              Effect: Allow
+              Action:
+                - 'secretsmanager:*'
+              Resource:
+                - !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${AWS::StackName}/OrdnanceSurveyAPIKey*"
+            - Sid: ReadParametersPolicy
+              Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/OrdnanceSurveyAPIURL"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParametersByPath
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
+
+  AddressFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../lambdas/address/build/distributions/address.zip
+      Handler: uk.gov.di.ipv.cri.address.api.handler.AddressHandler::handleRequest
+      Environment:
+        Variables:
+          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-address-api
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-address-api-address
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: SessionTable
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: AddressTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/AddressTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParametersByPath
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
+
+  AccessTokenFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../common-lambdas/accesstoken/build/distributions/accesstoken.zip
+      Handler: uk.gov.di.ipv.cri.address.api.handler.AccessTokenHandler::handleRequest
+      Environment:
+        Variables:
+          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-address-api
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-address-api-access-token
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: SessionTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParametersByPath
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
+
+  IssueCredentialFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: uk.gov.di.ipv.cri.address.api.handler.IssueCredentialHandler::handleRequest
+      CodeUri: ../../lambdas/issuecredential/build/distributions/issuecredential.zip
+      Environment:
+        Variables:
+          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-address-api
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-address-api-issuecredential
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBReadPolicy:
+            TableName: !Ref SessionTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref AddressTable
+        - Statement:
+            Effect: Allow
+            Action:
+              - "kms:Sign"
+            Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${AddressCriVcSigningKey}"
+        - SQSSendMessagePolicy:
+            QueueName: !ImportValue AuditEventQueueName
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub "${AWS::StackName}/*"
+        - Statement:
+            Effect: Allow
+            Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey
+            Resource:
+              - !ImportValue AuditEventQueueEncryptionKeyArn
+
+  JWKSetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: uk.gov.di.ipv.cri.address.api.handler.JWKSetHandler::handleRequest
+      CodeUri: ../../common-lambdas/jwkset/build/distributions/jwkset.zip
+      Environment:
+        Variables:
+          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-address-api
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-address-api-jwkset
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSXrayWriteOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - kms:GetPublicKey
+              Resource:
+                - !GetAtt AddressCriVcSigningKey.Arn
+                - !GetAtt AddressCriDecryptionKey.Arn
+            - Effect: Allow
+              Action:
+                - kms:ListKeys
+                - kms:ListResourceTags
+                - kms:DescribeKey
+              Resource: "*"
+
+  AddressCriVcSigningKey:
     Type: AWS::KMS::Key
     Properties:
-      Description: Asymmetric key used by KBV Cri for signing verifiable credentials.
+      Description: Asymmetric key used by Address Cri for signing verifiable credentials.
       Enabled: true
       KeySpec: ECC_NIST_P256
       KeyUsage: SIGN_VERIFY
@@ -254,6 +427,7 @@ Resources:
   SigningKeyAlias:
     Type: AWS::KMS::Alias
     Properties:
+<<<<<<< HEAD
       AliasName: !Sub alias/${AWS::StackName}/${Environment}/KBVCriVcSigningKey
       TargetKeyId: !Ref KBVCriVcSigningKey
 
@@ -261,6 +435,15 @@ Resources:
     Type: AWS::KMS::Key
     Properties:
       Description: Asymmetric key used by KBV CRI to decrypt the Authorization JAR JWE
+=======
+      AliasName: !Sub alias/${AWS::StackName}/${Environment}/AddressCriVcSigningKey
+      TargetKeyId: !Ref AddressCriVcSigningKey
+
+  AddressCriDecryptionKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Asymmetric key used by Address CRI to decrypt the Authorization JAR JWE
+>>>>>>> fe4f638 (Add lambda sam templates from address cri)
       Enabled: true
       KeySpec: RSA_2048
       KeyUsage: ENCRYPT_DECRYPT
@@ -283,6 +466,7 @@ Resources:
   DecryptionKeyAlias:
     Type: AWS::KMS::Alias
     Properties:
+<<<<<<< HEAD
       AliasName: !Sub alias/${AWS::StackName}/${Environment}/KBVCriDecryptionKey
       TargetKeyId: !Ref KBVCriDecryptionKey
 
@@ -290,6 +474,15 @@ Resources:
     Type: "AWS::DynamoDB::Table"
     Properties:
       TableName: !Sub "kbv-${AWS::StackName}"
+=======
+      AliasName: !Sub alias/${AWS::StackName}/${Environment}/AddressCriDecryptionKey
+      TargetKeyId: !Ref AddressCriDecryptionKey
+
+  AddressTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: !Sub "address-${AWS::StackName}"
+>>>>>>> fe4f638 (Add lambda sam templates from address cri)
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         - AttributeName: "sessionId"
@@ -340,10 +533,10 @@ Resources:
   ApiUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
     DependsOn:
-      - KBVApiStage
+      - AddressApiStage
     Properties:
       ApiStages:
-        - ApiId: !Ref KBVApi
+        - ApiId: !Ref AddressApi
           Stage: !Ref Environment
       Quota:
         Limit: 500000
@@ -386,13 +579,13 @@ Resources:
       Type: String
       Description: session dynamodb table name
 
-  ParameterKBVItemTableName:
+  ParameterAddressItemTableName:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub "/${AWS::StackName}/KBVTableName"
-      Value: !Sub kbv-${AWS::StackName}
+      Name: !Sub "/${AWS::StackName}/AddressTableName"
+      Value: !Sub address-${AWS::StackName}
       Type: String
-      Description: kbv item dynamodb table name
+      Description: address item dynamodb table name
 
   MaxJwtTtlParameter:
     Type: AWS::SSM::Parameter
@@ -408,7 +601,7 @@ Resources:
       Name: !Sub "/${AWS::StackName}/SessionTtl"
       Type: String
       Value: !FindInMap [ SessionTtlMapping, Environment, !Ref 'Environment' ]
-      Description: default time to live for an kbv session item (seconds)
+      Description: default time to live for an address session item (seconds)
 
   IPVCoreStubAuthenticationAlgParameter:
     Condition: IsStubEnvironment
@@ -491,21 +684,29 @@ Resources:
       Type: String
       Value: !FindInMap [IPVCore1RedirectURIMapping, Environment, !Ref 'Environment']
 
-  KBVCriAudienceParameter:
+  AddressCriAudienceParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub "/${AWS::StackName}/AddressCriAudience"
       Type: String
-      Value: !FindInMap [KBVCriAudienceMapping, Environment, !Ref 'Environment']
-      Description: The kbv credential issuer (audience) identifier
+      Value: !FindInMap [AddressCriAudienceMapping, Environment, !Ref 'Environment']
+      Description: The address credential issuer (audience) identifier
 
   AuthRequestKmsEncryptionKeyIdParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub "/${AWS::StackName}/AuthRequestKmsEncryptionKeyId"
       Type: String
-      Value: !Ref KBVCriDecryptionKey
+      Value: !Ref AddressCriDecryptionKey
       Description: The (KMS) encryption key identifier for decrypting authorisation requests
+
+  OrdnanceSurveyAPIURLParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/OrdnanceSurveyAPIURL"
+      Type: String
+      Value: !FindInMap [OrdnanceSurveyAPIURLMapping, Environment, !Ref 'Environment']
+      Description: Ordnance Survey Postcode Lookup API URL
 
   VerifiableCredentialIssuerParameter:
     Type: AWS::SSM::Parameter
@@ -520,9 +721,15 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/verifiableCredentialKmsSigningKeyId"
       Type: String
-      Value: !Ref KBVCriVcSigningKey
+      Value: !Ref AddressCriVcSigningKey
       Description: Verifiable Credential Key Id
 
+  AccessTokenFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt AccessTokenFunction.Arn
+      Principal: apigateway.amazonaws.com
 
   SessionFunctionPermission:
     Type: AWS::Lambda::Permission
@@ -531,48 +738,74 @@ Resources:
       FunctionName: !GetAtt SessionFunction.Arn
       Principal: apigateway.amazonaws.com
 
+  PostcodeLookupFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt PostcodeLookupFunction.Arn
+      Principal: apigateway.amazonaws.com
 
+  AddressFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt AddressFunction.Arn
+      Principal: apigateway.amazonaws.com
+
+  IssueCredentialFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt IssueCredentialFunction.Arn
+      Principal: apigateway.amazonaws.com
+
+  JWKSetFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt JWKSetFunction.Arn
+      Principal: apigateway.amazonaws.com
 
 Outputs:
 
   SessionApiUrl:
-    Description: "URL for the KBV API /session resource"
-    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/session"
+    Description: "URL for the Address API /session resource"
+    Value: !Sub "https://${AddressApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/session"
     Export:
       Name: !Sub ${AWS::StackName}-SessionApiUrl
 
   PostcodeLookupApiUrl:
-    Description: "URL for the KBV API /postcode-lookup resource"
-    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/postcode-lookup"
+    Description: "URL for the Address API /postcode-lookup resource"
+    Value: !Sub "https://${AddressApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/postcode-lookup"
     Export:
       Name: !Sub ${AWS::StackName}-PostcodeLookupApiUrl
 
-  KBVApiUrl:
-    Description: "URL for the KBV API /kbv resource"
-    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/kbv"
+  AddressApiUrl:
+    Description: "URL for the Address API /address resource"
+    Value: !Sub "https://${AddressApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/address"
     Export:
-      Name: !Sub ${AWS::StackName}-KBVApiUrl
+      Name: !Sub ${AWS::StackName}-AddressApiUrl
 
   TokenApiUrl:
-    Description: "URL for the KBV API /token resource"
-    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/token"
+    Description: "URL for the Address API /token resource"
+    Value: !Sub "https://${AddressApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/token"
     Export:
       Name: !Sub ${AWS::StackName}-TokenApiUrl
 
   CredentialIssueApiUrl:
-    Description: "URL for the KBV API /credential/issue resource"
-    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/credential/issue"
+    Description: "URL for the Address API /credential/issue resource"
+    Value: !Sub "https://${AddressApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/credential/issue"
     Export:
       Name: !Sub ${AWS::StackName}-CredentialIssueApiUrl
 
   JWKSetApiUrl:
-    Description: "URL for the KBV API /.well-known/jwks.json resource"
-    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/.well-known/jwks.json"
+    Description: "URL for the Address API /.well-known/jwks.json resource"
+    Value: !Sub "https://${AddressApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/.well-known/jwks.json"
     Export:
       Name: !Sub ${AWS::StackName}-JWKSetApiUrl
 
-  KBVApiBaseUrl:
-    Description: "Base url of the KBV CRI API"
-    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+  AddressApiBaseUrl:
+    Description: "Base url of the Address CRI API"
+    Value: !Sub "https://${AddressApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
     Export:
-      Name: !Sub ${AWS::StackName}-KBVApiBaseUrl
+      Name: !Sub ${AWS::StackName}-AddressApiBaseUrl
