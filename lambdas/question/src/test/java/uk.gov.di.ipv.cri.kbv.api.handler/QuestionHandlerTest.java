@@ -26,7 +26,6 @@ import uk.gov.di.ipv.cri.kbv.api.gateway.ResponseToQuestionMapper;
 import uk.gov.di.ipv.cri.kbv.api.gateway.StartAuthnAttemptRequestMapper;
 import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.library.persistence.item.KBVSessionItem;
-import uk.gov.di.ipv.cri.kbv.api.library.service.StorageService;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandlerResolver;
 import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;

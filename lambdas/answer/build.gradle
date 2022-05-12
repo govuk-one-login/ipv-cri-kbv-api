@@ -6,7 +6,7 @@ plugins {
 
 dependencies {
 	implementation project(":lib")
-	implementation project(":lambdas:experiankbvlib")
+	implementation project(":experiankbvlib")
 
 	implementation configurations.lambda,
 			configurations.jackson,

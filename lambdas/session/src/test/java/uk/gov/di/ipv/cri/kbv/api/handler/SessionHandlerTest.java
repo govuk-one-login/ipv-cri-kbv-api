@@ -20,7 +20,6 @@ import uk.gov.di.ipv.cri.kbv.api.library.domain.SessionRequest;
 import uk.gov.di.ipv.cri.kbv.api.library.exception.ClientConfigurationException;
 import uk.gov.di.ipv.cri.kbv.api.library.exception.ValidationException;
 import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
-import uk.gov.di.ipv.cri.kbv.api.library.service.StorageService;
 import uk.gov.di.ipv.cri.kbv.api.library.validation.ValidatorService;
 
 import java.text.ParseException;

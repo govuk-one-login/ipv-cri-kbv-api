@@ -1,4 +1,4 @@
-package uk.gov.di.ipv.cri.kbv.api.library.service;
+package uk.gov.di.ipv.cri.kbv.api.service;
 
 import uk.gov.di.ipv.cri.kbv.api.library.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.library.persistence.item.KBVSessionItem;
