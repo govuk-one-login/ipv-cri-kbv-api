@@ -22,7 +22,6 @@ import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.library.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.library.persistence.item.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.library.service.ConfigurationService;
-import uk.gov.di.ipv.cri.kbv.api.library.service.StorageService;
 import uk.gov.di.ipv.cri.kbv.api.library.validation.ValidatorService;
 
 import java.text.ParseException;

@@ -14,5 +14,3 @@ include "experiankbvlib", "question", "answer"
 project(':experiankbvlib').projectDir = new File('./lambdas/experiankbvlib')
 project(':question').projectDir = new File('./lambdas/question')
 project(':answer').projectDir = new File('./lambdas/answer')
-
-include "lib-old"
