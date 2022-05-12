@@ -26,3 +26,6 @@ hs_err_pid*
 .aws-sam
 .idea
 **/build/*
+
+samconfig.toml
+.gradle

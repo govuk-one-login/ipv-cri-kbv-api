@@ -13,23 +13,18 @@ import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.parameters.ParamManager;
+import uk.gov.di.ipv.cri.address.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.address.library.persistence.DataStore;
+import uk.gov.di.ipv.cri.address.library.persistence.item.SessionItem;
+import uk.gov.di.ipv.cri.address.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.address.library.util.EventProbe;
+import uk.gov.di.ipv.cri.kbv.api.domain.KBVSessionItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
-import uk.gov.di.ipv.cri.kbv.api.library.annotations.ExcludeFromGeneratedCoverageReport;
-import uk.gov.di.ipv.cri.kbv.api.library.helpers.EventProbe;
-import uk.gov.di.ipv.cri.kbv.api.library.persistence.DataStore;
-import uk.gov.di.ipv.cri.kbv.api.library.persistence.item.KBVSessionItem;
-import uk.gov.di.ipv.cri.kbv.api.library.service.ConfigurationService;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
-import uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService;
+import uk.gov.di.ipv.cri.kbv.api.service.*;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.apache.logging.log4j.Level.ERROR;
 import static org.apache.logging.log4j.Level.INFO;
@@ -49,14 +44,14 @@ public class QuestionAnswerHandler
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
+
         this(
                 new ObjectMapper(),
                 new StorageService(
                         new DataStore<>(
-                                ConfigurationService.getInstance().getKBVSessionTableName(),
-                                KBVSessionItem.class,
-                                DataStore.getClient(
-                                        ConfigurationService.getInstance().isRunningLocally()))),
+                                new ConfigurationService().getAddressTableName(),
+                                SessionItem.class,
+                                DataStore.getClient())),
                 new KBVSystemProperty(new KeyStoreService(ParamManager.getSecretsProvider())),
                 new KBVServiceFactory(),
                 new EventProbe());
@@ -122,50 +117,53 @@ public class QuestionAnswerHandler
             throws IOException, InterruptedException {
         QuestionState questionState;
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-        KBVSessionItem kbvSessionItem =
+        SessionItem kbvSessionItem =
                 storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
-        questionState =
-                objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
-        QuestionAnswer answer = objectMapper.readValue(input.getBody(), QuestionAnswer.class);
-
-        if (respondWithAnswerFromDbStore(answer, questionState, kbvSessionItem)) return;
-        respondWithAnswerFromExperianThenStoreInDb(questionState, kbvSessionItem);
+        //        questionState =
+        //                objectMapper.readValue(kbvSessionItem.getQuestionState(),
+        // QuestionState.class);
+        //        QuestionAnswer answer = objectMapper.readValue(input.getBody(),
+        // QuestionAnswer.class);
+        //
+        //        if (respondWithAnswerFromDbStore(answer, questionState, kbvSessionItem)) return;
+        //        respondWithAnswerFromExperianThenStoreInDb(questionState, kbvSessionItem);
     }
 
-    private void respondWithAnswerFromExperianThenStoreInDb(
-            QuestionState questionState, KBVSessionItem kbvSessionItem) throws IOException {
-        QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
-        questionAnswerRequest.setUrn(kbvSessionItem.getUrn());
-        questionAnswerRequest.setAuthRefNo(kbvSessionItem.getAuthRefNo());
-        questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
-
-        QuestionsResponse questionsResponse = kbvService.submitAnswers(questionAnswerRequest);
-
-        if (questionsResponse.hasQuestions()) {
-            questionState.setQAPairs(questionsResponse.getQuestions());
-            kbvSessionItem.setQuestionState(objectMapper.writeValueAsString(questionState));
-            storageService.update(kbvSessionItem);
-        } else if (questionsResponse.hasQuestionRequestEnded()) {
-            String state = objectMapper.writeValueAsString(questionState);
-            kbvSessionItem.setQuestionState(state);
-            kbvSessionItem.setAuthorizationCode(UUID.randomUUID().toString());
-            kbvSessionItem.setStatus(questionsResponse.getStatus());
-            storageService.update(kbvSessionItem);
-        } else {
-            // TODO: alternate flow could end of transaction / or others
-        }
-        response.withStatusCode(HttpStatus.SC_OK);
-    }
+    //    private void respondWithAnswerFromExperianThenStoreInDb(
+    //            QuestionState questionState, SessionItem kbvSessionItem) throws IOException {
+    //        QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
+    //        questionAnswerRequest.setUrn(kbvSessionItem.getUrn());
+    //        questionAnswerRequest.setAuthRefNo(kbvSessionItem.getAuthRefNo());
+    //        questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
+    //
+    //        QuestionsResponse questionsResponse = kbvService.submitAnswers(questionAnswerRequest);
+    //
+    //        if (questionsResponse.hasQuestions()) {
+    //            questionState.setQAPairs(questionsResponse.getQuestions());
+    //            kbvSessionItem.setQuestionState(objectMapper.writeValueAsString(questionState));
+    //            storageService.update(kbvSessionItem);
+    //        } else if (questionsResponse.hasQuestionRequestEnded()) {
+    //            String state = objectMapper.writeValueAsString(questionState);
+    //            kbvSessionItem.setQuestionState(state);
+    //            kbvSessionItem.setAuthorizationCode(UUID.randomUUID().toString());
+    //            kbvSessionItem.setStatus(questionsResponse.getStatus());
+    //            storageService.update(kbvSessionItem);
+    //        } else {
+    //            // TODO: alternate flow could end of transaction / or others
+    //        }
+    //        response.withStatusCode(HttpStatus.SC_OK);
+    //    }
 
     private boolean respondWithAnswerFromDbStore(
             QuestionAnswer answer, QuestionState questionState, KBVSessionItem kbvSessionItem)
             throws JsonProcessingException {
 
-        questionState.setAnswer(answer);
-        kbvSessionItem.setQuestionState(objectMapper.writeValueAsString(questionState));
-        storageService.update(kbvSessionItem);
-        response.withStatusCode(HttpStatus.SC_OK);
-
-        return questionState.hasAtLeastOneUnAnswered();
+        //        questionState.setAnswer(answer);
+        //        kbvSessionItem.setQuestionState(objectMapper.writeValueAsString(questionState));
+        //        storageService.update(kbvSessionItem);
+        //        response.withStatusCode(HttpStatus.SC_OK);
+        //
+        //        return questionState.hasAtLeastOneUnAnswered();
+        return true;
     }
 }
