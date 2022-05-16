@@ -8,17 +8,17 @@ jobs:
   package_for_dev_and_build:
     strategy:
       matrix:
-        target: [DEV, KBV]
+        target: [DEV, BUILD]
         include:
           - target: DEV
             ARTIFACT_SOURCE_BUCKET_SECRET: DEV_ARTIFACT_SOURCE_BUCKET_NAME
             GH_ACTIONS_ROLE_ARN_SECRET: DEV_GH_ACTIONS_ROLE_ARN
             SIGNING_PROFILE_SECRET: DEV_SIGNING_PROFILE_NAME
-          - target: KBV
+          - target: BUILD
             ARTIFACT_SOURCE_BUCKET_SECRET: ARTIFACT_SOURCE_BUCKET_NAME
             GH_ACTIONS_ROLE_ARN_SECRET: GH_ACTIONS_ROLE_ARN
             SIGNING_PROFILE_SECRET: SIGNING_PROFILE_NAME
-          max-parallel: 1
+      max-parallel: 1
     name: Package for Dev and Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -66,12 +66,12 @@ jobs:
         run: sam build -t infrastructure/lambda/template.yaml
 
       - name: Login to Amazon ECR
-        if: ${{ matrix.target=='KBV' }}
+        if: ${{ matrix.target=='BUILD' }}
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build, tag, and push testing image to Amazon ECR
-        if: ${{ matrix.target=='KBV' }}
+        if: ${{ matrix.target=='BUILD' }}
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
