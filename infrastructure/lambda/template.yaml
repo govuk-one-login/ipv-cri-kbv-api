@@ -211,7 +211,7 @@ Resources:
               Resource:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVCriAudience"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/AddressCriAudience"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/AuthRequestKmsEncryptionKeyId"
         - Statement:
             - Effect: Allow
@@ -494,7 +494,7 @@ Resources:
   KBVCriAudienceParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub "/${AWS::StackName}/KBVCriAudience"
+      Name: !Sub "/${AWS::StackName}/AddressCriAudience"
       Type: String
       Value: !FindInMap [KBVCriAudienceMapping, Environment, !Ref 'Environment']
       Description: The kbv credential issuer (audience) identifier
