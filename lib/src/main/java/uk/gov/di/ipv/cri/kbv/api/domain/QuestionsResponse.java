@@ -9,6 +9,7 @@ public class QuestionsResponse {
     protected Control control;
     protected Questions questions;
     protected Results results;
+
     protected Error error;
 
     public Control getControl() {

@@ -1,5 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
+import uk.gov.di.ipv.cri.kbv.api.factory.RequestPayLoad;
+
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
@@ -7,7 +9,7 @@ import javax.validation.constraints.NotNull;
 
 import java.util.List;
 
-public class QuestionAnswerRequest {
+public class QuestionAnswerRequest implements RequestPayLoad {
     @NotBlank(message = "{questionAnswerRequest.urn.required}")
     private String urn;
 

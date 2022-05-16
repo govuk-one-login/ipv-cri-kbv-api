@@ -1,6 +1,8 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
-public class QuestionsRequest {
+import uk.gov.di.ipv.cri.kbv.api.factory.RequestPayLoad;
+
+public class QuestionsRequest implements RequestPayLoad {
 
     private String urn;
     private String strategy;
