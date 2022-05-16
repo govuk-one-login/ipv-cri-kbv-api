@@ -11,6 +11,7 @@ jobs:
   deploy:
     name: pre-merge-integration-tests
     runs-on: ubuntu-latest
+    environment: di-ipv-cri-dev
     timeout-minutes: 15
     env:
       AWS_REGION: eu-west-2
@@ -36,7 +37,8 @@ jobs:
       - name: Assume temporary AWS role
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          role-to-assume: ${{ secrets.DEV_GH_ACTIONS_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: ${{ secrets.AWS_ROLE_SESSION }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Gradle build
