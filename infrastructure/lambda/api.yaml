@@ -1,7 +1,7 @@
 openapi: "3.0.1"
 info:
-  version: "0.2"
-  title: "Address Credential Issuer API"
+  title: "Knowledge Base Verification Credential Issuer Api"
+  version: "1.0"
 
 paths:
 
@@ -110,11 +110,6 @@ components:
       properties:
         session_id:
           type: "string"
-    PostcodeLookupResponse:
-      title: "Postcode Lookup Response"
-      type: "array"
-      items:
-        $ref: "#/components/schemas/CanonicalAddress"
     Address:
       title: "Address Update Request"
       type: "array"
