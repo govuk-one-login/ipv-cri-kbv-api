@@ -51,6 +51,37 @@ class QuestionStateTest {
     }
 
     @Test
+    void shouldEvaluateToTrueWhenQuestionsResponseHasQuestions() {
+        QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
+        Questions questionsMock = mock(Questions.class);
+        when(questionsMock.getQuestion()).thenReturn(new Question[0]);
+        when(questionsResponseMock.getQuestions()).thenReturn(questionsMock);
+
+        boolean hasMoreQuestions = questionState.setQuestionsResponse(questionsResponseMock);
+        assertTrue(hasMoreQuestions);
+    }
+
+    @Test
+    void shouldEvaluateToFalseWhenQuestionResponseHasNoQuestion() {
+        QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
+        Questions questionsMock = mock(Questions.class);
+        when(questionsMock.getQuestion()).thenReturn(null);
+        when(questionsResponse.getQuestions()).thenReturn(questionsMock);
+
+        boolean hasMoreQuestions = questionState.setQuestionsResponse(questionsResponse);
+        assertFalse(hasMoreQuestions);
+    }
+
+    @Test
+    void shouldEvaluateToFalseWhenQuestionResponseHasNoQuestions() {
+        QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
+        when(questionsResponse.getQuestions()).thenReturn(null);
+
+        boolean hasMoreQuestions = questionState.setQuestionsResponse(questionsResponse);
+        assertFalse(hasMoreQuestions);
+    }
+
+    @Test
     void shouldReduceArray() {
         List<String> sample = List.of("END");
         String result = sample.stream().reduce("", String::concat);

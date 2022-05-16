@@ -1,7 +1,10 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
+<<<<<<< Updated upstream
 import com.amazonaws.util.StringUtils;
 
+=======
+>>>>>>> Stashed changes
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -13,7 +16,6 @@ public class QuestionState {
     private String skipWarning;
     private List<QuestionAnswerPair> qaPairs = new ArrayList<>();
     private NextQuestion nextQuestion;
-    private String state = "";
 
     public QuestionState() {}
 
@@ -69,13 +71,5 @@ public class QuestionState {
 
     public boolean hasAtLeastOneUnAnswered() {
         return qaPairs.stream().anyMatch(qa -> qa.getAnswer() == null);
-    }
-
-    public void setState(String state) {
-        this.state = state;
-    }
-
-    public String getState() {
-        return StringUtils.isNullOrEmpty(state) ? "" : state;
     }
 }

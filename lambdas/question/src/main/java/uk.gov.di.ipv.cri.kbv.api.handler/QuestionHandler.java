@@ -58,6 +58,7 @@ public class QuestionHandler extends ApiGatewayResponse {
             LOGGER.error("Failed to parse object using ObjectMapper");
             error(jsonProcessingException.getMessage());
         } catch (NullPointerException npe) {
+            npe.printStackTrace();
             LOGGER.error("Error finding the requested resource");
             badRequest(npe.getMessage());
         } catch (IOException | InterruptedException e) {
@@ -138,6 +139,69 @@ public class QuestionHandler extends ApiGatewayResponse {
         } else { // TODO: Alternate flow when first request does not return questions
             System.out.println("respondWithQuestionFromExperianThenStoreInDb - badRequest");
             badRequest(body);
+        }
+    }
+
+    public void processQuestionRequest(APIGatewayProxyRequestEvent input)
+            throws IOException, InterruptedException {
+        response.withHeaders(Map.of("Content-Type", "application/json"));
+        String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
+        KBVSessionItem kbvSessionItem =
+                storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
+        PersonIdentity personIdentity =
+                objectMapper.readValue(kbvSessionItem.getUserAttributes(), PersonIdentity.class);
+        QuestionState questionState =
+                objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
+
+        QuestionsRequest questionsRequest = new QuestionsRequest();
+        questionsRequest.setPersonIdentity(personIdentity);
+        String json = objectMapper.writeValueAsString(questionsRequest);
+
+        if (respondWithQuestionFromDbStore(questionState)) return;
+        respondWithQuestionFromExperianThenStoreInDb(json, kbvSessionItem, questionState);
+    }
+
+    private boolean respondWithQuestionFromDbStore(QuestionState questionState)
+            throws JsonProcessingException {
+        // TODO Handle scenario when no questions are available
+        Optional<Question> nextQuestion = questionState.getNextQuestion();
+        if (nextQuestion.isPresent()) {
+            response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
+            response.withStatusCode(HttpStatus.SC_OK);
+            return true;
+        }
+        return false;
+    }
+
+    private void respondWithQuestionFromExperianThenStoreInDb(
+            String json, KBVSessionItem kbvSessionItem, QuestionState questionState)
+            throws IOException, InterruptedException {
+        // we should fall in this block once only
+        // fetch a batch of questions from experian kbv wrapper
+        if (kbvSessionItem.getAuthorizationCode() != null) {
+            response.withStatusCode(HttpStatus.SC_NO_CONTENT);
+            return;
+        }
+        String questionsResponsePayload =
+                experianService.getResponseFromExperianAPI(
+                        json, "EXPERIAN_API_WRAPPER_SAA_RESOURCE");
+        QuestionsResponse questionsResponse =
+                objectMapper.readValue(questionsResponsePayload, QuestionsResponse.class);
+        if (questionsResponse.hasQuestions()) {
+            questionState.setQAPairs(questionsResponse.getQuestions());
+            Optional<Question> nextQuestion = questionState.getNextQuestion();
+            response.withStatusCode(HttpStatus.SC_OK);
+            response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
+
+            String state = objectMapper.writeValueAsString(questionState);
+            kbvSessionItem.setQuestionState(state);
+            kbvSessionItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
+            kbvSessionItem.setUrn(questionsResponse.getControl().getURN());
+            kbvSessionItem.setStatus(questionsResponse.getStatus());
+            storageService.update(kbvSessionItem);
+        } else { // TODO: Alternate flow when first request does not return questions
+            response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
+            response.withBody(questionsResponsePayload);
         }
     }
 }

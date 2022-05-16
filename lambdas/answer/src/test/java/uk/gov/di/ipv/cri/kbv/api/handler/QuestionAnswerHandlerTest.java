@@ -115,7 +115,7 @@ class QuestionAnswerHandlerTest {
         assertNull(result.getBody());
     }
 
-    // @Test
+    @Test
     void shouldReturn200WithFinalResponseFromExperianAPI()
             throws IOException, InterruptedException {
 
@@ -154,17 +154,21 @@ class QuestionAnswerHandlerTest {
 
         when(mockExperianService.getResponseFromKBVExperianAPI(
                         any(), eq("EXPERIAN_API_WRAPPER_RTQ_RESOURCE")))
-                .thenReturn(EXPERIAN_END_RESPONSE_WITH_QUESTION);
+                .thenReturn(responseBodyExperian);
+        when(mockObjectMapper.readValue(responseBodyExperian, QuestionsResponse.class))
+                .thenReturn(questionsResponseMock);
+
+        when(mockObjectMapper.writeValueAsString(any())).thenReturn("question-response");
 
         APIGatewayProxyResponseEvent result =
                 questionAnswerHandler.handleRequest(input, contextMock);
 
-        verify(mockStorageService, times(2)).update(kbvSessionItemMock);
+        verify(mockStorageService).update(kbvSessionItemMock);
         assertEquals(HttpStatus.SC_OK, result.getStatusCode());
         assertNull(result.getBody());
     }
 
-    // @Test
+    @Test
     void shouldReturn200WhenNextSetOfQuestionsAreReceivedFromExperian()
             throws IOException, InterruptedException {
 

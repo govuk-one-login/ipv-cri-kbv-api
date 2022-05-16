@@ -115,8 +115,11 @@ class QuestionHandlerTest {
         String questionState =
                 "{\"qaPairs\":[{\"question\":{\"questionID\":\"Q00015\",\"text\":\"What is the outstanding balance of your current mortgage?\",\"tooltip\":\"The approximate amount in £s, including interest. A loan to buy property (or land) where the loan is secured by a charge on that property.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £10,000\",\"OVER £10,000 UP TO £35,000\",\"OVER £35,000 UP TO £60,000\",\"OVER £60,000 UP TO £85,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]}},\"answer\":\"Answer given here\"},{\"question\":{\"questionID\":\"Q00040\",\"text\":\"How much was your recent loan for?\",\"tooltip\":\"The approximate starting balance, in £s, on an active personal loan. Does not include HP Loans, 2nd Mortgages or Home Credit.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £8,500\",\"OVER £8,500 UP TO £9,000\",\"OVER £9,000 UP TO £9,500\",\"OVER £9,500 UP TO £10,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]}},\"answer\":null}],\"nextQuestion\":{\"empty\":false,\"present\":true},\"state\":\"RTQ\",\"answers\":[{\"questionId\":\"Q00040\",\"answer\":null},{\"questionId\":\"Q00015\",\"answer\":null}]}";
 
-        when(kbvSessionItemMock.getUserAttributes()).thenReturn(personIdentity);
-        when(kbvSessionItemMock.getQuestionState()).thenReturn(questionState);
+        Question question2 = mock(Question.class);
+
+        when(questionStateMock.getNextQuestion()).thenReturn(Optional.ofNullable(question2));
+
+        when(mockObjectMapper.writeValueAsString(question2)).thenReturn(TestData.EXPECTED_QUESTION);
 
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
