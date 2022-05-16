@@ -1,13 +1,11 @@
 package uk.gov.di.ipv.cri.kbv.api.handler;
 
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
@@ -16,44 +14,37 @@ import software.amazon.lambda.powertools.metrics.Metrics;
 import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.factory.DynamoDbFactory;
+import uk.gov.di.ipv.cri.kbv.api.factory.RequestPayLoadFactory;
+import uk.gov.di.ipv.cri.kbv.api.helper.ApiGatewayResponse;
 import uk.gov.di.ipv.cri.kbv.api.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
-import uk.gov.di.ipv.cri.kbv.api.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.service.ExperianService;
+import uk.gov.di.ipv.cri.kbv.api.service.QuestionStore;
 import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
 import java.io.IOException;
 import java.util.Optional;
 
-public class QuestionHandler
-        implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(QuestionHandler.class);
+public class QuestionHandler extends ApiGatewayResponse {
     public static final String HEADER_SESSION_ID = "session-id";
-    public static final String ERROR = "\"error\"";
-    private static ObjectMapper objectMapper;
     private final StorageService storageService;
     private final ExperianService experianService;
-    private APIGatewayProxyResponseEvent response;
+    private QuestionStore questionStore;
+    private static final Logger LOGGER = LoggerFactory.getLogger(QuestionHandler.class);
+    private static final ObjectMapper objectMapper =
+            new ObjectMapper().registerModule(new JavaTimeModule());
 
     public QuestionHandler() {
-        this(
-                new StorageService(
-                        new DataStore<>(
-                                ConfigurationService.getInstance().getKBVSessionTableName(),
-                                KBVSessionItem.class,
-                                DataStore.getClient(
-                                        ConfigurationService.getInstance().isRunningLocally()))),
-                new ExperianService());
+        DataStore<KBVSessionItem> dataStore = DynamoDbFactory.createDataStore();
+        this.storageService = new StorageService(dataStore);
+        this.experianService = new ExperianService();
     }
 
     public QuestionHandler(StorageService storageService, ExperianService experianService) {
-        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.storageService = storageService;
         this.experianService = experianService;
-        this.response = new APIGatewayProxyResponseEvent();
     }
 
     @Override
@@ -65,50 +56,54 @@ public class QuestionHandler
             processQuestionRequest(input);
         } catch (JsonProcessingException jsonProcessingException) {
             LOGGER.error("Failed to parse object using ObjectMapper");
-            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR + ":\"" + jsonProcessingException.getMessage() + "\" }");
+            error(jsonProcessingException.getMessage());
         } catch (NullPointerException npe) {
             LOGGER.error("Error finding the requested resource");
-            response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
-            response.withBody("{ " + ERROR + ":\"" + npe.getMessage() + "\" }");
+            badRequest(npe.getMessage());
         } catch (IOException | InterruptedException e) {
             LOGGER.error("Retrieving questions failed: " + e);
-            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR + ":\"" + e.getMessage() + "\" }");
+            error(e.getMessage());
         } catch (com.amazonaws.AmazonServiceException e) {
             LOGGER.error("AWS Server error occurred.");
-            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR + ":\"" + e.getMessage() + "\" }");
+            error(e.getMessage());
         }
-        return response;
+        return response();
     }
 
     public void processQuestionRequest(APIGatewayProxyRequestEvent input)
             throws IOException, InterruptedException {
-        String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-        KBVSessionItem kbvSessionItem =
-                storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
-        PersonIdentity personIdentity =
+
+        var kbvSessionItem =
+                storageService
+                        .getSessionId(input.getHeaders().get(HEADER_SESSION_ID))
+                        .orElseThrow(NullPointerException::new);
+        var personIdentity =
                 objectMapper.readValue(kbvSessionItem.getUserAttributes(), PersonIdentity.class);
-        QuestionState questionState =
+        var questionState =
                 objectMapper.readValue(kbvSessionItem.getQuestionState(), QuestionState.class);
+        var json =
+                objectMapper.writeValueAsString(
+                        RequestPayLoadFactory.request(
+                                kbvSessionItem, personIdentity, questionState));
 
-        QuestionsRequest questionsRequest = new QuestionsRequest();
-        questionsRequest.setUrn(kbvSessionItem.getUrn());
-        questionsRequest.setPersonIdentity(personIdentity);
-        String json = objectMapper.writeValueAsString(questionsRequest);
-
-        if (respondWithQuestionFromDbStore(questionState)) return;
+        questionStore = new QuestionStore(kbvSessionItem, questionState, storageService);
+        if (respondWithQuestionFromDbStore(questionState, kbvSessionItem)) return;
         respondWithQuestionFromExperianThenStoreInDb(json, kbvSessionItem, questionState);
     }
 
-    private boolean respondWithQuestionFromDbStore(QuestionState questionState)
+    private boolean respondWithQuestionFromDbStore(
+            QuestionState questionState, KBVSessionItem kbvSessionItem)
             throws JsonProcessingException {
         // TODO Handle scenario when no questions are available
+        if (kbvSessionItem.getAuthorizationCode() != null) {
+            noContent();
+            return true;
+        }
+
         Optional<Question> nextQuestion = questionState.getNextQuestion();
         if (nextQuestion.isPresent()) {
-            response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
-            response.withStatusCode(HttpStatus.SC_OK);
+            ok(objectMapper.writeValueAsString(nextQuestion.get()));
+
             return nextQuestion.isPresent();
         }
         return nextQuestion.isPresent();
@@ -119,29 +114,30 @@ public class QuestionHandler
             throws IOException, InterruptedException {
         // we should fall in this block once only
         // fetch a batch of questions from experian kbv wrapper
-        if (kbvSessionItem.getAuthorizationCode() != null) {
-            response.withStatusCode(HttpStatus.SC_NO_CONTENT);
-            return;
-        }
-        String body =
+        // LOGGER.info("This the respondWithQuestionFromExperianThenStoreInDb Branch");
+        var body =
                 experianService.getResponseFromKBVExperianAPI(
-                        json, "EXPERIAN_API_WRAPPER_SAA_RESOURCE");
-        QuestionsResponse questionsResponse = objectMapper.readValue(body, QuestionsResponse.class);
+                        json, RequestPayLoadFactory.getEndPoint(kbvSessionItem.getAuthRefNo()));
+        LOGGER.info(json);
+        LOGGER.info(body);
+        var questionsResponse = objectMapper.readValue(body, QuestionsResponse.class);
         if (questionsResponse.hasQuestions()) {
-            questionState.setQAPairs(questionsResponse.getQuestions());
-            questionState.setState(questionsResponse.getQuestionStatus());
-            Optional<Question> nextQuestion = questionState.getNextQuestion();
-            response.withStatusCode(HttpStatus.SC_OK);
-            response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
+            if (kbvSessionItem.getAuthRefNo() == null) {
+                questionStore.setControlInfo(questionsResponse);
+                questionStore.saveResponsesToState(questionsResponse);
+                ok(objectMapper.writeValueAsString(questionState.getNextQuestion().get()));
+                return;
+            }
+            ok();
+            return;
+        } else if (questionsResponse.hasQuestionRequestEnded()) {
+            System.out.println(
+                    "respondWithQuestionFromExperianThenStoreInDb: hasQuestionRequestEnded - saveFinalResponseState");
 
-            String state = objectMapper.writeValueAsString(questionState);
-            kbvSessionItem.setQuestionState(state);
-            kbvSessionItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
-            kbvSessionItem.setUrn(questionsResponse.getControl().getURN());
-            storageService.update(kbvSessionItem);
+            noContent();
         } else { // TODO: Alternate flow when first request does not return questions
-            response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
-            response.withBody(body);
+            System.out.println("respondWithQuestionFromExperianThenStoreInDb - badRequest");
+            badRequest(body);
         }
     }
 }

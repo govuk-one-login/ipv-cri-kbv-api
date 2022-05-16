@@ -1,11 +1,11 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import uk.gov.di.ipv.cri.kbv.api.helper.ApiGatewayResponse;
 import uk.gov.di.ipv.cri.kbv.api.domain.Question;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
-import uk.gov.di.ipv.cri.kbv.api.helper.ApiGatewayResponse;
 import uk.gov.di.ipv.cri.kbv.api.persistence.item.KBVSessionItem;
 
 import java.io.IOException;
