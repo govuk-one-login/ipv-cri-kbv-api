@@ -1,6 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.handler;
 
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
@@ -22,7 +21,11 @@ import uk.gov.di.ipv.cri.address.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
-import uk.gov.di.ipv.cri.kbv.api.service.*;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
+import uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService;
+import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
 import java.io.IOException;
 import java.util.Map;
@@ -96,7 +99,7 @@ public class QuestionHandler
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"Retrieving questions failed.\" }");
-        } catch (AmazonServiceException e) {
+        } catch (Exception e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
@@ -108,7 +111,7 @@ public class QuestionHandler
             throws IOException, InterruptedException {
         response.withHeaders(Map.of("Content-Type", "application/json"));
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-        SessionItem kbvSessionItem =
+        SessionItem sessionItem =
                 storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
         //        PersonIdentity personIdentity =
         //                objectMapper.readValue(kbvSessionItem.getUserAttributes(),
@@ -138,13 +141,11 @@ public class QuestionHandler
     }
 
     private void respondWithQuestionFromExperianThenStoreInDb(
-            QuestionRequest questionRequest,
-            SessionItem kbvSessionItem,
-            QuestionState questionState)
+            QuestionRequest questionRequest, SessionItem sessionItem, QuestionState questionState)
             throws IOException, InterruptedException {
         // we should fall in this block once only
         // fetch a batch of questions from experian kbv wrapper
-        if (kbvSessionItem.getAuthorizationCode() != null) {
+        if (sessionItem.getAuthorizationCode() != null) {
             response.withStatusCode(HttpStatus.SC_NO_CONTENT);
             return;
         }
@@ -160,7 +161,7 @@ public class QuestionHandler
             //
             // kbvSessionItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
             //            kbvSessionItem.setUrn(questionsResponse.getControl().getURN());
-            storageService.update(kbvSessionItem);
+            storageService.update(sessionItem);
         } else { // TODO: Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
             response.withBody(objectMapper.writeValueAsString(questionsResponse));

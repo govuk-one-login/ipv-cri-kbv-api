@@ -1,6 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.handler;
 
-import com.amazonaws.services.dynamodbv2.model.InternalServerErrorException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
@@ -16,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
 import uk.gov.di.ipv.cri.address.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.address.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;

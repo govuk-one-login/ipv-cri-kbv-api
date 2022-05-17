@@ -1,6 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.handler;
 
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
@@ -101,15 +100,16 @@ public class QuestionAnswerHandler
                             + String.format("Retrieving questions failed: %s", e)
                             + "\" }");
             Thread.currentThread().interrupt();
-        } catch (AmazonServiceException e) {
-            eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
-            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
         } catch (Exception e) {
             eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
             response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
         }
+        //        catch (Exception e) {
+        //            eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
+        //            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        //            response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
+        //        }
         return response;
     }
 
@@ -117,7 +117,7 @@ public class QuestionAnswerHandler
             throws IOException, InterruptedException {
         QuestionState questionState;
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-        SessionItem kbvSessionItem =
+        SessionItem sessionItem =
                 storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
         //        questionState =
         //                objectMapper.readValue(kbvSessionItem.getQuestionState(),

@@ -6,8 +6,7 @@ plugins {
 
 ext {
 	dependencyVersions = [
-		aws_sdk_version          : "1.12.208",
-		aws_lambda_core_version  : "1.2.1",
+		aws_sdk_version          : "2.17.190",
 		aws_lambda_events_version: "3.11.0",
 		aws_powertools_version   : "1.9.0",
 		jackson_version          : "2.13.1",
@@ -17,8 +16,7 @@ ext {
 		junit                    : "5.8.2",
 		mockito					 : "4.3.1",
 		glassfish_version        : "3.0.3",
-		powertools_version       : "1.12.0",
-		aws_sdk_sqs_version	     : "1.12.197",
+		powertools_version       : "1.12.0"
 	]
 }
 
@@ -49,28 +47,29 @@ subprojects {
 		test_runtime
 		logging_runtime
 		lambda
+		sqs
 		powertools
 		hibernate
 		nimbus
 		soap
-		gson
 		kms
-		sqs
 		mockito
 		lambda_tests
 		lettuce
 		ssm
 	}
 
+	// The dynamodb enhanced package loads the apache-client as well as the spi-client, so
+	// we need to add the apache-client to the dependencies exclusion to not get a mismatch
+	configurations.all {
+		exclude group:"software.amazon.awssdk", module: "apache-client"
+	}
+
 	dependencies {
-		dynamodb "com.amazonaws:aws-java-sdk-dynamodb:${dependencyVersions.aws_sdk_version}",
-				"software.amazon.awssdk:dynamodb-enhanced:2.17.116"
+		dynamodb "software.amazon.awssdk:dynamodb:${dependencyVersions.aws_sdk_version}",
+				"software.amazon.awssdk:dynamodb-enhanced:${dependencyVersions.aws_sdk_version}"
 
-		gson "com.google.code.gson:gson:2.8.9"
-
-		kms "com.amazonaws:aws-java-sdk-kms:${dependencyVersions.aws_sdk_version}"
-
-		sqs "com.amazonaws:aws-java-sdk-sqs:${dependencyVersions.aws_sdk_sqs_version}"
+		kms "software.amazon.awssdk:kms:${dependencyVersions.aws_sdk_version}"
 
 		cache "com.github.ben-manes.caffeine:caffeine:3.0.5"
 
@@ -106,11 +105,9 @@ subprojects {
 				"software.amazon.lambda:powertools-parameters:${dependencyVersions.aws_powertools_version}",
 				"org.apache.httpcomponents:httpclient:4.5.13"
 
+		sqs "software.amazon.awssdk:sqs:${dependencyVersions.aws_sdk_version}"
 
-
-		lambda_tests "com.amazonaws:aws-lambda-java-tests:1.1.1"
-
-
+		lambda_tests "software.amazon.awssdk:aws-lambda-java-tests:1.1.1"
 
 		powertools "software.amazon.lambda:powertools-logging:${dependencyVersions.powertools_version}",
 				"software.amazon.lambda:powertools-metrics:${dependencyVersions.powertools_version}"
