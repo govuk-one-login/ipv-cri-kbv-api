@@ -100,13 +100,6 @@ subprojects {
 	}
 }
 
-tasks.named("jar") {
-	manifest {
-		attributes "Implementation-Title": project.name,
-		"Implementation-Version": project.version
-	}
-}
-
 sonarqube {
 	properties {
 		property "sonar.projectKey", "alphagov_di-ipv-cri-kbv-api"
@@ -127,6 +120,17 @@ spotless {
 		greclipse()
 		trimTrailingWhitespace()
 		endWithNewline()
+	}
+}
+
+clean.doFirst {
+	delete "${rootDir}/dist/"
+	delete "${rootDir}/.aws-sam"
+}
+
+gradle.projectsEvaluated {
+	tasks.withType(JavaCompile) {
+		options.compilerArgs << "-Xlint:unchecked"
 	}
 }
 
