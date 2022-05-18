@@ -228,6 +228,43 @@ Resources:
               Resource:
                 - !ImportValue AuditEventQueueEncryptionKeyArn
 
+  KBVQuestionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../lambdas/question/build/distributions/question.zip
+      Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler::handleRequest
+      Environment:
+        Variables:
+          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBReadPolicy:
+            TableName: !Ref KBVTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref KBVTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
+        - Statement:
+            - Sid: ReadSecretsPolicy
+              Effect: Allow
+              Action:
+                - 'secretsmanager:GetSecretValue'
+              Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Environment}/di-ipv-cri-experian-kbv-api/experian*'
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParametersByPath
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
+
   KBVCriVcSigningKey:
     Type: AWS::KMS::Key
     Properties:
@@ -531,6 +568,12 @@ Resources:
       FunctionName: !GetAtt SessionFunction.Arn
       Principal: apigateway.amazonaws.com
 
+  KBVQuestionFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt KBVQuestionFunction.Arn
+      Principal: apigateway.amazonaws.com
 
 Outputs:
 
