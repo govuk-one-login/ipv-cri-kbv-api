@@ -6,7 +6,7 @@ plugins {
 
 dependencies {
 	implementation project(":lib")
-	implementation project(":lambdas:experiankbvlib")
+	implementation project(":experiankbvlib")
 
 	implementation configurations.lambda,
 			configurations.jackson,
@@ -14,9 +14,20 @@ dependencies {
 
 	aspect configurations.powertools
 
-	testImplementation configurations.tests
+	testImplementation configurations.tests,
+			configurations.test_runtime
 }
 
 test {
 	useJUnitPlatform ()
 }
+
+task buildZip(type: Zip) {
+	from compileJava
+	from processResources
+	into('lib') {
+		from configurations.runtimeClasspath
+	}
+}
+
+build.finalizedBy(buildZip)

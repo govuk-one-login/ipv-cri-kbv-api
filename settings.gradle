@@ -1,6 +1,16 @@
 rootProject.name = "di-ipv-cri-kbv-api"
-include "lib",
-		"lambdas:experiankbvlib",
-		"lambdas:session",
-		"lambdas:question",
-		"lambdas:answer"
+
+// Common libraries
+include "lib"
+
+// Common lambdas
+include "session", "accesstoken", "jwkset"
+project(':session').projectDir = new File('./common-lambdas/session')
+project(":accesstoken").projectDir = new File('./common-lambdas/accesstoken')
+project(':jwkset').projectDir = new File('./common-lambdas/jwkset')
+
+// CRI specific lambdas
+include "experiankbvlib", "question", "answer"
+project(':experiankbvlib').projectDir = new File('./lambdas/experiankbvlib')
+project(':question').projectDir = new File('./lambdas/question')
+project(':answer').projectDir = new File('./lambdas/answer')

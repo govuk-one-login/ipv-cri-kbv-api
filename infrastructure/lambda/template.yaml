@@ -532,7 +532,6 @@ Resources:
       Principal: apigateway.amazonaws.com
 
 
-
 Outputs:
 
   SessionApiUrl:
@@ -540,18 +539,6 @@ Outputs:
     Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/session"
     Export:
       Name: !Sub ${AWS::StackName}-SessionApiUrl
-
-  PostcodeLookupApiUrl:
-    Description: "URL for the KBV API /postcode-lookup resource"
-    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/postcode-lookup"
-    Export:
-      Name: !Sub ${AWS::StackName}-PostcodeLookupApiUrl
-
-  KBVApiUrl:
-    Description: "URL for the KBV API /kbv resource"
-    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/kbv"
-    Export:
-      Name: !Sub ${AWS::StackName}-KBVApiUrl
 
   TokenApiUrl:
     Description: "URL for the KBV API /token resource"
