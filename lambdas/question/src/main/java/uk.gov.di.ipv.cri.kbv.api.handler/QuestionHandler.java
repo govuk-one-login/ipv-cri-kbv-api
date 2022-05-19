@@ -15,20 +15,20 @@ import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.address.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.address.library.persistence.DataStore;
-import uk.gov.di.ipv.cri.address.library.persistence.item.SessionItem;
-import uk.gov.di.ipv.cri.address.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.address.library.util.EventProbe;
+import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
 import uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService;
-import uk.gov.di.ipv.cri.kbv.api.service.StorageService;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static org.apache.logging.log4j.Level.ERROR;
@@ -41,7 +41,7 @@ public class QuestionHandler
     public static final String GET_QUESTION = "get_question";
     public static final String ERROR_KEY = "\"error\"";
     private static ObjectMapper objectMapper;
-    private final StorageService storageService;
+    private final KBVStorageService kbvStorageService;
     private APIGatewayProxyResponseEvent response;
     private EventProbe eventProbe;
 
@@ -49,27 +49,31 @@ public class QuestionHandler
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
-        this(
-                new ObjectMapper(),
-                new StorageService(
-                        new DataStore<>(
-                                new ConfigurationService().getAddressTableName(),
-                                SessionItem.class,
-                                DataStore.getClient())),
-                new KBVSystemProperty(new KeyStoreService(ParamManager.getSecretsProvider())),
-                new KBVServiceFactory(),
-                new EventProbe());
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
+        this.kbvStorageService =
+                new KBVStorageService(
+                        new DataStore<KBVItem>(
+                                getKBVTableName(), KBVItem.class, DataStore.getClient()));
+        this.kbvService = new KBVServiceFactory().create();
+        var kbvSystemProperty =
+                new KBVSystemProperty(new KeyStoreService(ParamManager.getSecretsProvider()));
+
+        this.response = new APIGatewayProxyResponseEvent();
+        this.eventProbe = new EventProbe();
+
+        kbvSystemProperty.save();
     }
 
     public QuestionHandler(
             ObjectMapper objectMapper,
-            StorageService storageService,
+            KBVStorageService kbvStorageService,
             KBVSystemProperty systemProperty,
             KBVServiceFactory kbvServiceFactory,
             EventProbe eventProbe) {
         this.objectMapper = objectMapper;
         this.objectMapper.registerModule(new JavaTimeModule());
-        this.storageService = storageService;
+        this.kbvStorageService = kbvStorageService;
         this.kbvService = kbvServiceFactory.create();
 
         this.response = new APIGatewayProxyResponseEvent();
@@ -111,8 +115,10 @@ public class QuestionHandler
             throws IOException, InterruptedException {
         response.withHeaders(Map.of("Content-Type", "application/json"));
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-        SessionItem sessionItem =
-                storageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
+        System.out.println("Session ID ====> " + sessionId);
+        KBVItem kbvItem =
+                kbvStorageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
+
         //        PersonIdentity personIdentity =
         //                objectMapper.readValue(kbvSessionItem.getUserAttributes(),
         // PersonIdentity.class);
@@ -141,11 +147,11 @@ public class QuestionHandler
     }
 
     private void respondWithQuestionFromExperianThenStoreInDb(
-            QuestionRequest questionRequest, SessionItem sessionItem, QuestionState questionState)
+            QuestionRequest questionRequest, KBVItem kbvItem, QuestionState questionState)
             throws IOException, InterruptedException {
         // we should fall in this block once only
         // fetch a batch of questions from experian kbv wrapper
-        if (sessionItem.getAuthorizationCode() != null) {
+        if (kbvItem.getAuthorizationCode() != null) {
             response.withStatusCode(HttpStatus.SC_NO_CONTENT);
             return;
         }
@@ -161,10 +167,21 @@ public class QuestionHandler
             //
             // kbvSessionItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
             //            kbvSessionItem.setUrn(questionsResponse.getControl().getURN());
-            storageService.update(sessionItem);
+            kbvStorageService.update(kbvItem);
         } else { // TODO: Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
             response.withBody(objectMapper.writeValueAsString(questionsResponse));
         }
+    }
+
+    public String getKBVTableName() {
+        return ParamManager.getSsmProvider().get(getParameterName("KBVTableName"));
+    }
+
+    public String getParameterName(String parameterName) {
+        String parameterPrefix =
+                Objects.requireNonNull(
+                        System.getenv("AWS_STACK_NAME"), "env var AWS_STACK_NAME required");
+        return String.format("/%s/%s", parameterPrefix, parameterName);
     }
 }
