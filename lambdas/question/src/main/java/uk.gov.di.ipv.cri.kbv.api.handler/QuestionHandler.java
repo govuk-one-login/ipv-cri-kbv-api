@@ -14,7 +14,8 @@ import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.address.library.annotations.ExcludeFromGeneratedCoverageReport;
-import uk.gov.di.ipv.cri.address.library.persistence.DataStore;
+import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.address.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.address.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
@@ -28,8 +29,8 @@ import uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.apache.logging.log4j.Level.ERROR;
 import static org.apache.logging.log4j.Level.INFO;
@@ -42,43 +43,43 @@ public class QuestionHandler
     public static final String ERROR_KEY = "\"error\"";
     private static ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
+    private final PersonIdentityService personIdentityService;
     private APIGatewayProxyResponseEvent response;
     private EventProbe eventProbe;
-
     private KBVService kbvService;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
-        this.kbvStorageService =
-                new KBVStorageService(
-                        new DataStore<KBVItem>(
-                                getKBVTableName(), KBVItem.class, DataStore.getClient()));
+        this.kbvStorageService = new KBVStorageService();
+        this.personIdentityService = new PersonIdentityService();
         this.kbvService = new KBVServiceFactory().create();
-        var kbvSystemProperty =
-                new KBVSystemProperty(new KeyStoreService(ParamManager.getSecretsProvider()));
 
         this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = new EventProbe();
 
+        var kbvSystemProperty =
+                new KBVSystemProperty(new KeyStoreService(ParamManager.getSecretsProvider()));
         kbvSystemProperty.save();
     }
 
     public QuestionHandler(
             ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
+            PersonIdentityService personIdentityService,
             KBVSystemProperty systemProperty,
             KBVServiceFactory kbvServiceFactory,
             EventProbe eventProbe) {
         this.objectMapper = objectMapper;
         this.objectMapper.registerModule(new JavaTimeModule());
         this.kbvStorageService = kbvStorageService;
-        this.kbvService = kbvServiceFactory.create();
+        this.personIdentityService = personIdentityService;
 
         this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = eventProbe;
 
+        this.kbvService = kbvServiceFactory.create();
         systemProperty.save();
     }
 
@@ -115,23 +116,21 @@ public class QuestionHandler
             throws IOException, InterruptedException {
         response.withHeaders(Map.of("Content-Type", "application/json"));
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-        System.out.println("Session ID ====> " + sessionId);
+
+        PersonIdentity personIdentity =
+                personIdentityService.getPersonIdentity(UUID.fromString(sessionId));
+
         KBVItem kbvItem =
                 kbvStorageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
 
-        //        PersonIdentity personIdentity =
-        //                objectMapper.readValue(kbvSessionItem.getUserAttributes(),
-        // PersonIdentity.class);
-        //        QuestionState questionState =
-        //                objectMapper.readValue(kbvSessionItem.getQuestionState(),
-        // QuestionState.class);
+        QuestionState questionState =
+                objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
 
         QuestionRequest questionRequest = new QuestionRequest();
-        //        questionRequest.setPersonIdentity(personIdentity);
-        //
-        //        if (respondWithQuestionFromDbStore(questionState)) return;
-        //        respondWithQuestionFromExperianThenStoreInDb(
-        //                questionRequest, kbvSessionItem, questionState);
+        questionRequest.setPersonIdentity(personIdentity);
+
+        if (respondWithQuestionFromDbStore(questionState)) return;
+        respondWithQuestionFromExperianThenStoreInDb(questionRequest, kbvItem, questionState);
     }
 
     private boolean respondWithQuestionFromDbStore(QuestionState questionState)
@@ -163,25 +162,14 @@ public class QuestionHandler
             response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
 
             String state = objectMapper.writeValueAsString(questionState);
-            //            kbvSessionItem.setQuestionState(state);
-            //
-            // kbvSessionItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
-            //            kbvSessionItem.setUrn(questionsResponse.getControl().getURN());
+            kbvItem.setQuestionState(state);
+
+            kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
+            kbvItem.setUrn(questionsResponse.getControl().getURN());
             kbvStorageService.update(kbvItem);
         } else { // TODO: Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
             response.withBody(objectMapper.writeValueAsString(questionsResponse));
         }
-    }
-
-    public String getKBVTableName() {
-        return ParamManager.getSsmProvider().get(getParameterName("KBVTableName"));
-    }
-
-    public String getParameterName(String parameterName) {
-        String parameterPrefix =
-                Objects.requireNonNull(
-                        System.getenv("AWS_STACK_NAME"), "env var AWS_STACK_NAME required");
-        return String.format("/%s/%s", parameterPrefix, parameterName);
     }
 }

@@ -1,8 +1,8 @@
 package uk.gov.di.ipv.cri.kbv.api.util;
 
-import uk.gov.di.ipv.cri.kbv.api.domain.AddressType;
-import uk.gov.di.ipv.cri.kbv.api.domain.PersonAddress;
-import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
+import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonAddress;
+import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonAddressType;
+import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
@@ -11,7 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public class TestDataCreator {
-    public static PersonIdentity createTestPersonIdentity(AddressType addressType) {
+    public static PersonIdentity createTestPersonIdentity(PersonAddressType addressType) {
         PersonIdentity personIdentity = new PersonIdentity();
         personIdentity.setDateOfBirth(LocalDate.of(1976, 12, 26));
         PersonAddress address = new PersonAddress();
@@ -24,7 +24,7 @@ public class TestDataCreator {
     }
 
     public static PersonIdentity createTestPersonIdentity() {
-        return createTestPersonIdentity(AddressType.CURRENT);
+        return createTestPersonIdentity(PersonAddressType.CURRENT);
     }
 
     public static QuestionAnswerRequest createTestQuestionAnswerRequest() {
@@ -35,7 +35,7 @@ public class TestDataCreator {
         return answerRequest;
     }
 
-    public static QuestionRequest createTestQuestionAnswerRequest(AddressType addressType) {
+    public static QuestionRequest createTestQuestionAnswerRequest(PersonAddressType addressType) {
         QuestionRequest questionRequest = new QuestionRequest();
         questionRequest.setUrn("urn");
         questionRequest.setStrategy("1 out of 2");

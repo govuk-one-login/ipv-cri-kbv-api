@@ -11,7 +11,7 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Parameters
 import com.experian.uk.schema.experian.identityiq.services.webservice.Residency;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
-import uk.gov.di.ipv.cri.kbv.api.domain.PersonIdentity;
+import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.util.StringUtils;
 
@@ -21,6 +21,7 @@ import java.util.UUID;
 public class StartAuthnAttemptRequestMapper {
 
     public static final String DEFAULT_STRATEGY = "3 out of 4";
+    public static final String DEFAULT_TITLE = "MR";
 
     public SAARequest mapQuestionRequest(QuestionRequest questionRequest) {
         Objects.requireNonNull(questionRequest, "The QuestionRequest must not be null");
@@ -95,10 +96,7 @@ public class StartAuthnAttemptRequestMapper {
             name.setSurname(personIdentity.getSurname());
         }
 
-        if (StringUtils.isNotBlank(personIdentity.getTitle())) {
-            name.setTitle(personIdentity.getTitle());
-        }
-
+        name.setTitle(DEFAULT_TITLE);
         applicant.setName(name);
         ApplicantDateOfBirth dateOfBirth = new ApplicantDateOfBirth();
 
@@ -118,12 +116,12 @@ public class StartAuthnAttemptRequestMapper {
         LocationDetailsUKLocation ukLocation = new LocationDetailsUKLocation();
 
         if (personIdentity.getAddresses() != null && !personIdentity.getAddresses().isEmpty()) {
-            if (StringUtils.isNotBlank(personIdentity.getAddresses().get(0).getHouseName())) {
-                ukLocation.setHouseName(personIdentity.getAddresses().get(0).getHouseName());
+            if (StringUtils.isNotBlank(personIdentity.getAddresses().get(0).getBuildingName())) {
+                ukLocation.setHouseName(personIdentity.getAddresses().get(0).getBuildingName());
             }
 
-            if (StringUtils.isNotBlank(personIdentity.getAddresses().get(0).getHouseNumber())) {
-                ukLocation.setHouseNumber(personIdentity.getAddresses().get(0).getHouseNumber());
+            if (StringUtils.isNotBlank(personIdentity.getAddresses().get(0).getBuildingNumber())) {
+                ukLocation.setHouseNumber(personIdentity.getAddresses().get(0).getBuildingNumber());
             }
 
             if (StringUtils.isNotBlank(personIdentity.getAddresses().get(0).getFlat())) {
