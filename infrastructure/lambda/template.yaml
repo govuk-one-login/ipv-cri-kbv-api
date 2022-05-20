@@ -198,8 +198,9 @@ Resources:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
         - DynamoDBWritePolicy:
-            TableName:
-              Ref: SessionTable
+            TableName: !Ref SessionTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref PersonIdentityTable
         - SQSSendMessagePolicy:
             QueueName: !ImportValue AuditEventQueueName
         - KMSDecryptPolicy:
@@ -213,6 +214,7 @@ Resources:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/AddressCriAudience"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/AuthRequestKmsEncryptionKeyId"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/PersonIdentityTableName"
         - Statement:
             - Effect: Allow
               Action:
@@ -244,6 +246,8 @@ Resources:
             TableName: !Ref KBVTable
         - DynamoDBWritePolicy:
             TableName: !Ref KBVTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref PersonIdentityTable
         - Statement:
             - Effect: Allow
               Action:
@@ -252,6 +256,7 @@ Resources:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/PersonIdentityTableName"
         - Statement:
             - Sid: ReadSecretsPolicy
               Effect: Allow
@@ -374,6 +379,23 @@ Resources:
         AttributeName: expiry-date
         Enabled: true
 
+  PersonIdentityTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: !Sub "person-identity-${AWS::StackName}"
+      BillingMode: "PAY_PER_REQUEST"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      AttributeDefinitions:
+        - AttributeName: "sessionId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "sessionId"
+          KeyType: "HASH"
+      TimeToLiveSpecification:
+        AttributeName: expiryDate
+        Enabled: true
+
   ApiUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
     DependsOn:
@@ -430,6 +452,14 @@ Resources:
       Value: !Sub kbv-${AWS::StackName}
       Type: String
       Description: kbv item dynamodb table name
+
+  ParameterPersonIdentityTableName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/PersonIdentityTableName"
+      Value: !Sub person-identity-${AWS::StackName}
+      Type: String
+      Description: person identity dynamodb table name
 
   MaxJwtTtlParameter:
     Type: AWS::SSM::Parameter
