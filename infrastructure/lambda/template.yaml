@@ -541,8 +541,8 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-JWKSetApiUrl
 
-  KBVApiBaseUrl:
+  ApiBaseUrl:
     Description: "Base url of the KBV CRI API"
     Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
     Export:
-      Name: !Sub ${AWS::StackName}-KBVApiBaseUrl
+      Name: !Sub ${AWS::StackName}-ApiBaseUrl
