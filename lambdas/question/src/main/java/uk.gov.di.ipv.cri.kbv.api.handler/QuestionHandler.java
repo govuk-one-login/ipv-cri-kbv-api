@@ -66,14 +66,14 @@ public class QuestionHandler
 
     public QuestionHandler(
             ObjectMapper objectMapper,
-            KBVStorageService kbvStorageService,
+            KBVStorageService kbvkbvStorageService,
             PersonIdentityService personIdentityService,
             KBVSystemProperty systemProperty,
             KBVServiceFactory kbvServiceFactory,
             EventProbe eventProbe) {
         this.objectMapper = objectMapper;
         this.objectMapper.registerModule(new JavaTimeModule());
-        this.kbvStorageService = kbvStorageService;
+        this.kbvStorageService = kbvkbvStorageService;
         this.personIdentityService = personIdentityService;
 
         this.response = new APIGatewayProxyResponseEvent();
@@ -119,10 +119,8 @@ public class QuestionHandler
 
         PersonIdentity personIdentity =
                 personIdentityService.getPersonIdentity(UUID.fromString(sessionId));
-
         KBVItem kbvItem =
                 kbvStorageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
-
         QuestionState questionState =
                 objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
 

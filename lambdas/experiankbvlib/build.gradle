@@ -11,6 +11,7 @@ repositories {
 
 dependencies {
 	implementation project(":lib")
+	implementation configurations.dynamodb
 	implementation configurations.cache
 	implementation configurations.lambda
 	implementation configurations.jackson

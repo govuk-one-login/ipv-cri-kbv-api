@@ -202,7 +202,7 @@ class QuestionHandlerTest {
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 
-    @Test //TODO this is flakky
+    @Test // TODO this is flakky
     void shouldReturn400ErrorWhenNoSessionIdProvided() {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         setupEventProbeErrorBehaviour();
