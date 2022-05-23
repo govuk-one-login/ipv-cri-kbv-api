@@ -10,7 +10,7 @@ repositories {
 }
 
 dependencies {
-	implementation project(":lib")
+	implementation project(":common-lib")
 	implementation configurations.dynamodb
 	implementation configurations.cache
 	implementation configurations.lambda
