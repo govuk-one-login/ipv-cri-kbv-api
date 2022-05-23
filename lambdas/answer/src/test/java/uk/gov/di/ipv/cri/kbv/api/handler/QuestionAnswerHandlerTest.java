@@ -5,15 +5,15 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
-import uk.gov.di.ipv.cri.address.library.util.EventProbe;
+import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
@@ -95,7 +95,7 @@ class QuestionAnswerHandlerTest {
                 questionAnswerHandler.handleRequest(input, contextMock);
 
         verify(questionStateMock).setAnswer(any());
-        assertEquals(HttpStatus.SC_OK, result.getStatusCode());
+        assertEquals(HttpStatusCode.OK, result.getStatusCode());
         assertNull(result.getBody());
     }
 
@@ -132,7 +132,7 @@ class QuestionAnswerHandlerTest {
                 questionAnswerHandler.handleRequest(input, contextMock);
 
         verify(mockKBVStorageService, times(2)).update(kbvItemMock);
-        assertEquals(HttpStatus.SC_OK, result.getStatusCode());
+        assertEquals(HttpStatusCode.OK, result.getStatusCode());
         assertNull(result.getBody());
     }
 
@@ -168,7 +168,7 @@ class QuestionAnswerHandlerTest {
                 questionAnswerHandler.handleRequest(input, contextMock);
 
         verify(mockKBVStorageService, times(2)).update(kbvItemMock);
-        assertEquals(HttpStatus.SC_OK, result.getStatusCode());
+        assertEquals(HttpStatusCode.OK, result.getStatusCode());
         assertNull(result.getBody());
     }
 
@@ -187,7 +187,7 @@ class QuestionAnswerHandlerTest {
                 questionAnswerHandler.handleRequest(input, contextMock);
 
         assertEquals("{ \"error\":\"AWS Server error occurred.\" }", response.getBody());
-        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
         verify(mockEventProbe).counterMetric("post_answer", 0d);
     }
 
@@ -199,7 +199,7 @@ class QuestionAnswerHandlerTest {
 
         assertEquals("{ \"error\":\"Error finding the requested resource.\" }", response.getBody());
 
-        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
         verify(mockEventProbe).counterMetric("post_answer", 0d);
     }
 
@@ -264,7 +264,7 @@ class QuestionAnswerHandlerTest {
         assertThrows(
                 unExpectedException.getClass(),
                 () -> questionAnswerHandler.handleRequest(input, contextMock));
-        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, 500);
+        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, 500);
 
         verify(mockEventProbe).log(any(Level.class), any(Exception.class));
     }

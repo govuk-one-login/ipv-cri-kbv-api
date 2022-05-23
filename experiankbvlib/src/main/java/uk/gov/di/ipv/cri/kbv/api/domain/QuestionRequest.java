@@ -1,6 +1,6 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
-import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 
 public class QuestionRequest {
     private String urn;

@@ -1,8 +1,8 @@
 package uk.gov.di.ipv.cri.kbv.api.util;
 
-import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonAddress;
-import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonAddressType;
-import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonAddress;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonAddressType;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;

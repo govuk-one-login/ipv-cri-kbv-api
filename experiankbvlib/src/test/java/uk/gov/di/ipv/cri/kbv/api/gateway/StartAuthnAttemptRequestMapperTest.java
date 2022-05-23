@@ -3,8 +3,8 @@ package uk.gov.di.ipv.cri.kbv.api.gateway;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonAddressType;
-import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonAddressType;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 
 import static org.junit.jupiter.api.Assertions.assertAll;

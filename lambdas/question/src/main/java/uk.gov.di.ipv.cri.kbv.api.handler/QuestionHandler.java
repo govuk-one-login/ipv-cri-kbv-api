@@ -8,15 +8,15 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.apache.http.HttpStatus;
+import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.parameters.ParamManager;
-import uk.gov.di.ipv.cri.address.library.annotations.ExcludeFromGeneratedCoverageReport;
-import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonIdentity;
-import uk.gov.di.ipv.cri.address.library.service.PersonIdentityService;
-import uk.gov.di.ipv.cri.address.library.util.EventProbe;
+import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
+import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
@@ -93,20 +93,20 @@ public class QuestionHandler
             processQuestionRequest(input);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
             response.withBody(
                     "{ " + ERROR_KEY + ":\"Failed to parse object using ObjectMapper.\" }");
         } catch (NullPointerException npe) {
             eventProbe.log(INFO, npe).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
+            response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
         } catch (IOException | InterruptedException e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"Retrieving questions failed.\" }");
         } catch (Exception e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
         }
         return response;
@@ -137,7 +137,7 @@ public class QuestionHandler
         Optional<Question> nextQuestion = questionState.getNextQuestion();
         if (nextQuestion.isPresent()) {
             response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
-            response.withStatusCode(HttpStatus.SC_OK);
+            response.withStatusCode(HttpStatusCode.OK);
             return true;
         }
         return false;
@@ -149,14 +149,14 @@ public class QuestionHandler
         // we should fall in this block once only
         // fetch a batch of questions from experian kbv wrapper
         if (kbvItem.getAuthorizationCode() != null) {
-            response.withStatusCode(HttpStatus.SC_NO_CONTENT);
+            response.withStatusCode(HttpStatusCode.NO_CONTENT);
             return;
         }
         QuestionsResponse questionsResponse = this.kbvService.getQuestions(questionRequest);
         if (questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
             Optional<Question> nextQuestion = questionState.getNextQuestion();
-            response.withStatusCode(HttpStatus.SC_OK);
+            response.withStatusCode(HttpStatusCode.OK);
             response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
 
             String state = objectMapper.writeValueAsString(questionState);
@@ -166,7 +166,7 @@ public class QuestionHandler
             kbvItem.setUrn(questionsResponse.getControl().getURN());
             kbvStorageService.update(kbvItem);
         } else { // TODO: Alternate flow when first request does not return questions
-            response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
+            response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody(objectMapper.writeValueAsString(questionsResponse));
         }
     }

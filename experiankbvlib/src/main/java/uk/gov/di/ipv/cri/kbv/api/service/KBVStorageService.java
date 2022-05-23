@@ -1,7 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
 import software.amazon.lambda.powertools.parameters.ParamManager;
-import uk.gov.di.ipv.cri.address.library.persistence.DataStore;
+import uk.gov.di.ipv.cri.common.library.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 
 import java.util.Objects;

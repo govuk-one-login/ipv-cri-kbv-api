@@ -7,7 +7,6 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
 import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebService;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,9 +19,9 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
-import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonIdentity;
-import uk.gov.di.ipv.cri.address.library.service.PersonIdentityService;
-import uk.gov.di.ipv.cri.address.library.util.EventProbe;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
+import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
@@ -127,7 +126,7 @@ class QuestionHandlerTest {
 
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
-        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertEquals(HttpStatusCode.OK, response.getStatusCode());
         assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
     }
 
@@ -159,7 +158,7 @@ class QuestionHandlerTest {
 
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
-        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        assertEquals(HttpStatusCode.OK, response.getStatusCode());
         assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
     }
 
@@ -199,7 +198,7 @@ class QuestionHandlerTest {
         verify(mockKBVStorageService).getSessionId(sessionHeader.get(HEADER_SESSION_ID));
         verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
 
-        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test // TODO this is flakky
@@ -211,7 +210,7 @@ class QuestionHandlerTest {
                 questionHandler.handleRequest(input, mock(Context.class));
 
         assertEquals("{ \"error\":\"java.lang.NullPointerException\" }", response.getBody());
-        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
         verify(mockEventProbe).counterMetric("get_question", 0d);
     }
 
@@ -230,7 +229,7 @@ class QuestionHandlerTest {
                 questionHandler.handleRequest(input, mock(Context.class));
 
         assertEquals("{ \"error\":\"AWS Server error occurred.\" }", response.getBody());
-        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
         verify(mockEventProbe).counterMetric("get_question", 0d);
     }
 
@@ -263,7 +262,7 @@ class QuestionHandlerTest {
                 questionHandler.handleRequest(input, mock(Context.class));
 
         assertEquals("{ \"error\":\"AWS Server error occurred.\" }", response.getBody());
-        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
 
         verify(mockPersonIdentityService)
                 .getPersonIdentity(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
@@ -312,7 +311,7 @@ class QuestionHandlerTest {
                 questionHandler.handleRequest(input, mock(Context.class));
 
         assertEquals("{ \"error\":\"Retrieving questions failed.\" }", response.getBody());
-        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
         // verify(mockEventProbe).counterMetric("get_question", 0d);
     }
 
@@ -340,7 +339,7 @@ class QuestionHandlerTest {
         when(SessionItemMock.getAuthorizationCode()).thenReturn("authorisation-code");
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
-        assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusCode());
+        assertEquals(HttpStatusCode.NO_CONTENT, response.getStatusCode());
         assertNull(response.getBody());
     }
 

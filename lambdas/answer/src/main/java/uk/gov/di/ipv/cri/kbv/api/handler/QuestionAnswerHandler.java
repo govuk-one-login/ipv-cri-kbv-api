@@ -7,13 +7,13 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.apache.http.HttpStatus;
+import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.parameters.ParamManager;
-import uk.gov.di.ipv.cri.address.library.annotations.ExcludeFromGeneratedCoverageReport;
-import uk.gov.di.ipv.cri.address.library.util.EventProbe;
+import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
@@ -87,16 +87,16 @@ public class QuestionAnswerHandler
             processAnswerResponse(input);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(POST_ANSWER, 0d);
-            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
             response.withBody(
                     "{ " + ERROR_KEY + ":\"Failed to parse object using ObjectMapper.\" }");
         } catch (NullPointerException npe) {
             eventProbe.log(INFO, npe).counterMetric(POST_ANSWER, 0d);
-            response.withStatusCode(HttpStatus.SC_BAD_REQUEST);
+            response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody("{ " + ERROR_KEY + ":\"Error finding the requested resource.\" }");
         } catch (IOException | InterruptedException e) {
             eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
-            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
             response.withBody(
                     "{ "
                             + ERROR_KEY
@@ -106,12 +106,12 @@ public class QuestionAnswerHandler
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
-            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
         }
         //        catch (Exception e) {
         //            eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
-        //            response.withStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        //            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
         //            response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
         //        }
         return response;
@@ -154,7 +154,7 @@ public class QuestionAnswerHandler
         } else {
             // TODO: alternate flow could end of transaction / or others
         }
-        response.withStatusCode(HttpStatus.SC_OK);
+        response.withStatusCode(HttpStatusCode.OK);
     }
 
     private boolean respondWithAnswerFromDbStore(
@@ -164,7 +164,7 @@ public class QuestionAnswerHandler
         questionState.setAnswer(answer);
         kbvItem.setQuestionState(objectMapper.writeValueAsString(questionState));
         kbvStorageService.update(kbvItem);
-        response.withStatusCode(HttpStatus.SC_OK);
+        response.withStatusCode(HttpStatusCode.OK);
 
         return questionState.hasAtLeastOneUnAnswered();
     }

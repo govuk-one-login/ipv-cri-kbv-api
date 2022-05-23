@@ -11,7 +11,7 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Parameters
 import com.experian.uk.schema.experian.identityiq.services.webservice.Residency;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
-import uk.gov.di.ipv.cri.address.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.util.StringUtils;
 
