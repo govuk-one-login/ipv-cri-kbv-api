@@ -11,14 +11,15 @@ repositories {
 
 dependencies {
 	implementation project(":common-lib")
-	implementation configurations.dynamodb
-	implementation configurations.cache
-	implementation configurations.lambda
-	implementation configurations.jackson
-	implementation configurations.hibernate
-	implementation configurations.powertools
-	implementation configurations.nimbus
-	implementation configurations.soap
+	implementation configurations.aws,
+			configurations.dynamodb,
+			configurations.cache,
+			configurations.lambda,
+			configurations.jackson,
+			configurations.hibernate,
+			configurations.powertools,
+			configurations.nimbus,
+			configurations.soap
 
 	runtimeOnly configurations.logging_runtime
 	testImplementation configurations.tests

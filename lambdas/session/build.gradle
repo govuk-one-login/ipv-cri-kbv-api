@@ -5,10 +5,9 @@ plugins {
 }
 
 dependencies {
-	implementation project(":lib")
-	implementation project(":lambdas:experiankbvlib")
-
-	implementation configurations.jackson,
+	implementation project(":common-lib"),
+			project(":lambdas:experiankbvlib"),
+			configurations.jackson,
 			configurations.hibernate,
 			configurations.dynamodb,
 			configurations.lambda
