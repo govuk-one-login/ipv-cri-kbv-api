@@ -9,10 +9,10 @@ repositories {
 }
 
 dependencies {
-	implementation project(":lib")
-	implementation project(":experiankbvlib")
-
-	implementation configurations.lambda,
+	implementation project(":common-lib"),
+			project(":experiankbvlib"),
+			configurations.aws,
+			configurations.lambda,
 			configurations.jackson,
 			configurations.dynamodb
 

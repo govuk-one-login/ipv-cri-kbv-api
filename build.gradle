@@ -6,7 +6,6 @@ plugins {
 
 ext {
 	dependencyVersions = [
-		aws_sdk_version          : "2.17.190",
 		aws_lambda_events_version: "3.11.0",
 		aws_powertools_version   : "1.9.0",
 		jackson_version          : "2.13.1",
@@ -40,6 +39,7 @@ subprojects {
 	}
 
 	configurations {
+		aws
 		dynamodb
 		cache
 		jackson
@@ -66,10 +66,23 @@ subprojects {
 	}
 
 	dependencies {
-		dynamodb "software.amazon.awssdk:dynamodb:${dependencyVersions.aws_sdk_version}",
-				"software.amazon.awssdk:dynamodb-enhanced:${dependencyVersions.aws_sdk_version}"
 
-		kms "software.amazon.awssdk:kms:${dependencyVersions.aws_sdk_version}"
+		aws platform('software.amazon.awssdk:bom:2.17.191')
+
+		dynamodb "software.amazon.awssdk:dynamodb",
+				"software.amazon.awssdk:dynamodb-enhanced"
+
+		lambda "software.amazon.awssdk:lambda",
+				"com.amazonaws:aws-lambda-java-events:${dependencyVersions.aws_lambda_events_version}",
+				"software.amazon.lambda:powertools-parameters:${dependencyVersions.aws_powertools_version}"
+		//"org.apache.httpcomponents:httpclient:4.5.13"
+
+
+		sqs "software.amazon.awssdk:sqs"
+
+		kms "software.amazon.awssdk:kms"
+
+		lambda_tests "software.amazon.awssdk:aws-lambda-java-tests:1.1.1"
 
 		cache "com.github.ben-manes.caffeine:caffeine:3.0.5"
 
@@ -87,6 +100,10 @@ subprojects {
 				"org.apache.cxf:cxf-rt-frontend-jaxws:3.4.5",
 				"org.apache.cxf:cxf-rt-transports-http:3.4.5"
 
+		powertools "software.amazon.lambda:powertools-logging:${dependencyVersions.powertools_version}",
+				"software.amazon.lambda:powertools-metrics:${dependencyVersions.powertools_version}"
+
+
 		tests "org.junit.jupiter:junit-jupiter-api:${dependencyVersions.junit}",
 				"org.junit.jupiter:junit-jupiter-params:${dependencyVersions.junit}",
 				"org.mockito:mockito-junit-jupiter:${dependencyVersions.mockito}",
@@ -100,22 +117,16 @@ subprojects {
 		hibernate "org.hibernate.validator:hibernate-validator:7.0.1.Final",
 				"org.hibernate:hibernate-validator-annotation-processor:7.0.1.Final"
 
-		lambda "com.amazonaws:aws-lambda-java-core:${dependencyVersions.aws_lambda_core_version}",
-				"com.amazonaws:aws-lambda-java-events:${dependencyVersions.aws_lambda_events_version}",
-				"software.amazon.lambda:powertools-parameters:${dependencyVersions.aws_powertools_version}",
-				"org.apache.httpcomponents:httpclient:4.5.13"
-
-		sqs "software.amazon.awssdk:sqs:${dependencyVersions.aws_sdk_version}"
-
 		lambda_tests "software.amazon.awssdk:aws-lambda-java-tests:1.1.1"
-
-		powertools "software.amazon.lambda:powertools-logging:${dependencyVersions.powertools_version}",
-				"software.amazon.lambda:powertools-metrics:${dependencyVersions.powertools_version}"
 
 		nimbus "com.nimbusds:oauth2-oidc-sdk:${dependencyVersions.nimbusds_oauth_version}",
 				"com.nimbusds:nimbus-jose-jwt:${dependencyVersions.nimbusds_jwt_version}"
 	}
+
+	apply plugin: 'java'
 }
+
+
 
 sonarqube {
 	properties {

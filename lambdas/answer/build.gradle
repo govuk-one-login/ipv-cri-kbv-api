@@ -1,25 +1,21 @@
 plugins {
 	id "java"
-	id "application"
 	id 'io.freefair.aspectj.post-compile-weaving' version '6.3.0'
 }
 
 dependencies {
-	implementation project(":lib")
-	implementation project(":experiankbvlib")
-
-	implementation configurations.lambda,
-			configurations.jackson,
-			configurations.dynamodb
+	implementation project(":experiankbvlib"),
+			project(":common-lib"),
+			configurations.aws,
+			configurations.lambda,
+			configurations.dynamodb,
+			configurations.jackson
 
 	aspect configurations.powertools
 
-	testImplementation configurations.tests,
-			configurations.test_runtime
-}
+	testImplementation configurations.tests
 
-test {
-	useJUnitPlatform ()
+	testRuntimeOnly configurations.test_runtime
 }
 
 task buildZip(type: Zip) {
@@ -31,3 +27,7 @@ task buildZip(type: Zip) {
 }
 
 build.finalizedBy(buildZip)
+
+test {
+	useJUnitPlatform()
+}
