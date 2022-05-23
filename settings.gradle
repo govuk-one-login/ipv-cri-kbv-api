@@ -10,7 +10,7 @@ project(":accesstoken").projectDir = new File('./common-lambdas/accesstoken')
 project(':jwkset').projectDir = new File('./common-lambdas/jwkset')
 
 // Experian lib
-include "experiankbvlib"
+include "lib"
 
 // CRI specific lambdas
 include "question", "answer"

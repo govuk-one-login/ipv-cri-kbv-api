@@ -10,7 +10,7 @@ repositories {
 
 dependencies {
 	implementation project(":common-lib"),
-			project(":experiankbvlib"),
+			project(":lib"),
 			configurations.aws,
 			configurations.lambda,
 			configurations.jackson,
