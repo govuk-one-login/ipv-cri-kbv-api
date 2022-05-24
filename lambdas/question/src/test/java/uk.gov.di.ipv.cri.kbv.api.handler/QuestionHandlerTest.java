@@ -4,7 +4,6 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
-import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebService;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
@@ -25,12 +24,7 @@ import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
-import uk.gov.di.ipv.cri.kbv.api.gateway.ResponseToQuestionMapper;
-import uk.gov.di.ipv.cri.kbv.api.gateway.StartAuthnAttemptRequestMapper;
-import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandlerResolver;
-import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
@@ -49,7 +43,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.HEADER_SESSION_ID;
@@ -95,8 +88,8 @@ class QuestionHandlerTest {
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                 .thenReturn(personIdentityMock);
 
-        when(mockKBVStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
-                .thenReturn(Optional.ofNullable(kbvItemMock));
+        when(mockKBVStorageService.getKBVItem(sessionHeader.get(HEADER_SESSION_ID)))
+                .thenReturn(kbvItemMock);
 
         when(mockObjectMapper.readValue(kbvItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
@@ -113,7 +106,6 @@ class QuestionHandlerTest {
         when(controlMock.getAuthRefNo()).thenReturn(authRefNo);
         String ipvSessionId = "ipv-session-id";
         when(controlMock.getURN()).thenReturn(ipvSessionId);
-        doNothing().when(mockKBVStorageService).update(kbvItemMock);
 
         Question expectedQuestion = mock(Question.class);
         when(mockKbvService.getQuestions(any())).thenReturn(questionsResponseMock);
@@ -137,17 +129,17 @@ class QuestionHandlerTest {
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
         Context contextMock = mock(Context.class);
-        KBVItem SessionItemMock = mock(KBVItem.class);
+        KBVItem kbvItemMock = mock(KBVItem.class);
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
         QuestionState questionStateMock = mock(QuestionState.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
-        when(mockKBVStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
-                .thenReturn(Optional.ofNullable(SessionItemMock));
+        when(mockKBVStorageService.getKBVItem(sessionHeader.get(HEADER_SESSION_ID)))
+                .thenReturn(kbvItemMock);
         when(mockPersonIdentityService.getPersonIdentity(
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                 .thenReturn(personIdentityMock);
-        when(mockObjectMapper.readValue(SessionItemMock.getQuestionState(), QuestionState.class))
+        when(mockObjectMapper.readValue(kbvItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
 
         Question question2 = mock(Question.class);
@@ -179,8 +171,8 @@ class QuestionHandlerTest {
         QuestionState questionStateMock = mock(QuestionState.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
-        when(mockKBVStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
-                .thenReturn(Optional.ofNullable(kbvItem));
+        when(mockKBVStorageService.getKBVItem(sessionHeader.get(HEADER_SESSION_ID)))
+                .thenReturn(kbvItem);
         when(mockPersonIdentityService.getPersonIdentity(
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                 .thenReturn(personIdentity);
@@ -195,13 +187,13 @@ class QuestionHandlerTest {
 
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
-        verify(mockKBVStorageService).getSessionId(sessionHeader.get(HEADER_SESSION_ID));
+        verify(mockKBVStorageService).getKBVItem(sessionHeader.get(HEADER_SESSION_ID));
         verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
 
         assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
     }
 
-    @Test // TODO this is flakky
+    @Test
     void shouldReturn400ErrorWhenNoSessionIdProvided() {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         setupEventProbeErrorBehaviour();
@@ -222,7 +214,7 @@ class QuestionHandlerTest {
         when(input.getHeaders()).thenReturn(sessionHeader);
         doThrow(InternalServerErrorException.class)
                 .when(mockKBVStorageService)
-                .getSessionId(anyString());
+                .getKBVItem(anyString());
 
         setupEventProbeErrorBehaviour();
         APIGatewayProxyResponseEvent response =
@@ -269,38 +261,25 @@ class QuestionHandlerTest {
         verify(mockEventProbe).counterMetric("get_question", 0d);
     }
 
-    // TODO @Test
+    @Test
     void shouldReturn500ErrorWhenExperianServiceIsDown() throws IOException {
 
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
-        KBVItem SessionItemMock = mock(KBVItem.class);
+        KBVItem kbvItemMock = mock(KBVItem.class);
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
         QuestionState questionStateMock = mock(QuestionState.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
-        when(mockKBVStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
-                .thenReturn(Optional.ofNullable(SessionItemMock));
+        when(mockKBVStorageService.getKBVItem(sessionHeader.get(HEADER_SESSION_ID)))
+                .thenReturn(kbvItemMock);
         when(mockPersonIdentityService.getPersonIdentity(
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                 .thenReturn(personIdentityMock);
 
-        when(mockObjectMapper.readValue(SessionItemMock.getQuestionState(), QuestionState.class))
+        when(mockObjectMapper.readValue(kbvItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
-
-        //         HeaderHandler headerHandler = mock(HeaderHandler.class);
-        //         when(headerHandler.handleMessage(any())).thenThrow(RuntimeException.class);
-
-        KBVGateway kbvGateway =
-                new KBVGateway(
-                        mock(StartAuthnAttemptRequestMapper.class),
-                        mock(ResponseToQuestionMapper.class),
-                        new KBVClientFactory(
-                                        new IdentityIQWebService(), new HeaderHandlerResolver(null))
-                                .createClient());
-
-        mockKbvService = spy(new KBVService(kbvGateway));
 
         doThrow(RuntimeException.class)
                 .when(mockKbvService)
@@ -310,9 +289,8 @@ class QuestionHandlerTest {
         APIGatewayProxyResponseEvent response =
                 questionHandler.handleRequest(input, mock(Context.class));
 
-        assertEquals("{ \"error\":\"Retrieving questions failed.\" }", response.getBody());
         assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        // verify(mockEventProbe).counterMetric("get_question", 0d);
+        verify(mockEventProbe).counterMetric("get_question", 0d);
     }
 
     @Test
@@ -327,8 +305,8 @@ class QuestionHandlerTest {
         QuestionState questionStateMock = mock(QuestionState.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
-        when(mockKBVStorageService.getSessionId(sessionHeader.get(HEADER_SESSION_ID)))
-                .thenReturn(Optional.ofNullable(SessionItemMock));
+        when(mockKBVStorageService.getKBVItem(sessionHeader.get(HEADER_SESSION_ID)))
+                .thenReturn(SessionItemMock);
         when(mockPersonIdentityService.getPersonIdentity(
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                 .thenReturn(personIdentityMock);
