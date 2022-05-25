@@ -12,8 +12,7 @@ public class KBVStorageService {
     private final DataStore<KBVItem> dataStore;
 
     public KBVStorageService() {
-        this.dataStore =
-                new DataStore<KBVItem>(getKBVTableName(), KBVItem.class, DataStore.getClient());
+        this.dataStore = new DataStore<>(getKBVTableName(), KBVItem.class, DataStore.getClient());
     }
 
     public KBVStorageService(DataStore<KBVItem> datastore) {

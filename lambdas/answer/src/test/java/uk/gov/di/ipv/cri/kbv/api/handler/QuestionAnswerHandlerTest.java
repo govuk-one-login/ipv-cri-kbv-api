@@ -31,7 +31,6 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -213,18 +212,16 @@ class QuestionAnswerHandlerTest {
         when(mockKBVStorageService.getSessionId(
                         sessionHeader.get(QuestionAnswerHandler.HEADER_SESSION_ID)))
                 .thenReturn(Optional.ofNullable(kbvSessionItemMock));
-        //        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(),
-        // QuestionState.class))
-        //                .thenThrow(JsonProcessingException.class);
+        when(mockObjectMapper.readValue(kbvSessionItemMock.getQuestionState(), QuestionState.class))
+                .thenThrow(JsonProcessingException.class);
         setupEventProbeErrorBehaviour();
         APIGatewayProxyResponseEvent response =
                 questionAnswerHandler.handleRequest(input, contextMock);
 
-        //        assertEquals(
-        //                "{ \"error\":\"Failed to parse object using ObjectMapper.\" }",
-        // response.getBody());
-        //        assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
-        //        verify(mockEventProbe).counterMetric("post_answer", 0d);
+        assertEquals(
+                "{ \"error\":\"Failed to parse object using ObjectMapper.\" }", response.getBody());
+        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        verify(mockEventProbe).counterMetric("post_answer", 0d);
     }
 
     @Test
@@ -260,12 +257,12 @@ class QuestionAnswerHandlerTest {
                         factory,
                         mockEventProbe);
 
-        Exception unExpectedException = new Exception();
-        assertThrows(
-                unExpectedException.getClass(),
-                () -> questionAnswerHandler.handleRequest(input, contextMock));
-        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, 500);
+        setupEventProbeErrorBehaviour();
+        APIGatewayProxyResponseEvent response =
+                questionAnswerHandler.handleRequest(input, mock(Context.class));
 
+        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        verify(mockEventProbe).counterMetric("post_answer", 0d);
         verify(mockEventProbe).log(any(Level.class), any(Exception.class));
     }
 

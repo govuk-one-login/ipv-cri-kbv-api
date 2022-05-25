@@ -41,7 +41,7 @@ public class QuestionHandler
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String GET_QUESTION = "get_question";
     public static final String ERROR_KEY = "\"error\"";
-    private static ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
     private APIGatewayProxyResponseEvent response;
@@ -100,7 +100,7 @@ public class QuestionHandler
             eventProbe.log(INFO, npe).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"Retrieving questions failed.\" }");
@@ -112,8 +112,7 @@ public class QuestionHandler
         return response;
     }
 
-    public void processQuestionRequest(APIGatewayProxyRequestEvent input)
-            throws IOException, InterruptedException {
+    public void processQuestionRequest(APIGatewayProxyRequestEvent input) throws IOException {
         response.withHeaders(Map.of("Content-Type", "application/json"));
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
 
@@ -125,7 +124,7 @@ public class QuestionHandler
         if (kbvItem != null) {
             questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
         } else {
-            // first request for questions for a given session
+            // first request to experian for questions for a given session-id
             kbvItem = new KBVItem();
             kbvItem.setSessionId(sessionId);
         }
@@ -150,10 +149,10 @@ public class QuestionHandler
 
     private void respondWithQuestionFromExperianThenStoreInDb(
             QuestionRequest questionRequest, KBVItem kbvItem, QuestionState questionState)
-            throws IOException, InterruptedException {
+            throws IOException {
         // we should fall in this block once only
         // fetch a batch of questions from experian kbv wrapper
-        if (kbvItem != null && kbvItem.getAuthorizationCode() != null) {
+        if (kbvItem.getAuthorizationCode() != null) {
             response.withStatusCode(HttpStatusCode.NO_CONTENT);
             return;
         }

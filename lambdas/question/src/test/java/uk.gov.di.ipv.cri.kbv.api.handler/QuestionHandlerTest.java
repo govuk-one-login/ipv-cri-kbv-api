@@ -300,21 +300,21 @@ class QuestionHandlerTest {
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
         Context contextMock = mock(Context.class);
-        KBVItem SessionItemMock = mock(KBVItem.class);
+        KBVItem kbvItemMock = mock(KBVItem.class);
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
         QuestionState questionStateMock = mock(QuestionState.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockKBVStorageService.getKBVItem(sessionHeader.get(HEADER_SESSION_ID)))
-                .thenReturn(SessionItemMock);
+                .thenReturn(kbvItemMock);
         when(mockPersonIdentityService.getPersonIdentity(
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                 .thenReturn(personIdentityMock);
 
-        when(mockObjectMapper.readValue(SessionItemMock.getQuestionState(), QuestionState.class))
+        when(mockObjectMapper.readValue(kbvItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
 
-        when(SessionItemMock.getAuthorizationCode()).thenReturn("authorisation-code");
+        when(kbvItemMock.getAuthorizationCode()).thenReturn("authorisation-code");
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
         assertEquals(HttpStatusCode.NO_CONTENT, response.getStatusCode());
