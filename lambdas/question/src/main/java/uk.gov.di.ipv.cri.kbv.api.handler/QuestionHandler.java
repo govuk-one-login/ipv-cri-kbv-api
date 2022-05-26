@@ -28,6 +28,7 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
 import uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,7 +42,7 @@ public class QuestionHandler
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String GET_QUESTION = "get_question";
     public static final String ERROR_KEY = "\"error\"";
-    private static ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
     private APIGatewayProxyResponseEvent response;
@@ -100,7 +101,7 @@ public class QuestionHandler
             eventProbe.log(INFO, npe).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"Retrieving questions failed.\" }");
@@ -153,7 +154,7 @@ public class QuestionHandler
             throws IOException, InterruptedException {
         // we should fall in this block once only
         // fetch a batch of questions from experian kbv wrapper
-        if (kbvItem != null && kbvItem.getAuthorizationCode() != null) {
+        if (kbvItem != null && kbvItem.getStatus() != null) {
             response.withStatusCode(HttpStatusCode.NO_CONTENT);
             return;
         }
@@ -168,6 +169,7 @@ public class QuestionHandler
             kbvItem.setQuestionState(state);
             kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
             kbvItem.setUrn(questionsResponse.getControl().getURN());
+            kbvItem.setExpiryDate(Instant.now().getEpochSecond() + "");
             kbvStorageService.save(kbvItem);
         } else { // TODO: Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);

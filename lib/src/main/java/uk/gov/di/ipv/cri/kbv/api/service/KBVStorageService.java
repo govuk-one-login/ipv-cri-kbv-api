@@ -4,7 +4,6 @@ import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.common.library.persistence.DataStore;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 
-import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -33,7 +32,6 @@ public class KBVStorageService {
     }
 
     public void save(KBVItem kbvItem) {
-        kbvItem.setExpiryDate(Instant.now().getEpochSecond() + "");
         dataStore.create(kbvItem);
     }
 

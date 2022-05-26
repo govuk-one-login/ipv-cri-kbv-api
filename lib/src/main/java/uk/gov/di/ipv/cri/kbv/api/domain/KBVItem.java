@@ -6,18 +6,12 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbParti
 @DynamoDbBean
 public class KBVItem {
     private String sessionId;
-    private String authorizationCode;
     private String token;
     private String questionState;
     private String expiryDate;
     private String authRefNo;
     private String urn;
-    private String userAttributes;
     private String status;
-
-    public void setAuthorizationCode(String authorizationCode) {
-        this.authorizationCode = authorizationCode;
-    }
 
     public void setToken(String token) {
         this.token = token;
@@ -37,10 +31,6 @@ public class KBVItem {
 
     public String getQuestionState() {
         return questionState;
-    }
-
-    public String getAuthorizationCode() {
-        return authorizationCode;
     }
 
     public String getExpiryDate() {
@@ -65,14 +55,6 @@ public class KBVItem {
 
     public void setUrn(String urn) {
         this.urn = urn;
-    }
-
-    public String getUserAttributes() {
-        return userAttributes;
-    }
-
-    public void setUserAttributes(String userAttributes) {
-        this.userAttributes = userAttributes;
     }
 
     @DynamoDbPartitionKey

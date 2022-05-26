@@ -314,7 +314,7 @@ class QuestionHandlerTest {
         when(mockObjectMapper.readValue(SessionItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
 
-        when(SessionItemMock.getAuthorizationCode()).thenReturn("authorisation-code");
+        when(SessionItemMock.getStatus()).thenReturn("status-code");
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
         assertEquals(HttpStatusCode.NO_CONTENT, response.getStatusCode());

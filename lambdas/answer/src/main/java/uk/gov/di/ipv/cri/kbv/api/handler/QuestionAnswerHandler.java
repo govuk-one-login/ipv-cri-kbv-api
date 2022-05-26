@@ -13,6 +13,8 @@ import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
+import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
@@ -39,6 +41,7 @@ public class QuestionAnswerHandler
     private final ObjectMapper objectMapper;
     private final KBVService kbvService;
     private final KBVStorageService kbvStorageService;
+    private final SessionService sessionService;
     private APIGatewayProxyResponseEvent response;
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String ERROR_KEY = "\"error\"";
@@ -53,6 +56,7 @@ public class QuestionAnswerHandler
 
         this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = new EventProbe();
+        this.sessionService = new SessionService();
 
         var kbvSystemProperty =
                 new KBVSystemProperty(new KeyStoreService(ParamManager.getSecretsProvider()));
@@ -65,14 +69,15 @@ public class QuestionAnswerHandler
             KBVStorageService kbvStorageService,
             KBVSystemProperty systemProperty,
             KBVServiceFactory kbvServiceFactory,
-            EventProbe eventProbe) {
+            EventProbe eventProbe,
+            SessionService sessionService) {
         this.objectMapper = objectMapper;
         this.objectMapper.registerModule(new JavaTimeModule());
         this.kbvStorageService = kbvStorageService;
 
         this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = eventProbe;
-
+        this.sessionService = sessionService;
         this.kbvService = kbvServiceFactory.create();
         systemProperty.save();
     }
@@ -122,8 +127,7 @@ public class QuestionAnswerHandler
         QuestionState questionState;
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
 
-        KBVItem kbvItem =
-                kbvStorageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
+        KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
 
         questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
         QuestionAnswer answer = objectMapper.readValue(input.getBody(), QuestionAnswer.class);
@@ -148,9 +152,12 @@ public class QuestionAnswerHandler
         } else if (questionsResponse.hasQuestionRequestEnded()) {
             String state = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(state);
-            kbvItem.setAuthorizationCode(UUID.randomUUID().toString());
             kbvItem.setStatus(questionsResponse.getStatus());
             kbvStorageService.update(kbvItem);
+
+            SessionItem sessionItem = sessionService.getSession(kbvItem.getSessionId());
+            sessionItem.setAuthorizationCode(UUID.randomUUID().toString());
+            sessionService.createAuthorizationCode(sessionItem);
         } else {
             // TODO: alternate flow could end of transaction / or others
         }
