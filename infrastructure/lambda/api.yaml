@@ -110,6 +110,55 @@ paths:
           Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KBVAnswerFunction.Arn}/invocations"
         passthroughBehavior: "when_no_match"
 
+  /credential/issue:
+    summary: Resource for the KBV API
+    description: >-
+      This API is expected to be called by the IPV core backend directly as the
+      final part of the OpenId/Oauth Flow
+    parameters:
+      - name: Authorization
+        in: header
+        required: true
+        description: 'A valid access_token (e.g.: authorization: Bearer access-token-value).'
+        schema:
+          type: string
+    post:
+      summary: GET request using a valid access token
+      responses:
+        '200':
+          description: 200 Ok
+          content:
+            application/jwt:
+              schema:
+                type: string
+                format: application/jwt
+                pattern: ^([a-zA-Z0-9_=]+)\.([a-zA-Z0-9_=]+)\.([a-zA-Z0-9_\-\+\/=]+)$
+                example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        '400':
+          description: 400 Bad Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: 500 Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+      x-amazon-apigateway-request-validator: "Validate both"
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${IssueCredentialFunction.Arn}/invocations
+        responses:
+          default:
+            statusCode: "200"
+        passthroughBehavior: "when_no_match"
+        contentHandling: "CONVERT_TO_TEXT"
+        type: "aws_proxy"
+
 components:
   parameters:
     SessionHeader:
