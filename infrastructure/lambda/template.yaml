@@ -250,6 +250,36 @@ Resources:
               Resource:
                 - !ImportValue AuditEventQueueEncryptionKeyArn
 
+  AccessTokenFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../common-lambdas/accesstoken/build/distributions/accesstoken.zip
+      Handler: uk.gov.di.ipv.cri.address.api.handler.AccessTokenHandler::handleRequest
+      Environment:
+        Variables:
+          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-access-token
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName:
+              Ref: SessionTable
+        - DynamoDBWritePolicy:
+            TableName:
+              Ref: SessionTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParametersByPath
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
+
   KBVQuestionFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -258,7 +288,7 @@ Resources:
       Environment:
         Variables:
           POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
-          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-question
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
@@ -298,7 +328,7 @@ Resources:
       Environment:
         Variables:
           POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
-          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-answer
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
@@ -343,6 +373,9 @@ Resources:
       KeySchema:
         - AttributeName: "sessionId"
           KeyType: "HASH"
+      TimeToLiveSpecification:
+        AttributeName: expiryDate
+        Enabled: true
 
   SessionTable:
     Type: "AWS::DynamoDB::Table"
@@ -588,6 +621,13 @@ Resources:
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt SessionFunction.Arn
+      Principal: apigateway.amazonaws.com
+
+  AccessTokenFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt AccessTokenFunction.Arn
       Principal: apigateway.amazonaws.com
 
   KBVQuestionFunctionPermission:
