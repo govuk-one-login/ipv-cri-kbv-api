@@ -101,7 +101,7 @@ public class QuestionHandler
             eventProbe.log(INFO, npe).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"Retrieving questions failed.\" }");
@@ -154,7 +154,7 @@ public class QuestionHandler
             throws IOException, InterruptedException {
         // we should fall in this block once only
         // fetch a batch of questions from experian kbv wrapper
-        if (kbvItem != null && kbvItem.getStatus() != null) {
+        if (kbvItem.getStatus() != null) {
             response.withStatusCode(HttpStatusCode.NO_CONTENT);
             return;
         }

@@ -32,7 +32,6 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -274,13 +273,12 @@ class QuestionAnswerHandlerTest {
                         mockEventProbe,
                         mockSessionService);
 
-        Exception unExpectedException = new Exception();
-        assertThrows(
-                unExpectedException.getClass(),
-                () -> questionAnswerHandler.handleRequest(input, contextMock));
-        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, 500);
+        setupEventProbeErrorBehaviour();
+        APIGatewayProxyResponseEvent response =
+                questionAnswerHandler.handleRequest(input, mock(Context.class));
 
-        verify(mockEventProbe).log(any(Level.class), any(Exception.class));
+        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        verify(mockEventProbe).counterMetric("post_answer", 0d);
     }
 
     private void setupEventProbeErrorBehaviour() {

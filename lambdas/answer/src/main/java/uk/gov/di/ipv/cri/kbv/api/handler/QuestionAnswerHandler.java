@@ -99,7 +99,7 @@ public class QuestionAnswerHandler
             eventProbe.log(INFO, npe).counterMetric(POST_ANSWER, 0d);
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody("{ " + ERROR_KEY + ":\"Error finding the requested resource.\" }");
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
             response.withBody(
@@ -114,16 +114,10 @@ public class QuestionAnswerHandler
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
         }
-        //        catch (Exception e) {
-        //            eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
-        //            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-        //            response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
-        //        }
         return response;
     }
 
-    public void processAnswerResponse(APIGatewayProxyRequestEvent input)
-            throws IOException, InterruptedException {
+    public void processAnswerResponse(APIGatewayProxyRequestEvent input) throws IOException {
         QuestionState questionState;
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
 
