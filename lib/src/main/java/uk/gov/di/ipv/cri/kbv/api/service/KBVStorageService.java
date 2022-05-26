@@ -11,8 +11,7 @@ public class KBVStorageService {
     private final DataStore<KBVItem> dataStore;
 
     public KBVStorageService() {
-        this.dataStore =
-                new DataStore<KBVItem>(getKBVTableName(), KBVItem.class, DataStore.getClient());
+        this.dataStore = new DataStore<>(getKBVTableName(), KBVItem.class, DataStore.getClient());
     }
 
     public KBVStorageService(DataStore<KBVItem> datastore) {
@@ -20,11 +19,19 @@ public class KBVStorageService {
     }
 
     public Optional<KBVItem> getSessionId(String sessionId) {
-        return Optional.of(dataStore.getItem(sessionId));
+        return Optional.of(this.dataStore.getItem(sessionId));
+    }
+
+    public KBVItem getKBVItem(String sessionId) {
+        return this.dataStore.getItem(sessionId);
     }
 
     public void update(KBVItem kbvItem) {
         dataStore.update(kbvItem);
+    }
+
+    public void save(KBVItem kbvItem) {
+        dataStore.create(kbvItem);
     }
 
     public String getKBVTableName() {

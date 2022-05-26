@@ -28,6 +28,7 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
 import uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,7 +42,7 @@ public class QuestionHandler
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String GET_QUESTION = "get_question";
     public static final String ERROR_KEY = "\"error\"";
-    private static ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
     private APIGatewayProxyResponseEvent response;
@@ -66,14 +67,14 @@ public class QuestionHandler
 
     public QuestionHandler(
             ObjectMapper objectMapper,
-            KBVStorageService kbvkbvStorageService,
+            KBVStorageService kbvStorageService,
             PersonIdentityService personIdentityService,
             KBVSystemProperty systemProperty,
             KBVServiceFactory kbvServiceFactory,
             EventProbe eventProbe) {
         this.objectMapper = objectMapper;
         this.objectMapper.registerModule(new JavaTimeModule());
-        this.kbvStorageService = kbvkbvStorageService;
+        this.kbvStorageService = kbvStorageService;
         this.personIdentityService = personIdentityService;
 
         this.response = new APIGatewayProxyResponseEvent();
@@ -119,15 +120,20 @@ public class QuestionHandler
 
         PersonIdentity personIdentity =
                 personIdentityService.getPersonIdentity(UUID.fromString(sessionId));
-        KBVItem kbvItem =
-                kbvStorageService.getSessionId(sessionId).orElseThrow(NullPointerException::new);
-        QuestionState questionState =
-                objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
+        KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
 
-        QuestionRequest questionRequest = new QuestionRequest();
-        questionRequest.setPersonIdentity(personIdentity);
+        QuestionState questionState = new QuestionState();
+        if (kbvItem != null) {
+            questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
+        } else {
+            // first request for questions for a given session
+            kbvItem = new KBVItem();
+            kbvItem.setSessionId(sessionId);
+        }
 
         if (respondWithQuestionFromDbStore(questionState)) return;
+        QuestionRequest questionRequest = new QuestionRequest();
+        questionRequest.setPersonIdentity(personIdentity);
         respondWithQuestionFromExperianThenStoreInDb(questionRequest, kbvItem, questionState);
     }
 
@@ -148,12 +154,12 @@ public class QuestionHandler
             throws IOException, InterruptedException {
         // we should fall in this block once only
         // fetch a batch of questions from experian kbv wrapper
-        if (kbvItem.getAuthorizationCode() != null) {
+        if (kbvItem.getStatus() != null) {
             response.withStatusCode(HttpStatusCode.NO_CONTENT);
             return;
         }
         QuestionsResponse questionsResponse = this.kbvService.getQuestions(questionRequest);
-        if (questionsResponse.hasQuestions()) {
+        if (questionsResponse != null && questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
             Optional<Question> nextQuestion = questionState.getNextQuestion();
             response.withStatusCode(HttpStatusCode.OK);
@@ -161,10 +167,10 @@ public class QuestionHandler
 
             String state = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(state);
-
             kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
             kbvItem.setUrn(questionsResponse.getControl().getURN());
-            kbvStorageService.update(kbvItem);
+            kbvItem.setExpiryDate(Instant.now().getEpochSecond() + "");
+            kbvStorageService.save(kbvItem);
         } else { // TODO: Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody(objectMapper.writeValueAsString(questionsResponse));
