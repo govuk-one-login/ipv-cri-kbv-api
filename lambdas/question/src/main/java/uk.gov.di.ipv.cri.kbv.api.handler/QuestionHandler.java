@@ -15,6 +15,7 @@ import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
@@ -45,6 +46,8 @@ public class QuestionHandler
     private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
+
+    private final ConfigurationService configurationService;
     private APIGatewayProxyResponseEvent response;
     private EventProbe eventProbe;
     private KBVService kbvService;
@@ -56,6 +59,7 @@ public class QuestionHandler
         this.kbvStorageService = new KBVStorageService();
         this.personIdentityService = new PersonIdentityService();
         this.kbvService = new KBVServiceFactory().create();
+        this.configurationService = new ConfigurationService();
 
         this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = new EventProbe();
@@ -71,6 +75,7 @@ public class QuestionHandler
             PersonIdentityService personIdentityService,
             KBVSystemProperty systemProperty,
             KBVServiceFactory kbvServiceFactory,
+            ConfigurationService configurationService,
             EventProbe eventProbe) {
         this.objectMapper = objectMapper;
         this.objectMapper.registerModule(new JavaTimeModule());
@@ -81,6 +86,7 @@ public class QuestionHandler
         this.eventProbe = eventProbe;
 
         this.kbvService = kbvServiceFactory.create();
+        this.configurationService = configurationService;
         systemProperty.save();
     }
 
@@ -116,11 +122,10 @@ public class QuestionHandler
     public void processQuestionRequest(APIGatewayProxyRequestEvent input)
             throws IOException, InterruptedException {
         response.withHeaders(Map.of("Content-Type", "application/json"));
-        String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
+        UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
 
-        PersonIdentity personIdentity =
-                personIdentityService.getPersonIdentity(UUID.fromString(sessionId));
-        KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
+        PersonIdentity personIdentity = personIdentityService.getPersonIdentity(sessionId);
+        KBVItem kbvItem = kbvStorageService.getKBVItem(String.valueOf(sessionId));
 
         QuestionState questionState = new QuestionState();
         if (kbvItem != null) {
@@ -169,7 +174,8 @@ public class QuestionHandler
             kbvItem.setQuestionState(state);
             kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
             kbvItem.setUrn(questionsResponse.getControl().getURN());
-            kbvItem.setExpiryDate(Instant.now().getEpochSecond() + "");
+            kbvItem.setExpiryDate(
+                    Instant.now().getEpochSecond() + configurationService.getSessionTtl());
             kbvStorageService.save(kbvItem);
         } else { // TODO: Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);

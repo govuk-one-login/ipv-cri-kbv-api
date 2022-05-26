@@ -149,7 +149,8 @@ public class QuestionAnswerHandler
             kbvItem.setStatus(questionsResponse.getStatus());
             kbvStorageService.update(kbvItem);
 
-            SessionItem sessionItem = sessionService.getSession(kbvItem.getSessionId());
+            SessionItem sessionItem =
+                    sessionService.getSession(String.valueOf(kbvItem.getSessionId()));
             sessionItem.setAuthorizationCode(UUID.randomUUID().toString());
             sessionService.createAuthorizationCode(sessionItem);
         } else {

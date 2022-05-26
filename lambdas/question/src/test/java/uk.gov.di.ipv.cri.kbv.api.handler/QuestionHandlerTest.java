@@ -19,6 +19,7 @@ import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
@@ -56,6 +57,7 @@ class QuestionHandlerTest {
     @Mock private EventProbe mockEventProbe;
     @Mock private KBVServiceFactory mockKbvServiceFactory;
     @Mock private KBVService mockKbvService;
+    @Mock private ConfigurationService mockConfigurationService;
     @Mock private KBVSystemProperty mockSystemProperty;
 
     @BeforeEach
@@ -69,6 +71,7 @@ class QuestionHandlerTest {
                         mockPersonIdentityService,
                         mockSystemProperty,
                         mockKbvServiceFactory,
+                        mockConfigurationService,
                         mockEventProbe);
     }
 
@@ -163,7 +166,7 @@ class QuestionHandlerTest {
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
         var userAttributes =
-                "{\"firstName\":\"Jack\",\"middleNames\":null,\"surname\":\"Reacher\",\"dateOfBirth\":null,\"addresses\":[{\"buildingNumber\":null,\"buildingName\":null,\"flat\":null,\"street\":null,\"townCity\":null,\"postcode\":null,\"district\":null,\"addressType\":null,\"dateMovedOut\":null}]}";
+                "{\"firstName\":\"Jack\",\"middleNames\":null,\"surname\":\"Reacher\",\"dateOfBirth\":null,\"addresses\":[{\"buildingNumber\":null,\"buildingName\":null,\"street\":null,\"townCity\":null,\"postcode\":null,\"district\":null,\"addressType\":null,\"dateMovedOut\":null}]}";
         PersonIdentity personIdentity =
                 new ObjectMapper().readValue(userAttributes, PersonIdentity.class);
 

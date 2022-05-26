@@ -114,7 +114,9 @@ class QuestionAnswerHandlerTest {
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(kbvItemMock.getSessionId())
-                .thenReturn(sessionHeader.get(QuestionAnswerHandler.HEADER_SESSION_ID));
+                .thenReturn(
+                        UUID.fromString(
+                                sessionHeader.get(QuestionAnswerHandler.HEADER_SESSION_ID)));
         when(mockKBVStorageService.getKBVItem(
                         sessionHeader.get(QuestionAnswerHandler.HEADER_SESSION_ID)))
                 .thenReturn(kbvItemMock);
@@ -134,14 +136,15 @@ class QuestionAnswerHandlerTest {
         when(questionsResponseMock.hasQuestionRequestEnded()).thenReturn(true);
 
         SessionItem mockSessionItem = mock(SessionItem.class);
-        when(mockSessionService.getSession(kbvItemMock.getSessionId())).thenReturn(mockSessionItem);
+        when(mockSessionService.getSession(String.valueOf(kbvItemMock.getSessionId())))
+                .thenReturn(mockSessionItem);
         doNothing().when(mockSessionService).createAuthorizationCode(mockSessionItem);
 
         APIGatewayProxyResponseEvent result =
                 questionAnswerHandler.handleRequest(input, contextMock);
 
         verify(mockKBVStorageService, times(2)).update(kbvItemMock);
-        verify(mockSessionService).getSession(kbvItemMock.getSessionId());
+        verify(mockSessionService).getSession(String.valueOf(kbvItemMock.getSessionId()));
         verify(mockSessionService).createAuthorizationCode(mockSessionItem);
         assertEquals(HttpStatusCode.OK, result.getStatusCode());
         assertNull(result.getBody());

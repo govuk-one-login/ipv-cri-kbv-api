@@ -6,11 +6,13 @@ plugins {
 
 dependencies {
 	implementation project(":common-lib"),
+			project(":lib"),
 			configurations.aws,
 			configurations.lambda,
 			configurations.nimbus,
 			configurations.dynamodb,
-			configurations.jackson
+			configurations.jackson,
+			configurations.sqs
 
 	aspect configurations.powertools
 

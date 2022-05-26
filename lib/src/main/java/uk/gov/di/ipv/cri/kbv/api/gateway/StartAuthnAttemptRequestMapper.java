@@ -124,10 +124,6 @@ public class StartAuthnAttemptRequestMapper {
                 ukLocation.setHouseNumber(personIdentity.getAddresses().get(0).getBuildingNumber());
             }
 
-            if (StringUtils.isNotBlank(personIdentity.getAddresses().get(0).getFlat())) {
-                ukLocation.setFlat(personIdentity.getAddresses().get(0).getFlat());
-            }
-
             if (StringUtils.isNotBlank(personIdentity.getAddresses().get(0).getDistrict())) {
                 ukLocation.setDistrict(personIdentity.getAddresses().get(0).getDistrict());
             }

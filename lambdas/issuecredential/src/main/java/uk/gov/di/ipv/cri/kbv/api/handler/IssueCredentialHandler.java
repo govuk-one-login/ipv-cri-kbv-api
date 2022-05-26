@@ -1,26 +1,32 @@
-package uk.gov.di.ipv.cri.address.api.handler;
+package uk.gov.di.ipv.cri.kbv.api.handler;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.AccessTokenType;
-import org.apache.http.HttpStatus;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.http.HttpStatusCode;
+import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
-import uk.gov.di.ipv.cri.address.api.exception.CredentialRequestException;
-import uk.gov.di.ipv.cri.address.api.service.VerifiableCredentialService;
-import uk.gov.di.ipv.cri.address.library.error.ErrorResponse;
-import uk.gov.di.ipv.cri.address.library.service.AddressService;
-import uk.gov.di.ipv.cri.address.library.service.SessionService;
-import uk.gov.di.ipv.cri.address.library.util.ApiGatewayResponseGenerator;
-import uk.gov.di.ipv.cri.address.library.util.EventProbe;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
+import uk.gov.di.ipv.cri.common.library.error.ErrorResponse;
+import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.service.AuditService;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.common.library.service.SessionService;
+import uk.gov.di.ipv.cri.common.library.util.ApiGatewayResponseGenerator;
+import uk.gov.di.ipv.cri.common.library.util.EventProbe;
+import uk.gov.di.ipv.cri.kbv.api.exception.CredentialRequestException;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.VerifiableCredentialService;
 
 import java.util.Map;
 import java.util.Optional;
@@ -31,28 +37,36 @@ import static org.apache.logging.log4j.Level.ERROR;
 public class IssueCredentialHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     public static final String AUTHORIZATION_HEADER_KEY = "Authorization";
-    public static final String ADDRESS_CREDENTIAL_ISSUER = "address_credential_issuer";
+    public static final String KBV_CREDENTIAL_ISSUER = "kbv_credential_issuer";
     private final VerifiableCredentialService verifiableCredentialService;
-    private final AddressService addressService;
+    private final KBVStorageService kbvStorageService;
     private final SessionService sessionService;
-    private EventProbe eventProbe;
+    private final EventProbe eventProbe;
+    private final AuditService auditService;
 
     public IssueCredentialHandler(
             VerifiableCredentialService verifiableCredentialService,
-            AddressService addressService,
+            KBVStorageService kbvStorageService,
             SessionService sessionService,
-            EventProbe eventProbe) {
+            EventProbe eventProbe,
+            AuditService auditService) {
         this.verifiableCredentialService = verifiableCredentialService;
-        this.addressService = addressService;
+        this.kbvStorageService = kbvStorageService;
         this.sessionService = sessionService;
         this.eventProbe = eventProbe;
+        this.auditService = auditService;
     }
 
     public IssueCredentialHandler() {
         this.verifiableCredentialService = getVerifiableCredentialService();
-        this.addressService = new AddressService();
+        this.kbvStorageService = new KBVStorageService();
         this.sessionService = new SessionService();
         this.eventProbe = new EventProbe();
+        this.auditService =
+                new AuditService(
+                        SqsClient.builder().build(),
+                        new ConfigurationService(),
+                        new ObjectMapper());
     }
 
     @Override
@@ -64,26 +78,29 @@ public class IssueCredentialHandler
         try {
             var accessToken = validateInputHeaderBearerToken(input.getHeaders());
             var sessionItem = this.sessionService.getSessionByAccessToken(accessToken);
-            var addressItem = addressService.getAddressItem(sessionItem.getSessionId());
+            var kbvItem = kbvStorageService.getKBVItem(String.valueOf(sessionItem.getSessionId()));
 
             SignedJWT signedJWT =
                     verifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                            sessionItem.getSubject(), addressItem.getAddresses());
-
-            eventProbe.counterMetric(ADDRESS_CREDENTIAL_ISSUER, 0d);
+                            sessionItem.getSubject(), kbvItem);
+            auditService.sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_VC_ISSUED);
+            eventProbe.counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
 
             return ApiGatewayResponseGenerator.proxyJwtResponse(
-                    HttpStatus.SC_OK, signedJWT.serialize());
+                    HttpStatusCode.OK, signedJWT.serialize());
         } catch (AwsServiceException ex) {
-            eventProbe.log(ERROR, ex).counterMetric(ADDRESS_CREDENTIAL_ISSUER, 0d);
+            eventProbe.log(ERROR, ex).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
 
             return ApiGatewayResponseGenerator.proxyJsonResponse(
-                    HttpStatus.SC_INTERNAL_SERVER_ERROR, ex.awsErrorDetails().errorMessage());
+                    HttpStatusCode.INTERNAL_SERVER_ERROR, ex.awsErrorDetails().errorMessage());
         } catch (CredentialRequestException | ParseException | JOSEException e) {
-            eventProbe.log(ERROR, e).counterMetric(ADDRESS_CREDENTIAL_ISSUER, 0d);
+            eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
 
             return ApiGatewayResponseGenerator.proxyJsonResponse(
-                    HttpStatus.SC_BAD_REQUEST, ErrorResponse.VERIFIABLE_CREDENTIAL_ERROR);
+                    HttpStatusCode.BAD_REQUEST, ErrorResponse.VERIFIABLE_CREDENTIAL_ERROR);
+        } catch (SqsException sqsException) {
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR, sqsException.getMessage());
         }
     }
 

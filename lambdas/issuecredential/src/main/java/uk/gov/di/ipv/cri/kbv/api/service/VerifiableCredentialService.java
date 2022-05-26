@@ -1,32 +1,23 @@
-package uk.gov.di.ipv.cri.address.api.service;
+package uk.gov.di.ipv.cri.kbv.api.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import uk.gov.di.ipv.cri.address.library.domain.CanonicalAddress;
-import uk.gov.di.ipv.cri.address.library.service.ConfigurationService;
-import uk.gov.di.ipv.cri.address.library.util.KMSSigner;
-import uk.gov.di.ipv.cri.address.library.util.SignedJWTFactory;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.common.library.util.KMSSigner;
+import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
+import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 
 import static com.nimbusds.jwt.JWTClaimNames.EXPIRATION_TIME;
 import static com.nimbusds.jwt.JWTClaimNames.ISSUER;
 import static com.nimbusds.jwt.JWTClaimNames.NOT_BEFORE;
 import static com.nimbusds.jwt.JWTClaimNames.SUBJECT;
-import static uk.gov.di.ipv.cri.address.api.domain.VerifiableCredentialConstants.ADDRESS_CREDENTIAL_TYPE;
-import static uk.gov.di.ipv.cri.address.api.domain.VerifiableCredentialConstants.DI_CONTEXT;
-import static uk.gov.di.ipv.cri.address.api.domain.VerifiableCredentialConstants.VC_ADDRESS_KEY;
-import static uk.gov.di.ipv.cri.address.api.domain.VerifiableCredentialConstants.VC_CLAIM;
-import static uk.gov.di.ipv.cri.address.api.domain.VerifiableCredentialConstants.VC_CONTEXT;
-import static uk.gov.di.ipv.cri.address.api.domain.VerifiableCredentialConstants.VC_CREDENTIAL_SUBJECT;
-import static uk.gov.di.ipv.cri.address.api.domain.VerifiableCredentialConstants.VC_TYPE;
-import static uk.gov.di.ipv.cri.address.api.domain.VerifiableCredentialConstants.VERIFIABLE_CREDENTIAL_TYPE;
-import static uk.gov.di.ipv.cri.address.api.domain.VerifiableCredentialConstants.W3_BASE_CONTEXT;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.*;
 
 public class VerifiableCredentialService {
 
@@ -47,16 +38,10 @@ public class VerifiableCredentialService {
         this.configurationService = configurationService;
     }
 
-    public SignedJWT generateSignedVerifiableCredentialJwt(
-            String subject, List<CanonicalAddress> canonicalAddresses) throws JOSEException {
+    public SignedJWT generateSignedVerifiableCredentialJwt(String subject, KBVItem kbvItem)
+            throws JOSEException {
         var now = Instant.now();
         ObjectMapper mapper = new ObjectMapper().registerModule(new Jdk8Module());
-
-        int size = canonicalAddresses.size();
-        var addresses = new Object[size];
-        for (int i = 0; i < size; i++) {
-            addresses[i] = mapper.convertValue(canonicalAddresses.get(i), Map.class);
-        }
 
         var claimsSet =
                 new JWTClaimsSet.Builder()
@@ -72,12 +57,12 @@ public class VerifiableCredentialService {
                                 Map.of(
                                         VC_TYPE,
                                         new String[] {
-                                            VERIFIABLE_CREDENTIAL_TYPE, ADDRESS_CREDENTIAL_TYPE
+                                            VERIFIABLE_CREDENTIAL_TYPE, KBV_CREDENTIAL_TYPE
                                         },
                                         VC_CONTEXT,
                                         new String[] {W3_BASE_CONTEXT, DI_CONTEXT},
                                         VC_CREDENTIAL_SUBJECT,
-                                        Map.of(VC_ADDRESS_KEY, addresses)))
+                                        Map.of(VC_KBV_KEY, kbvItem.getStatus())))
                         .build();
 
         return signedJwtFactory.createSignedJwt(claimsSet);
