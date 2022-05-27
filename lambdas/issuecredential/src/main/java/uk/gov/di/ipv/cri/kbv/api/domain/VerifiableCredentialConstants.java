@@ -13,5 +13,13 @@ public class VerifiableCredentialConstants {
     public static final String VC_CLAIM = "vc";
     public static final String VC_KBV_KEY = "kbv";
 
+    public static final String VC_ADDRESS_KEY = "address";
+
+    public static final String VC_BIRTHDATE_KEY = "birthDate";
+
+    public static final String VC_NAME_KEY = "name";
+
+    public static final String VC_EVIDENCE_KEY = "evidence";
+
     private VerifiableCredentialConstants() {}
 }

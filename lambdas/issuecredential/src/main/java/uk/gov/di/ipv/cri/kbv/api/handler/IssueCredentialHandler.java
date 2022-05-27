@@ -21,6 +21,7 @@ import uk.gov.di.ipv.cri.common.library.error.ErrorResponse;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.ApiGatewayResponseGenerator;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
@@ -44,17 +45,21 @@ public class IssueCredentialHandler
     private final EventProbe eventProbe;
     private final AuditService auditService;
 
+    private final PersonIdentityService personIdentityService;
+
     public IssueCredentialHandler(
             VerifiableCredentialService verifiableCredentialService,
             KBVStorageService kbvStorageService,
             SessionService sessionService,
             EventProbe eventProbe,
-            AuditService auditService) {
+            AuditService auditService,
+            PersonIdentityService personIdentityService) {
         this.verifiableCredentialService = verifiableCredentialService;
         this.kbvStorageService = kbvStorageService;
         this.sessionService = sessionService;
         this.eventProbe = eventProbe;
         this.auditService = auditService;
+        this.personIdentityService = personIdentityService;
     }
 
     public IssueCredentialHandler() {
@@ -67,6 +72,7 @@ public class IssueCredentialHandler
                         SqsClient.builder().build(),
                         new ConfigurationService(),
                         new ObjectMapper());
+        this.personIdentityService = new PersonIdentityService();
     }
 
     @Override
@@ -79,10 +85,12 @@ public class IssueCredentialHandler
             var accessToken = validateInputHeaderBearerToken(input.getHeaders());
             var sessionItem = this.sessionService.getSessionByAccessToken(accessToken);
             var kbvItem = kbvStorageService.getKBVItem(String.valueOf(sessionItem.getSessionId()));
+            var personIdentity =
+                    personIdentityService.getPersonIdentity(sessionItem.getSessionId());
 
             SignedJWT signedJWT =
                     verifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                            sessionItem.getSubject(), kbvItem);
+                            sessionItem.getSubject(), personIdentity, kbvItem);
             auditService.sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_VC_ISSUED);
             eventProbe.counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
 

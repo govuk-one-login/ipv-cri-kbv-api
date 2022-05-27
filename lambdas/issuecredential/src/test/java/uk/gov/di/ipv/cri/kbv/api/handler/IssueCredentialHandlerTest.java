@@ -24,10 +24,13 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonAddress;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.common.library.error.ErrorResponse;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
+import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
@@ -35,6 +38,8 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.VerifiableCredentialService;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -57,6 +62,8 @@ class IssueCredentialHandlerTest {
     @Mock private SessionService mockSessionService;
 
     @Mock private KBVStorageService mockKBVStorageService;
+
+    @Mock private PersonIdentityService mockPersonIdentityService;
     @Mock private EventProbe mockEventProbe;
     @Mock private AuditService mockAuditService;
     @InjectMocks private IssueCredentialHandler handler;
@@ -82,10 +89,23 @@ class IssueCredentialHandlerTest {
         kbvItem.setSessionId(sessionId);
         kbvItem.setExpiryDate(Instant.now().plusSeconds(6000L).getEpochSecond());
 
+        PersonAddress address = new PersonAddress();
+        address.setBuildingNumber("114");
+        address.setStreet("Wellington Street");
+        address.setPostcode("LS1 1BA");
+        List<PersonAddress> addresses = List.of(address);
+
+        PersonIdentity personIdentity = new PersonIdentity();
+        personIdentity.setFirstName("Joe");
+        personIdentity.setSurname("Bloggs");
+        personIdentity.setDateOfBirth(LocalDate.of(1980, 1, 1));
+        personIdentity.setAddresses(addresses);
+
         when(mockSessionService.getSessionByAccessToken(accessToken)).thenReturn(sessionItem);
         when(mockKBVStorageService.getKBVItem(String.valueOf(sessionId))).thenReturn(kbvItem);
+        when(mockPersonIdentityService.getPersonIdentity(sessionId)).thenReturn(personIdentity);
         when(mockVerifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                        SUBJECT, kbvItem))
+                        SUBJECT, personIdentity, kbvItem))
                 .thenReturn(mock(SignedJWT.class));
 
         APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
@@ -93,7 +113,7 @@ class IssueCredentialHandlerTest {
         verify(mockSessionService).getSessionByAccessToken(accessToken);
         verify(mockKBVStorageService).getKBVItem(String.valueOf(sessionId));
         verify(mockVerifiableCredentialService)
-                .generateSignedVerifiableCredentialJwt(SUBJECT, kbvItem);
+                .generateSignedVerifiableCredentialJwt(SUBJECT, personIdentity, kbvItem);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
         verify(mockAuditService).sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_VC_ISSUED);
         assertEquals(
@@ -123,11 +143,24 @@ class IssueCredentialHandlerTest {
         KBVItem kbvItem = new KBVItem();
         kbvItem.setStatus("VALID");
         kbvItem.setSessionId(sessionId);
+        PersonAddress address = new PersonAddress();
+        address.setBuildingNumber("114");
+        address.setStreet("Wellington Street");
+        address.setPostcode("LS1 1BA");
+        List<PersonAddress> addresses = List.of(address);
+
+        PersonIdentity personIdentity = new PersonIdentity();
+        personIdentity.setFirstName("Joe");
+        personIdentity.setSurname("Bloggs");
+        personIdentity.setDateOfBirth(LocalDate.of(1980, 1, 1));
+        personIdentity.setAddresses(addresses);
 
         when(mockSessionService.getSessionByAccessToken(accessToken)).thenReturn(sessionItem);
         when(mockKBVStorageService.getKBVItem(String.valueOf(sessionId))).thenReturn(kbvItem);
+        when(mockPersonIdentityService.getPersonIdentity(sessionId)).thenReturn(personIdentity);
+        when(mockPersonIdentityService.getPersonIdentity(sessionId)).thenReturn(personIdentity);
         when(mockVerifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                        SUBJECT, kbvItem))
+                        SUBJECT, personIdentity, kbvItem))
                 .thenThrow(unExpectedJOSEException);
 
         APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
@@ -135,7 +168,7 @@ class IssueCredentialHandlerTest {
         verify(mockSessionService).getSessionByAccessToken(accessToken);
         verify(mockKBVStorageService).getKBVItem(String.valueOf(sessionId));
         verify(mockVerifiableCredentialService)
-                .generateSignedVerifiableCredentialJwt(SUBJECT, kbvItem);
+                .generateSignedVerifiableCredentialJwt(SUBJECT, personIdentity, kbvItem);
         verify(mockEventProbe).log(Level.ERROR, unExpectedJOSEException);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
         verifyNoMoreInteractions(mockVerifiableCredentialService);
