@@ -10,7 +10,7 @@ public class KBVItem {
     private UUID sessionId;
     private String token;
     private String questionState;
-    private Long expiryDate;
+    private long expiryDate;
     private String authRefNo;
     private String urn;
     private String status;
@@ -35,11 +35,11 @@ public class KBVItem {
         return questionState;
     }
 
-    public Long getExpiryDate() {
+    public long getExpiryDate() {
         return expiryDate;
     }
 
-    public void setExpiryDate(Long expiryDate) {
+    public void setExpiryDate(long expiryDate) {
         this.expiryDate = expiryDate;
     }
 

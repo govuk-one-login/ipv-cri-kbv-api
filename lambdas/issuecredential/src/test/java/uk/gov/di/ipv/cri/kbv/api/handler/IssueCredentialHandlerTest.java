@@ -102,7 +102,7 @@ class IssueCredentialHandlerTest {
         personIdentity.setAddresses(addresses);
 
         when(mockSessionService.getSessionByAccessToken(accessToken)).thenReturn(sessionItem);
-        when(mockKBVStorageService.getKBVItem(String.valueOf(sessionId))).thenReturn(kbvItem);
+        when(mockKBVStorageService.getKBVItem(sessionId)).thenReturn(kbvItem);
         when(mockPersonIdentityService.getPersonIdentity(sessionId)).thenReturn(personIdentity);
         when(mockVerifiableCredentialService.generateSignedVerifiableCredentialJwt(
                         SUBJECT, personIdentity, kbvItem))
@@ -111,7 +111,7 @@ class IssueCredentialHandlerTest {
         APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
 
         verify(mockSessionService).getSessionByAccessToken(accessToken);
-        verify(mockKBVStorageService).getKBVItem(String.valueOf(sessionId));
+        verify(mockKBVStorageService).getKBVItem(sessionId);
         verify(mockVerifiableCredentialService)
                 .generateSignedVerifiableCredentialJwt(SUBJECT, personIdentity, kbvItem);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
@@ -156,7 +156,7 @@ class IssueCredentialHandlerTest {
         personIdentity.setAddresses(addresses);
 
         when(mockSessionService.getSessionByAccessToken(accessToken)).thenReturn(sessionItem);
-        when(mockKBVStorageService.getKBVItem(String.valueOf(sessionId))).thenReturn(kbvItem);
+        when(mockKBVStorageService.getKBVItem(sessionId)).thenReturn(kbvItem);
         when(mockPersonIdentityService.getPersonIdentity(sessionId)).thenReturn(personIdentity);
         when(mockPersonIdentityService.getPersonIdentity(sessionId)).thenReturn(personIdentity);
         when(mockVerifiableCredentialService.generateSignedVerifiableCredentialJwt(
@@ -166,7 +166,7 @@ class IssueCredentialHandlerTest {
         APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
 
         verify(mockSessionService).getSessionByAccessToken(accessToken);
-        verify(mockKBVStorageService).getKBVItem(String.valueOf(sessionId));
+        verify(mockKBVStorageService).getKBVItem(sessionId);
         verify(mockVerifiableCredentialService)
                 .generateSignedVerifiableCredentialJwt(SUBJECT, personIdentity, kbvItem);
         verify(mockEventProbe).log(Level.ERROR, unExpectedJOSEException);
@@ -262,7 +262,7 @@ class IssueCredentialHandlerTest {
         SessionItem mockSessionItem = mock(SessionItem.class);
         when(mockSessionItem.getSessionId()).thenReturn(sessionId);
         when(mockSessionService.getSessionByAccessToken(accessToken)).thenReturn(mockSessionItem);
-        when(mockKBVStorageService.getKBVItem(String.valueOf(sessionId)))
+        when(mockKBVStorageService.getKBVItem(sessionId))
                 .thenThrow(
                         AwsServiceException.builder()
                                 .statusCode(500)
@@ -272,7 +272,7 @@ class IssueCredentialHandlerTest {
         APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
 
         verify(mockSessionService).getSessionByAccessToken(accessToken);
-        verify(mockKBVStorageService).getKBVItem(String.valueOf(sessionId));
+        verify(mockKBVStorageService).getKBVItem(sessionId);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
         verify(mockAuditService, never()).sendAuditEvent(any());
         String responseBody = new ObjectMapper().readValue(response.getBody(), String.class);

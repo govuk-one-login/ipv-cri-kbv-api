@@ -121,7 +121,7 @@ public class QuestionAnswerHandler
         QuestionState questionState;
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
 
-        KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
+        KBVItem kbvItem = kbvStorageService.getKBVItem(UUID.fromString(sessionId));
 
         questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
         QuestionAnswer answer = objectMapper.readValue(input.getBody(), QuestionAnswer.class);

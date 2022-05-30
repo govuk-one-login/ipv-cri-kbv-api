@@ -84,7 +84,7 @@ public class IssueCredentialHandler
         try {
             var accessToken = validateInputHeaderBearerToken(input.getHeaders());
             var sessionItem = this.sessionService.getSessionByAccessToken(accessToken);
-            var kbvItem = kbvStorageService.getKBVItem(String.valueOf(sessionItem.getSessionId()));
+            var kbvItem = kbvStorageService.getKBVItem(sessionItem.getSessionId());
             var personIdentity =
                     personIdentityService.getPersonIdentity(sessionItem.getSessionId());
 
