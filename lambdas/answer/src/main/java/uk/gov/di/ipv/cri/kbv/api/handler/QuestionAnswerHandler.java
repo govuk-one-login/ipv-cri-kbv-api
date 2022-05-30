@@ -42,31 +42,26 @@ import static org.apache.logging.log4j.Level.INFO;
 public class QuestionAnswerHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-    public static final String HEADER_SESSION_ID = "session-id";
-    public static final String ERROR_KEY = "\"error\"";
+    private static final String HEADER_SESSION_ID = "session-id";
+    private static final String ERROR_KEY = "\"error\"";
     private static final String POST_ANSWER = "post_answer";
     private final ObjectMapper objectMapper;
     private final KBVService kbvService;
     private final KBVStorageService kbvStorageService;
     private final SessionService sessionService;
-    private final APIGatewayProxyResponseEvent response;
     private final EventProbe eventProbe;
     private final AuditService auditService;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.registerModule(new JavaTimeModule());
+        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.kbvStorageService = new KBVStorageService();
         this.kbvService = new KBVServiceFactory().create();
-        this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = new EventProbe();
         this.sessionService = new SessionService();
         this.auditService =
                 new AuditService(
-                        SqsClient.builder().build(),
-                        new ConfigurationService(),
-                        new ObjectMapper());
+                        SqsClient.builder().build(), new ConfigurationService(), this.objectMapper);
 
         var kbvSystemProperty =
                 new KBVSystemProperty(new KeyStoreService(ParamManager.getSecretsProvider()));
@@ -83,9 +78,7 @@ public class QuestionAnswerHandler
             SessionService sessionService,
             AuditService auditService) {
         this.objectMapper = objectMapper;
-        this.objectMapper.registerModule(new JavaTimeModule());
         this.kbvStorageService = kbvStorageService;
-        this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = eventProbe;
         this.sessionService = sessionService;
         this.auditService = auditService;
@@ -98,9 +91,11 @@ public class QuestionAnswerHandler
     @Metrics(captureColdStart = true)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
+        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+
         response.withHeaders(Map.of("Content-Type", "application/json"));
         try {
-            processAnswerResponse(input);
+            processAnswerResponse(input, response);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(POST_ANSWER, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
@@ -128,7 +123,8 @@ public class QuestionAnswerHandler
         return response;
     }
 
-    public void processAnswerResponse(APIGatewayProxyRequestEvent input)
+    public void processAnswerResponse(
+            APIGatewayProxyRequestEvent input, APIGatewayProxyResponseEvent response)
             throws IOException, SqsException {
         QuestionState questionState;
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
@@ -138,12 +134,13 @@ public class QuestionAnswerHandler
         questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
         QuestionAnswer answer = objectMapper.readValue(input.getBody(), QuestionAnswer.class);
 
-        if (respondWithAnswerFromDbStore(answer, questionState, kbvItem)) return;
-        respondWithAnswerFromExperianThenStoreInDb(questionState, kbvItem);
+        if (respondWithAnswerFromDbStore(answer, questionState, kbvItem, response)) return;
+        respondWithAnswerFromExperianThenStoreInDb(questionState, kbvItem, response);
     }
 
     private void respondWithAnswerFromExperianThenStoreInDb(
-            QuestionState questionState, KBVItem kbvItem) throws IOException, SqsException {
+            QuestionState questionState, KBVItem kbvItem, APIGatewayProxyResponseEvent response)
+            throws IOException, SqsException {
         QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
         questionAnswerRequest.setUrn(kbvItem.getUrn());
         questionAnswerRequest.setAuthRefNo(kbvItem.getAuthRefNo());
@@ -166,14 +163,15 @@ public class QuestionAnswerHandler
             sessionItem.setAuthorizationCode(UUID.randomUUID().toString());
             sessionService.createAuthorizationCode(sessionItem);
             auditService.sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_THIRD_PARTY_REQUEST_ENDED);
-        } else {
-            // TODO: alternate flow could end of transaction / or others
         }
         response.withStatusCode(HttpStatusCode.OK);
     }
 
     private boolean respondWithAnswerFromDbStore(
-            QuestionAnswer answer, QuestionState questionState, KBVItem kbvItem)
+            QuestionAnswer answer,
+            QuestionState questionState,
+            KBVItem kbvItem,
+            APIGatewayProxyResponseEvent response)
             throws JsonProcessingException {
 
         questionState.setAnswer(answer);

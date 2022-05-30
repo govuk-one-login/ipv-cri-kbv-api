@@ -254,7 +254,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../../common-lambdas/accesstoken/build/distributions/accesstoken.zip
-      Handler: uk.gov.di.ipv.cri.address.api.handler.AccessTokenHandler::handleRequest
+      Handler: uk.gov.di.ipv.cri.common.api.handler.AccessTokenHandler::handleRequest
       Environment:
         Variables:
           POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
@@ -395,8 +395,8 @@ Resources:
       CodeUri: ../../lambdas/issuecredential/build/distributions/issuecredential.zip
       Environment:
         Variables:
-          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-address-api
-          POWERTOOLS_SERVICE_NAME: di-ipv-cri-address-api-issuecredential
+          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-issuecredential
           SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
       Policies:
         - AWSLambdaBasicExecutionRole
