@@ -8,12 +8,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import software.amazon.awssdk.http.HttpStatusCode;
+import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
+import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
+import uk.gov.di.ipv.cri.common.library.service.AuditService;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
@@ -37,15 +42,16 @@ import static org.apache.logging.log4j.Level.INFO;
 public class QuestionAnswerHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
+    public static final String HEADER_SESSION_ID = "session-id";
+    public static final String ERROR_KEY = "\"error\"";
     private static final String POST_ANSWER = "post_answer";
     private final ObjectMapper objectMapper;
     private final KBVService kbvService;
     private final KBVStorageService kbvStorageService;
     private final SessionService sessionService;
-    private APIGatewayProxyResponseEvent response;
-    public static final String HEADER_SESSION_ID = "session-id";
-    public static final String ERROR_KEY = "\"error\"";
-    private EventProbe eventProbe;
+    private final APIGatewayProxyResponseEvent response;
+    private final EventProbe eventProbe;
+    private final AuditService auditService;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
@@ -53,10 +59,14 @@ public class QuestionAnswerHandler
         this.objectMapper.registerModule(new JavaTimeModule());
         this.kbvStorageService = new KBVStorageService();
         this.kbvService = new KBVServiceFactory().create();
-
         this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = new EventProbe();
         this.sessionService = new SessionService();
+        this.auditService =
+                new AuditService(
+                        SqsClient.builder().build(),
+                        new ConfigurationService(),
+                        new ObjectMapper());
 
         var kbvSystemProperty =
                 new KBVSystemProperty(new KeyStoreService(ParamManager.getSecretsProvider()));
@@ -70,14 +80,15 @@ public class QuestionAnswerHandler
             KBVSystemProperty systemProperty,
             KBVServiceFactory kbvServiceFactory,
             EventProbe eventProbe,
-            SessionService sessionService) {
+            SessionService sessionService,
+            AuditService auditService) {
         this.objectMapper = objectMapper;
         this.objectMapper.registerModule(new JavaTimeModule());
         this.kbvStorageService = kbvStorageService;
-
         this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = eventProbe;
         this.sessionService = sessionService;
+        this.auditService = auditService;
         this.kbvService = kbvServiceFactory.create();
         systemProperty.save();
     }
@@ -117,7 +128,8 @@ public class QuestionAnswerHandler
         return response;
     }
 
-    public void processAnswerResponse(APIGatewayProxyRequestEvent input) throws IOException {
+    public void processAnswerResponse(APIGatewayProxyRequestEvent input)
+            throws IOException, SqsException {
         QuestionState questionState;
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
 
@@ -131,7 +143,7 @@ public class QuestionAnswerHandler
     }
 
     private void respondWithAnswerFromExperianThenStoreInDb(
-            QuestionState questionState, KBVItem kbvItem) throws IOException {
+            QuestionState questionState, KBVItem kbvItem) throws IOException, SqsException {
         QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
         questionAnswerRequest.setUrn(kbvItem.getUrn());
         questionAnswerRequest.setAuthRefNo(kbvItem.getAuthRefNo());
@@ -153,6 +165,7 @@ public class QuestionAnswerHandler
                     sessionService.getSession(String.valueOf(kbvItem.getSessionId()));
             sessionItem.setAuthorizationCode(UUID.randomUUID().toString());
             sessionService.createAuthorizationCode(sessionItem);
+            auditService.sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_THIRD_PARTY_REQUEST_ENDED);
         } else {
             // TODO: alternate flow could end of transaction / or others
         }

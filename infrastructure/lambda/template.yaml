@@ -289,6 +289,7 @@ Resources:
         Variables:
           POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-question
+          SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
@@ -298,6 +299,10 @@ Resources:
             TableName: !Ref KBVTable
         - DynamoDBReadPolicy:
             TableName: !Ref PersonIdentityTable
+        - SQSSendMessagePolicy:
+            QueueName: !ImportValue AuditEventQueueName
+        - KMSDecryptPolicy:
+            KeyId: !ImportValue core-infrastructure-CriDecryptionKey1Id
         - Statement:
             - Effect: Allow
               Action:
@@ -319,6 +324,14 @@ Resources:
                 - ssm:GetParametersByPath
               Resource:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
+        - Statement:
+            - Sid: auditEventQueueKmsEncryptionKeyPermission
+              Effect: Allow
+              Action:
+                - 'kms:Decrypt'
+                - 'kms:GenerateDataKey'
+              Resource:
+                - !ImportValue AuditEventQueueEncryptionKeyArn
 
   KBVAnswerFunction:
     Type: AWS::Serverless::Function
@@ -329,6 +342,7 @@ Resources:
         Variables:
           POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-answer
+          SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
@@ -340,6 +354,10 @@ Resources:
             TableName: !Ref SessionTable
         - DynamoDBWritePolicy:
             TableName: !Ref SessionTable
+        - SQSSendMessagePolicy:
+            QueueName: !ImportValue AuditEventQueueName
+        - KMSDecryptPolicy:
+            KeyId: !ImportValue core-infrastructure-CriDecryptionKey1Id
         - Statement:
             - Effect: Allow
               Action:
@@ -361,6 +379,14 @@ Resources:
                 - ssm:GetParametersByPath
               Resource:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
+        - Statement:
+            - Sid: auditEventQueueKmsEncryptionKeyPermission
+              Effect: Allow
+              Action:
+                - 'kms:Decrypt'
+                - 'kms:GenerateDataKey'
+              Resource:
+                - !ImportValue AuditEventQueueEncryptionKeyArn
 
   IssueCredentialFunction:
     Type: AWS::Serverless::Function

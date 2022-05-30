@@ -13,7 +13,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
+import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
+import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
@@ -56,7 +59,7 @@ class QuestionAnswerHandlerTest {
     @Mock private EventProbe mockEventProbe;
     @Mock private KBVServiceFactory mockKbvServiceFactory;
     @Mock private SessionService mockSessionService;
-
+    @Mock private AuditService mockAuditService;
     @Mock private KBVService mockKbvService;
     @Mock private KBVSystemProperty mockSystemProperty;
 
@@ -71,7 +74,8 @@ class QuestionAnswerHandlerTest {
                         mockSystemProperty,
                         mockKbvServiceFactory,
                         mockEventProbe,
-                        mockSessionService);
+                        mockSessionService,
+                        mockAuditService);
     }
 
     @Test
@@ -103,7 +107,7 @@ class QuestionAnswerHandlerTest {
     }
 
     @Test
-    void shouldReturn200WithFinalResponseFromExperianAPI() throws IOException {
+    void shouldReturn200WithFinalResponseFromExperianAPI() throws IOException, SqsException {
         KBVItem kbvItemMock = mock(KBVItem.class);
         QuestionState questionStateMock = mock(QuestionState.class);
         QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
@@ -150,6 +154,8 @@ class QuestionAnswerHandlerTest {
         verify(mockSessionService).createAuthorizationCode(mockSessionItem);
         assertEquals(HttpStatusCode.OK, result.getStatusCode());
         assertNull(result.getBody());
+        verify(mockAuditService)
+                .sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_THIRD_PARTY_REQUEST_ENDED);
     }
 
     @Test
@@ -281,7 +287,8 @@ class QuestionAnswerHandlerTest {
                         mockSystemProperty,
                         factory,
                         mockEventProbe,
-                        mockSessionService);
+                        mockSessionService,
+                        mockAuditService);
 
         setupEventProbeErrorBehaviour();
         APIGatewayProxyResponseEvent response =
