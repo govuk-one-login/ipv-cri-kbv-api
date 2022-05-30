@@ -2,6 +2,7 @@ package uk.gov.di.ipv.cri.kbv.api.service;
 
 import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.common.library.persistence.DataStore;
+import uk.gov.di.ipv.cri.common.library.persistence.DynamoDbEnhancedClientFactory;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 
 import java.util.Objects;
@@ -12,7 +13,11 @@ public class KBVStorageService {
     private final DataStore<KBVItem> dataStore;
 
     public KBVStorageService() {
-        this.dataStore = new DataStore<>(getKBVTableName(), KBVItem.class, DataStore.getClient());
+        this.dataStore =
+                new DataStore<>(
+                        getKBVTableName(),
+                        KBVItem.class,
+                        new DynamoDbEnhancedClientFactory().getClient());
     }
 
     public KBVStorageService(DataStore<KBVItem> datastore) {
