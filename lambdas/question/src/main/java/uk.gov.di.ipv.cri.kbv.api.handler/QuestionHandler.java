@@ -29,7 +29,9 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
 import uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,6 +50,8 @@ public class QuestionHandler
     private final PersonIdentityService personIdentityService;
 
     private final ConfigurationService configurationService;
+
+    private final Clock clock;
     private APIGatewayProxyResponseEvent response;
     private EventProbe eventProbe;
     private KBVService kbvService;
@@ -63,6 +67,7 @@ public class QuestionHandler
 
         this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = new EventProbe();
+        this.clock = Clock.systemUTC();
 
         var kbvSystemProperty =
                 new KBVSystemProperty(new KeyStoreService(ParamManager.getSecretsProvider()));
@@ -76,7 +81,8 @@ public class QuestionHandler
             KBVSystemProperty systemProperty,
             KBVServiceFactory kbvServiceFactory,
             ConfigurationService configurationService,
-            EventProbe eventProbe) {
+            EventProbe eventProbe,
+            Clock clock) {
         this.objectMapper = objectMapper;
         this.objectMapper.registerModule(new JavaTimeModule());
         this.kbvStorageService = kbvStorageService;
@@ -87,6 +93,7 @@ public class QuestionHandler
 
         this.kbvService = kbvServiceFactory.create();
         this.configurationService = configurationService;
+        this.clock = clock;
         systemProperty.save();
     }
 
@@ -125,7 +132,7 @@ public class QuestionHandler
         UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
 
         PersonIdentity personIdentity = personIdentityService.getPersonIdentity(sessionId);
-        KBVItem kbvItem = kbvStorageService.getKBVItem(String.valueOf(sessionId));
+        KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
 
         QuestionState questionState = new QuestionState();
         if (kbvItem != null) {
@@ -175,7 +182,9 @@ public class QuestionHandler
             kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
             kbvItem.setUrn(questionsResponse.getControl().getURN());
             kbvItem.setExpiryDate(
-                    Instant.now().getEpochSecond() + configurationService.getSessionTtl());
+                    clock.instant()
+                            .plus(configurationService.getSessionTtl(), ChronoUnit.SECONDS)
+                            .getEpochSecond());
             kbvStorageService.save(kbvItem);
         } else { // TODO: Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);

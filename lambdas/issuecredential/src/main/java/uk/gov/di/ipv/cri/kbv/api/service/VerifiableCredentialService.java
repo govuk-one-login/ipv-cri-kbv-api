@@ -115,7 +115,7 @@ public class VerifiableCredentialService {
         /// TODO: Handle multiple evidence items
 
         Evidence evidence = new Evidence();
-        evidence.setType(EvidenceType.IdentityCheck);
+        evidence.setType(EvidenceType.IDENTITY_CHECK);
         evidence.setTxn(kbvItem.getAuthRefNo());
 
         /// TODO: calculate evidence score

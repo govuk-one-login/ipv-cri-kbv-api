@@ -41,8 +41,8 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.*;
 
 @ExtendWith(MockitoExtension.class)
 class VerifiableCredentialServiceTest implements TestFixtures {
-    public static final String SUBJECT = "subject";
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final String SUBJECT = "subject";
+    @Mock private ObjectMapper objectMapper;
     @Mock private ConfigurationService mockConfigurationService;
 
     @BeforeEach
@@ -117,7 +117,8 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         JWTClaimsSet generatedClaims = signedJWT.getJWTClaimsSet();
         assertTrue(signedJWT.verify(new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1))));
 
-        JsonNode claimsSet = objectMapper.readTree(generatedClaims.toString());
+        ObjectMapper claimSetMapper = new ObjectMapper();
+        JsonNode claimsSet = claimSetMapper.readTree(generatedClaims.toString());
 
         assertEquals(5, claimsSet.size());
 

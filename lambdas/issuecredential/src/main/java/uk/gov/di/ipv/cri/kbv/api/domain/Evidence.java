@@ -1,8 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
-
-@DynamoDbBean
 public class Evidence {
     private String txn;
     private EvidenceType type;
