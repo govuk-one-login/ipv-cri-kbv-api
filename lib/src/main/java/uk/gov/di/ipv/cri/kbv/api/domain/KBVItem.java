@@ -3,12 +3,14 @@ package uk.gov.di.ipv.cri.kbv.api.domain;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
+import java.util.UUID;
+
 @DynamoDbBean
 public class KBVItem {
-    private String sessionId;
+    private UUID sessionId;
     private String token;
     private String questionState;
-    private String expiryDate;
+    private long expiryDate;
     private String authRefNo;
     private String urn;
     private String status;
@@ -21,7 +23,7 @@ public class KBVItem {
         this.questionState = questionState;
     }
 
-    public void setSessionId(String sessionId) {
+    public void setSessionId(UUID sessionId) {
         this.sessionId = sessionId;
     }
 
@@ -33,11 +35,11 @@ public class KBVItem {
         return questionState;
     }
 
-    public String getExpiryDate() {
+    public long getExpiryDate() {
         return expiryDate;
     }
 
-    public void setExpiryDate(String expiryDate) {
+    public void setExpiryDate(long expiryDate) {
         this.expiryDate = expiryDate;
     }
 
@@ -58,7 +60,7 @@ public class KBVItem {
     }
 
     @DynamoDbPartitionKey
-    public String getSessionId() {
+    public UUID getSessionId() {
         return sessionId;
     }
 

@@ -61,10 +61,6 @@ class StartAuthnAttemptRequestMapperTest {
                                 personIdentity.getAddresses().get(0).getBuildingName()),
                 () ->
                         assertEquals(
-                                result.getLocationDetails().get(0).getUKLocation().getFlat(),
-                                personIdentity.getAddresses().get(0).getFlat()),
-                () ->
-                        assertEquals(
                                 result.getLocationDetails().get(0).getUKLocation().getPostcode(),
                                 personIdentity.getAddresses().get(0).getPostcode()),
                 () ->
@@ -117,10 +113,6 @@ class StartAuthnAttemptRequestMapperTest {
                         assertEquals(
                                 personIdentity.getAddresses().get(0).getBuildingName(),
                                 result.getLocationDetails().get(0).getUKLocation().getHouseName()),
-                () ->
-                        assertEquals(
-                                personIdentity.getAddresses().get(0).getFlat(),
-                                result.getLocationDetails().get(0).getUKLocation().getFlat()),
                 () ->
                         assertEquals(
                                 personIdentity.getAddresses().get(0).getPostcode(),

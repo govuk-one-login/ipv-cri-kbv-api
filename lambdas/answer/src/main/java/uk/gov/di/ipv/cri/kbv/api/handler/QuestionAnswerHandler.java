@@ -121,7 +121,7 @@ public class QuestionAnswerHandler
         QuestionState questionState;
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
 
-        KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
+        KBVItem kbvItem = kbvStorageService.getKBVItem(UUID.fromString(sessionId));
 
         questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
         QuestionAnswer answer = objectMapper.readValue(input.getBody(), QuestionAnswer.class);
@@ -149,7 +149,8 @@ public class QuestionAnswerHandler
             kbvItem.setStatus(questionsResponse.getStatus());
             kbvStorageService.update(kbvItem);
 
-            SessionItem sessionItem = sessionService.getSession(kbvItem.getSessionId());
+            SessionItem sessionItem =
+                    sessionService.getSession(String.valueOf(kbvItem.getSessionId()));
             sessionItem.setAuthorizationCode(UUID.randomUUID().toString());
             sessionService.createAuthorizationCode(sessionItem);
         } else {

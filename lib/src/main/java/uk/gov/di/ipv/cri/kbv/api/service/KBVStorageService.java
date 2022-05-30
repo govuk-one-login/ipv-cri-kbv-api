@@ -6,6 +6,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 public class KBVStorageService {
     private final DataStore<KBVItem> dataStore;
@@ -22,8 +23,8 @@ public class KBVStorageService {
         return Optional.of(this.dataStore.getItem(sessionId));
     }
 
-    public KBVItem getKBVItem(String sessionId) {
-        return this.dataStore.getItem(sessionId);
+    public KBVItem getKBVItem(UUID sessionId) {
+        return this.dataStore.getItem(String.valueOf(sessionId));
     }
 
     public void update(KBVItem kbvItem) {

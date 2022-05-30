@@ -13,6 +13,7 @@ project(':jwkset').projectDir = new File('./common-lambdas/jwkset')
 include "lib"
 
 // CRI specific lambdas
-include "question", "answer"
+include "question", "answer", "issuecredential"
 project(':question').projectDir = new File('./lambdas/question')
 project(':answer').projectDir = new File('./lambdas/answer')
+project(':issuecredential').projectDir = new File('./lambdas/issuecredential')
