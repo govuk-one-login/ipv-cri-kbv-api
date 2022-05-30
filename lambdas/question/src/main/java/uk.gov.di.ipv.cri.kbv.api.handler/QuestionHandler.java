@@ -69,9 +69,7 @@ public class QuestionHandler
         this.eventProbe = new EventProbe();
         this.auditService =
                 new AuditService(
-                        SqsClient.builder().build(),
-                        new ConfigurationService(),
-                        new ObjectMapper());
+                        SqsClient.builder().build(), new ConfigurationService(), this.objectMapper);
         this.clock = Clock.systemUTC();
 
         var kbvSystemProperty =
