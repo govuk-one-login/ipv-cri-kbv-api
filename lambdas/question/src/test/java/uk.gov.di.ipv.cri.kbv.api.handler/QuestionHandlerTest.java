@@ -18,7 +18,10 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
@@ -65,6 +68,7 @@ class QuestionHandlerTest {
     @Mock private KBVService mockKbvService;
     @Mock private ConfigurationService mockConfigurationService;
     @Mock private KBVSystemProperty mockSystemProperty;
+    @Mock private AuditService mockAuditService;
 
     @BeforeEach
     void setUp() {
@@ -79,12 +83,13 @@ class QuestionHandlerTest {
                         mockKbvServiceFactory,
                         mockConfigurationService,
                         mockEventProbe,
-                        clock);
+                        clock,
+                        mockAuditService);
     }
 
     @Test
     void shouldReturn200OkWhen1stCalledAndReturn1stUnAnsweredQuestionFromExperianEndpoint()
-            throws IOException {
+            throws IOException, SqsException {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
@@ -131,6 +136,7 @@ class QuestionHandlerTest {
 
         assertEquals(HttpStatusCode.OK, response.getStatusCode());
         assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
+        verify(mockAuditService).sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_REQUEST_SENT);
     }
 
     @Test

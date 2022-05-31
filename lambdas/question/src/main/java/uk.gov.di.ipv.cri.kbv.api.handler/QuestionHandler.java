@@ -9,12 +9,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import software.amazon.awssdk.http.HttpStatusCode;
+import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
@@ -32,6 +36,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,25 +52,24 @@ public class QuestionHandler
     private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
-
+    private final EventProbe eventProbe;
+    private final KBVService kbvService;
+    private final AuditService auditService;
     private final ConfigurationService configurationService;
-
     private final Clock clock;
-    private APIGatewayProxyResponseEvent response;
-    private EventProbe eventProbe;
-    private KBVService kbvService;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.registerModule(new JavaTimeModule());
+        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.kbvStorageService = new KBVStorageService();
         this.personIdentityService = new PersonIdentityService();
         this.kbvService = new KBVServiceFactory().create();
         this.configurationService = new ConfigurationService();
 
-        this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = new EventProbe();
+        this.auditService =
+                new AuditService(
+                        SqsClient.builder().build(), new ConfigurationService(), this.objectMapper);
         this.clock = Clock.systemUTC();
 
         var kbvSystemProperty =
@@ -81,15 +85,13 @@ public class QuestionHandler
             KBVServiceFactory kbvServiceFactory,
             ConfigurationService configurationService,
             EventProbe eventProbe,
-            Clock clock) {
+            Clock clock,
+            AuditService auditService) {
         this.objectMapper = objectMapper;
-        this.objectMapper.registerModule(new JavaTimeModule());
         this.kbvStorageService = kbvStorageService;
         this.personIdentityService = personIdentityService;
-
-        this.response = new APIGatewayProxyResponseEvent();
         this.eventProbe = eventProbe;
-
+        this.auditService = auditService;
         this.kbvService = kbvServiceFactory.create();
         this.configurationService = configurationService;
         this.clock = clock;
@@ -101,9 +103,9 @@ public class QuestionHandler
     @Metrics(captureColdStart = true)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
-
+        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
         try {
-            processQuestionRequest(input);
+            processQuestionRequest(input, response);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
@@ -113,7 +115,7 @@ public class QuestionHandler
             eventProbe.log(INFO, npe).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"Retrieving questions failed.\" }");
@@ -125,8 +127,9 @@ public class QuestionHandler
         return response;
     }
 
-    public void processQuestionRequest(APIGatewayProxyRequestEvent input)
-            throws IOException, InterruptedException {
+    public void processQuestionRequest(
+            APIGatewayProxyRequestEvent input, APIGatewayProxyResponseEvent response)
+            throws IOException, SqsException {
         response.withHeaders(Map.of("Content-Type", "application/json"));
         UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
 
@@ -142,13 +145,15 @@ public class QuestionHandler
             kbvItem.setSessionId(sessionId);
         }
 
-        if (respondWithQuestionFromDbStore(questionState)) return;
+        if (respondWithQuestionFromDbStore(questionState, response)) return;
         QuestionRequest questionRequest = new QuestionRequest();
         questionRequest.setPersonIdentity(personIdentity);
-        respondWithQuestionFromExperianThenStoreInDb(questionRequest, kbvItem, questionState);
+        respondWithQuestionFromExperianThenStoreInDb(
+                questionRequest, kbvItem, questionState, response);
     }
 
-    private boolean respondWithQuestionFromDbStore(QuestionState questionState)
+    private boolean respondWithQuestionFromDbStore(
+            QuestionState questionState, APIGatewayProxyResponseEvent response)
             throws JsonProcessingException {
         // TODO Handle scenario when no questions are available
         Optional<Question> nextQuestion = questionState.getNextQuestion();
@@ -161,11 +166,14 @@ public class QuestionHandler
     }
 
     private void respondWithQuestionFromExperianThenStoreInDb(
-            QuestionRequest questionRequest, KBVItem kbvItem, QuestionState questionState)
-            throws IOException, InterruptedException {
+            QuestionRequest questionRequest,
+            KBVItem kbvItem,
+            QuestionState questionState,
+            APIGatewayProxyResponseEvent response)
+            throws IOException, SqsException {
         // we should fall in this block once only
         // fetch a batch of questions from experian kbv wrapper
-        if (kbvItem.getStatus() != null) {
+        if (Objects.nonNull(kbvItem.getStatus())) {
             response.withStatusCode(HttpStatusCode.NO_CONTENT);
             return;
         }
@@ -185,7 +193,8 @@ public class QuestionHandler
                             .plus(configurationService.getSessionTtl(), ChronoUnit.SECONDS)
                             .getEpochSecond());
             kbvStorageService.save(kbvItem);
-        } else { // TODO: Alternate flow when first request does not return questions
+            auditService.sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_REQUEST_SENT);
+        } else { // Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody(objectMapper.writeValueAsString(questionsResponse));
         }
