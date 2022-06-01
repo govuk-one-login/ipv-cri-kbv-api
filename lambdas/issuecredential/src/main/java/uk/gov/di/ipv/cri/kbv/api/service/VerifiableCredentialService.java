@@ -118,8 +118,7 @@ public class VerifiableCredentialService {
         evidence.setType(EvidenceType.IDENTITY_CHECK);
         evidence.setTxn(kbvItem.getAuthRefNo());
 
-        if (kbvItem.getStatus() == null)
-        {
+        if (kbvItem.getStatus() == null) {
             throw new IllegalArgumentException("KBV item status is null");
         }
 
