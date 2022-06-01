@@ -20,9 +20,9 @@ public class VerifiableCredentialConstants {
 
     public static final String VC_EVIDENCE_KEY = "evidence";
 
-    public static final String VC_THIRD_PARTY_KBV_CHECK_PASS = "AUTHORISED";
+    public static final String VC_THIRD_PARTY_KBV_CHECK_PASS = "AUTHENTICATED";
 
-    public static final String VC_THIRD_PARTY_KBV_CHECK_FAIL = "NOT AUTHORISED";
+    public static final String VC_THIRD_PARTY_KBV_CHECK_FAIL = "NOT AUTHENTICATED";
 
     public static final int VC_PASS_EVIDENCE_SCORE = 2;
 
