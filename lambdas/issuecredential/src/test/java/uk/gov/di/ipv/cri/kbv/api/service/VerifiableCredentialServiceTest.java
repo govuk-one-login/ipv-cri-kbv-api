@@ -42,7 +42,7 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.*;
 @ExtendWith(MockitoExtension.class)
 class VerifiableCredentialServiceTest implements TestFixtures {
     private static final String SUBJECT = "subject";
-    @Mock private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     @Mock private ConfigurationService mockConfigurationService;
 
     @BeforeEach
@@ -59,12 +59,12 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         SignedJWTFactory signedJwtFactory = new SignedJWTFactory(new ECDSASigner(getPrivateKey()));
         var verifiableCredentialService =
                 new VerifiableCredentialService(
-                        signedJwtFactory, mockConfigurationService, new ObjectMapper());
+                        signedJwtFactory, mockConfigurationService, objectMapper);
 
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
         kbvItem.setAuthRefNo(UUID.randomUUID().toString());
-        kbvItem.setStatus(VC_THIRD_PARTY_SUCCESS_STATUS);
+        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_PASS);
 
         PersonAddress address = new PersonAddress();
         address.setBuildingNumber("114");
@@ -84,8 +84,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         JWTClaimsSet generatedClaims = signedJWT.getJWTClaimsSet();
         assertTrue(signedJWT.verify(new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1))));
 
-        ObjectMapper claimSetMapper = new ObjectMapper();
-        JsonNode claimsSet = claimSetMapper.readTree(generatedClaims.toString());
+        JsonNode claimsSet = objectMapper.readTree(generatedClaims.toString());
 
         assertEquals(5, claimsSet.size());
 
@@ -101,7 +100,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
                                     .asText());
 
                     assertEquals(
-                            VC_SUCCESS_EVIDENCE_SCORE,
+                            VC_PASS_EVIDENCE_SCORE,
                             claimsSet
                                     .get(VC_CLAIM)
                                     .get(VC_EVIDENCE_KEY)
@@ -121,12 +120,12 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         SignedJWTFactory signedJwtFactory = new SignedJWTFactory(new ECDSASigner(getPrivateKey()));
         var verifiableCredentialService =
                 new VerifiableCredentialService(
-                        signedJwtFactory, mockConfigurationService, new ObjectMapper());
+                        signedJwtFactory, mockConfigurationService, objectMapper);
 
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
         kbvItem.setAuthRefNo(UUID.randomUUID().toString());
-        kbvItem.setStatus(VC_THIRD_PARTY_FAIL_STATUS);
+        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_FAIL);
 
         PersonAddress address = new PersonAddress();
         address.setBuildingNumber("114");
@@ -146,8 +145,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         JWTClaimsSet generatedClaims = signedJWT.getJWTClaimsSet();
         assertTrue(signedJWT.verify(new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1))));
 
-        ObjectMapper claimSetMapper = new ObjectMapper();
-        JsonNode claimsSet = claimSetMapper.readTree(generatedClaims.toString());
+        JsonNode claimsSet = objectMapper.readTree(generatedClaims.toString());
 
         assertEquals(5, claimsSet.size());
 
@@ -189,7 +187,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
         kbvItem.setExpiryDate(Instant.now().plusSeconds(342).getEpochSecond());
-        kbvItem.setStatus(VC_THIRD_PARTY_FAIL_STATUS);
+        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_FAIL);
 
         PersonAddress address = new PersonAddress();
         address.setBuildingNumber("114");

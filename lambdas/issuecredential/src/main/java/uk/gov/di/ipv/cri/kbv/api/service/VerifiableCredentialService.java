@@ -118,19 +118,20 @@ public class VerifiableCredentialService {
         evidence.setType(EvidenceType.IDENTITY_CHECK);
         evidence.setTxn(kbvItem.getAuthRefNo());
 
-        // Just in case we're sent null data, we don't want to try and do an upper case on it
-        if (kbvItem.getStatus() == null) {
-            kbvItem.setStatus("");
+        if (kbvItem.getStatus() == null)
+        {
+            throw new IllegalArgumentException("KBV item status is null");
         }
 
         switch (kbvItem.getStatus().toUpperCase()) {
-            case VC_THIRD_PARTY_SUCCESS_STATUS:
-                evidence.setVerificationScore(VC_SUCCESS_EVIDENCE_SCORE);
+            case VC_THIRD_PARTY_KBV_CHECK_PASS:
+                evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
                 break;
-            case VC_THIRD_PARTY_FAIL_STATUS:
-            default:
+            case VC_THIRD_PARTY_KBV_CHECK_FAIL:
                 evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
                 break;
+            default:
+                throw new IllegalArgumentException("KBV item status is unknown");
         }
 
         var evidenceObjects = new Object[1];
