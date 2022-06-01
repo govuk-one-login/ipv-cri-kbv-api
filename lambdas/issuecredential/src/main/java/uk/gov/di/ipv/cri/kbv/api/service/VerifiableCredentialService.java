@@ -118,10 +118,10 @@ public class VerifiableCredentialService {
         evidence.setType(EvidenceType.IDENTITY_CHECK);
         evidence.setTxn(kbvItem.getAuthRefNo());
 
-        if ("AUTHORISED".equalsIgnoreCase(kbvItem.getStatus())) {
-            evidence.setVerificationScore(2);
+        if (VC_THIRD_PARTY_SUCCESS_STATUS.equalsIgnoreCase(kbvItem.getStatus())) {
+            evidence.setVerificationScore(VC_SUCCESS_EVIDENCE_SCORE);
         } else {
-            evidence.setVerificationScore(0);
+            evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
         }
 
         var evidenceObjects = new Object[1];
