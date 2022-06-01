@@ -250,6 +250,34 @@ Resources:
               Resource:
                 - !ImportValue AuditEventQueueEncryptionKeyArn
 
+  AuthorizationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../common-lambdas/authorization/build/distributions/authorization.zip
+      Handler: uk.gov.di.ipv.cri.common.api.handler.AuthorizationHandler::handleRequest
+      Environment:
+        Variables:
+          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-authorization
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBReadPolicy:
+            TableName: !Ref SessionTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParametersByPath
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
+
   AccessTokenFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -688,6 +716,13 @@ Resources:
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt AccessTokenFunction.Arn
+      Principal: apigateway.amazonaws.com
+
+  AuthorizationFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt AuthorizationFunction.Arn
       Principal: apigateway.amazonaws.com
 
   KBVQuestionFunctionPermission:
