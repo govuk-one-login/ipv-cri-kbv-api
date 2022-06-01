@@ -75,16 +75,18 @@ public class VerifiableCredentialService {
                                         new String[] {W3_BASE_CONTEXT, DI_CONTEXT},
                                         VC_CREDENTIAL_SUBJECT,
                                         Map.of(
-                                                VC_ADDRESS_KEY, personIdentity.getAddresses(),
-                                                VC_NAME_KEY, generateName(personIdentity),
+                                                VC_ADDRESS_KEY,
+                                                personIdentity.getAddresses(),
+                                                VC_NAME_KEY,
+                                                generateName(personIdentity),
                                                 VC_BIRTHDATE_KEY,
-                                                        Map.of(
-                                                                "value",
-                                                                personIdentity
-                                                                        .getDateOfBirth()
-                                                                        .format(
-                                                                                DateTimeFormatter
-                                                                                        .ISO_DATE))),
+                                                Map.of(
+                                                        "value",
+                                                        personIdentity
+                                                                .getDateOfBirth()
+                                                                .format(
+                                                                        DateTimeFormatter
+                                                                                .ISO_DATE))),
                                         VC_EVIDENCE_KEY,
                                         calculateEvidence(kbvItem)))
                         .build();
@@ -112,14 +114,24 @@ public class VerifiableCredentialService {
 
     private Object[] calculateEvidence(KBVItem kbvItem) {
 
-        /// TODO: Handle multiple evidence items
-
         Evidence evidence = new Evidence();
         evidence.setType(EvidenceType.IDENTITY_CHECK);
         evidence.setTxn(kbvItem.getAuthRefNo());
 
-        /// TODO: calculate evidence score
-        evidence.setVerificationScore(2);
+        if (kbvItem.getStatus() == null) {
+            throw new IllegalArgumentException("KBV item status is null");
+        }
+
+        switch (kbvItem.getStatus().toUpperCase()) {
+            case VC_THIRD_PARTY_KBV_CHECK_PASS:
+                evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
+                break;
+            case VC_THIRD_PARTY_KBV_CHECK_FAIL:
+                evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
+                break;
+            default:
+                throw new IllegalArgumentException("KBV item status is unknown");
+        }
 
         var evidenceObjects = new Object[1];
         evidenceObjects[0] = objectMapper.convertValue(evidence, Map.class);

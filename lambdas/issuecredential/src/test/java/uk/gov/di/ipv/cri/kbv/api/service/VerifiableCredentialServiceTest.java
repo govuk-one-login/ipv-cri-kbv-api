@@ -42,7 +42,7 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.*;
 @ExtendWith(MockitoExtension.class)
 class VerifiableCredentialServiceTest implements TestFixtures {
     private static final String SUBJECT = "subject";
-    @Mock private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     @Mock private ConfigurationService mockConfigurationService;
 
     @BeforeEach
@@ -52,42 +52,9 @@ class VerifiableCredentialServiceTest implements TestFixtures {
     }
 
     @Test
-    void shouldReturnAVerifiedCredentialWhenGivenCanonicalAddresses() throws JOSEException {
-        SignedJWTFactory mockSignedClaimSetJwt = mock(SignedJWTFactory.class);
-        var verifiableCredentialService =
-                new VerifiableCredentialService(
-                        mockSignedClaimSetJwt, mockConfigurationService, objectMapper);
-
-        when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("kbv-cri-issue");
-        when(mockConfigurationService.getMaxJwtTtl()).thenReturn(342L);
-
-        KBVItem kbvItem = new KBVItem();
-        kbvItem.setSessionId(UUID.randomUUID());
-        kbvItem.setExpiryDate(Instant.now().plusSeconds(342).getEpochSecond());
-        kbvItem.setStatus("VALID");
-
-        PersonAddress address = new PersonAddress();
-        address.setBuildingNumber("114");
-        address.setStreet("Wellington Street");
-        address.setPostcode("LS1 1BA");
-        List<PersonAddress> addresses = List.of(address);
-
-        PersonIdentity personIdentity = new PersonIdentity();
-        personIdentity.setFirstName("Joe");
-        personIdentity.setSurname("Bloggs");
-        personIdentity.setDateOfBirth(LocalDate.of(1980, 1, 1));
-        personIdentity.setAddresses(addresses);
-
-        verifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                SUBJECT, personIdentity, kbvItem);
-
-        verify(mockSignedClaimSetJwt).createSignedJwt(any());
-    }
-
-    @Test
-    void shouldCreateValidSignedJWT()
-            throws InvalidKeySpecException, NoSuchAlgorithmException, JOSEException, ParseException,
-                    JsonProcessingException {
+    void shouldReturnAVerifiedCredentialWithSuccessScoreOnAuthorised()
+            throws JOSEException, ParseException, JsonProcessingException, InvalidKeySpecException,
+                    NoSuchAlgorithmException {
 
         SignedJWTFactory signedJwtFactory = new SignedJWTFactory(new ECDSASigner(getPrivateKey()));
         var verifiableCredentialService =
@@ -97,7 +64,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
         kbvItem.setAuthRefNo(UUID.randomUUID().toString());
-        kbvItem.setStatus("VALID");
+        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_PASS);
 
         PersonAddress address = new PersonAddress();
         address.setBuildingNumber("114");
@@ -117,8 +84,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         JWTClaimsSet generatedClaims = signedJWT.getJWTClaimsSet();
         assertTrue(signedJWT.verify(new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1))));
 
-        ObjectMapper claimSetMapper = new ObjectMapper();
-        JsonNode claimsSet = claimSetMapper.readTree(generatedClaims.toString());
+        JsonNode claimsSet = objectMapper.readTree(generatedClaims.toString());
 
         assertEquals(5, claimsSet.size());
 
@@ -132,8 +98,112 @@ class VerifiableCredentialServiceTest implements TestFixtures {
                                     .get(VC_BIRTHDATE_KEY)
                                     .get("value")
                                     .asText());
+
+                    assertEquals(
+                            VC_PASS_EVIDENCE_SCORE,
+                            claimsSet
+                                    .get(VC_CLAIM)
+                                    .get(VC_EVIDENCE_KEY)
+                                    .get(0)
+                                    .get("verificationScore")
+                                    .asInt());
                 });
         ECDSAVerifier ecVerifier = new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1));
         assertTrue(signedJWT.verify(ecVerifier));
+    }
+
+    @Test
+    void shouldReturnAVerifiedCredentialWithFailScoreOnNotAuthorised()
+            throws JOSEException, InvalidKeySpecException, NoSuchAlgorithmException, ParseException,
+                    JsonProcessingException {
+
+        SignedJWTFactory signedJwtFactory = new SignedJWTFactory(new ECDSASigner(getPrivateKey()));
+        var verifiableCredentialService =
+                new VerifiableCredentialService(
+                        signedJwtFactory, mockConfigurationService, objectMapper);
+
+        KBVItem kbvItem = new KBVItem();
+        kbvItem.setSessionId(UUID.randomUUID());
+        kbvItem.setAuthRefNo(UUID.randomUUID().toString());
+        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_FAIL);
+
+        PersonAddress address = new PersonAddress();
+        address.setBuildingNumber("114");
+        address.setStreet("Wellington Street");
+        address.setPostcode("LS1 1BA");
+        List<PersonAddress> addresses = List.of(address);
+
+        PersonIdentity personIdentity = new PersonIdentity();
+        personIdentity.setFirstName("Joe");
+        personIdentity.setSurname("Bloggs");
+        personIdentity.setDateOfBirth(LocalDate.of(1980, 1, 1));
+        personIdentity.setAddresses(addresses);
+
+        SignedJWT signedJWT =
+                verifiableCredentialService.generateSignedVerifiableCredentialJwt(
+                        SUBJECT, personIdentity, kbvItem);
+        JWTClaimsSet generatedClaims = signedJWT.getJWTClaimsSet();
+        assertTrue(signedJWT.verify(new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1))));
+
+        JsonNode claimsSet = objectMapper.readTree(generatedClaims.toString());
+
+        assertEquals(5, claimsSet.size());
+
+        assertAll(
+                () -> {
+                    assertEquals(
+                            personIdentity.getDateOfBirth().format(DateTimeFormatter.ISO_DATE),
+                            claimsSet
+                                    .get(VC_CLAIM)
+                                    .get(VC_CREDENTIAL_SUBJECT)
+                                    .get(VC_BIRTHDATE_KEY)
+                                    .get("value")
+                                    .asText());
+
+                    assertEquals(
+                            VC_FAIL_EVIDENCE_SCORE,
+                            claimsSet
+                                    .get(VC_CLAIM)
+                                    .get(VC_EVIDENCE_KEY)
+                                    .get(0)
+                                    .get("verificationScore")
+                                    .asInt());
+                });
+        ECDSAVerifier ecVerifier = new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1));
+        assertTrue(signedJWT.verify(ecVerifier));
+    }
+
+    @Test
+    void shouldCreateValidSignedJWT() throws JOSEException {
+
+        SignedJWTFactory mockSignedClaimSetJwt = mock(SignedJWTFactory.class);
+        var verifiableCredentialService =
+                new VerifiableCredentialService(
+                        mockSignedClaimSetJwt, mockConfigurationService, objectMapper);
+
+        when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("kbv-cri-issue");
+        when(mockConfigurationService.getMaxJwtTtl()).thenReturn(342L);
+
+        KBVItem kbvItem = new KBVItem();
+        kbvItem.setSessionId(UUID.randomUUID());
+        kbvItem.setExpiryDate(Instant.now().plusSeconds(342).getEpochSecond());
+        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_FAIL);
+
+        PersonAddress address = new PersonAddress();
+        address.setBuildingNumber("114");
+        address.setStreet("Wellington Street");
+        address.setPostcode("LS1 1BA");
+        List<PersonAddress> addresses = List.of(address);
+
+        PersonIdentity personIdentity = new PersonIdentity();
+        personIdentity.setFirstName("Joe");
+        personIdentity.setSurname("Bloggs");
+        personIdentity.setDateOfBirth(LocalDate.of(1980, 1, 1));
+        personIdentity.setAddresses(addresses);
+
+        verifiableCredentialService.generateSignedVerifiableCredentialJwt(
+                SUBJECT, personIdentity, kbvItem);
+
+        verify(mockSignedClaimSetJwt).createSignedJwt(any());
     }
 }

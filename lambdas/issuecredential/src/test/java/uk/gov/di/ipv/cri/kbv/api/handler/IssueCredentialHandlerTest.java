@@ -52,6 +52,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_PASS;
 import static uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler.KBV_CREDENTIAL_ISSUER;
 
 @ExtendWith(MockitoExtension.class)
@@ -85,7 +86,7 @@ class IssueCredentialHandlerTest {
         sessionItem.setSessionId(sessionId);
 
         KBVItem kbvItem = new KBVItem();
-        kbvItem.setStatus("VALID");
+        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_PASS);
         kbvItem.setSessionId(sessionId);
         kbvItem.setExpiryDate(Instant.now().plusSeconds(6000L).getEpochSecond());
 
@@ -141,7 +142,7 @@ class IssueCredentialHandlerTest {
         sessionItem.setSessionId(sessionId);
 
         KBVItem kbvItem = new KBVItem();
-        kbvItem.setStatus("VALID");
+        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_PASS);
         kbvItem.setSessionId(sessionId);
         PersonAddress address = new PersonAddress();
         address.setBuildingNumber("114");
