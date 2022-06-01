@@ -14,9 +14,9 @@ import java.util.UUID;
 public class KeyStoreService {
     private final SecretsProvider secretsProvider;
     public static final String KBV_API_KEYSTORE =
-            "/dev/di-ipv-cri-experian-kbv-api/experian/keystore";
+            "/dev/kbv-cri-api/experian/keystore";
     public static final String KBV_API_KEYSTORE_PASSWORD =
-            "/dev/di-ipv-cri-experian-kbv-api/experian/keystore-password";
+            "/dev/kbv-cri-api/experian/keystore-password";
     private static final Logger LOGGER = LoggerFactory.getLogger(KeyStoreService.class);
 
     public KeyStoreService(SecretsProvider secretsProvider) {
