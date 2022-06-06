@@ -86,7 +86,7 @@ public class IssueCredentialHandler
             var sessionItem = this.sessionService.getSessionByAccessToken(accessToken);
             var kbvItem = kbvStorageService.getKBVItem(sessionItem.getSessionId());
             var personIdentity =
-                    personIdentityService.getPersonIdentity(sessionItem.getSessionId());
+                    personIdentityService.getPersonIdentityDetailed(sessionItem.getSessionId());
 
             SignedJWT signedJWT =
                     verifiableCredentialService.generateSignedVerifiableCredentialJwt(

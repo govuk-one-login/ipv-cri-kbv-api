@@ -6,16 +6,20 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.util.KMSSigner;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
-import uk.gov.di.ipv.cri.kbv.api.domain.*;
+import uk.gov.di.ipv.cri.kbv.api.domain.Evidence;
+import uk.gov.di.ipv.cri.kbv.api.domain.EvidenceType;
+import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.nimbusds.jwt.JWTClaimNames.EXPIRATION_TIME;
 import static com.nimbusds.jwt.JWTClaimNames.ISSUER;
@@ -52,7 +56,8 @@ public class VerifiableCredentialService {
     }
 
     public SignedJWT generateSignedVerifiableCredentialJwt(
-            String subject, PersonIdentity personIdentity, KBVItem kbvItem) throws JOSEException {
+            String subject, PersonIdentityDetailed personIdentity, KBVItem kbvItem)
+            throws JOSEException {
         var now = Instant.now();
 
         var claimsSet =
@@ -75,18 +80,11 @@ public class VerifiableCredentialService {
                                         new String[] {W3_BASE_CONTEXT, DI_CONTEXT},
                                         VC_CREDENTIAL_SUBJECT,
                                         Map.of(
-                                                VC_ADDRESS_KEY,
-                                                personIdentity.getAddresses(),
-                                                VC_NAME_KEY,
-                                                generateName(personIdentity),
+                                                VC_ADDRESS_KEY, personIdentity.getAddresses(),
+                                                VC_NAME_KEY, personIdentity.getNames(),
                                                 VC_BIRTHDATE_KEY,
-                                                Map.of(
-                                                        "value",
-                                                        personIdentity
-                                                                .getDateOfBirth()
-                                                                .format(
-                                                                        DateTimeFormatter
-                                                                                .ISO_DATE))),
+                                                        convertBirthDates(
+                                                                personIdentity.getBirthDates())),
                                         VC_EVIDENCE_KEY,
                                         calculateEvidence(kbvItem)))
                         .build();
@@ -94,22 +92,16 @@ public class VerifiableCredentialService {
         return signedJwtFactory.createSignedJwt(claimsSet);
     }
 
-    private Name generateName(PersonIdentity personIdentity) {
-        Name name = new Name();
-
-        NameParts givenName = new NameParts();
-        givenName.setType("GivenName");
-        givenName.setValue(personIdentity.getFirstName());
-
-        NameParts familyName = new NameParts();
-        familyName.setType("FamilyName");
-        familyName.setValue(personIdentity.getSurname());
-
-        name.setNameParts(List.of(new NameParts[] {givenName, familyName}));
-
-        /// TODO: Deal with middle name(s)
-
-        return name;
+    private List<Map<String, String>> convertBirthDates(List<BirthDate> birthDates) {
+        return birthDates.stream()
+                .map(
+                        birthDate ->
+                                Map.of(
+                                        "value",
+                                        birthDate
+                                                .getValue()
+                                                .format(DateTimeFormatter.ISO_LOCAL_DATE)))
+                .collect(Collectors.toList());
     }
 
     private Object[] calculateEvidence(KBVItem kbvItem) {
