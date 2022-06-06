@@ -69,7 +69,7 @@ public class QuestionHandler
         this.eventProbe = new EventProbe();
         this.auditService =
                 new AuditService(
-                        SqsClient.builder().build(), new ConfigurationService(), this.objectMapper);
+                        SqsClient.builder().build(), this.configurationService, this.objectMapper);
         this.clock = Clock.systemUTC();
 
         var kbvSystemProperty =
@@ -134,22 +134,25 @@ public class QuestionHandler
         UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
 
         PersonIdentity personIdentity = personIdentityService.getPersonIdentity(sessionId);
-        KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
+        KBVItem kbvItem = getKbvItem(sessionId);
 
-        QuestionState questionState = new QuestionState();
-        if (kbvItem != null) {
-            questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
-        } else {
-            // first request for questions for a given session
-            kbvItem = new KBVItem();
-            kbvItem.setSessionId(sessionId);
-        }
+        QuestionState questionState =
+                objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
 
         if (respondWithQuestionFromDbStore(questionState, response)) return;
-        QuestionRequest questionRequest = new QuestionRequest();
-        questionRequest.setPersonIdentity(personIdentity);
         respondWithQuestionFromExperianThenStoreInDb(
-                questionRequest, kbvItem, questionState, response);
+                personIdentity, kbvItem, questionState, response);
+    }
+
+    private KBVItem getKbvItem(UUID sessionId) {
+        KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
+        if (kbvItem != null) {
+            return kbvItem;
+        }
+        // first request for questions for a given session
+        kbvItem = new KBVItem();
+        kbvItem.setSessionId(sessionId);
+        return kbvItem;
     }
 
     private boolean respondWithQuestionFromDbStore(
@@ -166,7 +169,7 @@ public class QuestionHandler
     }
 
     private void respondWithQuestionFromExperianThenStoreInDb(
-            QuestionRequest questionRequest,
+            PersonIdentity personIdentity,
             KBVItem kbvItem,
             QuestionState questionState,
             APIGatewayProxyResponseEvent response)
@@ -177,6 +180,8 @@ public class QuestionHandler
             response.withStatusCode(HttpStatusCode.NO_CONTENT);
             return;
         }
+        QuestionRequest questionRequest = new QuestionRequest();
+        questionRequest.setPersonIdentity(personIdentity);
         QuestionsResponse questionsResponse = this.kbvService.getQuestions(questionRequest);
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
@@ -192,8 +197,9 @@ public class QuestionHandler
                     clock.instant()
                             .plus(configurationService.getSessionTtl(), ChronoUnit.SECONDS)
                             .getEpochSecond());
-            kbvStorageService.save(kbvItem);
             auditService.sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_REQUEST_SENT);
+
+            kbvStorageService.save(kbvItem);
         } else { // Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody(objectMapper.writeValueAsString(questionsResponse));
