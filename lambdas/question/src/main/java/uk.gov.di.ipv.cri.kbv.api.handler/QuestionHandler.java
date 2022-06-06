@@ -16,13 +16,13 @@ import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
-import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
@@ -133,32 +133,17 @@ public class QuestionHandler
         response.withHeaders(Map.of("Content-Type", "application/json"));
         UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
 
-        PersonIdentity personIdentity = personIdentityService.getPersonIdentity(sessionId);
         KBVItem kbvItem = getKbvItem(sessionId);
 
-        QuestionState questionState =
-                objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
-
-        if (respondWithQuestionFromDbStore(questionState, response)) return;
-        respondWithQuestionFromExperianThenStoreInDb(
-                personIdentity, kbvItem, questionState, response);
-    }
-
-    private KBVItem getKbvItem(UUID sessionId) {
-        KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
-        if (kbvItem != null) {
-            return kbvItem;
-        }
-        // first request for questions for a given session
-        kbvItem = new KBVItem();
-        kbvItem.setSessionId(sessionId);
-        return kbvItem;
+        if (respondWithQuestionFromDbStore(kbvItem, response)) return;
+        respondWithQuestionFromExperianThenStoreInDb(kbvItem, response);
     }
 
     private boolean respondWithQuestionFromDbStore(
-            QuestionState questionState, APIGatewayProxyResponseEvent response)
-            throws JsonProcessingException {
+            KBVItem kbvItem, APIGatewayProxyResponseEvent response) throws JsonProcessingException {
         // TODO Handle scenario when no questions are available
+        QuestionState questionState =
+                objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
         Optional<Question> nextQuestion = questionState.getNextQuestion();
         if (nextQuestion.isPresent()) {
             response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
@@ -169,10 +154,7 @@ public class QuestionHandler
     }
 
     private void respondWithQuestionFromExperianThenStoreInDb(
-            PersonIdentity personIdentity,
-            KBVItem kbvItem,
-            QuestionState questionState,
-            APIGatewayProxyResponseEvent response)
+            KBVItem kbvItem, APIGatewayProxyResponseEvent response)
             throws IOException, SqsException {
         // we should fall in this block once only
         // fetch a batch of questions from experian kbv wrapper
@@ -180,10 +162,10 @@ public class QuestionHandler
             response.withStatusCode(HttpStatusCode.NO_CONTENT);
             return;
         }
-        QuestionRequest questionRequest = new QuestionRequest();
-        questionRequest.setPersonIdentity(personIdentity);
-        QuestionsResponse questionsResponse = this.kbvService.getQuestions(questionRequest);
+        QuestionsResponse questionsResponse = getQuestionRequest(kbvItem);
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
+            QuestionState questionState =
+                    objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
             questionState.setQAPairs(questionsResponse.getQuestions());
             Optional<Question> nextQuestion = questionState.getNextQuestion();
             response.withStatusCode(HttpStatusCode.OK);
@@ -204,5 +186,32 @@ public class QuestionHandler
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody(objectMapper.writeValueAsString(questionsResponse));
         }
+    }
+
+    private QuestionsResponse getQuestionRequest(KBVItem kbvItem) throws JsonProcessingException {
+        if (kbvItem.getExpiryDate() == 0) { // first request for questions for a given session
+            QuestionRequest questionRequest = new QuestionRequest();
+            questionRequest.setPersonIdentity(
+                    personIdentityService.getPersonIdentity(kbvItem.getSessionId()));
+            return this.kbvService.getQuestions(questionRequest);
+        }
+        QuestionState questionState =
+                objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
+        QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
+        questionAnswerRequest.setUrn(kbvItem.getUrn());
+        questionAnswerRequest.setAuthRefNo(kbvItem.getAuthRefNo());
+        questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
+        return this.kbvService.submitAnswers(questionAnswerRequest);
+    }
+
+    private KBVItem getKbvItem(UUID sessionId) {
+        KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
+        if (kbvItem != null) {
+            return kbvItem;
+        }
+        // first request for questions for a given session
+        kbvItem = new KBVItem();
+        kbvItem.setSessionId(sessionId);
+        return kbvItem;
     }
 }
