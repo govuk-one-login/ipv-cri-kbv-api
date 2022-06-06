@@ -136,14 +136,12 @@ public class QuestionHandler
         PersonIdentity personIdentity = personIdentityService.getPersonIdentity(sessionId);
         KBVItem kbvItem = getKbvItem(sessionId);
 
-        QuestionState questionState = new QuestionState();
-        questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
+        QuestionState questionState =
+                objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
 
         if (respondWithQuestionFromDbStore(questionState, response)) return;
-        QuestionRequest questionRequest = new QuestionRequest();
-        questionRequest.setPersonIdentity(personIdentity);
         respondWithQuestionFromExperianThenStoreInDb(
-                questionRequest, kbvItem, questionState, response);
+                personIdentity, kbvItem, questionState, response);
     }
 
     private KBVItem getKbvItem(UUID sessionId) {
@@ -171,7 +169,7 @@ public class QuestionHandler
     }
 
     private void respondWithQuestionFromExperianThenStoreInDb(
-            QuestionRequest questionRequest,
+            PersonIdentity personIdentity,
             KBVItem kbvItem,
             QuestionState questionState,
             APIGatewayProxyResponseEvent response)
@@ -182,6 +180,8 @@ public class QuestionHandler
             response.withStatusCode(HttpStatusCode.NO_CONTENT);
             return;
         }
+        QuestionRequest questionRequest = new QuestionRequest();
+        questionRequest.setPersonIdentity(personIdentity);
         QuestionsResponse questionsResponse = this.kbvService.getQuestions(questionRequest);
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
@@ -197,8 +197,9 @@ public class QuestionHandler
                     clock.instant()
                             .plus(configurationService.getSessionTtl(), ChronoUnit.SECONDS)
                             .getEpochSecond());
-            kbvStorageService.save(kbvItem);
             auditService.sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_REQUEST_SENT);
+
+            kbvStorageService.save(kbvItem);
         } else { // Alternate flow when first request does not return questions
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody(objectMapper.writeValueAsString(questionsResponse));
