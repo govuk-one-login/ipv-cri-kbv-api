@@ -134,10 +134,14 @@ public class QuestionHandler
         UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
 
         PersonIdentity personIdentity = personIdentityService.getPersonIdentity(sessionId);
-        KBVItem kbvItem = getKbvItem(sessionId);
-
-        QuestionState questionState =
-                objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
+        KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
+        QuestionState questionState = new QuestionState();
+        if (kbvItem != null) {
+            questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
+        } else {
+            kbvItem = new KBVItem();
+            kbvItem.setSessionId(sessionId);
+        }
 
         if (respondWithQuestionFromDbStore(questionState, response)) return;
         respondWithQuestionFromExperianThenStoreInDb(
