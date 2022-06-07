@@ -11,8 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
-import static uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService.KBV_API_KEYSTORE;
-import static uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService.KBV_API_KEYSTORE_PASSWORD;
+import static uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService.KBV_API_KEYSTORE_PASSWORD_SUFFIX;
+import static uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService.KBV_API_KEYSTORE_SUFFIX;
 
 @ExtendWith(MockitoExtension.class)
 class KeyStoreServiceTest {
@@ -23,12 +23,13 @@ class KeyStoreServiceTest {
 
     @BeforeEach
     void setUp() {
-        this.keyStoreService = new KeyStoreService(secretsProvider);
+        this.keyStoreService = new KeyStoreService(secretsProvider, "stack-name");
     }
 
     @Test
     void shouldReturnKeyStoreValueWhenSecretIsRetrieved() {
-        when(secretsProvider.get(KBV_API_KEYSTORE)).thenReturn(BASE64_KEYSTORE_VALUE);
+        when(secretsProvider.get("/stack-name" + KBV_API_KEYSTORE_SUFFIX))
+                .thenReturn(BASE64_KEYSTORE_VALUE);
 
         assertNotNull(keyStoreService.getKeyStorePath());
     }
@@ -42,7 +43,8 @@ class KeyStoreServiceTest {
 
     @Test
     void shouldReturnKeyStorePasswordWhenSecretIsRetrieved() {
-        when(secretsProvider.get(KBV_API_KEYSTORE_PASSWORD)).thenReturn(BASE64_KEYSTORE_PASSWORD);
+        when(secretsProvider.get("/stack-name" + KBV_API_KEYSTORE_PASSWORD_SUFFIX))
+                .thenReturn(BASE64_KEYSTORE_PASSWORD);
 
         assertEquals("keystore-password", keyStoreService.getPassword());
     }
