@@ -104,7 +104,7 @@ public class VerifiableCredentialService {
                 .collect(Collectors.toList());
     }
 
-    private Object[] calculateEvidence(KBVItem kbvItem) {
+    private Map[] calculateEvidence(KBVItem kbvItem) {
 
         Evidence evidence = new Evidence();
         evidence.setType(EvidenceType.IDENTITY_CHECK);
@@ -125,9 +125,6 @@ public class VerifiableCredentialService {
                 throw new IllegalArgumentException("KBV item status is unknown");
         }
 
-        var evidenceObjects = new Object[1];
-        evidenceObjects[0] = objectMapper.convertValue(evidence, Map.class);
-
-        return evidenceObjects;
+        return new Map[] {objectMapper.convertValue(evidence, Map.class)};
     }
 }

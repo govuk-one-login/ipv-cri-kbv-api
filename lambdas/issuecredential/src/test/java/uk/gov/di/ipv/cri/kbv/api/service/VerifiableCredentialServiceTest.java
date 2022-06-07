@@ -3,7 +3,6 @@ package uk.gov.di.ipv.cri.kbv.api.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
@@ -22,6 +21,7 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.NamePart;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
+import uk.gov.di.ipv.cri.kbv.api.domain.Evidence;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.service.fixtures.TestFixtures;
 
@@ -32,12 +32,14 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,7 +48,7 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.*;
 @ExtendWith(MockitoExtension.class)
 class VerifiableCredentialServiceTest implements TestFixtures {
     private static final String SUBJECT = "subject";
-    @Mock private ObjectMapper objectMapper;
+    @Mock private ObjectMapper mockObjectMapper;
     @Mock private ConfigurationService mockConfigurationService;
 
     @BeforeEach
@@ -63,7 +65,10 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         SignedJWTFactory signedJwtFactory = new SignedJWTFactory(new ECDSASigner(getPrivateKey()));
         var verifiableCredentialService =
                 new VerifiableCredentialService(
-                        signedJwtFactory, mockConfigurationService, objectMapper);
+                        signedJwtFactory, mockConfigurationService, mockObjectMapper);
+
+        when(mockObjectMapper.convertValue(any(Evidence.class), eq(Map.class)))
+                .thenReturn(Map.of("verificationScore", 2));
 
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
@@ -78,7 +83,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         JWTClaimsSet generatedClaims = signedJWT.getJWTClaimsSet();
         assertTrue(signedJWT.verify(new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1))));
 
-        JsonNode claimsSet = objectMapper.readTree(generatedClaims.toString());
+        JsonNode claimsSet = new ObjectMapper().readTree(generatedClaims.toString());
 
         assertEquals(5, claimsSet.size());
 
@@ -115,13 +120,12 @@ class VerifiableCredentialServiceTest implements TestFixtures {
     void shouldReturnAVerifiedCredentialWithFailScoreOnNotAuthorised()
             throws JOSEException, InvalidKeySpecException, NoSuchAlgorithmException, ParseException,
                     JsonProcessingException {
-
         SignedJWTFactory signedJwtFactory = new SignedJWTFactory(new ECDSASigner(getPrivateKey()));
-        var verifiableCredentialService =
+        VerifiableCredentialService verifiableCredentialService =
                 new VerifiableCredentialService(
-                        signedJwtFactory,
-                        mockConfigurationService,
-                        new ObjectMapper().registerModule(new JavaTimeModule()));
+                        signedJwtFactory, mockConfigurationService, mockObjectMapper);
+        when(mockObjectMapper.convertValue(any(Evidence.class), eq(Map.class)))
+                .thenReturn(Map.of("verificationScore", 0));
 
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
@@ -136,7 +140,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         JWTClaimsSet generatedClaims = signedJWT.getJWTClaimsSet();
         assertTrue(signedJWT.verify(new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1))));
 
-        JsonNode claimsSet = objectMapper.readTree(generatedClaims.toString());
+        JsonNode claimsSet = new ObjectMapper().readTree(generatedClaims.toString());
 
         assertEquals(5, claimsSet.size());
 
@@ -175,7 +179,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         SignedJWTFactory mockSignedClaimSetJwt = mock(SignedJWTFactory.class);
         var verifiableCredentialService =
                 new VerifiableCredentialService(
-                        mockSignedClaimSetJwt, mockConfigurationService, objectMapper);
+                        mockSignedClaimSetJwt, mockConfigurationService, mockObjectMapper);
 
         when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("kbv-cri-issue");
         when(mockConfigurationService.getMaxJwtTtl()).thenReturn(342L);
