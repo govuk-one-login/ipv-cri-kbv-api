@@ -24,8 +24,11 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
-import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonAddress;
-import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.Name;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.NamePart;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.error.ErrorResponse;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
@@ -70,7 +73,8 @@ class IssueCredentialHandlerTest {
     @InjectMocks private IssueCredentialHandler handler;
 
     @Test
-    void shouldReturn200OkWhenIssueCredentialRequestIsValid() throws JOSEException, SqsException {
+    void shouldReturn200OkWhenIssueCredentialRequestIsValid()
+            throws JOSEException, SqsException, JsonProcessingException {
         APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
         AccessToken accessToken = new BearerAccessToken();
         event.withHeaders(
@@ -90,21 +94,12 @@ class IssueCredentialHandlerTest {
         kbvItem.setSessionId(sessionId);
         kbvItem.setExpiryDate(Instant.now().plusSeconds(6000L).getEpochSecond());
 
-        PersonAddress address = new PersonAddress();
-        address.setBuildingNumber("114");
-        address.setStreet("Wellington Street");
-        address.setPostcode("LS1 1BA");
-        List<PersonAddress> addresses = List.of(address);
-
-        PersonIdentity personIdentity = new PersonIdentity();
-        personIdentity.setFirstName("Joe");
-        personIdentity.setSurname("Bloggs");
-        personIdentity.setDateOfBirth(LocalDate.of(1980, 1, 1));
-        personIdentity.setAddresses(addresses);
+        PersonIdentityDetailed personIdentity = createPersonIdentity();
 
         when(mockSessionService.getSessionByAccessToken(accessToken)).thenReturn(sessionItem);
         when(mockKBVStorageService.getKBVItem(sessionId)).thenReturn(kbvItem);
-        when(mockPersonIdentityService.getPersonIdentity(sessionId)).thenReturn(personIdentity);
+        when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+                .thenReturn(personIdentity);
         when(mockVerifiableCredentialService.generateSignedVerifiableCredentialJwt(
                         SUBJECT, personIdentity, kbvItem))
                 .thenReturn(mock(SignedJWT.class));
@@ -144,22 +139,13 @@ class IssueCredentialHandlerTest {
         KBVItem kbvItem = new KBVItem();
         kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_PASS);
         kbvItem.setSessionId(sessionId);
-        PersonAddress address = new PersonAddress();
-        address.setBuildingNumber("114");
-        address.setStreet("Wellington Street");
-        address.setPostcode("LS1 1BA");
-        List<PersonAddress> addresses = List.of(address);
 
-        PersonIdentity personIdentity = new PersonIdentity();
-        personIdentity.setFirstName("Joe");
-        personIdentity.setSurname("Bloggs");
-        personIdentity.setDateOfBirth(LocalDate.of(1980, 1, 1));
-        personIdentity.setAddresses(addresses);
+        PersonIdentityDetailed personIdentity = createPersonIdentity();
 
         when(mockSessionService.getSessionByAccessToken(accessToken)).thenReturn(sessionItem);
         when(mockKBVStorageService.getKBVItem(sessionId)).thenReturn(kbvItem);
-        when(mockPersonIdentityService.getPersonIdentity(sessionId)).thenReturn(personIdentity);
-        when(mockPersonIdentityService.getPersonIdentity(sessionId)).thenReturn(personIdentity);
+        when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+                .thenReturn(personIdentity);
         when(mockVerifiableCredentialService.generateSignedVerifiableCredentialJwt(
                         SUBJECT, personIdentity, kbvItem))
                 .thenThrow(unExpectedJOSEException);
@@ -295,5 +281,26 @@ class IssueCredentialHandlerTest {
                         .serialize();
 
         event.setBody(requestJWT);
+    }
+
+    private PersonIdentityDetailed createPersonIdentity() {
+        Address address = new Address();
+        address.setBuildingNumber("114");
+        address.setStreetName("Wellington Street");
+        address.setPostalCode("LS1 1BA");
+
+        Name name = new Name();
+        NamePart firstNamePart = new NamePart();
+        firstNamePart.setType("GivenName");
+        firstNamePart.setValue("Bloggs");
+        NamePart surnamePart = new NamePart();
+        surnamePart.setType("FamilyName");
+        surnamePart.setValue("Bloggs");
+        name.setNameParts(List.of(firstNamePart, surnamePart));
+
+        BirthDate birthDate = new BirthDate();
+        birthDate.setValue(LocalDate.of(1980, 1, 1));
+
+        return new PersonIdentityDetailed(List.of(name), List.of(birthDate), List.of(address));
     }
 }

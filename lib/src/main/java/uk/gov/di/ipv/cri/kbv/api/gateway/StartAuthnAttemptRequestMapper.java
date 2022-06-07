@@ -15,8 +15,11 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.util.StringUtils;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class StartAuthnAttemptRequestMapper {
 
@@ -111,29 +114,49 @@ public class StartAuthnAttemptRequestMapper {
     }
 
     private void setLocationDetails(SAARequest saaRequest, PersonIdentity personIdentity) {
-        LocationDetails locationDetails = new LocationDetails();
-        locationDetails.setLocationIdentifier(1);
-        LocationDetailsUKLocation ukLocation = new LocationDetailsUKLocation();
+        if (Objects.nonNull(personIdentity.getAddresses())
+                && !personIdentity.getAddresses().isEmpty()) {
+            AtomicInteger idCounter = new AtomicInteger(1);
+            List<LocationDetails> locations =
+                    personIdentity.getAddresses().stream()
+                            .map(
+                                    personAddress -> {
+                                        LocationDetailsUKLocation ukLocation =
+                                                new LocationDetailsUKLocation();
 
-        if (personIdentity.getAddresses() != null && !personIdentity.getAddresses().isEmpty()) {
-            if (StringUtils.isNotBlank(personIdentity.getAddresses().get(0).getBuildingName())) {
-                ukLocation.setHouseName(personIdentity.getAddresses().get(0).getBuildingName());
-            }
+                                        if (StringUtils.isNotBlank(
+                                                personAddress.getBuildingName())) {
+                                            ukLocation.setHouseName(
+                                                    personAddress.getBuildingName());
+                                        }
 
-            if (StringUtils.isNotBlank(personIdentity.getAddresses().get(0).getBuildingNumber())) {
-                ukLocation.setHouseNumber(personIdentity.getAddresses().get(0).getBuildingNumber());
-            }
+                                        if (StringUtils.isNotBlank(
+                                                personAddress.getBuildingNumber())) {
+                                            ukLocation.setHouseNumber(
+                                                    personAddress.getBuildingNumber());
+                                        }
 
-            if (StringUtils.isNotBlank(personIdentity.getAddresses().get(0).getDistrict())) {
-                ukLocation.setDistrict(personIdentity.getAddresses().get(0).getDistrict());
-            }
+                                        ukLocation.setPostcode(personAddress.getPostalCode());
+                                        ukLocation.setPostTown(personAddress.getAddressLocality());
+                                        ukLocation.setStreet(personAddress.getStreetName());
+
+                                        LocationDetails locationDetails = new LocationDetails();
+                                        locationDetails.setLocationIdentifier(
+                                                idCounter.getAndIncrement());
+                                        locationDetails.setUKLocation(ukLocation);
+
+                                        return locationDetails;
+
+                                        // TODO: examine the edge cases, specifically when the
+                                        // following fields are populated:
+                                        // personAddress.getDependentAddressLocality() &
+                                        // personAddress.getDoubleDependentAddressLocality()
+
+                                    })
+                            .collect(Collectors.toList());
+
+            // locationDetails.setClientLocationID("1");
+            saaRequest.getLocationDetails().addAll(locations);
         }
-
-        ukLocation.setPostcode(personIdentity.getAddresses().get(0).getPostcode());
-        ukLocation.setPostTown(personIdentity.getAddresses().get(0).getTownCity());
-        ukLocation.setStreet(personIdentity.getAddresses().get(0).getStreet());
-        locationDetails.setUKLocation(ukLocation);
-        //        locationDetails.setClientLocationID("1");
-        saaRequest.getLocationDetails().add(locationDetails);
     }
 }

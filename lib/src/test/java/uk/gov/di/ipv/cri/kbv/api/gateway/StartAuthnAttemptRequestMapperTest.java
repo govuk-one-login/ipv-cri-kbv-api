@@ -3,7 +3,8 @@ package uk.gov.di.ipv.cri.kbv.api.gateway;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonAddressType;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.AddressType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 
@@ -24,12 +25,12 @@ class StartAuthnAttemptRequestMapperTest {
 
     @Test
     void shouldConvertPersonIdentityToSAARequestForCurrentAddress() {
-        questionRequest = createTestQuestionAnswerRequest(PersonAddressType.CURRENT);
+        questionRequest = createTestQuestionAnswerRequest(AddressType.CURRENT);
         PersonIdentity personIdentity = questionRequest.getPersonIdentity();
         SAARequest result = startAuthnAttemptRequestMapper.mapQuestionRequest(questionRequest);
 
         assertNotNull(result);
-
+        Address personAddress = personIdentity.getAddresses().get(0);
         assertAll(
                 //                () ->
                 //                        assertEquals(
@@ -57,31 +58,31 @@ class StartAuthnAttemptRequestMapperTest {
                                 personIdentity.getDateOfBirth().getDayOfMonth()),
                 () ->
                         assertEquals(
-                                result.getLocationDetails().get(0).getUKLocation().getHouseName(),
-                                personIdentity.getAddresses().get(0).getBuildingName()),
+                                personAddress.getBuildingName(),
+                                result.getLocationDetails().get(0).getUKLocation().getHouseName()),
                 () ->
                         assertEquals(
-                                result.getLocationDetails().get(0).getUKLocation().getPostcode(),
-                                personIdentity.getAddresses().get(0).getPostcode()),
+                                personAddress.getPostalCode(),
+                                result.getLocationDetails().get(0).getUKLocation().getPostcode()),
                 () ->
                         assertEquals(
-                                result.getLocationDetails().get(0).getUKLocation().getPostTown(),
-                                personIdentity.getAddresses().get(0).getTownCity()),
+                                personAddress.getAddressLocality(),
+                                result.getLocationDetails().get(0).getUKLocation().getPostTown()),
                 () ->
                         assertEquals(
-                                result.getLocationDetails().get(0).getUKLocation().getStreet(),
-                                personIdentity.getAddresses().get(0).getStreet()));
+                                personAddress.getStreetName(),
+                                result.getLocationDetails().get(0).getUKLocation().getStreet()));
     }
 
     @Test
     void shouldConvertPersonIdentityToSAARequestForPreviousAddress() {
-        questionRequest = createTestQuestionAnswerRequest(PersonAddressType.CURRENT);
+        questionRequest = createTestQuestionAnswerRequest(AddressType.CURRENT);
         PersonIdentity personIdentity = questionRequest.getPersonIdentity();
 
         SAARequest result = startAuthnAttemptRequestMapper.mapQuestionRequest(questionRequest);
 
         assertNotNull(result);
-
+        Address personAddress = personIdentity.getAddresses().get(0);
         assertAll(
                 () -> assertEquals("urn", result.getControl().getURN()),
                 () -> assertEquals("1 out of 2", result.getApplicationData().getProduct()),
@@ -111,19 +112,19 @@ class StartAuthnAttemptRequestMapperTest {
                                 result.getApplicant().getDateOfBirth().getDD()),
                 () ->
                         assertEquals(
-                                personIdentity.getAddresses().get(0).getBuildingName(),
+                                personAddress.getBuildingName(),
                                 result.getLocationDetails().get(0).getUKLocation().getHouseName()),
                 () ->
                         assertEquals(
-                                personIdentity.getAddresses().get(0).getPostcode(),
+                                personAddress.getPostalCode(),
                                 result.getLocationDetails().get(0).getUKLocation().getPostcode()),
                 () ->
                         assertEquals(
-                                personIdentity.getAddresses().get(0).getTownCity(),
+                                personAddress.getAddressLocality(),
                                 result.getLocationDetails().get(0).getUKLocation().getPostTown()),
                 () ->
                         assertEquals(
-                                personIdentity.getAddresses().get(0).getStreet(),
+                                personAddress.getStreetName(),
                                 result.getLocationDetails().get(0).getUKLocation().getStreet()));
     }
 

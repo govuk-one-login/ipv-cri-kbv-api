@@ -180,11 +180,7 @@ class QuestionHandlerTest {
                 ArgumentCaptor.forClass(QuestionRequest.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
-        var userAttributes =
-                "{\"firstName\":\"Jack\",\"middleNames\":null,\"surname\":\"Reacher\",\"dateOfBirth\":null,\"addresses\":[{\"buildingNumber\":null,\"buildingName\":null,\"street\":null,\"townCity\":null,\"postcode\":null,\"district\":null,\"addressType\":null,\"dateMovedOut\":null}]}";
-        PersonIdentity personIdentity =
-                new ObjectMapper().readValue(userAttributes, PersonIdentity.class);
-
+        PersonIdentity personIdentity = new PersonIdentity();
         KBVItem kbvItem = new KBVItem();
         QuestionState questionStateMock = mock(QuestionState.class);
 
