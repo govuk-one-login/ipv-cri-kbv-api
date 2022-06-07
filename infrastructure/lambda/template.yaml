@@ -432,6 +432,8 @@ Resources:
             TableName: !Ref SessionTable
         - DynamoDBReadPolicy:
             TableName: !Ref KBVTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref PersonIdentityTable
         - Statement:
             Effect: Allow
             Action:
