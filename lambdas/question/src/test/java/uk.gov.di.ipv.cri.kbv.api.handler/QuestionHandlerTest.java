@@ -44,6 +44,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -94,20 +95,20 @@ class QuestionHandlerTest {
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
         Context contextMock = mock(Context.class);
-        KBVItem kbvItemMock = mock(KBVItem.class);
+        KBVItem kbvItem = new KBVItem();
+        kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
         PersonIdentity personIdentityMock = mock(PersonIdentity.class);
         QuestionState questionStateMock = mock(QuestionState.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
-        when(mockPersonIdentityService.getPersonIdentity(
-                        UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
+        when(mockPersonIdentityService.getPersonIdentity(kbvItem.getSessionId()))
                 .thenReturn(personIdentityMock);
 
         when(mockKBVStorageService.getKBVItem(
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
-                .thenReturn(kbvItemMock);
+                .thenReturn(kbvItem);
 
-        when(mockObjectMapper.readValue(kbvItemMock.getQuestionState(), QuestionState.class))
+        when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
 
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
@@ -146,18 +147,16 @@ class QuestionHandlerTest {
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
         Context contextMock = mock(Context.class);
-        KBVItem kbvItemMock = mock(KBVItem.class);
-        PersonIdentity personIdentityMock = mock(PersonIdentity.class);
+        KBVItem kbvItem = new KBVItem();
+        kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
+
         QuestionState questionStateMock = mock(QuestionState.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockKBVStorageService.getKBVItem(
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
-                .thenReturn(kbvItemMock);
-        when(mockPersonIdentityService.getPersonIdentity(
-                        UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
-                .thenReturn(personIdentityMock);
-        when(mockObjectMapper.readValue(kbvItemMock.getQuestionState(), QuestionState.class))
+                .thenReturn(kbvItem);
+        when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
 
         Question question2 = mock(Question.class);
@@ -182,14 +181,14 @@ class QuestionHandlerTest {
 
         PersonIdentity personIdentity = new PersonIdentity();
         KBVItem kbvItem = new KBVItem();
+        kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
         QuestionState questionStateMock = mock(QuestionState.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockKBVStorageService.getKBVItem(
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                 .thenReturn(kbvItem);
-        when(mockPersonIdentityService.getPersonIdentity(
-                        UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
+        when(mockPersonIdentityService.getPersonIdentity(kbvItem.getSessionId()))
                 .thenReturn(personIdentity);
 
         when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
@@ -217,7 +216,8 @@ class QuestionHandlerTest {
         APIGatewayProxyResponseEvent response =
                 questionHandler.handleRequest(input, mock(Context.class));
 
-        assertEquals("{ \"error\":\"java.lang.NullPointerException\" }", response.getBody());
+        String expectedMessage = "java.lang.NullPointerException";
+        assertTrue(response.getBody().contains(expectedMessage));
         assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
         verify(mockEventProbe).counterMetric("get_question", 0d);
     }
@@ -318,16 +318,12 @@ class QuestionHandlerTest {
 
         Context contextMock = mock(Context.class);
         KBVItem SessionItemMock = mock(KBVItem.class);
-        PersonIdentity personIdentityMock = mock(PersonIdentity.class);
         QuestionState questionStateMock = mock(QuestionState.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockKBVStorageService.getKBVItem(
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                 .thenReturn(SessionItemMock);
-        when(mockPersonIdentityService.getPersonIdentity(
-                        UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
-                .thenReturn(personIdentityMock);
 
         when(mockObjectMapper.readValue(SessionItemMock.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
