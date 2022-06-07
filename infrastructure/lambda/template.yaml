@@ -776,3 +776,9 @@ Outputs:
     Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
     Export:
       Name: !Sub ${AWS::StackName}-KBVApiBaseUrl
+      
+  KBVApiGatewayId:
+    Description: "API GatewayID of the KBV CRI API"
+    Value: !Sub "${KBVApi}"
+    Export:
+      Name: !Sub ${AWS::StackName}-KBVApiGatewayId 
