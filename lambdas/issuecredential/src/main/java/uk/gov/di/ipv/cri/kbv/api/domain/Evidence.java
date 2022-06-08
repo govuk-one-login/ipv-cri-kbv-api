@@ -2,7 +2,7 @@ package uk.gov.di.ipv.cri.kbv.api.domain;
 
 public class Evidence {
     private String txn;
-    private EvidenceType type;
+    private final String type = VerifiableCredentialConstants.VC_EVIDENCE_TYPE;
     private Integer verificationScore;
 
     public String getTxn() {
@@ -13,13 +13,11 @@ public class Evidence {
         this.txn = txn;
     }
 
-    public EvidenceType getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(EvidenceType type) {
-        this.type = type;
-    }
+    public void setType(String type) {}
 
     public Integer getVerificationScore() {
         return verificationScore;

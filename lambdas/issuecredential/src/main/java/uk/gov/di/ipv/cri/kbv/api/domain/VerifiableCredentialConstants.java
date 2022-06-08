@@ -8,7 +8,7 @@ public class VerifiableCredentialConstants {
     public static final String VC_TYPE = "type";
     public static final String VERIFIABLE_CREDENTIAL_TYPE = "VerifiableCredential";
 
-    public static final String KBV_CREDENTIAL_TYPE = "KBVCredential";
+    public static final String KBV_CREDENTIAL_TYPE = "IdentityCheckCredential";
     public static final String VC_CREDENTIAL_SUBJECT = "credentialSubject";
     public static final String VC_CLAIM = "vc";
 
@@ -19,6 +19,8 @@ public class VerifiableCredentialConstants {
     public static final String VC_NAME_KEY = "name";
 
     public static final String VC_EVIDENCE_KEY = "evidence";
+
+    public static final String VC_EVIDENCE_TYPE = "IdentityCheck";
 
     public static final String VC_THIRD_PARTY_KBV_CHECK_PASS = "AUTHENTICATED";
 
