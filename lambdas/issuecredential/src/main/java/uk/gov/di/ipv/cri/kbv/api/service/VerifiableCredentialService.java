@@ -13,11 +13,11 @@ import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.util.KMSSigner;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
 import uk.gov.di.ipv.cri.kbv.api.domain.Evidence;
-import uk.gov.di.ipv.cri.kbv.api.domain.EvidenceType;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -76,8 +76,6 @@ public class VerifiableCredentialService {
                                         new String[] {
                                             VERIFIABLE_CREDENTIAL_TYPE, KBV_CREDENTIAL_TYPE
                                         },
-                                        VC_CONTEXT,
-                                        new String[] {W3_BASE_CONTEXT, DI_CONTEXT},
                                         VC_CREDENTIAL_SUBJECT,
                                         Map.of(
                                                 VC_ADDRESS_KEY,
@@ -96,7 +94,22 @@ public class VerifiableCredentialService {
 
     private Object[] convertAddresses(List<Address> addresses) {
         return addresses.stream()
-                .map(address -> objectMapper.convertValue(address, Map.class))
+                .map(
+                        address -> {
+                            var mappedAddress = objectMapper.convertValue(address, Map.class);
+                            // Skip superfluous address type from the map to match RFC
+                            HashMap<String, Object> addressMap = new HashMap<>();
+                            if (mappedAddress != null) {
+                                mappedAddress.forEach(
+                                        (key, value) -> {
+                                            if (!key.equals("addressType")) {
+                                                addressMap.put(key.toString(), value);
+                                            }
+                                        });
+                            }
+
+                            return addressMap;
+                        })
                 .toArray();
     }
 
@@ -115,7 +128,6 @@ public class VerifiableCredentialService {
     private Object[] calculateEvidence(KBVItem kbvItem) {
 
         Evidence evidence = new Evidence();
-        evidence.setType(EvidenceType.IDENTITY_CHECK);
         evidence.setTxn(kbvItem.getAuthRefNo());
 
         if (kbvItem.getStatus() == null) {
