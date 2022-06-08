@@ -1,13 +1,11 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import org.apache.logging.log4j.LogManager;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
@@ -93,14 +91,6 @@ public class VerifiableCredentialService {
                                         calculateEvidence(kbvItem)))
                         .build();
 
-        var logger = LogManager.getLogger();
-
-        try {
-            logger.error(objectMapper.writeValueAsString(calculateEvidence(kbvItem)));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-
         return signedJwtFactory.createSignedJwt(claimsSet);
     }
 
@@ -122,7 +112,7 @@ public class VerifiableCredentialService {
                 .toArray();
     }
 
-    private Map[] calculateEvidence(KBVItem kbvItem) {
+    private Object[] calculateEvidence(KBVItem kbvItem) {
 
         Evidence evidence = new Evidence();
         evidence.setType(EvidenceType.IDENTITY_CHECK);
