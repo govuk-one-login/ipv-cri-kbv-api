@@ -14,6 +14,10 @@ public class KBVService {
             "Error occurred when attempting to invoke experian api";
     private final KBVGateway kbvGateway;
 
+    public KBVService() {
+        this(new KBVServiceFactory().create(new AWSSecretsRetriever()));
+    }
+
     public KBVService(KBVGateway kbvGateway) {
         this.kbvGateway = kbvGateway;
     }
