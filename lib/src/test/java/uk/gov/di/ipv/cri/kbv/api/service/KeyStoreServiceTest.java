@@ -11,24 +11,26 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
-import static uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService.KBV_API_KEYSTORE_PASSWORD_SUFFIX;
-import static uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService.KBV_API_KEYSTORE_SUFFIX;
 
 @ExtendWith(MockitoExtension.class)
 class KeyStoreServiceTest {
-    public static final String BASE64_KEYSTORE_VALUE = "a2V5c3RvcmUtdmFsdWU=";
-    public static final String BASE64_KEYSTORE_PASSWORD = "keystore-password";
+    private static final String BASE64_KEYSTORE_VALUE = "a2V5c3RvcmUtdmFsdWU=";
+    private static final String BASE64_KEYSTORE_PASSWORD = "keystore-password";
+    private static final String TEST_STACK_NAME = "stack-name";
+    private static final String SECRET_KEY_FORMAT = "/%s/%s";
+
+    @Mock private SecretsProvider secretsProvider;
     private KeyStoreService keyStoreService;
-    @Mock SecretsProvider secretsProvider;
 
     @BeforeEach
     void setUp() {
-        this.keyStoreService = new KeyStoreService(secretsProvider, "stack-name");
+        this.keyStoreService = new KeyStoreService(secretsProvider, TEST_STACK_NAME);
     }
 
     @Test
     void shouldReturnKeyStoreValueWhenSecretIsRetrieved() {
-        when(secretsProvider.get("/stack-name" + KBV_API_KEYSTORE_SUFFIX))
+        when(secretsProvider.get(
+                        String.format(SECRET_KEY_FORMAT, TEST_STACK_NAME, "experian/keystore")))
                 .thenReturn(BASE64_KEYSTORE_VALUE);
 
         assertNotNull(keyStoreService.getKeyStorePath());
@@ -36,14 +38,14 @@ class KeyStoreServiceTest {
 
     @Test
     void shouldReturnNullWhenKeyStoreValueIsNotSupplied() {
-        keyStoreService.getKeyStorePath();
-
         assertNull(keyStoreService.getKeyStorePath());
     }
 
     @Test
     void shouldReturnKeyStorePasswordWhenSecretIsRetrieved() {
-        when(secretsProvider.get("/stack-name" + KBV_API_KEYSTORE_PASSWORD_SUFFIX))
+        when(secretsProvider.get(
+                        String.format(
+                                SECRET_KEY_FORMAT, TEST_STACK_NAME, "experian/keystore-password")))
                 .thenReturn(BASE64_KEYSTORE_PASSWORD);
 
         assertEquals("keystore-password", keyStoreService.getPassword());

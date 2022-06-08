@@ -14,23 +14,17 @@ import java.util.Objects;
 import java.util.UUID;
 
 public class KeyStoreService {
-    private final SecretsProvider secretsProvider;
-    public static final String KBV_API_KEYSTORE_SUFFIX = "/experian/keystore";
-    public static final String KBV_API_KEYSTORE_PASSWORD_SUFFIX = "/experian/keystore-password";
     private static final Logger LOGGER = LoggerFactory.getLogger(KeyStoreService.class);
-    private final String stackName;
 
-    public KeyStoreService(SecretsProvider secretsProvider, String stackName) {
-        this.secretsProvider = secretsProvider;
-        this.stackName = stackName;
-    }
+    private final SecretsProvider secretsProvider;
+    private final String secretKeyPrefix;
 
     @ExcludeFromGeneratedCoverageReport
-    public KeyStoreService(SecretsProvider secretsProvider) {
-        this.secretsProvider = secretsProvider;
-        this.stackName =
-                Objects.requireNonNull(
-                        System.getenv("AWS_STACK_NAME"), "env var AWS_STACK_NAME required");
+    public KeyStoreService(SecretsProvider secretsProvider, String secretKeyPrefix) {
+        this.secretsProvider =
+                Objects.requireNonNull(secretsProvider, "secretsProvider must not be null");
+        this.secretKeyPrefix =
+                Objects.requireNonNull(secretKeyPrefix, "secretKeyPrefix must not be null");
     }
 
     public String getKeyStorePath() {
@@ -40,19 +34,19 @@ public class KeyStoreService {
             Files.write(
                     tempFile,
                     Base64.getDecoder()
-                            .decode(secretsProvider.get(getSecretPath(KBV_API_KEYSTORE_SUFFIX))));
+                            .decode(secretsProvider.get(getSecretKey("experian/keystore"))));
             return tempFile.toString();
         } catch (IllegalArgumentException | NullPointerException | IOException e) {
-            LOGGER.error("Initialisation failed", e);
+            LOGGER.error("Persist keystore to file failed", e);
             return null;
         }
     }
 
     public String getPassword() {
-        return secretsProvider.get(getSecretPath(KBV_API_KEYSTORE_PASSWORD_SUFFIX));
+        return secretsProvider.get(getSecretKey("experian/keystore-password"));
     }
 
-    private String getSecretPath(String suffix) {
-        return String.format("/%s%s", stackName, suffix);
+    private String getSecretKey(String keySuffix) {
+        return String.format("/%s/%s", secretKeyPrefix, keySuffix);
     }
 }
