@@ -1,8 +1,9 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+
 public class Evidence {
     private String txn;
-    private final String type = VerifiableCredentialConstants.VC_EVIDENCE_TYPE;
     private Integer verificationScore;
 
     public String getTxn() {
@@ -13,11 +14,10 @@ public class Evidence {
         this.txn = txn;
     }
 
+    @JsonGetter("type")
     public String getType() {
-        return type;
+        return VerifiableCredentialConstants.VC_EVIDENCE_TYPE;
     }
-
-    public void setType(String type) {}
 
     public Integer getVerificationScore() {
         return verificationScore;
