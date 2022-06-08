@@ -135,7 +135,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
         kbvItem.setAuthRefNo(UUID.randomUUID().toString());
-        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_FAIL);
+        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED);
 
         PersonIdentityDetailed personIdentity = createPersonIdentity();
 
@@ -192,7 +192,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
         kbvItem.setExpiryDate(Instant.now().plusSeconds(342).getEpochSecond());
-        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_FAIL);
+        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED);
 
         PersonIdentityDetailed personIdentity = createPersonIdentity();
 

@@ -138,7 +138,9 @@ public class VerifiableCredentialService {
             case VC_THIRD_PARTY_KBV_CHECK_PASS:
                 evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
                 break;
-            case VC_THIRD_PARTY_KBV_CHECK_FAIL:
+            case VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED:
+            case VC_THIRD_PARTY_KBV_CHECK_UNABLE_TO_AUTHENTICATE:
+            case VC_THIRD_PARTY_KBV_CHECK_ABANDONED:
                 evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
                 break;
             default:
