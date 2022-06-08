@@ -69,6 +69,8 @@ class VerifiableCredentialServiceTest implements TestFixtures {
 
         when(mockObjectMapper.convertValue(any(Evidence.class), eq(Map.class)))
                 .thenReturn(Map.of("verificationScore", 2));
+        when(mockObjectMapper.convertValue(any(Address.class), eq(Map.class)))
+                .thenReturn(Map.of("address", new Address()));
 
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
@@ -127,10 +129,13 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         when(mockObjectMapper.convertValue(any(Evidence.class), eq(Map.class)))
                 .thenReturn(Map.of("verificationScore", 0));
 
+        when(mockObjectMapper.convertValue(any(Address.class), eq(Map.class)))
+                .thenReturn(Map.of("address", new Address()));
+
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
         kbvItem.setAuthRefNo(UUID.randomUUID().toString());
-        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_FAIL);
+        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED);
 
         PersonIdentityDetailed personIdentity = createPersonIdentity();
 
@@ -187,7 +192,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
         kbvItem.setExpiryDate(Instant.now().plusSeconds(342).getEpochSecond());
-        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_FAIL);
+        kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED);
 
         PersonIdentityDetailed personIdentity = createPersonIdentity();
 

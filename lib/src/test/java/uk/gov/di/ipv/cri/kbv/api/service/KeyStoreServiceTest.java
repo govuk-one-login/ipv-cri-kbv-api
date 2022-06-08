@@ -11,38 +11,42 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
-import static uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService.KBV_API_KEYSTORE;
-import static uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService.KBV_API_KEYSTORE_PASSWORD;
 
 @ExtendWith(MockitoExtension.class)
 class KeyStoreServiceTest {
-    public static final String BASE64_KEYSTORE_VALUE = "a2V5c3RvcmUtdmFsdWU=";
-    public static final String BASE64_KEYSTORE_PASSWORD = "keystore-password";
+    private static final String BASE64_KEYSTORE_VALUE = "a2V5c3RvcmUtdmFsdWU=";
+    private static final String BASE64_KEYSTORE_PASSWORD = "keystore-password";
+    private static final String TEST_STACK_NAME = "stack-name";
+    private static final String SECRET_KEY_FORMAT = "/%s/%s";
+
+    @Mock private SecretsProvider secretsProvider;
     private KeyStoreService keyStoreService;
-    @Mock SecretsProvider secretsProvider;
 
     @BeforeEach
     void setUp() {
-        this.keyStoreService = new KeyStoreService(secretsProvider);
+        this.keyStoreService = new KeyStoreService(secretsProvider, TEST_STACK_NAME);
     }
 
     @Test
     void shouldReturnKeyStoreValueWhenSecretIsRetrieved() {
-        when(secretsProvider.get(KBV_API_KEYSTORE)).thenReturn(BASE64_KEYSTORE_VALUE);
+        when(secretsProvider.get(
+                        String.format(SECRET_KEY_FORMAT, TEST_STACK_NAME, "experian/keystore")))
+                .thenReturn(BASE64_KEYSTORE_VALUE);
 
         assertNotNull(keyStoreService.getKeyStorePath());
     }
 
     @Test
     void shouldReturnNullWhenKeyStoreValueIsNotSupplied() {
-        keyStoreService.getKeyStorePath();
-
         assertNull(keyStoreService.getKeyStorePath());
     }
 
     @Test
     void shouldReturnKeyStorePasswordWhenSecretIsRetrieved() {
-        when(secretsProvider.get(KBV_API_KEYSTORE_PASSWORD)).thenReturn(BASE64_KEYSTORE_PASSWORD);
+        when(secretsProvider.get(
+                        String.format(
+                                SECRET_KEY_FORMAT, TEST_STACK_NAME, "experian/keystore-password")))
+                .thenReturn(BASE64_KEYSTORE_PASSWORD);
 
         assertEquals("keystore-password", keyStoreService.getPassword());
     }

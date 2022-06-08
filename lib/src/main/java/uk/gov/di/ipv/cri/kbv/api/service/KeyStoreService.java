@@ -3,23 +3,28 @@ package uk.gov.di.ipv.cri.kbv.api.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.lambda.powertools.parameters.SecretsProvider;
+import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
+import java.util.Objects;
 import java.util.UUID;
 
 public class KeyStoreService {
-    private final SecretsProvider secretsProvider;
-    public static final String KBV_API_KEYSTORE = "/dev/kbv-cri-api/experian/keystore";
-    public static final String KBV_API_KEYSTORE_PASSWORD =
-            "/dev/kbv-cri-api/experian/keystore-password";
     private static final Logger LOGGER = LoggerFactory.getLogger(KeyStoreService.class);
 
-    public KeyStoreService(SecretsProvider secretsProvider) {
-        this.secretsProvider = secretsProvider;
+    private final SecretsProvider secretsProvider;
+    private final String secretKeyPrefix;
+
+    @ExcludeFromGeneratedCoverageReport
+    public KeyStoreService(SecretsProvider secretsProvider, String secretKeyPrefix) {
+        this.secretsProvider =
+                Objects.requireNonNull(secretsProvider, "secretsProvider must not be null");
+        this.secretKeyPrefix =
+                Objects.requireNonNull(secretKeyPrefix, "secretKeyPrefix must not be null");
     }
 
     public String getKeyStorePath() {
@@ -27,15 +32,21 @@ public class KeyStoreService {
             File file = Files.createTempFile(UUID.randomUUID().toString(), ".tmp").toFile();
             Path tempFile = file.toPath();
             Files.write(
-                    tempFile, Base64.getDecoder().decode(secretsProvider.get(KBV_API_KEYSTORE)));
+                    tempFile,
+                    Base64.getDecoder()
+                            .decode(secretsProvider.get(getSecretKey("experian/keystore"))));
             return tempFile.toString();
         } catch (IllegalArgumentException | NullPointerException | IOException e) {
-            LOGGER.error("Initialisation failed", e);
+            LOGGER.error("Persist keystore to file failed", e);
             return null;
         }
     }
 
     public String getPassword() {
-        return secretsProvider.get(KBV_API_KEYSTORE_PASSWORD);
+        return secretsProvider.get(getSecretKey("experian/keystore-password"));
+    }
+
+    private String getSecretKey(String keySuffix) {
+        return String.format("/%s/%s", secretKeyPrefix, keySuffix);
     }
 }

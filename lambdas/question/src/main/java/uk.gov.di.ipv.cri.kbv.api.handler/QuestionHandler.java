@@ -21,6 +21,7 @@ import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
+import uk.gov.di.ipv.cri.kbv.api.config.ConfigurationConstants;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
@@ -73,7 +74,10 @@ public class QuestionHandler
         this.clock = Clock.systemUTC();
 
         var kbvSystemProperty =
-                new KBVSystemProperty(new KeyStoreService(ParamManager.getSecretsProvider()));
+                new KBVSystemProperty(
+                        new KeyStoreService(
+                                ParamManager.getSecretsProvider(),
+                                System.getenv(ConfigurationConstants.AWS_STACK_NAME)));
         kbvSystemProperty.save();
     }
 
