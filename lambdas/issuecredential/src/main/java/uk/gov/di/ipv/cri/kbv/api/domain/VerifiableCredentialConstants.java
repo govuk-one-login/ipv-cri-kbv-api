@@ -27,7 +27,7 @@ public class VerifiableCredentialConstants {
     public static final String VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED = "NOT AUTHENTICATED";
 
     public static final String VC_THIRD_PARTY_KBV_CHECK_UNABLE_TO_AUTHENTICATE =
-            "UNABLE_TO_AUTHENTICATE";
+            "UNABLE TO AUTHENTICATE";
 
     public static final String VC_THIRD_PARTY_KBV_CHECK_ABANDONED = "ABANDONED";
 
