@@ -69,6 +69,8 @@ class VerifiableCredentialServiceTest implements TestFixtures {
 
         when(mockObjectMapper.convertValue(any(Evidence.class), eq(Map.class)))
                 .thenReturn(Map.of("verificationScore", 2));
+        when(mockObjectMapper.convertValue(any(Address.class), eq(Map.class)))
+                .thenReturn(Map.of("address", new Address()));
 
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
@@ -126,6 +128,9 @@ class VerifiableCredentialServiceTest implements TestFixtures {
                         signedJwtFactory, mockConfigurationService, mockObjectMapper);
         when(mockObjectMapper.convertValue(any(Evidence.class), eq(Map.class)))
                 .thenReturn(Map.of("verificationScore", 0));
+
+        when(mockObjectMapper.convertValue(any(Address.class), eq(Map.class)))
+                .thenReturn(Map.of("address", new Address()));
 
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
@@ -19,7 +20,6 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static com.nimbusds.jwt.JWTClaimNames.EXPIRATION_TIME;
 import static com.nimbusds.jwt.JWTClaimNames.ISSUER;
@@ -80,7 +80,9 @@ public class VerifiableCredentialService {
                                         new String[] {W3_BASE_CONTEXT, DI_CONTEXT},
                                         VC_CREDENTIAL_SUBJECT,
                                         Map.of(
-                                                VC_ADDRESS_KEY, personIdentity.getAddresses(),
+                                                VC_ADDRESS_KEY,
+                                                        convertAddresses(
+                                                                personIdentity.getAddresses()),
                                                 VC_NAME_KEY, personIdentity.getNames(),
                                                 VC_BIRTHDATE_KEY,
                                                         convertBirthDates(
@@ -92,7 +94,13 @@ public class VerifiableCredentialService {
         return signedJwtFactory.createSignedJwt(claimsSet);
     }
 
-    private List<Map<String, String>> convertBirthDates(List<BirthDate> birthDates) {
+    private Object[] convertAddresses(List<Address> addresses) {
+        return addresses.stream()
+                .map(address -> objectMapper.convertValue(address, Map.class))
+                .toArray();
+    }
+
+    private Object[] convertBirthDates(List<BirthDate> birthDates) {
         return birthDates.stream()
                 .map(
                         birthDate ->
@@ -101,10 +109,10 @@ public class VerifiableCredentialService {
                                         birthDate
                                                 .getValue()
                                                 .format(DateTimeFormatter.ISO_LOCAL_DATE)))
-                .collect(Collectors.toList());
+                .toArray();
     }
 
-    private Map[] calculateEvidence(KBVItem kbvItem) {
+    private Object[] calculateEvidence(KBVItem kbvItem) {
 
         Evidence evidence = new Evidence();
         evidence.setType(EvidenceType.IDENTITY_CHECK);
