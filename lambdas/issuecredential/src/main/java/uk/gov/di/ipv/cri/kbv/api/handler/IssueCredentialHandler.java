@@ -92,7 +92,7 @@ public class IssueCredentialHandler
                     verifiableCredentialService.generateSignedVerifiableCredentialJwt(
                             sessionItem.getSubject(), personIdentity, kbvItem);
             auditService.sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_VC_ISSUED);
-            eventProbe.counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
+            eventProbe.counterMetric(KBV_CREDENTIAL_ISSUER);
 
             return ApiGatewayResponseGenerator.proxyJwtResponse(
                     HttpStatusCode.OK, signedJWT.serialize());
@@ -106,9 +106,10 @@ public class IssueCredentialHandler
 
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     HttpStatusCode.BAD_REQUEST, ErrorResponse.VERIFIABLE_CREDENTIAL_ERROR);
-        } catch (SqsException sqsException) {
+        } catch (SqsException e) {
+            eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
             return ApiGatewayResponseGenerator.proxyJsonResponse(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR, sqsException.getMessage());
+                    HttpStatusCode.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
 

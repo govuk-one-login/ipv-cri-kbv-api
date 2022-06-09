@@ -53,6 +53,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.GET_QUESTION;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.HEADER_SESSION_ID;
 
 @ExtendWith(MockitoExtension.class)
@@ -138,6 +139,7 @@ class QuestionHandlerTest {
         assertEquals(HttpStatusCode.OK, response.getStatusCode());
         assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
         verify(mockAuditService).sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_REQUEST_SENT);
+        verify(mockEventProbe).counterMetric(GET_QUESTION);
     }
 
     @Test
@@ -169,10 +171,11 @@ class QuestionHandlerTest {
 
         assertEquals(HttpStatusCode.OK, response.getStatusCode());
         assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
+        verify(mockEventProbe).counterMetric(GET_QUESTION);
     }
 
     @Test
-    void shouldReturn400ErrorWhenNoFurtherQuestions() throws IOException, InterruptedException {
+    void shouldReturn400ErrorWhenNoFurtherQuestions() throws IOException {
         Context contextMock = mock(Context.class);
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         ArgumentCaptor<QuestionRequest> questionRequestCaptor =
@@ -204,6 +207,7 @@ class QuestionHandlerTest {
         verify(mockKBVStorageService)
                 .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
         verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
+        verify(mockEventProbe).counterMetric(GET_QUESTION);
 
         assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
     }
@@ -219,7 +223,7 @@ class QuestionHandlerTest {
         String expectedMessage = "java.lang.NullPointerException";
         assertTrue(response.getBody().contains(expectedMessage));
         assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
-        verify(mockEventProbe).counterMetric("get_question", 0d);
+        verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
     }
 
     @Test
@@ -238,7 +242,7 @@ class QuestionHandlerTest {
 
         assertEquals("{ \"error\":\"AWS Server error occurred.\" }", response.getBody());
         assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        verify(mockEventProbe).counterMetric("get_question", 0d);
+        verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
     }
 
     @Test
@@ -274,7 +278,7 @@ class QuestionHandlerTest {
 
         verify(mockPersonIdentityService)
                 .getPersonIdentity(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
-        verify(mockEventProbe).counterMetric("get_question", 0d);
+        verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
     }
 
     @Test
@@ -307,7 +311,7 @@ class QuestionHandlerTest {
                 questionHandler.handleRequest(input, mock(Context.class));
 
         assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        verify(mockEventProbe).counterMetric("get_question", 0d);
+        verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
     }
 
     @Test
@@ -333,6 +337,7 @@ class QuestionHandlerTest {
 
         assertEquals(HttpStatusCode.NO_CONTENT, response.getStatusCode());
         assertNull(response.getBody());
+        verify(mockEventProbe).counterMetric(GET_QUESTION);
     }
 
     private void setupEventProbeErrorBehaviour() {

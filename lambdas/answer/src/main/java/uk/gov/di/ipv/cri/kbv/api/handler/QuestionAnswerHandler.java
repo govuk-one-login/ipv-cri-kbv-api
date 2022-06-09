@@ -103,6 +103,7 @@ public class QuestionAnswerHandler
         response.withHeaders(Map.of("Content-Type", "application/json"));
         try {
             processAnswerResponse(input, response);
+            eventProbe.counterMetric(POST_ANSWER);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(POST_ANSWER, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);

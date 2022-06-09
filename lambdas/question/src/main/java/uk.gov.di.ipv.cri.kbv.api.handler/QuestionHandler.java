@@ -113,6 +113,7 @@ public class QuestionHandler
         APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
         try {
             processQuestionRequest(input, response);
+            eventProbe.counterMetric(GET_QUESTION);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
