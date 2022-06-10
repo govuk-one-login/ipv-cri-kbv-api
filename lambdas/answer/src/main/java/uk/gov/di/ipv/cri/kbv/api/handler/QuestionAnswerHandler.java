@@ -7,10 +7,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.http.HttpStatusCode;
-import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
@@ -19,7 +16,6 @@ import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
-import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
@@ -41,7 +37,6 @@ import static org.apache.logging.log4j.Level.INFO;
 public class QuestionAnswerHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-    private static final Logger LOGGER = LogManager.getLogger();
     private static final String HEADER_SESSION_ID = "session-id";
     private static final String ERROR_KEY = "\"error\"";
     private static final String POST_ANSWER = "post_answer";
@@ -59,9 +54,7 @@ public class QuestionAnswerHandler
         this.kbvService = new KBVService();
         this.eventProbe = new EventProbe();
         this.sessionService = new SessionService();
-        this.auditService =
-                new AuditService(
-                        SqsClient.builder().build(), new ConfigurationService(), this.objectMapper);
+        this.auditService = new AuditService();
 
         new KBVSystemProperty().save();
     }
@@ -127,7 +120,6 @@ public class QuestionAnswerHandler
             throws IOException, SqsException {
         QuestionState questionState;
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-        LOGGER.info("Received session-id for Experian: {}", sessionId);
         KBVItem kbvItem = kbvStorageService.getKBVItem(UUID.fromString(sessionId));
 
         questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
@@ -146,19 +138,13 @@ public class QuestionAnswerHandler
         questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
 
         QuestionsResponse questionsResponse = kbvService.submitAnswers(questionAnswerRequest);
-        LOGGER.info(
-                "Question State before update: {}",
-                objectMapper.writeValueAsString(kbvItem.getQuestionState()));
         if (questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
-            LOGGER.info("Updated state with more questions: {}", serializedQuestionState);
             kbvItem.setQuestionState(serializedQuestionState);
             kbvStorageService.update(kbvItem);
         } else if (questionsResponse.hasQuestionRequestEnded()) {
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
-            LOGGER.info("Updated state with no more questions: {}", serializedQuestionState);
-            LOGGER.info(serializedQuestionState);
             kbvItem.setQuestionState(serializedQuestionState);
             kbvItem.setStatus(questionsResponse.getStatus());
             kbvStorageService.update(kbvItem);
