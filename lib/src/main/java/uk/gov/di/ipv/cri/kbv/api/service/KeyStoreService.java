@@ -2,8 +2,10 @@ package uk.gov.di.ipv.cri.kbv.api.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.lambda.powertools.parameters.ParamManager;
 import software.amazon.lambda.powertools.parameters.SecretsProvider;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.kbv.api.config.ConfigurationConstants;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,9 +17,14 @@ import java.util.UUID;
 
 public class KeyStoreService {
     private static final Logger LOGGER = LoggerFactory.getLogger(KeyStoreService.class);
-
     private final SecretsProvider secretsProvider;
     private final String secretKeyPrefix;
+
+    public KeyStoreService() {
+        this(
+                ParamManager.getSecretsProvider(),
+                System.getenv(ConfigurationConstants.AWS_STACK_NAME));
+    }
 
     @ExcludeFromGeneratedCoverageReport
     public KeyStoreService(SecretsProvider secretsProvider, String secretKeyPrefix) {
