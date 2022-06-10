@@ -17,7 +17,7 @@ import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
-import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
@@ -190,7 +190,7 @@ public class QuestionHandler
                     clock.instant()
                             .plus(configurationService.getSessionTtl(), ChronoUnit.SECONDS)
                             .getEpochSecond());
-            auditService.sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_REQUEST_SENT);
+            auditService.sendAuditEvent(AuditEventType.REQUEST_SENT);
 
             kbvStorageService.save(kbvItem);
         } else { // Alternate flow when first request does not return questions

@@ -16,7 +16,7 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
-import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.error.ErrorResponse;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
@@ -91,7 +91,7 @@ public class IssueCredentialHandler
             SignedJWT signedJWT =
                     verifiableCredentialService.generateSignedVerifiableCredentialJwt(
                             sessionItem.getSubject(), personIdentity, kbvItem);
-            auditService.sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_VC_ISSUED);
+            auditService.sendAuditEvent(AuditEventType.VC_ISSUED);
             eventProbe.counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
 
             return ApiGatewayResponseGenerator.proxyJwtResponse(
