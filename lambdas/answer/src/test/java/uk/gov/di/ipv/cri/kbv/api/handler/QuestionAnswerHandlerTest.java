@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
@@ -22,16 +23,15 @@ import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -41,7 +41,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -58,22 +57,24 @@ class QuestionAnswerHandlerTest {
     @Mock private APIGatewayProxyRequestEvent input;
     @Mock private Context contextMock;
     @Mock private EventProbe mockEventProbe;
-    @Mock private KBVServiceFactory mockKbvServiceFactory;
     @Mock private SessionService mockSessionService;
     @Mock private AuditService mockAuditService;
-    @Mock private KBVService mockKbvService;
+    @Mock private KBVGateway mockKBVGateway;
     @Mock private KBVSystemProperty mockSystemProperty;
+
+    private KBVService spyKBVService;
 
     @BeforeEach
     void setUp() {
-        when(mockKbvServiceFactory.create()).thenReturn(mockKbvService);
         doNothing().when(mockSystemProperty).save();
+        spyKBVService = Mockito.spy(new KBVService(mockKBVGateway));
+
         questionAnswerHandler =
                 new QuestionAnswerHandler(
                         mockObjectMapper,
                         mockKBVStorageService,
                         mockSystemProperty,
-                        mockKbvServiceFactory,
+                        spyKBVService,
                         mockEventProbe,
                         mockSessionService,
                         mockAuditService);
@@ -129,7 +130,7 @@ class QuestionAnswerHandlerTest {
                 .thenReturn(questionAnswerMock);
         when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
 
-        when(mockKbvService.submitAnswers(any())).thenReturn(questionsResponseMock);
+        when(mockKBVGateway.submitAnswers(any())).thenReturn(questionsResponseMock);
 
         when(mockObjectMapper.writeValueAsString(any())).thenReturn("question-response");
 
@@ -175,8 +176,7 @@ class QuestionAnswerHandlerTest {
                 .thenReturn(questionAnswerMock);
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
         when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
-
-        when(mockKbvService.submitAnswers(any())).thenReturn(questionsResponseMock);
+        when(mockKBVGateway.submitAnswers(any())).thenReturn(questionsResponseMock);
         when(questionsResponseMock.hasQuestions()).thenReturn(true);
         doNothing().when(questionStateMock).setQAPairs(any());
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
@@ -263,18 +263,7 @@ class QuestionAnswerHandlerTest {
 
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
 
-        Supplier<KBVServiceFactory> kbvServiceFactorySupplier = KBVServiceFactory::new;
-        KBVServiceFactory factory = spy(kbvServiceFactorySupplier.get());
-
-        questionAnswerHandler =
-                new QuestionAnswerHandler(
-                        mockObjectMapper,
-                        mockKBVStorageService,
-                        mockSystemProperty,
-                        factory,
-                        mockEventProbe,
-                        mockSessionService,
-                        mockAuditService);
+        when(mockKBVGateway.submitAnswers(any())).thenThrow(InternalServerErrorException.class);
 
         setupEventProbeErrorBehaviour();
         APIGatewayProxyResponseEvent response =

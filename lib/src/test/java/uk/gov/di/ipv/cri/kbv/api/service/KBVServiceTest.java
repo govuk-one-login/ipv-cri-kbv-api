@@ -47,15 +47,17 @@ class KBVServiceTest {
         QuestionAnswerRequest mockQuestionAnswerRequest = mock(QuestionAnswerRequest.class);
 
         HeaderHandler headerHandler = mock(HeaderHandler.class);
-        when(headerHandler.handleMessage(any())).thenThrow(RuntimeException.class);
 
+        AWSSecretsRetriever mockAWSSecretsRetriever = mock(AWSSecretsRetriever.class);
+        when(mockAWSSecretsRetriever.getValue(any())).thenReturn("expected-secret");
         KBVGateway kbvGateway =
                 new KBVGateway(
                         mock(StartAuthnAttemptRequestMapper.class),
                         mock(ResponseToQuestionMapper.class),
                         new KBVClientFactory(
                                         new IdentityIQWebService(),
-                                        new HeaderHandlerResolver(headerHandler))
+                                        new HeaderHandlerResolver(headerHandler),
+                                        mockAWSSecretsRetriever)
                                 .createClient());
 
         kbvService = new KBVService(kbvGateway);
@@ -63,6 +65,7 @@ class KBVServiceTest {
         assertThrows(
                 SOAPFaultException.class,
                 () -> kbvService.submitAnswers(mockQuestionAnswerRequest));
-        verify(headerHandler).handleMessage(any());
+
+        verify(mockAWSSecretsRetriever).getValue(any());
     }
 }
