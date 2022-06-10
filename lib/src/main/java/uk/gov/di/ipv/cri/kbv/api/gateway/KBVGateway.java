@@ -38,26 +38,25 @@ public class KBVGateway {
     public QuestionsResponse getQuestions(QuestionRequest questionRequest) {
         try {
             LOGGER.info(
-                    "Experian:getQuestions DI request: {}",
-                    mapper.writeValueAsString(questionRequest));
+                    "Experian:getQuestions DI request: "
+                            + mapper.writeValueAsString(questionRequest));
             SAARequest saaRequest = saaRequestMapper.mapQuestionRequest(questionRequest);
             LOGGER.info(
-                    "Experian:getQuestions mapped request: {}",
-                    mapper.writeValueAsString(saaRequest));
+                    "Experian:getQuestions mapped request: "
+                            + mapper.writeValueAsString(saaRequest));
             SAAResponse2 saaResponse2 = identityIQWebServiceSoap.saa(saaRequest);
             LOGGER.info(
-                    "Experian:getQuestions raw response: {}",
-                    mapper.writeValueAsString(saaResponse2));
+                    "Experian:getQuestions raw response: "
+                            + mapper.writeValueAsString(saaResponse2));
             var questionResponse =
                     saaRequestMapper.mapSAAResponse2ToQuestionsResponse(saaResponse2);
             LOGGER.info(
-                    "Experian:getQuestions Mapped questionResponse: {}",
-                    mapper.writeValueAsString(questionResponse));
+                    "Experian:getQuestions Mapped questionResponse: "
+                            + mapper.writeValueAsString(questionResponse));
             return questionResponse;
         } catch (JsonProcessingException e) {
             LOGGER.error(
-                    "Error serializing Experian:getQuestions request/response: {}",
-                    e.getMessage(),
+                    "Error serializing Experian:getQuestions request/response: " + e.getMessage(),
                     e);
             return null;
         }
@@ -66,29 +65,28 @@ public class KBVGateway {
     public QuestionsResponse submitAnswers(QuestionAnswerRequest questionAnswerRequest) {
         try {
             LOGGER.info(
-                    "Experian:submitAnswers DI request: {}",
-                    mapper.writeValueAsString(questionAnswerRequest));
+                    "Experian:submitAnswers DI request: "
+                            + mapper.writeValueAsString(questionAnswerRequest));
             RTQRequest rtqRequest =
                     this.responseToQuestionMapper.mapQuestionAnswersRtqRequest(
                             questionAnswerRequest);
             LOGGER.info(
-                    "Experian:submitAnswers mapped request: {}",
-                    mapper.writeValueAsString(rtqRequest));
+                    "Experian:submitAnswers mapped request: "
+                            + mapper.writeValueAsString(rtqRequest));
             RTQResponse2 rtqResponse2 = identityIQWebServiceSoap.rtq(rtqRequest);
             LOGGER.info(
-                    "Experian:submitAnswers raw response: {}",
-                    mapper.writeValueAsString(rtqResponse2));
+                    "Experian:submitAnswers raw response: "
+                            + mapper.writeValueAsString(rtqResponse2));
             var questionResponse =
                     this.responseToQuestionMapper.mapRTQResponse2ToMapQuestionsResponse(
                             rtqResponse2);
             LOGGER.info(
-                    "Experian:submitAnswers Mapped questionResponse: {}",
-                    mapper.writeValueAsString(questionResponse));
+                    "Experian:submitAnswers Mapped questionResponse: "
+                            + mapper.writeValueAsString(questionResponse));
             return questionResponse;
         } catch (JsonProcessingException e) {
             LOGGER.error(
-                    "Error serializing Experian:submitAnswers request/response: {}",
-                    e.getMessage(),
+                    "Error serializing Experian:submitAnswers request/response: " + e.getMessage(),
                     e);
             return null;
         }

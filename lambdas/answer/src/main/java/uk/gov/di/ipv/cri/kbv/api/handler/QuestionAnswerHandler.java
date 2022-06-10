@@ -14,6 +14,7 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
+import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
@@ -22,14 +23,17 @@ import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
+import uk.gov.di.ipv.cri.kbv.api.config.ConfigurationConstants;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
+import uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService;
 
 import java.io.IOException;
 import java.util.Map;
@@ -56,21 +60,27 @@ public class QuestionAnswerHandler
     public QuestionAnswerHandler() {
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.kbvStorageService = new KBVStorageService();
-        this.kbvService = new KBVService();
+        this.kbvService = new KBVServiceFactory().create();
         this.eventProbe = new EventProbe();
         this.sessionService = new SessionService();
         this.auditService =
                 new AuditService(
                         SqsClient.builder().build(), new ConfigurationService(), this.objectMapper);
 
-        new KBVSystemProperty().save();
+        var kbvSystemProperty =
+                new KBVSystemProperty(
+                        new KeyStoreService(
+                                ParamManager.getSecretsProvider(),
+                                System.getenv(ConfigurationConstants.AWS_STACK_NAME)));
+
+        kbvSystemProperty.save();
     }
 
     public QuestionAnswerHandler(
             ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
             KBVSystemProperty systemProperty,
-            KBVService kbvService,
+            KBVServiceFactory kbvServiceFactory,
             EventProbe eventProbe,
             SessionService sessionService,
             AuditService auditService) {
@@ -79,8 +89,7 @@ public class QuestionAnswerHandler
         this.eventProbe = eventProbe;
         this.sessionService = sessionService;
         this.auditService = auditService;
-        this.kbvService = kbvService;
-
+        this.kbvService = kbvServiceFactory.create();
         systemProperty.save();
     }
 
@@ -127,7 +136,7 @@ public class QuestionAnswerHandler
             throws IOException, SqsException {
         QuestionState questionState;
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
-        LOGGER.info("Received session-id for Experian: {}", sessionId);
+        LOGGER.info("Received session-id for Experian:" + sessionId);
         KBVItem kbvItem = kbvStorageService.getKBVItem(UUID.fromString(sessionId));
 
         questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
@@ -147,17 +156,17 @@ public class QuestionAnswerHandler
 
         QuestionsResponse questionsResponse = kbvService.submitAnswers(questionAnswerRequest);
         LOGGER.info(
-                "Question State before update: {}",
-                objectMapper.writeValueAsString(kbvItem.getQuestionState()));
+                "Question State before update: "
+                        + objectMapper.writeValueAsString(kbvItem.getQuestionState()));
         if (questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
-            LOGGER.info("Updated state with more questions: {}", serializedQuestionState);
+            LOGGER.info("Updated state with more questions: " + serializedQuestionState);
             kbvItem.setQuestionState(serializedQuestionState);
             kbvStorageService.update(kbvItem);
         } else if (questionsResponse.hasQuestionRequestEnded()) {
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
-            LOGGER.info("Updated state with no more questions: {}", serializedQuestionState);
+            LOGGER.info("Updated state with no more questions: " + serializedQuestionState);
             LOGGER.info(serializedQuestionState);
             kbvItem.setQuestionState(serializedQuestionState);
             kbvItem.setStatus(questionsResponse.getStatus());

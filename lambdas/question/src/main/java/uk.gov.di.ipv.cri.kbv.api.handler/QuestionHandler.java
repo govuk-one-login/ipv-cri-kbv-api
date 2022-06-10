@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
+import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
@@ -22,14 +23,17 @@ import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
+import uk.gov.di.ipv.cri.kbv.api.config.ConfigurationConstants;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
+import uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -63,15 +67,21 @@ public class QuestionHandler
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.kbvStorageService = new KBVStorageService();
         this.personIdentityService = new PersonIdentityService();
-        this.kbvService = new KBVService();
+        this.kbvService = new KBVServiceFactory().create();
         this.configurationService = new ConfigurationService();
+
         this.eventProbe = new EventProbe();
         this.auditService =
                 new AuditService(
-                        SqsClient.builder().build(), new ConfigurationService(), this.objectMapper);
+                        SqsClient.builder().build(), this.configurationService, this.objectMapper);
         this.clock = Clock.systemUTC();
 
-        new KBVSystemProperty().save();
+        var kbvSystemProperty =
+                new KBVSystemProperty(
+                        new KeyStoreService(
+                                ParamManager.getSecretsProvider(),
+                                System.getenv(ConfigurationConstants.AWS_STACK_NAME)));
+        kbvSystemProperty.save();
     }
 
     public QuestionHandler(
@@ -79,7 +89,7 @@ public class QuestionHandler
             KBVStorageService kbvStorageService,
             PersonIdentityService personIdentityService,
             KBVSystemProperty systemProperty,
-            KBVService kbvService,
+            KBVServiceFactory kbvServiceFactory,
             ConfigurationService configurationService,
             EventProbe eventProbe,
             Clock clock,
@@ -89,10 +99,9 @@ public class QuestionHandler
         this.personIdentityService = personIdentityService;
         this.eventProbe = eventProbe;
         this.auditService = auditService;
-        this.kbvService = kbvService;
+        this.kbvService = kbvServiceFactory.create();
         this.configurationService = configurationService;
         this.clock = clock;
-
         systemProperty.save();
     }
 
