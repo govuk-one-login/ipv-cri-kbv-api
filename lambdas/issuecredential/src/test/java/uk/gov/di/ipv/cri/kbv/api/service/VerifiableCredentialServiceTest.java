@@ -2,7 +2,6 @@ package uk.gov.di.ipv.cri.kbv.api.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
@@ -20,6 +19,7 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.Name;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.NamePart;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.common.library.util.ObjectMapper;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
 import uk.gov.di.ipv.cri.kbv.api.domain.Evidence;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
@@ -67,17 +67,18 @@ class VerifiableCredentialServiceTest implements TestFixtures {
                 new VerifiableCredentialService(
                         signedJwtFactory, mockConfigurationService, mockObjectMapper);
 
-        when(mockObjectMapper.convertValue(any(Evidence.class), eq(Map.class)))
-                .thenReturn(Map.of("verificationScore", 2));
-        when(mockObjectMapper.convertValue(any(Address.class), eq(Map.class)))
-                .thenReturn(Map.of("address", new Address()));
-
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
         kbvItem.setAuthRefNo(UUID.randomUUID().toString());
         kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_PASS);
 
         PersonIdentityDetailed personIdentity = createPersonIdentity();
+
+        when(mockObjectMapper.toMapArray(any(List.class), eq(List.of("addressType"))))
+                .thenReturn(new Map[] {Map.of("address", new Address[] {new Address()})});
+
+        when(mockObjectMapper.toMap(any(Evidence.class)))
+                .thenReturn(Map.of("verificationScore", VC_PASS_EVIDENCE_SCORE));
 
         SignedJWT signedJWT =
                 verifiableCredentialService.generateSignedVerifiableCredentialJwt(
@@ -126,16 +127,17 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         VerifiableCredentialService verifiableCredentialService =
                 new VerifiableCredentialService(
                         signedJwtFactory, mockConfigurationService, mockObjectMapper);
-        when(mockObjectMapper.convertValue(any(Evidence.class), eq(Map.class)))
-                .thenReturn(Map.of("verificationScore", 0));
 
-        when(mockObjectMapper.convertValue(any(Address.class), eq(Map.class)))
-                .thenReturn(Map.of("address", new Address()));
+        when(mockObjectMapper.toMapArray(any(List.class), eq(List.of("addressType"))))
+                .thenReturn(new Map[] {Map.of("address", new Address[] {new Address()})});
 
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());
         kbvItem.setAuthRefNo(UUID.randomUUID().toString());
         kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED);
+
+        when(mockObjectMapper.toMap(any(Evidence.class)))
+                .thenReturn(Map.of("verificationScore", VC_FAIL_EVIDENCE_SCORE));
 
         PersonIdentityDetailed personIdentity = createPersonIdentity();
 
@@ -188,6 +190,8 @@ class VerifiableCredentialServiceTest implements TestFixtures {
 
         when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("kbv-cri-issue");
         when(mockConfigurationService.getMaxJwtTtl()).thenReturn(342L);
+        when(mockObjectMapper.toMapArray(any(List.class), eq(List.of("addressType"))))
+                .thenReturn(new Map[] {Map.of("address", new Address[] {new Address()})});
 
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.randomUUID());

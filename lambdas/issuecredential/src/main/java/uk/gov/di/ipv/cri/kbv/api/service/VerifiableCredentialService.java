@@ -1,23 +1,19 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.util.KMSSigner;
+import uk.gov.di.ipv.cri.common.library.util.ObjectMapper;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
 import uk.gov.di.ipv.cri.kbv.api.domain.Evidence;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,10 +36,7 @@ public class VerifiableCredentialService {
                 new SignedJWTFactory(
                         new KMSSigner(
                                 configurationService.getVerifiableCredentialKmsSigningKeyId()));
-        this.objectMapper =
-                new ObjectMapper()
-                        .registerModule(new Jdk8Module())
-                        .registerModule(new JavaTimeModule());
+        this.objectMapper = new ObjectMapper();
     }
 
     public VerifiableCredentialService(
@@ -79,38 +72,18 @@ public class VerifiableCredentialService {
                                         VC_CREDENTIAL_SUBJECT,
                                         Map.of(
                                                 VC_ADDRESS_KEY,
-                                                        convertAddresses(
-                                                                personIdentity.getAddresses()),
-                                                VC_NAME_KEY, personIdentity.getNames(),
+                                                objectMapper.toMapArray(
+                                                        personIdentity.getAddresses(),
+                                                        List.of("addressType")),
+                                                VC_NAME_KEY,
+                                                personIdentity.getNames(),
                                                 VC_BIRTHDATE_KEY,
-                                                        convertBirthDates(
-                                                                personIdentity.getBirthDates())),
+                                                convertBirthDates(personIdentity.getBirthDates())),
                                         VC_EVIDENCE_KEY,
                                         calculateEvidence(kbvItem)))
                         .build();
 
         return signedJwtFactory.createSignedJwt(claimsSet);
-    }
-
-    private Object[] convertAddresses(List<Address> addresses) {
-        return addresses.stream()
-                .map(
-                        address -> {
-                            var mappedAddress = objectMapper.convertValue(address, Map.class);
-                            // Skip superfluous address type from the map to match RFC
-                            HashMap<String, Object> addressMap = new HashMap<>();
-                            if (mappedAddress != null) {
-                                mappedAddress.forEach(
-                                        (key, value) -> {
-                                            if (!key.equals("addressType")) {
-                                                addressMap.put(key.toString(), value);
-                                            }
-                                        });
-                            }
-
-                            return addressMap;
-                        })
-                .toArray();
     }
 
     private Object[] convertBirthDates(List<BirthDate> birthDates) {
@@ -147,6 +120,6 @@ public class VerifiableCredentialService {
                 throw new IllegalArgumentException("KBV item status is unknown");
         }
 
-        return new Map[] {objectMapper.convertValue(evidence, Map.class)};
+        return new Map[] {objectMapper.toMap(evidence)};
     }
 }
