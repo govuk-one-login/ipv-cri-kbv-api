@@ -7,10 +7,6 @@ public class KBVSystemProperty {
     private final String value;
     private final String password;
 
-    public KBVSystemProperty() {
-        this(new KeyStoreService());
-    }
-
     public KBVSystemProperty(KeyStoreService keyStoreService) {
         this.value = keyStoreService.getKeyStorePath();
         this.password = keyStoreService.getPassword();
