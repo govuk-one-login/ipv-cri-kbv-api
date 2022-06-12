@@ -3,9 +3,8 @@ package uk.gov.di.ipv.cri.kbv.api.handler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +26,6 @@ import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
@@ -39,7 +37,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,8 +46,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.GET_QUESTION;
@@ -60,7 +59,7 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.HEADER_SESSION_I
 class QuestionHandlerTest {
     private QuestionHandler questionHandler;
     private final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-    @Mock private ObjectMapper mockObjectMapper;
+    private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     @Mock private KBVStorageService mockKBVStorageService;
     @Mock private PersonIdentityService mockPersonIdentityService;
     @Mock private EventProbe mockEventProbe;
@@ -76,7 +75,6 @@ class QuestionHandlerTest {
         spyKBVService = Mockito.spy(new KBVService(mockKBVGateway));
         questionHandler =
                 new QuestionHandler(
-                        mockObjectMapper,
                         mockKBVStorageService,
                         mockPersonIdentityService,
                         mockSystemProperty,
@@ -93,114 +91,87 @@ class QuestionHandlerTest {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
-        Context contextMock = mock(Context.class);
-        KBVItem kbvItem = new KBVItem();
+        var contextMock = mock(Context.class);
+        var personIdentityMock = mock(PersonIdentity.class);
+        var kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
-        PersonIdentity personIdentityMock = mock(PersonIdentity.class);
-        QuestionState questionStateMock = mock(QuestionState.class);
+        var questionsResponseString =
+                "{\"control\":{\"urn\":\"f0746bbd-ed6f-44c7-bc3b-82c336c10815\",\"authRefNo\":\"7DCTWBC7LR\",\"dateTime\":null,\"testDatabase\":\"A\",\"clientAccountNo\":\"J8193\",\"clientBranchNo\":null,\"operatorID\":\"GDSCABINETUIIQ01U\",\"parameters\":{\"oneShotAuthentication\":\"N\",\"storeCaseData\":\"P\"}},\"questions\":{\"question\":[{\"questionID\":\"Q00015\",\"text\":\"What is the outstanding balance of your current mortgage?\",\"tooltip\":\"The approximate amount in £s, including interest. A loan to buy property (or land) where the loan is secured by a charge on that property.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £10,000\",\"OVER £10,000 UP TO £35,000\",\"OVER £35,000 UP TO £60,000\",\"OVER £60,000 UP TO £85,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]}},{\"questionID\":\"Q00040\",\"text\":\"How much was your recent loan for?\",\"tooltip\":\"The approximate starting balance, in £s, on an active personal loan. Does not include HP Loans, 2nd Mortgages or Home Credit.\",\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £8,500\",\"OVER £8,500 UP TO £9,000\",\"OVER £9,000 UP TO £9,500\",\"OVER £9,500 UP TO £10,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]},\"answerHeldFlag\":null}],\"skipsRemaining\":null,\"skipWarning\":null},\"results\":{\"outcome\":\"Authentication Questions returned\",\"authenticationResult\":null,\"questions\":null,\"alerts\":null,\"nextTransId\":{\"string\":[\"RTQ\"]},\"caseFoundFlag\":null,\"confirmationCode\":null},\"error\":null}";
+        QuestionsResponse questionResponse =
+                objectMapper.readValue(questionsResponseString, QuestionsResponse.class);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockPersonIdentityService.getPersonIdentity(kbvItem.getSessionId()))
                 .thenReturn(personIdentityMock);
-
-        when(mockKBVStorageService.getKBVItem(
-                        UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
-                .thenReturn(kbvItem);
-
-        when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
-                .thenReturn(questionStateMock);
-
-        QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
-
-        when(questionsResponseMock.hasQuestions()).thenReturn(true);
-        String state = "question-state";
-        when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn(state);
-        com.experian.uk.schema.experian.identityiq.services.webservice.Control controlMock =
-                mock(Control.class);
-        when(questionsResponseMock.getControl()).thenReturn(controlMock);
-        String authRefNo = "auth-ref-no";
-        when(controlMock.getAuthRefNo()).thenReturn(authRefNo);
-        String ipvSessionId = "ipv-session-id";
-        when(controlMock.getURN()).thenReturn(ipvSessionId);
-
-        Question expectedQuestion = mock(Question.class);
-        when(mockKBVGateway.getQuestions(any())).thenReturn(questionsResponseMock);
-        when(questionStateMock.getNextQuestion()) // we have to do this to get it to work
-                .thenReturn(Optional.empty()) // otherwise the second overrides the first
-                .thenReturn(Optional.ofNullable(expectedQuestion));
-
-        when(mockObjectMapper.writeValueAsString(expectedQuestion))
-                .thenReturn(TestData.EXPECTED_QUESTION);
+        doReturn(questionResponse).when(spyKBVService).getQuestions(any());
 
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
         assertEquals(HttpStatusCode.OK, response.getStatusCode());
         assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
+
+        verify(input, times(2)).getHeaders();
+        verify(mockPersonIdentityService).getPersonIdentity(kbvItem.getSessionId());
         verify(mockAuditService).sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_REQUEST_SENT);
         verify(mockEventProbe).counterMetric(GET_QUESTION);
     }
 
     @Test
-    void shouldReturn200OkWhenCalledAgainAndReturnNextUnAnsweredQuestionFromStorage()
-            throws IOException {
+    void shouldReturn200OkWhenCalledAgainAndReturnNextUnAnsweredQuestionFromStorage() {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
         Context contextMock = mock(Context.class);
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
-
-        QuestionState questionStateMock = mock(QuestionState.class);
+        String questionStateString =
+                "{\"qaPairs\":[{\"question\":{\"questionID\":\"Q00015\",\"text\":\"What is the outstanding balance of your current mortgage?\",\"tooltip\":\"The approximate amount in £s, including interest. A loan to buy property (or land) where the loan is secured by a charge on that property.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £10,000\",\"OVER £10,000 UP TO £35,000\",\"OVER £35,000 UP TO £60,000\",\"OVER £60,000 UP TO £85,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]}},\"answer\":null},{\"question\":{\"questionID\":\"Q00040\",\"text\":\"How much was your recent loan for?\",\"tooltip\":\"The approximate starting balance, in £s, on an active personal loan. Does not include HP Loans, 2nd Mortgages or Home Credit.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £8,500\",\"OVER £8,500 UP TO £9,000\",\"OVER £9,000 UP TO £9,500\",\"OVER £9,500 UP TO £10,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]}},\"answer\":\"Answer given here\"}],\"nextQuestion\":{\"empty\":false,\"present\":true},\"answers\":[{\"questionId\":\"Q00040\",\"answer\":null},{\"questionId\":\"Q00015\",\"answer\":null}]}";
+        kbvItem.setQuestionState(questionStateString);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockKBVStorageService.getKBVItem(
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                 .thenReturn(kbvItem);
-        when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
-                .thenReturn(questionStateMock);
-
-        Question question2 = mock(Question.class);
-
-        when(questionStateMock.getNextQuestion()).thenReturn(Optional.ofNullable(question2));
-
-        when(mockObjectMapper.writeValueAsString(question2)).thenReturn(TestData.EXPECTED_QUESTION);
 
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
         assertEquals(HttpStatusCode.OK, response.getStatusCode());
         assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
+
+        verify(input, times(2)).getHeaders();
+        verify(mockKBVStorageService)
+                .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
         verify(mockEventProbe).counterMetric(GET_QUESTION);
     }
 
-    @Test
+    @Test // this is a case where all the questions submitted have been answered previously. and
+    // then resubmitted
     void shouldReturn400ErrorWhenNoFurtherQuestions() throws IOException {
         Context contextMock = mock(Context.class);
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
-        PersonIdentity personIdentity = new PersonIdentity();
         KBVItem kbvItem = new KBVItem();
         kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
-        QuestionState questionStateMock = mock(QuestionState.class);
+        kbvItem.setExpiryDate(97989);
+        String questionState =
+                "{\"qaPairs\":[{\"question\":{\"questionID\":\"Q00015\",\"text\":\"What is the outstanding balance of your current mortgage?\",\"tooltip\":\"The approximate amount in £s, including interest. A loan to buy property (or land) where the loan is secured by a charge on that property.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £10,000\",\"OVER £10,000 UP TO £35,000\",\"OVER £35,000 UP TO £60,000\",\"OVER £60,000 UP TO £85,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]}},\"answer\":\"Answer given here\"},{\"question\":{\"questionID\":\"Q00040\",\"text\":\"How much was your recent loan for?\",\"tooltip\":\"The approximate starting balance, in £s, on an active personal loan. Does not include HP Loans, 2nd Mortgages or Home Credit.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £8,500\",\"OVER £8,500 UP TO £9,000\",\"OVER £9,000 UP TO £9,500\",\"OVER £9,500 UP TO £10,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]}},\"answer\":\"another answer given\"}],\"nextQuestion\":{\"empty\":false,\"present\":true},\"answers\":[{\"questionId\":\"Q00040\",\"answer\":null},{\"questionId\":\"Q00015\",\"answer\":null}]}";
+        kbvItem.setQuestionState(questionState);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockKBVStorageService.getKBVItem(
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                 .thenReturn(kbvItem);
-        when(mockPersonIdentityService.getPersonIdentity(kbvItem.getSessionId()))
-                .thenReturn(personIdentity);
-
-        when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
-                .thenReturn(questionStateMock);
 
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
+        assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
+
+        verify(input, times(2)).getHeaders();
         verify(mockKBVStorageService)
                 .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
-        verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
+        verify(spyKBVService).submitAnswers(any());
         verify(mockEventProbe).counterMetric(GET_QUESTION);
-
-        assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
@@ -212,7 +183,9 @@ class QuestionHandlerTest {
                 questionHandler.handleRequest(input, mock(Context.class));
 
         String expectedMessage = "java.lang.NullPointerException";
+
         assertTrue(response.getBody().contains(expectedMessage));
+
         assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
         verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
     }
@@ -233,6 +206,8 @@ class QuestionHandlerTest {
 
         assertEquals("{ \"error\":\"AWS Server error occurred.\" }", response.getBody());
         assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
+
+        verify(input, times(2)).getHeaders();
         verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
     }
 
@@ -278,20 +253,13 @@ class QuestionHandlerTest {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
-        KBVItem kbvItemMock = mock(KBVItem.class);
-        PersonIdentity personIdentityMock = mock(PersonIdentity.class);
-        QuestionState questionStateMock = mock(QuestionState.class);
+        var personIdentityMock = mock(PersonIdentity.class);
+        var kbvItem = new KBVItem();
+        kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
 
         when(input.getHeaders()).thenReturn(sessionHeader);
-        when(mockKBVStorageService.getKBVItem(
-                        UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
-                .thenReturn(kbvItemMock);
-        when(mockPersonIdentityService.getPersonIdentity(
-                        UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
+        when(mockPersonIdentityService.getPersonIdentity(kbvItem.getSessionId()))
                 .thenReturn(personIdentityMock);
-
-        when(mockObjectMapper.readValue(kbvItemMock.getQuestionState(), QuestionState.class))
-                .thenReturn(questionStateMock);
 
         doThrow(RuntimeException.class)
                 .when(spyKBVService)
@@ -311,20 +279,20 @@ class QuestionHandlerTest {
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
-        Context contextMock = mock(Context.class);
-        KBVItem SessionItemMock = mock(KBVItem.class);
-        QuestionState questionStateMock = mock(QuestionState.class);
+        KBVItem kbvItem = new KBVItem();
+        kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
+        kbvItem.setStatus("status-code");
+        String questionState =
+                "{\"qaPairs\":[{\"question\":{\"questionID\":\"Q00015\",\"text\":\"What is the outstanding balance of your current mortgage?\",\"tooltip\":\"The approximate amount in £s, including interest. A loan to buy property (or land) where the loan is secured by a charge on that property.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £10,000\",\"OVER £10,000 UP TO £35,000\",\"OVER £35,000 UP TO £60,000\",\"OVER £60,000 UP TO £85,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]}},\"answer\":\"Answer given here\"},{\"question\":{\"questionID\":\"Q00040\",\"text\":\"How much was your recent loan for?\",\"tooltip\":\"The approximate starting balance, in £s, on an active personal loan. Does not include HP Loans, 2nd Mortgages or Home Credit.\",\"answerHeldFlag\":null,\"answerFormat\":{\"identifier\":\"A00004\",\"fieldType\":\"G \",\"answerList\":[\"UP TO £8,500\",\"OVER £8,500 UP TO £9,000\",\"OVER £9,000 UP TO £9,500\",\"OVER £9,500 UP TO £10,000\",\"NONE OF THE ABOVE / DOES NOT APPLY\"]}},\"answer\":\"another answer given\"}],\"nextQuestion\":{\"empty\":false,\"present\":true},\"answers\":[{\"questionId\":\"Q00040\",\"answer\":null},{\"questionId\":\"Q00015\",\"answer\":null}]}";
+        kbvItem.setQuestionState(questionState);
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(mockKBVStorageService.getKBVItem(
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
-                .thenReturn(SessionItemMock);
+                .thenReturn(kbvItem);
 
-        when(mockObjectMapper.readValue(SessionItemMock.getQuestionState(), QuestionState.class))
-                .thenReturn(questionStateMock);
-
-        when(SessionItemMock.getStatus()).thenReturn("status-code");
-        APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
+        APIGatewayProxyResponseEvent response =
+                questionHandler.handleRequest(input, mock(Context.class));
 
         assertEquals(HttpStatusCode.NO_CONTENT, response.getStatusCode());
         assertNull(response.getBody());

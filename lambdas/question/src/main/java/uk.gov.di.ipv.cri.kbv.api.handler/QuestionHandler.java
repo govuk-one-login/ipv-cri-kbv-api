@@ -45,7 +45,8 @@ public class QuestionHandler
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String GET_QUESTION = "get_question";
     public static final String ERROR_KEY = "\"error\"";
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper =
+            new ObjectMapper().registerModule(new JavaTimeModule());
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
     private final EventProbe eventProbe;
@@ -56,7 +57,6 @@ public class QuestionHandler
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
-        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.kbvStorageService = new KBVStorageService();
         this.personIdentityService = new PersonIdentityService();
         this.kbvService = new KBVService();
@@ -69,7 +69,6 @@ public class QuestionHandler
     }
 
     public QuestionHandler(
-            ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
             PersonIdentityService personIdentityService,
             KBVSystemProperty systemProperty,
@@ -78,7 +77,6 @@ public class QuestionHandler
             EventProbe eventProbe,
             Clock clock,
             AuditService auditService) {
-        this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
         this.personIdentityService = personIdentityService;
         this.eventProbe = eventProbe;

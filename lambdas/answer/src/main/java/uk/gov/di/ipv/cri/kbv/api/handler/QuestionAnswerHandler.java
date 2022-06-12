@@ -40,7 +40,8 @@ public class QuestionAnswerHandler
     private static final String HEADER_SESSION_ID = "session-id";
     private static final String ERROR_KEY = "\"error\"";
     private static final String POST_ANSWER = "post_answer";
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper =
+            new ObjectMapper().registerModule(new JavaTimeModule());
     private final KBVService kbvService;
     private final KBVStorageService kbvStorageService;
     private final SessionService sessionService;
@@ -49,7 +50,6 @@ public class QuestionAnswerHandler
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
-        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.kbvStorageService = new KBVStorageService();
         this.kbvService = new KBVService();
         this.eventProbe = new EventProbe();
@@ -60,14 +60,12 @@ public class QuestionAnswerHandler
     }
 
     public QuestionAnswerHandler(
-            ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
             KBVSystemProperty systemProperty,
             KBVService kbvService,
             EventProbe eventProbe,
             SessionService sessionService,
             AuditService auditService) {
-        this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
         this.eventProbe = eventProbe;
         this.sessionService = sessionService;
