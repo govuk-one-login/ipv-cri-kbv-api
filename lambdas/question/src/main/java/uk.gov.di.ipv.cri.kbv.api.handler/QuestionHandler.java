@@ -16,7 +16,6 @@ import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverage
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
-import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
@@ -24,13 +23,12 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.service.ClockService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
 
 import java.io.IOException;
-import java.time.Clock;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -52,18 +50,16 @@ public class QuestionHandler
     private final EventProbe eventProbe;
     private final KBVService kbvService;
     private final AuditService auditService;
-    private final ConfigurationService configurationService;
-    private final Clock clock;
+    private final ClockService clockService;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
         this.kbvStorageService = new KBVStorageService();
         this.personIdentityService = new PersonIdentityService();
         this.kbvService = new KBVService();
-        this.configurationService = new ConfigurationService();
         this.eventProbe = new EventProbe();
         this.auditService = new AuditService();
-        this.clock = Clock.systemUTC();
+        this.clockService = new ClockService();
 
         new KBVSystemProperty().save();
     }
@@ -73,17 +69,15 @@ public class QuestionHandler
             PersonIdentityService personIdentityService,
             KBVSystemProperty systemProperty,
             KBVService kbvService,
-            ConfigurationService configurationService,
             EventProbe eventProbe,
-            Clock clock,
+            ClockService clockService,
             AuditService auditService) {
         this.kbvStorageService = kbvStorageService;
         this.personIdentityService = personIdentityService;
         this.eventProbe = eventProbe;
         this.auditService = auditService;
         this.kbvService = kbvService;
-        this.configurationService = configurationService;
-        this.clock = clock;
+        this.clockService = clockService;
 
         systemProperty.save();
     }
@@ -169,10 +163,7 @@ public class QuestionHandler
             kbvItem.setQuestionState(state);
             kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
             kbvItem.setUrn(questionsResponse.getControl().getURN());
-            kbvItem.setExpiryDate(
-                    clock.instant()
-                            .plus(configurationService.getSessionTtl(), ChronoUnit.SECONDS)
-                            .getEpochSecond());
+            kbvItem.setExpiryDate(clockService.getEpochSecond());
             auditService.sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_REQUEST_SENT);
 
             kbvStorageService.save(kbvItem);

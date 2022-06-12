@@ -21,21 +21,18 @@ import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
-import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.service.ClockService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
 
 import java.io.IOException;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.Map;
 import java.util.UUID;
 
@@ -58,15 +55,15 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.HEADER_SESSION_I
 @ExtendWith(MockitoExtension.class)
 class QuestionHandlerTest {
     private QuestionHandler questionHandler;
-    private final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+    // private final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
     private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     @Mock private KBVStorageService mockKBVStorageService;
     @Mock private PersonIdentityService mockPersonIdentityService;
     @Mock private EventProbe mockEventProbe;
     @Mock private KBVGateway mockKBVGateway;
-    @Mock private ConfigurationService mockConfigurationService;
     @Mock private KBVSystemProperty mockSystemProperty;
     @Mock private AuditService mockAuditService;
+    @Mock private ClockService mockClockService;
     private KBVService spyKBVService;
 
     @BeforeEach
@@ -79,9 +76,8 @@ class QuestionHandlerTest {
                         mockPersonIdentityService,
                         mockSystemProperty,
                         spyKBVService,
-                        mockConfigurationService,
                         mockEventProbe,
-                        clock,
+                        mockClockService,
                         mockAuditService);
     }
 

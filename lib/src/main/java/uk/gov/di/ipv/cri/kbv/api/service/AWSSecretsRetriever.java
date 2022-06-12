@@ -18,7 +18,7 @@ public class AWSSecretsRetriever {
 
     public AWSSecretsRetriever(SecretsProvider secretsProvider, String secretKeyPrefix) {
         this.secretsProvider =
-                Objects.requireNonNull(secretsProvider, "secretsProvider must not be null");
+                Objects.requireNonNull(secretsProvider, "SecretsProvider must not be null");
         this.secretKeyPrefix = Objects.requireNonNull(secretKeyPrefix, "key must not be null");
     }
 
