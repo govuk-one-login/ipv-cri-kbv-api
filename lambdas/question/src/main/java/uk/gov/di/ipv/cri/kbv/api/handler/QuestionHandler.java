@@ -31,14 +31,15 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.apache.logging.log4j.Level.ERROR;
+import static org.apache.logging.log4j.Level.INFO;
+import static software.amazon.awssdk.http.HttpStatusCode.BAD_REQUEST;
+import static software.amazon.awssdk.http.HttpStatusCode.OK;
 
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
-
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String GET_QUESTION = "get_question";
     public static final String ERROR_KEY = "\"error\"";
@@ -85,8 +86,28 @@ public class QuestionHandler
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
         APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+        response.withHeaders(Map.of("Content-Type", "application/json"));
         try {
-            processQuestionRequest(input, response);
+            UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
+            KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
+            QuestionState questionState = new QuestionState();
+            if (kbvItem != null) {
+                questionState =
+                        objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
+            } else {
+                kbvItem = new KBVItem();
+                kbvItem.setSessionId(sessionId);
+            }
+            if (Objects.nonNull(kbvItem.getStatus())) {
+                response.withStatusCode(HttpStatusCode.NO_CONTENT);
+                eventProbe.counterMetric(GET_QUESTION);
+                return response;
+            }
+
+            Question question = processQuestionRequest(questionState, kbvItem);
+            response.withBody(objectMapper.writeValueAsString(question));
+            response.withStatusCode(question != null ? OK : BAD_REQUEST);
+
             eventProbe.counterMetric(GET_QUESTION);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(GET_QUESTION, 0d);
@@ -94,8 +115,8 @@ public class QuestionHandler
             response.withBody(
                     "{ " + ERROR_KEY + ":\"Failed to parse object using ObjectMapper.\" }");
         } catch (NullPointerException npe) {
-            eventProbe.log(ERROR, npe).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.BAD_REQUEST);
+            eventProbe.log(INFO, npe).counterMetric(GET_QUESTION, 0d);
+            response.withStatusCode(BAD_REQUEST);
             response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
         } catch (IOException e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
@@ -109,68 +130,54 @@ public class QuestionHandler
         return response;
     }
 
-    public void processQuestionRequest(
-            APIGatewayProxyRequestEvent input, APIGatewayProxyResponseEvent response)
+    public Question processQuestionRequest(QuestionState questionState, KBVItem kbvItem)
             throws IOException, SqsException {
-        response.withHeaders(Map.of("Content-Type", "application/json"));
-        UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
-        KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
-        QuestionState questionState = new QuestionState();
-        if (kbvItem != null) {
-            questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
-        } else {
-            kbvItem = new KBVItem();
-            kbvItem.setSessionId(sessionId);
-        }
 
-        if (respondWithQuestionFromDbStore(questionState, response)) return;
-        respondWithQuestionFromExperianThenStoreInDb(kbvItem, questionState, response);
+        Question question;
+        if ((question = getQuestionFromDbStore(questionState)) != null) {
+            return question;
+        }
+        var questionsResponse = getExperainQuestionAnswerResponse(kbvItem);
+        if ((question = retrieveQuestionExperianResponse(questionsResponse, questionState)) != null) {
+            saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
+            return question;
+        }
+        return null;
     }
 
-    private boolean respondWithQuestionFromDbStore(
-            QuestionState questionState, APIGatewayProxyResponseEvent response)
-            throws JsonProcessingException {
+    private Question getQuestionFromDbStore(QuestionState questionState) {
+        Objects.requireNonNull(questionState, "questionState cannot be null");
         // TODO Handle scenario when no questions are available
-        Optional<Question> nextQuestion = questionState.getNextQuestion();
-        if (nextQuestion.isPresent()) {
-            response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
-            response.withStatusCode(HttpStatusCode.OK);
-            return true;
-        }
-        return false;
+        return questionState.getNextQuestion().orElse(null);
     }
 
-    private void respondWithQuestionFromExperianThenStoreInDb(
-            KBVItem kbvItem, QuestionState questionState, APIGatewayProxyResponseEvent response)
-            throws IOException, SqsException {
-        // we should fall in this block once only
-        // fetch a batch of questions from experian kbv wrapper
-        if (Objects.nonNull(kbvItem.getStatus())) {
-            response.withStatusCode(HttpStatusCode.NO_CONTENT);
-            return;
-        }
-        QuestionsResponse questionsResponse = getQuestionRequest(kbvItem);
+    private Question retrieveQuestionExperianResponse(
+            QuestionsResponse questionsResponse, QuestionState questionState) {
+
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
-            Optional<Question> nextQuestion = questionState.getNextQuestion();
-            response.withStatusCode(HttpStatusCode.OK);
-            response.withBody(objectMapper.writeValueAsString(nextQuestion.get()));
-
-            String state = objectMapper.writeValueAsString(questionState);
-            kbvItem.setQuestionState(state);
-            kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
-            kbvItem.setUrn(questionsResponse.getControl().getURN());
-            kbvItem.setExpiryDate(this.configurationService.getSessionExpirationEpoch());
-            auditService.sendAuditEvent(AuditEventType.REQUEST_SENT);
-
-            kbvStorageService.save(kbvItem);
+            return questionState.getNextQuestion().orElse(null);
         } else { // Alternate flow when first request does not return questions
-            response.withStatusCode(HttpStatusCode.BAD_REQUEST);
-            response.withBody(objectMapper.writeValueAsString(questionsResponse));
+            return null;
         }
     }
 
-    private QuestionsResponse getQuestionRequest(KBVItem kbvItem) throws JsonProcessingException {
+    private void saveQuestionStateToKbvItem(
+            KBVItem kbvItem, QuestionState questionState, QuestionsResponse questionsResponse)
+            throws JsonProcessingException, SqsException {
+        String state = objectMapper.writeValueAsString(questionState);
+        kbvItem.setQuestionState(state);
+        kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
+        kbvItem.setUrn(questionsResponse.getControl().getURN());
+        kbvItem.setExpiryDate(configurationService.getEpochSecond());
+        auditService.sendAuditEvent(AuditEventType.REQUEST_SENT);
+
+        kbvStorageService.save(kbvItem);
+    }
+
+    private QuestionsResponse getExperainQuestionAnswerResponse(KBVItem kbvItem) throws JsonProcessingException {
+        Objects.requireNonNull(kbvItem, "kbvItem cannot be null");
+
         if (kbvItem.getExpiryDate() == 0L) { // first request for questions for a given session
             QuestionRequest questionRequest = new QuestionRequest();
             questionRequest.setPersonIdentity(
