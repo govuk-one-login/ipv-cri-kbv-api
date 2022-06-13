@@ -8,10 +8,7 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.http.HttpStatusCode;
-import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
@@ -45,7 +42,6 @@ import static org.apache.logging.log4j.Level.INFO;
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-    private static final Logger LOGGER = LogManager.getLogger();
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String GET_QUESTION = "get_question";
     public static final String ERROR_KEY = "\"error\"";
@@ -66,9 +62,7 @@ public class QuestionHandler
         this.kbvService = new KBVService();
         this.configurationService = new ConfigurationService();
         this.eventProbe = new EventProbe();
-        this.auditService =
-                new AuditService(
-                        SqsClient.builder().build(), new ConfigurationService(), this.objectMapper);
+        this.auditService = new AuditService();
         this.clock = Clock.systemUTC();
 
         new KBVSystemProperty().save();
@@ -131,7 +125,6 @@ public class QuestionHandler
             throws IOException, SqsException {
         response.withHeaders(Map.of("Content-Type", "application/json"));
         UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
-        LOGGER.info("Received session-id for Experian:" + sessionId);
         KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
         QuestionState questionState = new QuestionState();
         if (kbvItem != null) {
