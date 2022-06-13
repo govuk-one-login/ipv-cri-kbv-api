@@ -29,6 +29,7 @@ import uk.gov.di.ipv.cri.kbv.api.exception.CredentialRequestException;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.VerifiableCredentialService;
 
+import java.time.Clock;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -44,7 +45,6 @@ public class IssueCredentialHandler
     private final SessionService sessionService;
     private final EventProbe eventProbe;
     private final AuditService auditService;
-
     private final PersonIdentityService personIdentityService;
 
     public IssueCredentialHandler(
@@ -71,7 +71,8 @@ public class IssueCredentialHandler
                 new AuditService(
                         SqsClient.builder().build(),
                         new ConfigurationService(),
-                        new ObjectMapper());
+                        new ObjectMapper(),
+                        Clock.systemUTC());
         this.personIdentityService = new PersonIdentityService();
     }
 
