@@ -23,7 +23,7 @@ import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpResponse;
-import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Name;
@@ -58,6 +58,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_PASS;
 import static uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler.KBV_CREDENTIAL_ISSUER;
 
+@SuppressWarnings("rawtypes")
 @ExtendWith(MockitoExtension.class)
 class IssueCredentialHandlerTest {
     public static final String SUBJECT = "subject";
@@ -73,8 +74,7 @@ class IssueCredentialHandlerTest {
     @InjectMocks private IssueCredentialHandler handler;
 
     @Test
-    void shouldReturn200OkWhenIssueCredentialRequestIsValid()
-            throws JOSEException, SqsException, JsonProcessingException {
+    void shouldReturn200OkWhenIssueCredentialRequestIsValid() throws JOSEException, SqsException {
         APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
         AccessToken accessToken = new BearerAccessToken();
         event.withHeaders(
@@ -111,7 +111,7 @@ class IssueCredentialHandlerTest {
         verify(mockVerifiableCredentialService)
                 .generateSignedVerifiableCredentialJwt(SUBJECT, personIdentity, kbvItem);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER);
-        verify(mockAuditService).sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_VC_ISSUED);
+        verify(mockAuditService).sendAuditEvent(AuditEventType.VC_ISSUED);
         assertEquals(
                 ContentType.APPLICATION_JWT.getType(), response.getHeaders().get("Content-Type"));
         assertEquals(HttpStatusCode.OK, response.getStatusCode());
@@ -159,7 +159,7 @@ class IssueCredentialHandlerTest {
         verify(mockEventProbe).log(Level.ERROR, unExpectedJOSEException);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
         verifyNoMoreInteractions(mockVerifiableCredentialService);
-        verify(mockAuditService, never()).sendAuditEvent(any());
+        verify(mockAuditService, never()).sendAuditEvent(any(AuditEventType.class));
         Map responseBody = new ObjectMapper().readValue(response.getBody(), Map.class);
         assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
         assertEquals(ErrorResponse.VERIFIABLE_CREDENTIAL_ERROR.getCode(), responseBody.get("code"));
@@ -176,7 +176,7 @@ class IssueCredentialHandlerTest {
 
         APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
-        verify(mockAuditService, never()).sendAuditEvent(any());
+        verify(mockAuditService, never()).sendAuditEvent(any(AuditEventType.class));
         assertEquals(
                 ContentType.APPLICATION_JSON.getType(), response.getHeaders().get("Content-Type"));
         assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
@@ -216,7 +216,7 @@ class IssueCredentialHandlerTest {
 
         verify(mockSessionService).getSessionByAccessToken(accessToken);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
-        verify(mockAuditService, never()).sendAuditEvent(any());
+        verify(mockAuditService, never()).sendAuditEvent(any(AuditEventType.class));
         String responseBody = new ObjectMapper().readValue(response.getBody(), String.class);
         assertEquals(awsErrorDetails.sdkHttpResponse().statusCode(), response.getStatusCode());
         assertEquals(awsErrorDetails.errorMessage(), responseBody);
@@ -261,7 +261,7 @@ class IssueCredentialHandlerTest {
         verify(mockSessionService).getSessionByAccessToken(accessToken);
         verify(mockKBVStorageService).getKBVItem(sessionId);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
-        verify(mockAuditService, never()).sendAuditEvent(any());
+        verify(mockAuditService, never()).sendAuditEvent(any(AuditEventType.class));
         String responseBody = new ObjectMapper().readValue(response.getBody(), String.class);
         assertEquals(awsErrorDetails.sdkHttpResponse().statusCode(), response.getStatusCode());
         assertEquals(awsErrorDetails.errorMessage(), responseBody);

@@ -12,7 +12,7 @@ import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
-import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
@@ -152,7 +152,7 @@ public class QuestionAnswerHandler
                     sessionService.getSession(String.valueOf(kbvItem.getSessionId()));
             sessionItem.setAuthorizationCode(UUID.randomUUID().toString());
             sessionService.createAuthorizationCode(sessionItem);
-            auditService.sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_THIRD_PARTY_REQUEST_ENDED);
+            auditService.sendAuditEvent(AuditEventType.THIRD_PARTY_REQUEST_ENDED);
         }
         response.withStatusCode(HttpStatusCode.OK);
     }

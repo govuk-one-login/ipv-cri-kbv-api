@@ -18,7 +18,7 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
-import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
@@ -136,7 +136,7 @@ class QuestionHandlerTest {
 
         assertEquals(HttpStatusCode.OK, response.getStatusCode());
         assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
-        verify(mockAuditService).sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_REQUEST_SENT);
+        verify(mockAuditService).sendAuditEvent(AuditEventType.REQUEST_SENT);
         verify(mockEventProbe).counterMetric(GET_QUESTION);
     }
 

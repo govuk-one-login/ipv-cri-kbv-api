@@ -14,7 +14,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
-import uk.gov.di.ipv.cri.common.library.domain.AuditEventTypes;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
@@ -150,8 +150,7 @@ class QuestionAnswerHandlerTest {
         verify(mockSessionService).createAuthorizationCode(mockSessionItem);
         assertEquals(HttpStatusCode.OK, result.getStatusCode());
         assertNull(result.getBody());
-        verify(mockAuditService)
-                .sendAuditEvent(AuditEventTypes.IPV_KBV_CRI_THIRD_PARTY_REQUEST_ENDED);
+        verify(mockAuditService).sendAuditEvent(AuditEventType.THIRD_PARTY_REQUEST_ENDED);
     }
 
     @Test

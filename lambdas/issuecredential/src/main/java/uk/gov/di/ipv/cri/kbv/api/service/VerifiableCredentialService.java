@@ -92,6 +92,7 @@ public class VerifiableCredentialService {
         return signedJwtFactory.createSignedJwt(claimsSet);
     }
 
+    @SuppressWarnings("unchecked")
     private Object[] convertAddresses(List<Address> addresses) {
         return addresses.stream()
                 .map(
