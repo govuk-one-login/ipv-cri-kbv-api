@@ -10,7 +10,6 @@ import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -32,7 +31,6 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
 
