@@ -92,7 +92,7 @@ public class IssueCredentialHandler
                     verifiableCredentialService.generateSignedVerifiableCredentialJwt(
                             sessionItem.getSubject(), personIdentity, kbvItem);
             auditService.sendAuditEvent(AuditEventType.VC_ISSUED);
-            eventProbe.counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
+            eventProbe.counterMetric(KBV_CREDENTIAL_ISSUER);
 
             return ApiGatewayResponseGenerator.proxyJwtResponse(
                     HttpStatusCode.OK, signedJWT.serialize());
