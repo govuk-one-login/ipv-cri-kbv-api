@@ -37,7 +37,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.apache.logging.log4j.Level.ERROR;
-import static org.apache.logging.log4j.Level.INFO;
 
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -105,7 +104,7 @@ public class QuestionHandler
             response.withBody(
                     "{ " + ERROR_KEY + ":\"Failed to parse object using ObjectMapper.\" }");
         } catch (NullPointerException npe) {
-            eventProbe.log(INFO, npe).counterMetric(GET_QUESTION, 0d);
+            eventProbe.log(ERROR, npe).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
         } catch (IOException e) {
