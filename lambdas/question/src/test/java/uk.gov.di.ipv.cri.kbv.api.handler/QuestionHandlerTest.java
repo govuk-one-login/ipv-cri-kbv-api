@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
@@ -28,6 +29,7 @@ import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
@@ -53,35 +55,34 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.GET_QUESTION;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.HEADER_SESSION_ID;
 
 @ExtendWith(MockitoExtension.class)
 class QuestionHandlerTest {
     private QuestionHandler questionHandler;
-
     private final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-
     @Mock private ObjectMapper mockObjectMapper;
     @Mock private KBVStorageService mockKBVStorageService;
     @Mock private PersonIdentityService mockPersonIdentityService;
     @Mock private EventProbe mockEventProbe;
-    @Mock private KBVServiceFactory mockKbvServiceFactory;
-    @Mock private KBVService mockKbvService;
+    @Mock private KBVGateway mockKBVGateway;
     @Mock private ConfigurationService mockConfigurationService;
     @Mock private KBVSystemProperty mockSystemProperty;
     @Mock private AuditService mockAuditService;
+    private KBVService spyKBVService;
 
     @BeforeEach
     void setUp() {
-        when(mockKbvServiceFactory.create()).thenReturn(mockKbvService);
         doNothing().when(mockSystemProperty).save();
+        spyKBVService = Mockito.spy(new KBVService(mockKBVGateway));
         questionHandler =
                 new QuestionHandler(
                         mockObjectMapper,
                         mockKBVStorageService,
                         mockPersonIdentityService,
                         mockSystemProperty,
-                        mockKbvServiceFactory,
+                        spyKBVService,
                         mockConfigurationService,
                         mockEventProbe,
                         clock,
@@ -125,7 +126,7 @@ class QuestionHandlerTest {
         when(controlMock.getURN()).thenReturn(ipvSessionId);
 
         Question expectedQuestion = mock(Question.class);
-        when(mockKbvService.getQuestions(any())).thenReturn(questionsResponseMock);
+        when(mockKBVGateway.getQuestions(any())).thenReturn(questionsResponseMock);
         when(questionStateMock.getNextQuestion()) // we have to do this to get it to work
                 .thenReturn(Optional.empty()) // otherwise the second overrides the first
                 .thenReturn(Optional.ofNullable(expectedQuestion));
@@ -138,6 +139,7 @@ class QuestionHandlerTest {
         assertEquals(HttpStatusCode.OK, response.getStatusCode());
         assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
         verify(mockAuditService).sendAuditEvent(AuditEventType.REQUEST_SENT);
+        verify(mockEventProbe).counterMetric(GET_QUESTION);
     }
 
     @Test
@@ -169,14 +171,13 @@ class QuestionHandlerTest {
 
         assertEquals(HttpStatusCode.OK, response.getStatusCode());
         assertEquals(TestData.EXPECTED_QUESTION, response.getBody());
+        verify(mockEventProbe).counterMetric(GET_QUESTION);
     }
 
     @Test
     void shouldReturn400ErrorWhenNoFurtherQuestions() throws IOException {
         Context contextMock = mock(Context.class);
         APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
-        ArgumentCaptor<QuestionRequest> questionRequestCaptor =
-                ArgumentCaptor.forClass(QuestionRequest.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
         PersonIdentity personIdentity = new PersonIdentity();
@@ -194,16 +195,12 @@ class QuestionHandlerTest {
         when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
                 .thenReturn(questionStateMock);
 
-        QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
-
-        when(mockKbvService.getQuestions(questionRequestCaptor.capture()))
-                .thenReturn(questionsResponseMock);
-
         APIGatewayProxyResponseEvent response = questionHandler.handleRequest(input, contextMock);
 
         verify(mockKBVStorageService)
                 .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
         verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
+        verify(mockEventProbe).counterMetric(GET_QUESTION);
 
         assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
     }
@@ -219,7 +216,7 @@ class QuestionHandlerTest {
         String expectedMessage = "java.lang.NullPointerException";
         assertTrue(response.getBody().contains(expectedMessage));
         assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
-        verify(mockEventProbe).counterMetric("get_question", 0d);
+        verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
     }
 
     @Test
@@ -238,7 +235,7 @@ class QuestionHandlerTest {
 
         assertEquals("{ \"error\":\"AWS Server error occurred.\" }", response.getBody());
         assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        verify(mockEventProbe).counterMetric("get_question", 0d);
+        verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
     }
 
     @Test
@@ -274,7 +271,7 @@ class QuestionHandlerTest {
 
         verify(mockPersonIdentityService)
                 .getPersonIdentity(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
-        verify(mockEventProbe).counterMetric("get_question", 0d);
+        verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
     }
 
     @Test
@@ -299,7 +296,7 @@ class QuestionHandlerTest {
                 .thenReturn(questionStateMock);
 
         doThrow(RuntimeException.class)
-                .when(mockKbvService)
+                .when(spyKBVService)
                 .getQuestions(any(QuestionRequest.class));
 
         setupEventProbeErrorBehaviour();
@@ -307,7 +304,7 @@ class QuestionHandlerTest {
                 questionHandler.handleRequest(input, mock(Context.class));
 
         assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        verify(mockEventProbe).counterMetric("get_question", 0d);
+        verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
     }
 
     @Test
@@ -333,6 +330,7 @@ class QuestionHandlerTest {
 
         assertEquals(HttpStatusCode.NO_CONTENT, response.getStatusCode());
         assertNull(response.getBody());
+        verify(mockEventProbe).counterMetric(GET_QUESTION);
     }
 
     private void setupEventProbeErrorBehaviour() {

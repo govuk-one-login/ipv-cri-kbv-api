@@ -110,7 +110,7 @@ class IssueCredentialHandlerTest {
         verify(mockKBVStorageService).getKBVItem(sessionId);
         verify(mockVerifiableCredentialService)
                 .generateSignedVerifiableCredentialJwt(SUBJECT, personIdentity, kbvItem);
-        verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
+        verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER);
         verify(mockAuditService).sendAuditEvent(AuditEventType.VC_ISSUED);
         assertEquals(
                 ContentType.APPLICATION_JWT.getType(), response.getHeaders().get("Content-Type"));

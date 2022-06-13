@@ -106,9 +106,10 @@ public class IssueCredentialHandler
 
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     HttpStatusCode.BAD_REQUEST, ErrorResponse.VERIFIABLE_CREDENTIAL_ERROR);
-        } catch (SqsException sqsException) {
+        } catch (SqsException e) {
+            eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
             return ApiGatewayResponseGenerator.proxyJsonResponse(
-                    HttpStatusCode.INTERNAL_SERVER_ERROR, sqsException.getMessage());
+                    HttpStatusCode.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
 

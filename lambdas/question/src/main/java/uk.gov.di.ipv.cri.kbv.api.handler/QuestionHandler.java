@@ -8,14 +8,10 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.http.HttpStatusCode;
-import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
-import software.amazon.lambda.powertools.parameters.ParamManager;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
@@ -23,17 +19,14 @@ import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
-import uk.gov.di.ipv.cri.kbv.api.config.ConfigurationConstants;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
-import uk.gov.di.ipv.cri.kbv.api.service.KeyStoreService;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -49,7 +42,6 @@ import static org.apache.logging.log4j.Level.INFO;
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-    private static final Logger LOGGER = LogManager.getLogger();
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String GET_QUESTION = "get_question";
     public static final String ERROR_KEY = "\"error\"";
@@ -67,21 +59,13 @@ public class QuestionHandler
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.kbvStorageService = new KBVStorageService();
         this.personIdentityService = new PersonIdentityService();
-        this.kbvService = new KBVServiceFactory().create();
+        this.kbvService = new KBVService();
         this.configurationService = new ConfigurationService();
-
         this.eventProbe = new EventProbe();
-        this.auditService =
-                new AuditService(
-                        SqsClient.builder().build(), this.configurationService, this.objectMapper);
+        this.auditService = new AuditService();
         this.clock = Clock.systemUTC();
 
-        var kbvSystemProperty =
-                new KBVSystemProperty(
-                        new KeyStoreService(
-                                ParamManager.getSecretsProvider(),
-                                System.getenv(ConfigurationConstants.AWS_STACK_NAME)));
-        kbvSystemProperty.save();
+        new KBVSystemProperty().save();
     }
 
     public QuestionHandler(
@@ -89,7 +73,7 @@ public class QuestionHandler
             KBVStorageService kbvStorageService,
             PersonIdentityService personIdentityService,
             KBVSystemProperty systemProperty,
-            KBVServiceFactory kbvServiceFactory,
+            KBVService kbvService,
             ConfigurationService configurationService,
             EventProbe eventProbe,
             Clock clock,
@@ -99,9 +83,10 @@ public class QuestionHandler
         this.personIdentityService = personIdentityService;
         this.eventProbe = eventProbe;
         this.auditService = auditService;
-        this.kbvService = kbvServiceFactory.create();
+        this.kbvService = kbvService;
         this.configurationService = configurationService;
         this.clock = clock;
+
         systemProperty.save();
     }
 
@@ -113,6 +98,7 @@ public class QuestionHandler
         APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
         try {
             processQuestionRequest(input, response);
+            eventProbe.counterMetric(GET_QUESTION);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
@@ -139,7 +125,6 @@ public class QuestionHandler
             throws IOException, SqsException {
         response.withHeaders(Map.of("Content-Type", "application/json"));
         UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
-        LOGGER.info("Received session-id for Experian:" + sessionId);
         KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
         QuestionState questionState = new QuestionState();
         if (kbvItem != null) {
