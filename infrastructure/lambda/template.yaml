@@ -67,6 +67,7 @@ Globals:
         JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
         AWS_STACK_NAME: !Sub ${AWS::StackName}
         POWERTOOLS_LOG_LEVEL: INFO
+        POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
         SQS_AUDIT_EVENT_PREFIX: IPV_KBV_CRI
 Mappings:
   SessionTtlMapping:
@@ -211,7 +212,6 @@ Resources:
       Handler: uk.gov.di.ipv.cri.common.api.handler.SessionHandler::handleRequest
       Environment:
         Variables:
-          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-session
           SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
       Policies:
@@ -257,7 +257,6 @@ Resources:
       Handler: uk.gov.di.ipv.cri.common.api.handler.AuthorizationHandler::handleRequest
       Environment:
         Variables:
-          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-authorization
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -284,7 +283,6 @@ Resources:
       Handler: uk.gov.di.ipv.cri.common.api.handler.AccessTokenHandler::handleRequest
       Environment:
         Variables:
-          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-access-token
       Policies:
         - DynamoDBReadPolicy:
@@ -314,7 +312,6 @@ Resources:
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler::handleRequest
       Environment:
         Variables:
-          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-question
           SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
       Policies:
@@ -367,7 +364,6 @@ Resources:
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionAnswerHandler::handleRequest
       Environment:
         Variables:
-          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-answer
           SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
       Policies:
@@ -422,7 +418,6 @@ Resources:
       CodeUri: ../../lambdas/issuecredential/build/distributions/issuecredential.zip
       Environment:
         Variables:
-          POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-issuecredential
           SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
       Policies:
