@@ -411,6 +411,35 @@ Resources:
               Resource:
                 - !ImportValue AuditEventQueueEncryptionKeyArn
 
+  KBVAbandonFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../lambdas/abandon/build/distributions/abandon.zip
+      Handler: uk.gov.di.ipv.cri.kbv.api.handler.AbandonKbvHandler::handleRequest
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-abandon
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName:
+              Ref: SessionTable
+        - DynamoDBWritePolicy:
+            TableName:
+              Ref: SessionTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParametersByPath
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
+
   IssueCredentialFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -445,7 +474,6 @@ Resources:
               - kms:GenerateDataKey
             Resource:
               - !ImportValue AuditEventQueueEncryptionKeyArn
-
   KBVTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -733,6 +761,13 @@ Resources:
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt KBVAnswerFunction.Arn
+      Principal: apigateway.amazonaws.com
+
+  KBVAbandonFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt KBVAbandonFunction.Arn
       Principal: apigateway.amazonaws.com
 
   IssueCredentialFunctionPermission:
