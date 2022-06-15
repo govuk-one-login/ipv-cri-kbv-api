@@ -64,13 +64,14 @@ public class IssueCredentialHandler
 
     public IssueCredentialHandler() {
         this.verifiableCredentialService = getVerifiableCredentialService();
-        this.kbvStorageService = new KBVStorageService();
+        ConfigurationService configurationService = new ConfigurationService();
+        this.kbvStorageService = new KBVStorageService(configurationService);
         this.sessionService = new SessionService();
         this.eventProbe = new EventProbe();
         this.auditService =
                 new AuditService(
                         SqsClient.builder().build(),
-                        new ConfigurationService(),
+                        configurationService,
                         new ObjectMapper(),
                         Clock.systemUTC());
         this.personIdentityService = new PersonIdentityService();

@@ -1,29 +1,23 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
-import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
-import uk.gov.di.ipv.cri.kbv.api.gateway.ResponseToQuestionMapper;
-import uk.gov.di.ipv.cri.kbv.api.gateway.StartAuthnAttemptRequestMapper;
-import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandler;
-import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandlerResolver;
-import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
-
-import javax.xml.ws.soap.SOAPFaultException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class KBVServiceTest {
+    @Mock private KBVGateway mockKbvGateway;
     private KBVService kbvService;
-    private KBVGateway mockKbvGateway = mock(KBVGateway.class);
 
     @BeforeEach
     void setUp() {
@@ -40,32 +34,5 @@ class KBVServiceTest {
         QuestionsResponse result = kbvService.submitAnswers(mockQuestionAnswerRequest);
         verify(mockKbvGateway).submitAnswers(mockQuestionAnswerRequest);
         assertEquals(answerResponseResult, result);
-    }
-
-    @Test
-    void shouldThrowSOAPFaultExceptionWhenInvokingKbvServiceWithBadHeaderHandler() {
-        QuestionAnswerRequest mockQuestionAnswerRequest = mock(QuestionAnswerRequest.class);
-
-        HeaderHandler headerHandler = mock(HeaderHandler.class);
-
-        AWSSecretsRetriever mockAWSSecretsRetriever = mock(AWSSecretsRetriever.class);
-        when(mockAWSSecretsRetriever.getValue(any())).thenReturn("expected-secret");
-        KBVGateway kbvGateway =
-                new KBVGateway(
-                        mock(StartAuthnAttemptRequestMapper.class),
-                        mock(ResponseToQuestionMapper.class),
-                        new KBVClientFactory(
-                                        new IdentityIQWebService(),
-                                        new HeaderHandlerResolver(headerHandler),
-                                        mockAWSSecretsRetriever)
-                                .createClient());
-
-        kbvService = new KBVService(kbvGateway);
-
-        assertThrows(
-                SOAPFaultException.class,
-                () -> kbvService.submitAnswers(mockQuestionAnswerRequest));
-
-        verify(mockAWSSecretsRetriever).getValue(any());
     }
 }
