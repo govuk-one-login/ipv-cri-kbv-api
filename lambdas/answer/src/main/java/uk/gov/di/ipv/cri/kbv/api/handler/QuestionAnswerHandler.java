@@ -16,16 +16,17 @@ import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
 
 import java.io.IOException;
 import java.util.Map;
@@ -49,19 +50,18 @@ public class QuestionAnswerHandler
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        this.kbvStorageService = new KBVStorageService();
-        this.kbvService = new KBVService();
+        ConfigurationService configurationService = new ConfigurationService();
+        this.kbvStorageService = new KBVStorageService(configurationService);
+        this.kbvService =
+                new KBVService(new KBVGatewayFactory(configurationService).getKbvGateway());
         this.eventProbe = new EventProbe();
         this.sessionService = new SessionService();
         this.auditService = new AuditService();
-
-        new KBVSystemProperty().save();
     }
 
     public QuestionAnswerHandler(
             ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
-            KBVSystemProperty systemProperty,
             KBVService kbvService,
             EventProbe eventProbe,
             SessionService sessionService,
@@ -72,8 +72,6 @@ public class QuestionAnswerHandler
         this.sessionService = sessionService;
         this.auditService = auditService;
         this.kbvService = kbvService;
-
-        systemProperty.save();
     }
 
     @Override

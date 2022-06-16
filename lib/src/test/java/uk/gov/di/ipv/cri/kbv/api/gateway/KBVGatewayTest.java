@@ -1,5 +1,6 @@
 package uk.gov.di.ipv.cri.kbv.api.gateway;
 
+import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebService;
 import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
 import com.experian.uk.schema.experian.identityiq.services.webservice.RTQRequest;
 import com.experian.uk.schema.experian.identityiq.services.webservice.RTQResponse2;
@@ -7,7 +8,12 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
+import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandler;
+import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandlerResolver;
+import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 import uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator;
+
+import javax.xml.ws.soap.SOAPFaultException;
 
 import java.util.Map;
 
@@ -124,5 +130,26 @@ class KBVGatewayTest {
                             },
                             errorMessage);
                 });
+    }
+
+    @Test
+    void shouldThrowSOAPFaultExceptionWhenInvokingKbvServiceWithBadHeaderHandler() {
+        QuestionAnswerRequest mockQuestionAnswerRequest = mock(QuestionAnswerRequest.class);
+
+        HeaderHandler headerHandler = mock(HeaderHandler.class);
+
+        KBVGateway kbvGateway =
+                new KBVGateway(
+                        mock(StartAuthnAttemptRequestMapper.class),
+                        mock(ResponseToQuestionMapper.class),
+                        new KBVClientFactory(
+                                        new IdentityIQWebService(),
+                                        new HeaderHandlerResolver(headerHandler),
+                                        "endpoint")
+                                .createClient());
+
+        assertThrows(
+                SOAPFaultException.class,
+                () -> kbvGateway.submitAnswers(mockQuestionAnswerRequest));
     }
 }

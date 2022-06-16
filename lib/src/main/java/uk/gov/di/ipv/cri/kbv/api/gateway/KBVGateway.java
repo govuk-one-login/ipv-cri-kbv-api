@@ -11,21 +11,21 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import java.util.Objects;
 
 public class KBVGateway {
-
     private final StartAuthnAttemptRequestMapper saaRequestMapper;
     private final ResponseToQuestionMapper responseToQuestionMapper;
     private final IdentityIQWebServiceSoap identityIQWebServiceSoap;
 
-    public KBVGateway(
+    KBVGateway(
             StartAuthnAttemptRequestMapper saaRequestMapper,
             ResponseToQuestionMapper responseToQuestionMapper,
             IdentityIQWebServiceSoap identityIQWebServiceSoap) {
-        Objects.requireNonNull(identityIQWebServiceSoap, "httpClient must not be null");
-        Objects.requireNonNull(saaRequestMapper, "saaRequestMapper must not be null");
-        Objects.requireNonNull(responseToQuestionMapper, "rtqRequestMapper must not be null");
-        this.saaRequestMapper = saaRequestMapper;
-        this.responseToQuestionMapper = responseToQuestionMapper;
-        this.identityIQWebServiceSoap = identityIQWebServiceSoap;
+        this.identityIQWebServiceSoap =
+                Objects.requireNonNull(identityIQWebServiceSoap, "httpClient must not be null");
+        this.saaRequestMapper =
+                Objects.requireNonNull(saaRequestMapper, "saaRequestMapper must not be null");
+        this.responseToQuestionMapper =
+                Objects.requireNonNull(
+                        responseToQuestionMapper, "rtqRequestMapper must not be null");
     }
 
     public QuestionsResponse getQuestions(QuestionRequest questionRequest) {

@@ -8,16 +8,11 @@ import java.util.UUID;
 @DynamoDbBean
 public class KBVItem {
     private UUID sessionId;
-    private String token;
     private String questionState;
     private long expiryDate;
     private String authRefNo;
     private String urn;
     private String status;
-
-    public void setToken(String token) {
-        this.token = token;
-    }
 
     public void setQuestionState(String questionState) {
         this.questionState = questionState;
@@ -25,10 +20,6 @@ public class KBVItem {
 
     public void setSessionId(UUID sessionId) {
         this.sessionId = sessionId;
-    }
-
-    public String getToken() {
-        return token;
     }
 
     public String getQuestionState() {

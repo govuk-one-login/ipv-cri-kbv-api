@@ -1,21 +1,22 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
-import software.amazon.lambda.powertools.parameters.ParamManager;
+import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.persistence.DataStore;
 import uk.gov.di.ipv.cri.common.library.persistence.DynamoDbEnhancedClientFactory;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
 public class KBVStorageService {
     private final DataStore<KBVItem> dataStore;
 
-    public KBVStorageService() {
+    @ExcludeFromGeneratedCoverageReport
+    public KBVStorageService(ConfigurationService configurationService) {
         this.dataStore =
                 new DataStore<>(
-                        getKBVTableName(),
+                        configurationService.getParameterValue("KBVTableName"),
                         KBVItem.class,
                         new DynamoDbEnhancedClientFactory().getClient());
     }
@@ -38,17 +39,5 @@ public class KBVStorageService {
 
     public void save(KBVItem kbvItem) {
         dataStore.create(kbvItem);
-    }
-
-    public String getKBVTableName() {
-        return ParamManager.getSsmProvider().get(getParameterName("KBVTableName"));
-    }
-
-    public String getParameterName(String parameterName) {
-        var awstStackName = System.getenv("AWS_STACK_NAME");
-        var parameterPrefix =
-                Objects.requireNonNull(awstStackName, "env var AWS_STACK_NAME required");
-
-        return String.format("/%s/%s", parameterPrefix, parameterName);
     }
 }

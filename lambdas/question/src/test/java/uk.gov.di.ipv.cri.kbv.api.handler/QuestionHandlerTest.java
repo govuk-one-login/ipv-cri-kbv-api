@@ -32,12 +32,8 @@ import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
 
 import java.io.IOException;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,7 +44,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -59,31 +54,26 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.HEADER_SESSION_I
 @ExtendWith(MockitoExtension.class)
 class QuestionHandlerTest {
     private QuestionHandler questionHandler;
-    private final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
     @Mock private ObjectMapper mockObjectMapper;
     @Mock private KBVStorageService mockKBVStorageService;
     @Mock private PersonIdentityService mockPersonIdentityService;
     @Mock private EventProbe mockEventProbe;
     @Mock private KBVGateway mockKBVGateway;
     @Mock private ConfigurationService mockConfigurationService;
-    @Mock private KBVSystemProperty mockSystemProperty;
     @Mock private AuditService mockAuditService;
     private KBVService spyKBVService;
 
     @BeforeEach
     void setUp() {
-        doNothing().when(mockSystemProperty).save();
         spyKBVService = Mockito.spy(new KBVService(mockKBVGateway));
         questionHandler =
                 new QuestionHandler(
                         mockObjectMapper,
                         mockKBVStorageService,
                         mockPersonIdentityService,
-                        mockSystemProperty,
                         spyKBVService,
                         mockConfigurationService,
                         mockEventProbe,
-                        clock,
                         mockAuditService);
     }
 

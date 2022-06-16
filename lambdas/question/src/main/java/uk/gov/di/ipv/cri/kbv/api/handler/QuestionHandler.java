@@ -23,14 +23,12 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVSystemProperty;
 
 import java.io.IOException;
-import java.time.Clock;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -51,31 +49,26 @@ public class QuestionHandler
     private final KBVService kbvService;
     private final AuditService auditService;
     private final ConfigurationService configurationService;
-    private final Clock clock;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        this.kbvStorageService = new KBVStorageService();
         this.personIdentityService = new PersonIdentityService();
-        this.kbvService = new KBVService();
         this.configurationService = new ConfigurationService();
+        this.kbvService =
+                new KBVService(new KBVGatewayFactory(this.configurationService).getKbvGateway());
+        this.kbvStorageService = new KBVStorageService(this.configurationService);
         this.eventProbe = new EventProbe();
         this.auditService = new AuditService();
-        this.clock = Clock.systemUTC();
-
-        new KBVSystemProperty().save();
     }
 
     public QuestionHandler(
             ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
             PersonIdentityService personIdentityService,
-            KBVSystemProperty systemProperty,
             KBVService kbvService,
             ConfigurationService configurationService,
             EventProbe eventProbe,
-            Clock clock,
             AuditService auditService) {
         this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
@@ -84,9 +77,6 @@ public class QuestionHandler
         this.auditService = auditService;
         this.kbvService = kbvService;
         this.configurationService = configurationService;
-        this.clock = clock;
-
-        systemProperty.save();
     }
 
     @Override
@@ -170,10 +160,7 @@ public class QuestionHandler
             kbvItem.setQuestionState(state);
             kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
             kbvItem.setUrn(questionsResponse.getControl().getURN());
-            kbvItem.setExpiryDate(
-                    clock.instant()
-                            .plus(configurationService.getSessionTtl(), ChronoUnit.SECONDS)
-                            .getEpochSecond());
+            kbvItem.setExpiryDate(this.configurationService.getSessionExpirationEpoch());
             auditService.sendAuditEvent(AuditEventType.REQUEST_SENT);
 
             kbvStorageService.save(kbvItem);
