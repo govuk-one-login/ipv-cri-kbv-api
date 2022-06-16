@@ -36,7 +36,7 @@ class KeyStoreLoaderTest {
 
         assertEquals("pkcs12", System.getProperty("javax.net.ssl.keyStoreType"));
         String keyStoreSysProperty = System.getProperty("javax.net.ssl.keyStore");
-        assertTrue(keyStoreSysProperty.startsWith("/tmp/") && keyStoreSysProperty.endsWith(".tmp"));
+        assertTrue(keyStoreSysProperty.endsWith(".tmp"));
         assertEquals(base64KeyStorePassword, System.getProperty("javax.net.ssl.keyStorePassword"));
     }
 }
