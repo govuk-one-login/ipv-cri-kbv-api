@@ -69,7 +69,17 @@ Globals:
         POWERTOOLS_LOG_LEVEL: INFO
         POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
         SQS_AUDIT_EVENT_PREFIX: IPV_KBV_CRI
+
 Mappings:
+
+  VPCEndpointIdMapping:
+    Environment:
+      dev: vpce-082cab7c78139eb54
+      build: vpce-0e2d78b216ac3b3a2
+      staging: vpce-08fe2404d765e9fff
+      integration: vpce-02e2c1e10f0be4fdd
+      production: vpce-02c08839b3c7c33eb
+
   SessionTtlMapping:
     Environment:
       dev: "172800" # 2 days
