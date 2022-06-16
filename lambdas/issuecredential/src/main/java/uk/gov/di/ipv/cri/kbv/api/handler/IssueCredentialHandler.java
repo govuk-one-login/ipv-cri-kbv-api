@@ -18,6 +18,9 @@ import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.error.ErrorResponse;
+import uk.gov.di.ipv.cri.common.library.exception.AccessTokenExpiredException;
+import uk.gov.di.ipv.cri.common.library.exception.SessionExpiredException;
+import uk.gov.di.ipv.cri.common.library.exception.SessionNotFoundException;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
@@ -112,6 +115,18 @@ public class IssueCredentialHandler
             eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     HttpStatusCode.INTERNAL_SERVER_ERROR, e.getMessage());
+        } catch (AccessTokenExpiredException e) {
+            eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    HttpStatusCode.FORBIDDEN, ErrorResponse.ACCESS_TOKEN_EXPIRED);
+        } catch (SessionExpiredException e) {
+            eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    HttpStatusCode.FORBIDDEN, ErrorResponse.SESSION_EXPIRED);
+        } catch (SessionNotFoundException e) {
+            eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    HttpStatusCode.FORBIDDEN, ErrorResponse.SESSION_NOT_FOUND);
         }
     }
 

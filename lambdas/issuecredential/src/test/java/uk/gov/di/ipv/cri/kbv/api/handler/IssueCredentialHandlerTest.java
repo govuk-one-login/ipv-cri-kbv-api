@@ -30,6 +30,9 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.Name;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.NamePart;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.error.ErrorResponse;
+import uk.gov.di.ipv.cri.common.library.exception.AccessTokenExpiredException;
+import uk.gov.di.ipv.cri.common.library.exception.SessionExpiredException;
+import uk.gov.di.ipv.cri.common.library.exception.SessionNotFoundException;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
@@ -74,7 +77,9 @@ class IssueCredentialHandlerTest {
     @InjectMocks private IssueCredentialHandler handler;
 
     @Test
-    void shouldReturn200OkWhenIssueCredentialRequestIsValid() throws JOSEException, SqsException {
+    void shouldReturn200OkWhenIssueCredentialRequestIsValid()
+            throws JOSEException, SqsException, AccessTokenExpiredException,
+                    SessionExpiredException, SessionNotFoundException {
         APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
         AccessToken accessToken = new BearerAccessToken();
         event.withHeaders(
@@ -119,7 +124,8 @@ class IssueCredentialHandlerTest {
 
     @Test
     void shouldThrowJOSEExceptionWhenGenerateVerifiableCredentialIsMalformed()
-            throws JsonProcessingException, JOSEException, SqsException {
+            throws JsonProcessingException, JOSEException, SqsException,
+                    AccessTokenExpiredException, SessionExpiredException, SessionNotFoundException {
         APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
         AccessToken accessToken = new BearerAccessToken();
         event.withHeaders(
@@ -184,7 +190,8 @@ class IssueCredentialHandlerTest {
 
     @Test
     void shouldThrowAWSExceptionWhenAServerErrorOccursRetrievingASessionItemWithAccessToken()
-            throws JsonProcessingException, SqsException {
+            throws JsonProcessingException, SqsException, AccessTokenExpiredException,
+                    SessionExpiredException, SessionNotFoundException {
         APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
         AccessToken accessToken = new BearerAccessToken();
         event.withHeaders(
@@ -224,7 +231,8 @@ class IssueCredentialHandlerTest {
 
     @Test
     void shouldThrowAWSExceptionWhenAServerErrorOccursDuringRetrievingAnAddressItemWithSessionId()
-            throws JsonProcessingException, SqsException {
+            throws JsonProcessingException, SqsException, AccessTokenExpiredException,
+                    SessionExpiredException, SessionNotFoundException {
         APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
         AccessToken accessToken = new BearerAccessToken();
         event.withHeaders(
