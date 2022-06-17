@@ -513,12 +513,18 @@ Resources:
             TableName: !Ref KBVTable
         - DynamoDBWritePolicy:
             TableName: !Ref KBVTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref SessionTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref SessionTable
         - Statement:
           - Effect: Allow
             Action:
               - ssm:GetParameter
             Resource:
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
+
 
   IssueCredentialFunction:
     Type: AWS::Serverless::Function
