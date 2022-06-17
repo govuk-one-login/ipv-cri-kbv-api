@@ -80,10 +80,10 @@ public class QuestionAnswerHandler
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
         APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
-
         response.withHeaders(Map.of("Content-Type", "application/json"));
         try {
-            processAnswerResponse(input, response);
+            processAnswerResponse(input);
+            response.withStatusCode(HttpStatusCode.OK);
             eventProbe.counterMetric(POST_ANSWER);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(POST_ANSWER, 0d);
@@ -112,8 +112,7 @@ public class QuestionAnswerHandler
         return response;
     }
 
-    public void processAnswerResponse(
-            APIGatewayProxyRequestEvent input, APIGatewayProxyResponseEvent response)
+    public void processAnswerResponse(APIGatewayProxyRequestEvent input)
             throws IOException, SqsException {
         QuestionState questionState;
         String sessionId = input.getHeaders().get(HEADER_SESSION_ID);
@@ -122,13 +121,12 @@ public class QuestionAnswerHandler
         questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
         QuestionAnswer answer = objectMapper.readValue(input.getBody(), QuestionAnswer.class);
 
-        if (respondWithAnswerFromDbStore(answer, questionState, kbvItem, response)) return;
-        respondWithAnswerFromExperianThenStoreInDb(questionState, kbvItem, response);
+        if (respondWithAnswerFromDbStore(answer, questionState, kbvItem)) return;
+        respondWithAnswerFromExperianThenStoreInDb(questionState, kbvItem);
     }
 
-    private void respondWithAnswerFromExperianThenStoreInDb(
-            QuestionState questionState, KBVItem kbvItem, APIGatewayProxyResponseEvent response)
-            throws IOException, SqsException {
+    private boolean respondWithAnswerFromExperianThenStoreInDb(
+            QuestionState questionState, KBVItem kbvItem) throws IOException, SqsException {
         QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
         questionAnswerRequest.setUrn(kbvItem.getUrn());
         questionAnswerRequest.setAuthRefNo(kbvItem.getAuthRefNo());
@@ -152,20 +150,16 @@ public class QuestionAnswerHandler
             sessionService.createAuthorizationCode(sessionItem);
             auditService.sendAuditEvent(AuditEventType.THIRD_PARTY_REQUEST_ENDED);
         }
-        response.withStatusCode(HttpStatusCode.OK);
+        return true;
     }
 
     private boolean respondWithAnswerFromDbStore(
-            QuestionAnswer answer,
-            QuestionState questionState,
-            KBVItem kbvItem,
-            APIGatewayProxyResponseEvent response)
+            QuestionAnswer answer, QuestionState questionState, KBVItem kbvItem)
             throws JsonProcessingException {
 
         questionState.setAnswer(answer);
         kbvItem.setQuestionState(objectMapper.writeValueAsString(questionState));
         kbvStorageService.update(kbvItem);
-        response.withStatusCode(HttpStatusCode.OK);
 
         return questionState.hasAtLeastOneUnAnswered();
     }
