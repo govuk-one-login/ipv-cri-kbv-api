@@ -39,6 +39,10 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import static org.apache.logging.log4j.Level.ERROR;
+import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.ACCESS_TOKEN_EXPIRED;
+import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_EXPIRED;
+import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_NOT_FOUND;
+import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.VERIFIABLE_CREDENTIAL_ERROR;
 
 public class IssueCredentialHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -114,7 +118,8 @@ public class IssueCredentialHandler
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     OAuth2Error.INVALID_REQUEST.getHTTPStatusCode(),
                     OAuth2Error.INVALID_REQUEST
-                            .appendDescription(" - " + ErrorResponse.VERIFIABLE_CREDENTIAL_ERROR)
+                            .appendDescription(
+                                    " - " + VERIFIABLE_CREDENTIAL_ERROR.getErrorSummary())
                             .toJSONObject());
         } catch (SqsException e) {
             eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
@@ -128,21 +133,21 @@ public class IssueCredentialHandler
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     OAuth2Error.ACCESS_DENIED.getHTTPStatusCode(),
                     OAuth2Error.ACCESS_DENIED
-                            .appendDescription(" - " + ErrorResponse.ACCESS_TOKEN_EXPIRED)
+                            .appendDescription(" - " + ACCESS_TOKEN_EXPIRED.getErrorSummary())
                             .toJSONObject());
         } catch (SessionExpiredException e) {
             eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     OAuth2Error.ACCESS_DENIED.getHTTPStatusCode(),
                     OAuth2Error.ACCESS_DENIED
-                            .appendDescription(" - " + ErrorResponse.SESSION_EXPIRED)
+                            .appendDescription(" - " + SESSION_EXPIRED.getErrorSummary())
                             .toJSONObject());
         } catch (SessionNotFoundException e) {
             eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     OAuth2Error.ACCESS_DENIED.getHTTPStatusCode(),
                     OAuth2Error.ACCESS_DENIED
-                            .appendDescription(" - " + ErrorResponse.SESSION_NOT_FOUND)
+                            .appendDescription(" - " + SESSION_NOT_FOUND.getErrorSummary())
                             .toJSONObject());
         }
     }
