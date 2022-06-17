@@ -379,6 +379,9 @@ components:
           items:
             type: "string"
     Answer:
+      required:
+        - "questionId"
+        - "answer"
       type: "object"
       properties:
         questionId:
