@@ -69,17 +69,7 @@ Globals:
         POWERTOOLS_LOG_LEVEL: INFO
         POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
         SQS_AUDIT_EVENT_PREFIX: IPV_KBV_CRI
-
 Mappings:
-
-  VPCEndpointIdMapping:
-    Environment:
-      dev: vpce-082cab7c78139eb54
-      build: vpce-0e2d78b216ac3b3a2
-      staging: vpce-08fe2404d765e9fff
-      integration: vpce-02e2c1e10f0be4fdd
-      production: vpce-02c08839b3c7c33eb
-
   SessionTtlMapping:
     Environment:
       dev: "172800" # 2 days
@@ -192,19 +182,7 @@ Resources:
           ThrottlingBurstLimit: 10
       AccessLogSetting:
         DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${ApiAccessLogGroup}'
-        Format: >-
-          {
-          "requestId":"$context.requestId",
-          "ip":"$context.identity.sourceIp",
-          "requestTime":"$context.requestTime",
-          "httpMethod":"$context.httpMethod",
-          "path":"$context.path",
-          "routeKey":"$context.routeKey",
-          "status":"$context.status",
-          "protocol":"$context.protocol",
-          "responseLatency":"$context.responseLatency",
-          "responseLength":"$context.responseLength"
-          }
+        Format: '{ "requestId":"$context.requestId", "ip": "$context.identity.sourceIp", "caller":"$context.identity.caller", "user":"$context.identity.user","requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath", "status":"$context.status","protocol":"$context.protocol", "responseLength":"$context.responseLength" }'
       TracingEnabled: true
       Name: !Sub "kbv-cri-${AWS::StackName}"
       StageName: !Ref Environment
@@ -221,75 +199,10 @@ Resources:
       EndpointConfiguration:
         Type: REGIONAL
 
-  PrivateKBVApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      MethodSettings:
-        - LoggingLevel: INFO
-          ResourcePath: '/*'
-          HttpMethod: '*'
-          # Disable data trace in production to avoid logging customer sensitive information
-          DataTraceEnabled: true
-          MetricsEnabled: true
-          ThrottlingRateLimit: 5
-          ThrottlingBurstLimit: 10
-      AccessLogSetting:
-        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${ApiAccessLogGroup}'
-        Format: >-
-          {
-          "requestId":"$context.requestId",
-          "ip":"$context.identity.sourceIp",
-          "requestTime":"$context.requestTime",
-          "httpMethod":"$context.httpMethod",
-          "path":"$context.path",
-          "routeKey":"$context.routeKey",
-          "status":"$context.status",
-          "protocol":"$context.protocol",
-          "responseLatency":"$context.responseLatency",
-          "responseLength":"$context.responseLength"
-          }
-      TracingEnabled: true
-      Name: !Sub "kbv-cri-private-${AWS::StackName}"
-      StageName: !Ref Environment
-      DefinitionBody:
-        openapi: "3.0.1" # workaround to get `sam validate` to work
-        paths: # workaround to get `sam validate` to work
-          /never-created:
-            options: { } # workaround to get `sam validate` to work
-        Fn::Transform:
-          Name: AWS::Include
-          Parameters:
-            Location: './private-api.yaml'
-      OpenApiVersion: 3.0.1
-      EndpointConfiguration:
-        Type: PRIVATE
-      Auth:
-        ResourcePolicy:
-          CustomStatements:
-            - Action: 'execute-api:Invoke'
-              Effect: Allow
-              Principal: '*'
-              Resource:
-                - 'execute-api:/*'
-            - Action: 'execute-api:Invoke'
-              Effect: Deny
-              Principal: '*'
-              Resource:
-                - 'execute-api:/*'
-              Condition:
-                StringNotEquals:
-                  'aws:SourceVpce': !FindInMap [ VPCEndpointIdMapping, Environment, !Ref 'Environment' ]
-
   ApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/apigateway/AccessLog-public-${KBVApi}/${Environment}
-      RetentionInDays: 365
-
-  PrivateApiAccessLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/apigateway/AccessLog-private-${PrivateKBVApi}/${Environment}
+      LogGroupName: !Sub /aws/apigateway/AccessLog-${KBVApi}/${Environment}
       RetentionInDays: 365
 
   SessionFunction:
@@ -866,26 +779,38 @@ Resources:
 
 Outputs:
 
+  SessionApiUrl:
+    Description: "URL for the KBV API /session resource"
+    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/session"
+    Export:
+      Name: !Sub ${AWS::StackName}-SessionApiUrl
+
+  TokenApiUrl:
+    Description: "URL for the KBV API /token resource"
+    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/token"
+    Export:
+      Name: !Sub ${AWS::StackName}-TokenApiUrl
+
+  CredentialIssueApiUrl:
+    Description: "URL for the KBV API /credential/issue resource"
+    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/credential/issue"
+    Export:
+      Name: !Sub ${AWS::StackName}-CredentialIssueApiUrl
+
+  JWKSetApiUrl:
+    Description: "URL for the KBV API /.well-known/jwks.json resource"
+    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/.well-known/jwks.json"
+    Export:
+      Name: !Sub ${AWS::StackName}-JWKSetApiUrl
+
   KBVApiBaseUrl:
     Description: "Base url of the KBV CRI API"
     Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
     Export:
       Name: !Sub ${AWS::StackName}-KBVApiBaseUrl
-
+      
   KBVApiGatewayId:
     Description: "API GatewayID of the KBV CRI API"
     Value: !Sub "${KBVApi}"
     Export:
-      Name: !Sub ${AWS::StackName}-KBVApiGatewayId
-
-  PrivateKBVApiBaseUrl:
-    Description: "Base url of the private KBV CRI API"
-    Value: !Sub "https://${PrivateKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
-    Export:
-      Name: !Sub ${AWS::StackName}-PrivateKBVApiBaseUrl
-
-  PrivateKBVApiGatewayId:
-    Description: "API GatewayID of the private KBV CRI API"
-    Value: !Sub "${PrivateKBVApi}"
-    Export:
-      Name: !Sub ${AWS::StackName}-PrivateKBVApiGatewayId
+      Name: !Sub ${AWS::StackName}-KBVApiGatewayId 
