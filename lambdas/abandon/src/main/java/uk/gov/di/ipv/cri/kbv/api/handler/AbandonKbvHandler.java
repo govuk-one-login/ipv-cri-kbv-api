@@ -18,10 +18,9 @@ import static org.apache.logging.log4j.Level.ERROR;
 
 public class AbandonKbvHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
-    public static final String ABANDON_STATUS = "Abandoned";
-
-    public static final String HEADER_SESSION_ID = "session-id";
-    public static final String ABANDON_KBV = "abandon_kbv";
+    private static final String ABANDON_STATUS = "Abandoned";
+    private static final String HEADER_SESSION_ID = "session-id";
+    private static final String ABANDON_KBV = "abandon_kbv";
     private final EventProbe eventProbe;
     private final KBVStorageService kbvStorageService;
     private final SessionService sessionService;
@@ -36,9 +35,10 @@ public class AbandonKbvHandler
     }
 
     public AbandonKbvHandler() {
-        this.eventProbe = new EventProbe();
-        this.kbvStorageService = new KBVStorageService(new ConfigurationService());
-        this.sessionService = new SessionService();
+        this(
+                new EventProbe(),
+                new KBVStorageService(new ConfigurationService()),
+                new SessionService());
     }
 
     @Override
@@ -54,11 +54,10 @@ public class AbandonKbvHandler
             kbvStorageService.update(kbvItem);
 
             var sessionItem = sessionService.getSession(sessionId.toString());
-            sessionItem.setAuthorizationCode(UUID.randomUUID().toString());
             sessionService.createAuthorizationCode(sessionItem);
 
             response.withStatusCode(HttpStatusCode.OK);
-            eventProbe.counterMetric(ABANDON_KBV, 0d);
+            eventProbe.counterMetric(ABANDON_KBV);
             return response;
         } catch (NullPointerException npe) {
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);

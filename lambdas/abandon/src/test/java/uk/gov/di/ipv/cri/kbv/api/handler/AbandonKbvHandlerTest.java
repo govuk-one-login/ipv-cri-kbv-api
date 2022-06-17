@@ -25,16 +25,17 @@ import static org.apache.logging.log4j.Level.ERROR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static uk.gov.di.ipv.cri.kbv.api.handler.AbandonKbvHandler.ABANDON_KBV;
-import static uk.gov.di.ipv.cri.kbv.api.handler.AbandonKbvHandler.ABANDON_STATUS;
-import static uk.gov.di.ipv.cri.kbv.api.handler.AbandonKbvHandler.HEADER_SESSION_ID;
 
 @ExtendWith(MockitoExtension.class)
 class AbandonKbvHandlerTest {
+    private static final String ABANDON_STATUS = "Abandoned";
+    private static final String HEADER_SESSION_ID = "session-id";
+    private static final String ABANDON_KBV = "abandon_kbv";
     @Mock private EventProbe mockEventProbe;
     @Mock private APIGatewayProxyRequestEvent input;
     @Mock private KBVStorageService mockKbvStorageService;
@@ -53,6 +54,7 @@ class AbandonKbvHandlerTest {
         SessionItem mockSessionItem = mock(SessionItem.class);
         when(mockSessionService.getSession(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(mockSessionItem);
+        doNothing().when(mockSessionService).createAuthorizationCode(mockSessionItem);
         var result = abandonKbvHandler.handleRequest(input, mock(Context.class));
 
         assertEquals(HttpStatusCode.OK, result.getStatusCode());
@@ -61,9 +63,8 @@ class AbandonKbvHandlerTest {
         verify(mockKbvStorageService)
                 .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
         verify(mockKbvStorageService).update(kbvItem);
-        verify(mockSessionItem).setAuthorizationCode(any());
         verify(mockSessionService).createAuthorizationCode(mockSessionItem);
-        verify(mockEventProbe).counterMetric(ABANDON_KBV, 0d);
+        verify(mockEventProbe).counterMetric(ABANDON_KBV);
     }
 
     @Test
