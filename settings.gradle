@@ -14,7 +14,8 @@ project(':authorization').projectDir = new File('./common-lambdas/authorization'
 include "lib"
 
 // CRI specific lambdas
-include "question", "answer", "issuecredential"
+include "question", "answer", "issuecredential", "abandon"
 project(':question').projectDir = new File('./lambdas/question')
 project(':answer').projectDir = new File('./lambdas/answer')
 project(':issuecredential').projectDir = new File('./lambdas/issuecredential')
+project(':abandon').projectDir = new File('./lambdas/abandon')
