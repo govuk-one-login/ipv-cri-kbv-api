@@ -11,6 +11,7 @@ import com.nimbusds.jwt.JWTClaimNames;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.PlainJWT;
 import com.nimbusds.jwt.SignedJWT;
+import com.nimbusds.oauth2.sdk.OAuth2Error;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import org.apache.logging.log4j.Level;
@@ -49,6 +50,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
@@ -167,11 +170,10 @@ class IssueCredentialHandlerTest {
         verifyNoMoreInteractions(mockVerifiableCredentialService);
         verify(mockAuditService, never()).sendAuditEvent(any(AuditEventType.class));
         Map responseBody = new ObjectMapper().readValue(response.getBody(), Map.class);
-        assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
-        assertEquals(ErrorResponse.VERIFIABLE_CREDENTIAL_ERROR.getCode(), responseBody.get("code"));
-        assertEquals(
-                ErrorResponse.VERIFIABLE_CREDENTIAL_ERROR.getMessage(),
-                responseBody.get("message"));
+        assertEquals(OAuth2Error.INVALID_REQUEST.getHTTPStatusCode(), response.getStatusCode());
+        assertThat(
+                responseBody.get("error_description").toString(),
+                containsString(ErrorResponse.VERIFIABLE_CREDENTIAL_ERROR.toString()));
     }
 
     @Test
@@ -224,9 +226,11 @@ class IssueCredentialHandlerTest {
         verify(mockSessionService).getSessionByAccessToken(accessToken);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
         verify(mockAuditService, never()).sendAuditEvent(any(AuditEventType.class));
-        String responseBody = new ObjectMapper().readValue(response.getBody(), String.class);
+        var responseBody = new ObjectMapper().readValue(response.getBody(), Map.class);
         assertEquals(awsErrorDetails.sdkHttpResponse().statusCode(), response.getStatusCode());
-        assertEquals(awsErrorDetails.errorMessage(), responseBody);
+        assertThat(
+                responseBody.get("error_description").toString(),
+                containsString(awsErrorDetails.errorMessage()));
     }
 
     @Test
@@ -270,9 +274,11 @@ class IssueCredentialHandlerTest {
         verify(mockKBVStorageService).getKBVItem(sessionId);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
         verify(mockAuditService, never()).sendAuditEvent(any(AuditEventType.class));
-        String responseBody = new ObjectMapper().readValue(response.getBody(), String.class);
+        var responseBody = new ObjectMapper().readValue(response.getBody(), Map.class);
         assertEquals(awsErrorDetails.sdkHttpResponse().statusCode(), response.getStatusCode());
-        assertEquals(awsErrorDetails.errorMessage(), responseBody);
+        assertThat(
+                responseBody.get("error_description").toString(),
+                containsString(awsErrorDetails.errorMessage()));
     }
 
     private void setupEventProbeErrorBehaviour() {
