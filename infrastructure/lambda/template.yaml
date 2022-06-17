@@ -283,13 +283,13 @@ Resources:
   ApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/apigateway/AccessLog-${KBVApi}/${Environment}
+      LogGroupName: !Sub /aws/apigateway/AccessLog-public-${KBVApi}/${Environment}
       RetentionInDays: 365
 
   PrivateApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/apigateway/AccessLog-${PrivateKBVApi}/${Environment}
+      LogGroupName: !Sub /aws/apigateway/AccessLog-private-${PrivateKBVApi}/${Environment}
       RetentionInDays: 365
 
   SessionFunction:
