@@ -507,25 +507,18 @@ Resources:
         Variables:
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-abandon
       Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSXrayWriteOnlyAccess
         - DynamoDBReadPolicy:
-            TableName:
-              Ref: SessionTable
+            TableName: !Ref KBVTable
         - DynamoDBWritePolicy:
-            TableName:
-              Ref: SessionTable
+            TableName: !Ref KBVTable
         - Statement:
-            - Effect: Allow
-              Action:
-                - ssm:GetParameter
-              Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
-        - Statement:
-            - Effect: Allow
-              Action:
-                - ssm:GetParametersByPath
-              Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
+          - Effect: Allow
+            Action:
+              - ssm:GetParameter
+            Resource:
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
 
   IssueCredentialFunction:
     Type: AWS::Serverless::Function
