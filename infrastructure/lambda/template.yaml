@@ -111,15 +111,15 @@ Mappings:
 
   IPVCoreStubAudienceMapping:
     Environment:
-      dev: "https://dev-di-ipv-cri-kbv-front.london.cloudapps.digital"
+      dev: "https://review-k.dev.account.gov.uk"
       build: "https://review-k.build.account.gov.uk"
-      staging: "https://staging-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      integration: "https://integration-di-ipv-cri-kbv-front.london.cloudapps.digital"
+      staging: "https://review-k.staging.account.gov.uk"
+      integration: "https://review-k.integration.account.gov.uk"
 
   IPVCore1AudienceMapping:
     Environment:
-      staging: "https://staging-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      integration: "https://integration-di-ipv-cri-kbv-front.london.cloudapps.digital"
+      staging: "https://review-k.staging.account.gov.uk"
+      integration: "https://review-k.integration.account.gov.uk"
       production: "https://review-k.account.gov.uk"
 
   IPVCoreStubIssuerMapping:
@@ -163,18 +163,10 @@ Mappings:
 
   VerifiableCredentialIssuerMapping:
     Environment:
-      dev: "https://dev-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      build: "https://build-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      staging: "https://staging-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      integration: "https://integration-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      production: "https://review-k.account.gov.uk"
-
-  KBVCriAudienceMapping:
-    Environment:
-      dev: "https://dev-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      build: "https://build-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      staging: "https://staging-di-ipv-cri-kbv-front.london.cloudapps.digital"
-      integration: "https://integration-di-ipv-cri-kbv-front.london.cloudapps.digital"
+      dev: "https://review-k.dev.account.gov.uk"
+      build: "https://review-k.build.account.gov.uk"
+      staging: "https://review-k.staging.account.gov.uk"
+      integration: "https://review-k.integration.account.gov.uk"
       production: "https://review-k.account.gov.uk"
 
 Resources:
