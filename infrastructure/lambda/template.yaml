@@ -793,14 +793,6 @@ Resources:
       Type: String
       Value: !FindInMap [IPVCore1RedirectURIMapping, Environment, !Ref 'Environment']
 
-  KBVCriAudienceParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/KBVCriAudience"
-      Type: String
-      Value: !FindInMap [KBVCriAudienceMapping, Environment, !Ref 'Environment']
-      Description: The kbv credential issuer (audience) identifier
-
   AuthRequestKmsEncryptionKeyIdParameter:
     Type: AWS::SSM::Parameter
     Properties:
