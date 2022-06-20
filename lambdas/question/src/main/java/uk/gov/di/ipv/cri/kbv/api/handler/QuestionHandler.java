@@ -8,7 +8,7 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import software.amazon.awssdk.http.HttpStatusCode;
+import software.amazon.awssdk.http.Header;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
@@ -19,6 +19,7 @@ import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
+import uk.gov.di.ipv.cri.common.library.util.ApiGatewayResponseGenerator;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
@@ -37,13 +38,15 @@ import java.util.UUID;
 
 import static org.apache.logging.log4j.Level.ERROR;
 import static software.amazon.awssdk.http.HttpStatusCode.BAD_REQUEST;
+import static software.amazon.awssdk.http.HttpStatusCode.INTERNAL_SERVER_ERROR;
+import static software.amazon.awssdk.http.HttpStatusCode.NO_CONTENT;
 import static software.amazon.awssdk.http.HttpStatusCode.OK;
 
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String GET_QUESTION = "get_question";
-    public static final String ERROR_KEY = "\"error\"";
+    public static final String ERROR_KEY = "error";
     private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
@@ -86,12 +89,10 @@ public class QuestionHandler
     @Metrics(captureColdStart = true)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
-        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
-        response.withHeaders(Map.of("Content-Type", "application/json"));
         try {
-            UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
-            KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
-            QuestionState questionState = new QuestionState();
+            var sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
+            var kbvItem = kbvStorageService.getKBVItem(sessionId);
+            var questionState = new QuestionState();
             if (kbvItem != null) {
                 questionState =
                         objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
@@ -100,38 +101,37 @@ public class QuestionHandler
                 kbvItem.setSessionId(sessionId);
             }
             if (Objects.nonNull(kbvItem.getStatus())) {
-                response.withStatusCode(HttpStatusCode.NO_CONTENT);
                 eventProbe.counterMetric(GET_QUESTION);
-                return response;
+                return ApiGatewayResponseGenerator.proxyResponse(
+                        NO_CONTENT, null, Map.of(Header.CONTENT_TYPE, "application/json"));
             }
-
-            Question question = processQuestionRequest(questionState, kbvItem);
-            response.withBody(objectMapper.writeValueAsString(question));
-            response.withStatusCode(OK);
+            var question = processQuestionRequest(questionState, kbvItem);
             eventProbe.counterMetric(GET_QUESTION);
+            return ApiGatewayResponseGenerator.proxyResponse(
+                    OK,
+                    objectMapper.writeValueAsString(question),
+                    Map.of(Header.CONTENT_TYPE, "application/json"));
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-            response.withBody(
-                    "{ " + ERROR_KEY + ":\"Failed to parse object using ObjectMapper.\" }");
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    INTERNAL_SERVER_ERROR, Map.of(ERROR_KEY, jsonProcessingException.getMessage()));
         } catch (NullPointerException npe) {
             eventProbe.log(ERROR, npe).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(BAD_REQUEST);
-            response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    BAD_REQUEST, Map.of(ERROR_KEY, npe));
         } catch (QuestionNotFoundException qe) {
             eventProbe.log(ERROR, qe).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR_KEY + ":\"" + qe.getMessage() + "\" }");
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    INTERNAL_SERVER_ERROR, Map.of(ERROR_KEY, qe));
         } catch (IOException e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR_KEY + ":\"Retrieving questions failed.\" }");
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    INTERNAL_SERVER_ERROR, Map.of(ERROR_KEY, e.getMessage()));
         } catch (Exception e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    INTERNAL_SERVER_ERROR, Map.of(ERROR_KEY, e.getMessage()));
         }
-        return response;
     }
 
     public Question processQuestionRequest(QuestionState questionState, KBVItem kbvItem)
@@ -161,9 +161,9 @@ public class QuestionHandler
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
             return questionState.getNextQuestion().orElse(null);
-        } else { // Alternate flow when first request does not return questions
-            return null;
         }
+        // Alternate flow when first request does not return questions
+        return null;
     }
 
     private void saveQuestionStateToKbvItem(

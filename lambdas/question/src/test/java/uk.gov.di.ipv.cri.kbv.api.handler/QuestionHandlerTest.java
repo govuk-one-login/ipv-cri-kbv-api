@@ -14,16 +14,15 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpResponse;
-import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.persistence.DataStore;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
@@ -32,6 +31,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.exception.KbvItemNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.apache.logging.log4j.Level.ERROR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -55,6 +56,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -75,7 +77,7 @@ class QuestionHandlerTest {
 
     @BeforeEach
     void setUp() {
-        spyKBVService = Mockito.spy(new KBVService(mockKBVGateway));
+        spyKBVService = spy(new KBVService(mockKBVGateway));
         questionHandler =
                 new QuestionHandler(
                         mockObjectMapper,
@@ -166,7 +168,6 @@ class QuestionHandlerTest {
             verify(mockKBVStorageService)
                     .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
             verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
-            verify(mockObjectMapper).writeValueAsString(unAnsweredQuestion);
             verify(mockEventProbe).counterMetric(GET_QUESTION);
         }
 
@@ -196,49 +197,63 @@ class QuestionHandlerTest {
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, contextMock);
 
-            assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
-
             verify(mockKBVStorageService)
                     .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
 
             verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
             verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
             verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
-            assertEquals("{ \"error\":\"Question not Found\" }", response.getBody());
+
+            assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
+            assertTrue(response.getBody().contains("Question not Found"));
         }
 
         @Test
         void shouldReturn400ErrorWhenNoSessionIdProvided() {
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
-            setupEventProbeErrorBehaviour();
+
+            when(mockEventProbe.log(any(ERROR.getClass()), any(NullPointerException.class)))
+                    .thenReturn(mockEventProbe);
+            when(mockEventProbe.counterMetric(GET_QUESTION, 0d)).thenReturn(mockEventProbe);
 
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, mock(Context.class));
 
-            String expectedMessage = "java.lang.NullPointerException";
-            assertTrue(response.getBody().contains(expectedMessage));
             assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
+            verify(mockEventProbe).log(any(ERROR.getClass()), any(NullPointerException.class));
             verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
         }
 
         @Test
-        void shouldReturn500ErrorWhenAWSDynamoDBServiceDown() {
+        void shouldReturn500ErrorWhenKBVItemCannotBeRetrievedFromStorageService()
+                throws KbvItemNotFoundException {
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> sessionHeader =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
-            when(input.getHeaders()).thenReturn(sessionHeader);
-            doThrow(InternalServerErrorException.class)
-                    .when(mockKBVStorageService)
-                    .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
-
             setupEventProbeErrorBehaviour();
-            APIGatewayProxyResponseEvent response =
-                    questionHandler.handleRequest(input, mock(Context.class));
+            DataStore<KBVItem> mockDataStore = mock(DataStore.class);
+            var kbvStorageService = new KBVStorageService(mockDataStore);
+            questionHandler =
+                    new QuestionHandler(
+                            mockObjectMapper,
+                            kbvStorageService,
+                            mockPersonIdentityService,
+                            spyKBVService,
+                            mockConfigurationService,
+                            mockEventProbe,
+                            mockAuditService);
 
-            assertEquals("{ \"error\":\"AWS Server error occurred.\" }", response.getBody());
+            when(mockDataStore.getItem(String.valueOf(sessionHeader.get(HEADER_SESSION_ID))))
+                    .thenReturn(null);
+
+            when(input.getHeaders()).thenReturn(sessionHeader);
+
+            var response = questionHandler.handleRequest(input, mock(Context.class));
+
+            assertEquals("{\"error\":\"KBV Item not Found.\"}", response.getBody());
             assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
-            verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
+            verify(mockEventProbe).counterMetric(any(), anyDouble());
         }
 
         @Test
@@ -270,7 +285,9 @@ class QuestionHandlerTest {
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, mock(Context.class));
 
-            assertEquals("{ \"error\":\"AWS Server error occurred.\" }", response.getBody());
+            assertEquals(
+                    "{\"error\":\"AWS DynamoDbException Occurred (Service: null, Status Code: 500, Request ID: null)\"}",
+                    response.getBody());
             assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
 
             verify(mockPersonIdentityService)

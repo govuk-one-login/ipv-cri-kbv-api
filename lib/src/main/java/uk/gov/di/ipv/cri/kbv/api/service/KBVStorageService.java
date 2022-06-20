@@ -5,8 +5,8 @@ import uk.gov.di.ipv.cri.common.library.persistence.DataStore;
 import uk.gov.di.ipv.cri.common.library.persistence.DynamoDbEnhancedClientFactory;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
+import uk.gov.di.ipv.cri.kbv.api.exception.KbvItemNotFoundException;
 
-import java.util.Optional;
 import java.util.UUID;
 
 public class KBVStorageService {
@@ -25,12 +25,12 @@ public class KBVStorageService {
         this.dataStore = datastore;
     }
 
-    public Optional<KBVItem> getSessionId(String sessionId) {
-        return Optional.of(this.dataStore.getItem(sessionId));
-    }
-
     public KBVItem getKBVItem(UUID sessionId) {
-        return this.dataStore.getItem(String.valueOf(sessionId));
+        KBVItem kbvItem = this.dataStore.getItem(String.valueOf(sessionId));
+        if (kbvItem != null) {
+            return kbvItem;
+        }
+        throw new KbvItemNotFoundException("KBV Item not Found.");
     }
 
     public void update(KBVItem kbvItem) {

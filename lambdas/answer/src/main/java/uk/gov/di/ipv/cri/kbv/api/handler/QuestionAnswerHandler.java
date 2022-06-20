@@ -8,7 +8,7 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.ResultsQue
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import software.amazon.awssdk.http.HttpStatusCode;
+import software.amazon.awssdk.http.Header;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
@@ -19,6 +19,7 @@ import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
+import uk.gov.di.ipv.cri.common.library.util.ApiGatewayResponseGenerator;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
@@ -36,12 +37,15 @@ import java.util.Objects;
 import java.util.UUID;
 
 import static org.apache.logging.log4j.Level.ERROR;
+import static software.amazon.awssdk.http.HttpStatusCode.BAD_REQUEST;
+import static software.amazon.awssdk.http.HttpStatusCode.INTERNAL_SERVER_ERROR;
+import static software.amazon.awssdk.http.HttpStatusCode.OK;
 
 public class QuestionAnswerHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
     private static final String HEADER_SESSION_ID = "session-id";
-    private static final String ERROR_KEY = "\"error\"";
+    private static final String ERROR_KEY = "error";
     private static final String POST_ANSWER = "post_answer";
     private final ObjectMapper objectMapper;
     private final KBVService kbvService;
@@ -82,41 +86,34 @@ public class QuestionAnswerHandler
     @Metrics(captureColdStart = true)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
-        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
-        response.withHeaders(Map.of("Content-Type", "application/json"));
         try {
             processAnswerResponse(input);
-            response.withStatusCode(HttpStatusCode.OK);
             eventProbe.counterMetric(POST_ANSWER);
+            return ApiGatewayResponseGenerator.proxyResponse(
+                    OK, null, Map.of(Header.CONTENT_TYPE, "application/json"));
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(POST_ANSWER, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-            response.withBody(
-                    "{ " + ERROR_KEY + ":\"Failed to parse object using ObjectMapper.\" }");
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    INTERNAL_SERVER_ERROR,
+                    Map.of(ERROR_KEY, "Failed to parse object using ObjectMapper."));
         } catch (NullPointerException npe) {
             eventProbe.log(ERROR, npe).counterMetric(POST_ANSWER, 0d);
-            response.withStatusCode(HttpStatusCode.BAD_REQUEST);
-            response.withBody("{ " + ERROR_KEY + ":\"Error finding the requested resource.\" }");
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    BAD_REQUEST, Map.of(ERROR_KEY, "Error finding the requested resource."));
         } catch (IOException e) {
             eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-            response.withBody(
-                    "{ "
-                            + ERROR_KEY
-                            + ":\""
-                            + String.format("Retrieving questions failed: %s", e)
-                            + "\" }");
-            Thread.currentThread().interrupt();
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    INTERNAL_SERVER_ERROR,
+                    Map.of(ERROR_KEY, String.format("Retrieving questions failed: %s", e)));
         } catch (IllegalStateException ise) {
             eventProbe.log(ERROR, ise).counterMetric(POST_ANSWER, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR_KEY + ":\"Third Party Server error occurred.\" }");
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    INTERNAL_SERVER_ERROR, Map.of(ERROR_KEY, ise.getMessage()));
         } catch (Exception e) {
             eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    INTERNAL_SERVER_ERROR, Map.of(ERROR_KEY, "AWS Server error occurred."));
         }
-        return response;
     }
 
     public void processAnswerResponse(APIGatewayProxyRequestEvent input)
@@ -153,7 +150,6 @@ public class QuestionAnswerHandler
             kbvStorageService.update(kbvItem);
             SessionItem sessionItem =
                     sessionService.getSession(String.valueOf(kbvItem.getSessionId()));
-            sessionItem.setAuthorizationCode(UUID.randomUUID().toString());
             sessionService.createAuthorizationCode(sessionItem);
             auditService.sendAuditEvent(
                     AuditEventType.THIRD_PARTY_REQUEST_ENDED,
@@ -163,7 +159,7 @@ public class QuestionAnswerHandler
             kbvItem.setQuestionState(serializedQuestionState);
             kbvItem.setStatus(questionsResponse.getError().getMessage());
             kbvStorageService.update(kbvItem);
-            throw new IllegalStateException(questionsResponse.getError().getMessage());
+            throw new IllegalStateException("Third Party Server error occurred.");
         }
     }
 

@@ -26,6 +26,7 @@ import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.exception.KbvItemNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
@@ -81,7 +82,8 @@ class QuestionAnswerHandlerTest {
     }
 
     @Test
-    void shouldReturn200WithWhen1stAnswerIsSubmitted() throws JsonProcessingException {
+    void shouldReturn200WithWhen1stAnswerIsSubmitted()
+            throws JsonProcessingException, KbvItemNotFoundException {
         KBVItem kbvItemMock = mock(KBVItem.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
         QuestionState questionStateMock = mock(QuestionState.class);
@@ -213,7 +215,7 @@ class QuestionAnswerHandlerTest {
         APIGatewayProxyResponseEvent response =
                 questionAnswerHandler.handleRequest(input, contextMock);
 
-        assertEquals("{ \"error\":\"AWS Server error occurred.\" }", response.getBody());
+        assertEquals("{\"error\":\"AWS Server error occurred.\"}", response.getBody());
         assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
         verify(mockEventProbe).counterMetric("post_answer", 0d);
     }
@@ -224,7 +226,7 @@ class QuestionAnswerHandlerTest {
         APIGatewayProxyResponseEvent response =
                 questionAnswerHandler.handleRequest(input, contextMock);
 
-        assertEquals("{ \"error\":\"Error finding the requested resource.\" }", response.getBody());
+        assertEquals("{\"error\":\"Error finding the requested resource.\"}", response.getBody());
 
         assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
         verify(mockEventProbe).counterMetric("post_answer", 0d);
@@ -247,7 +249,7 @@ class QuestionAnswerHandlerTest {
                 questionAnswerHandler.handleRequest(input, contextMock);
 
         assertEquals(
-                "{ \"error\":\"Failed to parse object using ObjectMapper.\" }", response.getBody());
+                "{\"error\":\"Failed to parse object using ObjectMapper.\"}", response.getBody());
         assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
         verify(mockEventProbe).counterMetric("post_answer", 0d);
     }
@@ -324,7 +326,7 @@ class QuestionAnswerHandlerTest {
         APIGatewayProxyResponseEvent response =
                 questionAnswerHandler.handleRequest(input, contextMock);
 
-        assertEquals("{ \"error\":\"Third Party Server error occurred.\" }", response.getBody());
+        assertEquals("{\"error\":\"Third Party Server error occurred.\"}", response.getBody());
         assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
         verify(mockEventProbe).counterMetric("post_answer", 0d);
     }
