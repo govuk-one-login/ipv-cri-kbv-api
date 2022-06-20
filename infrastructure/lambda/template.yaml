@@ -178,9 +178,10 @@ Mappings:
       production: "https://di-ipv-cri-kbv-front.london.cloudapps.digital"
 
 Resources:
-  KBVApi:
+  PublicKBVApi:
     Type: AWS::Serverless::Api
     Properties:
+      Description: Public KBV CRI API
       MethodSettings:
         - LoggingLevel: INFO
           ResourcePath: '/*'
@@ -191,7 +192,7 @@ Resources:
           ThrottlingRateLimit: 5
           ThrottlingBurstLimit: 10
       AccessLogSetting:
-        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${ApiAccessLogGroup}'
+        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${PublicKBVApiAccessLogGroup}'
         Format: >-
           {
           "requestId":"$context.requestId",
@@ -224,6 +225,7 @@ Resources:
   PrivateKBVApi:
     Type: AWS::Serverless::Api
     Properties:
+      Description: Private KBV CRI API
       MethodSettings:
         - LoggingLevel: INFO
           ResourcePath: '/*'
@@ -234,7 +236,7 @@ Resources:
           ThrottlingRateLimit: 5
           ThrottlingBurstLimit: 10
       AccessLogSetting:
-        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${ApiAccessLogGroup}'
+        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${PrivateKBVApiAccessLogGroup}'
         Format: >-
           {
           "requestId":"$context.requestId",
@@ -280,16 +282,16 @@ Resources:
                 StringNotEquals:
                   'aws:SourceVpce': !FindInMap [ VPCEndpointIdMapping, Environment, !Ref 'Environment' ]
 
-  ApiAccessLogGroup:
+  PublicKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/apigateway/AccessLog-public-${KBVApi}/${Environment}
+      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PublicKBVApi}-public-AccessLogs
       RetentionInDays: 365
 
-  PrivateApiAccessLogGroup:
+  PrivateKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/apigateway/AccessLog-private-${PrivateKBVApi}/${Environment}
+      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PrivateKBVApi}-private-AccessLogs
       RetentionInDays: 365
 
   SessionFunction:
@@ -631,13 +633,28 @@ Resources:
         AttributeName: expiryDate
         Enabled: true
 
-  ApiUsagePlan:
+  PublicApiUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
     DependsOn:
-      - KBVApiStage
+      - PublicKBVApiStage
     Properties:
       ApiStages:
-        - ApiId: !Ref KBVApi
+        - ApiId: !Ref PublicKBVApi
+          Stage: !Ref Environment
+      Quota:
+        Limit: 500000
+        Period: DAY
+      Throttle:
+        BurstLimit: 100 # requests the API can handle concurrently
+        RateLimit: 50 # allowed requests per second
+
+  PrivateApiUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn:
+      - PrivateKBVApiStage
+    Properties:
+      ApiStages:
+        - ApiId: !Ref PrivateKBVApi
           Stage: !Ref Environment
       Quota:
         Limit: 500000
@@ -651,14 +668,14 @@ Resources:
     Properties:
       KeyId: !ImportValue core-infrastructure-ApiKey1
       KeyType: API_KEY
-      UsagePlanId: !Ref ApiUsagePlan
+      UsagePlanId: !Ref PublicApiUsagePlan
 
   LinkUsagePlanApiKey2:
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
       KeyId: !ImportValue core-infrastructure-ApiKey2
       KeyType: API_KEY
-      UsagePlanId: !Ref ApiUsagePlan
+      UsagePlanId: !Ref PublicApiUsagePlan
 
   ParameterSessionTableName:
     Type: AWS::SSM::Parameter
@@ -867,15 +884,27 @@ Outputs:
 
   KBVApiBaseUrl:
     Description: "Base url of the KBV CRI API"
-    Value: !Sub "https://${KBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+    Value: !Sub "https://${PublicKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
     Export:
       Name: !Sub ${AWS::StackName}-KBVApiBaseUrl
 
   KBVApiGatewayId:
     Description: "API GatewayID of the KBV CRI API"
-    Value: !Sub "${KBVApi}"
+    Value: !Sub "${PublicKBVApi}"
     Export:
       Name: !Sub ${AWS::StackName}-KBVApiGatewayId
+
+  PublicKBVApiBaseUrl:
+    Description: "Base url of the public KBV CRI API"
+    Value: !Sub "https://${PublicKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicKBVApiBaseUrl
+
+  PublicKBVApiGatewayId:
+    Description: "API GatewayID of the public KBV CRI API"
+    Value: !Sub "${PublicKBVApi}"
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicKBVApiGatewayId
 
   PrivateKBVApiBaseUrl:
     Description: "Base url of the private KBV CRI API"
