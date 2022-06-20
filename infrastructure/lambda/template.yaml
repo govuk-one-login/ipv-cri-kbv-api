@@ -894,6 +894,18 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-KBVApiGatewayId
 
+  PublicKBVApiBaseUrl:
+    Description: "Base url of the public KBV CRI API"
+    Value: !Sub "https://${PublicKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicKBVApiBaseUrl
+
+  PublicKBVApiGatewayId:
+    Description: "API GatewayID of the public KBV CRI API"
+    Value: !Sub "${PublicKBVApi}"
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicKBVApiGatewayId
+
   PrivateKBVApiBaseUrl:
     Description: "Base url of the private KBV CRI API"
     Value: !Sub "https://${PrivateKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
