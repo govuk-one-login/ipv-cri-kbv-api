@@ -192,7 +192,7 @@ Resources:
           ThrottlingRateLimit: 5
           ThrottlingBurstLimit: 10
       AccessLogSetting:
-        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${PublicApiAccessLogGroup}'
+        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${PublicKBVApiAccessLogGroup}'
         Format: >-
           {
           "requestId":"$context.requestId",
@@ -236,7 +236,7 @@ Resources:
           ThrottlingRateLimit: 5
           ThrottlingBurstLimit: 10
       AccessLogSetting:
-        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${PrivateApiAccessLogGroup}'
+        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${PrivateKBVApiAccessLogGroup}'
         Format: >-
           {
           "requestId":"$context.requestId",
@@ -282,13 +282,13 @@ Resources:
                 StringNotEquals:
                   'aws:SourceVpce': !FindInMap [ VPCEndpointIdMapping, Environment, !Ref 'Environment' ]
 
-  PublicApiAccessLogGroup:
+  PublicKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PublicKBVApi}-public-AccessLogs
       RetentionInDays: 365
 
-  PrivateApiAccessLogGroup:
+  PrivateKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PrivateKBVApi}-private-AccessLogs
