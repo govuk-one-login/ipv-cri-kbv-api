@@ -20,7 +20,7 @@ class StartAuthnAttemptRequestMapperTest {
 
     @BeforeEach
     void setUp() {
-        startAuthnAttemptRequestMapper = new StartAuthnAttemptRequestMapper();
+        startAuthnAttemptRequestMapper = new StartAuthnAttemptRequestMapper("Static");
     }
 
     @Test
@@ -84,6 +84,7 @@ class StartAuthnAttemptRequestMapperTest {
         assertNotNull(result);
         Address personAddress = personIdentity.getAddresses().get(0);
         assertAll(
+                () -> assertEquals("Static", result.getControl().getTestDatabase()),
                 () -> assertEquals("urn", result.getControl().getURN()),
                 () -> assertEquals("1 out of 2", result.getApplicationData().getProduct()),
                 //                () ->

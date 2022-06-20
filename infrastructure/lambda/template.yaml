@@ -78,6 +78,14 @@ Globals:
 
 Mappings:
 
+  IIQAPIDatabaseModeMapping:
+    Environment:
+      dev: Aged
+      build: Aged
+      staging: Static
+      integration: Static
+      production: Normal
+
   SessionTtlMapping:
     Environment:
       dev: "172800" # 2 days
@@ -424,6 +432,7 @@ Resources:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/PersonIdentityTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/verifiable-credential/issuer"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQDatabaseMode"
         - Statement:
             - Sid: ReadSecretsPolicy
               Effect: Allow
@@ -479,6 +488,7 @@ Resources:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/PersonIdentityTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/verifiable-credential/issuer"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQDatabaseMode"
         - Statement:
             - Sid: ReadSecretsPolicy
               Effect: Allow
@@ -716,6 +726,14 @@ Resources:
       Type: String
       Value: !FindInMap [ SessionTtlMapping, Environment, !Ref 'Environment' ]
       Description: default time to live for an kbv session item (seconds)
+
+  IIQAPIDatabaseModeParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/IIQDatabaseMode"
+      Type: String
+      Value: !FindInMap [ IIQAPIDatabaseModeMapping, Environment, !Ref 'Environment' ]
+      Description: "one of: S or Static, A or Aged, N or Normal (Live)"
 
   IPVCoreStubAuthenticationAlgParameter:
     Condition: IsStubEnvironment
