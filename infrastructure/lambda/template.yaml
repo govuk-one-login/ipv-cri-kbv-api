@@ -181,6 +181,7 @@ Resources:
   PublicKBVApi:
     Type: AWS::Serverless::Api
     Properties:
+      Description: Public KBV CRI API
       MethodSettings:
         - LoggingLevel: INFO
           ResourcePath: '/*'
@@ -224,6 +225,7 @@ Resources:
   PrivateKBVApi:
     Type: AWS::Serverless::Api
     Properties:
+      Description: Private KBV CRI API
       MethodSettings:
         - LoggingLevel: INFO
           ResourcePath: '/*'
