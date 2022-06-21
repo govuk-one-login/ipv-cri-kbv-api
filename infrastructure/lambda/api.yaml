@@ -126,6 +126,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+      security:
+      - api_key: [ ]
       x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
@@ -240,7 +242,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-
+      security:
+      - api_key: []
       x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
@@ -450,16 +453,12 @@ components:
           description: "Date in ISO 8601 format"
           type: "string"
           example: "2020-01-01"
+  securitySchemes:
+    api_key:
+      type: "apiKey"
+      name: "x-api-key"
+      in: "header"
 
-
-#  securitySchemes:
-#    api_key:
-#      type: "apiKey"
-#      name: "x-api-key"
-#      in: "header"
-#
-#security:
-#  - api_key: []
 
 x-amazon-apigateway-request-validators:
   Validate both:
