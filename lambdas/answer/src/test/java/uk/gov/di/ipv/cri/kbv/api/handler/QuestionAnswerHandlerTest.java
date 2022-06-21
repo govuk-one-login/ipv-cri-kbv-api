@@ -3,6 +3,8 @@ package uk.gov.di.ipv.cri.kbv.api.handler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
+import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
@@ -125,6 +127,9 @@ class QuestionAnswerHandlerTest {
         when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
                 .thenReturn(questionAnswerMock);
         when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
+
+        Results resultsMock = mock(Results.class);
+        when(questionsResponseMock.getResults()).thenReturn(resultsMock);
 
         when(mockKBVGateway.submitAnswers(any())).thenReturn(questionsResponseMock);
 
@@ -264,6 +269,52 @@ class QuestionAnswerHandlerTest {
         APIGatewayProxyResponseEvent response =
                 questionAnswerHandler.handleRequest(input, mock(Context.class));
 
+        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        verify(mockEventProbe).counterMetric("post_answer", 0d);
+    }
+
+    @Test
+    void shouldReturn500ErrorWhenExperianServerReturnsAnError() throws JsonProcessingException {
+
+        KBVItem kbvItemMock = mock(KBVItem.class);
+        QuestionState questionStateMock = mock(QuestionState.class);
+        QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
+
+        String mockUUID = UUID.randomUUID().toString();
+        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, mockUUID);
+        QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
+
+        when(input.getHeaders()).thenReturn(sessionHeader);
+
+        when(mockKBVStorageService.getKBVItem(
+                        UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
+                .thenReturn(kbvItemMock);
+
+        when(mockObjectMapper.readValue(kbvItemMock.getQuestionState(), QuestionState.class))
+                .thenReturn(questionStateMock);
+        when(input.getBody()).thenReturn(REQUEST_PAYLOAD);
+        when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
+                .thenReturn(questionAnswerMock);
+        when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
+
+        when(mockKBVGateway.submitAnswers(any())).thenReturn(questionsResponseMock);
+
+        when(mockObjectMapper.writeValueAsString(any())).thenReturn("question-response");
+
+        Error errorMock = mock(Error.class);
+        when(errorMock.getMessage()).thenReturn("Third Party Server error occurred.");
+        when(questionsResponseMock.getResults()).thenReturn(null);
+        when(questionsResponseMock.getError()).thenReturn(errorMock);
+
+        when(mockObjectMapper.writeValueAsString(questionStateMock))
+                .thenReturn("question-state-mock-string");
+        doNothing().when(mockKBVStorageService).update(any());
+
+        setupEventProbeErrorBehaviour();
+        APIGatewayProxyResponseEvent response =
+                questionAnswerHandler.handleRequest(input, contextMock);
+
+        assertEquals("{ \"error\":\"Third Party Server error occurred.\" }", response.getBody());
         assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
         verify(mockEventProbe).counterMetric("post_answer", 0d);
     }

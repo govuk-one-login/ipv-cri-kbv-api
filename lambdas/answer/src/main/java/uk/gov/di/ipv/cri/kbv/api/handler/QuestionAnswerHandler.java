@@ -104,6 +104,10 @@ public class QuestionAnswerHandler
                             + String.format("Retrieving questions failed: %s", e)
                             + "\" }");
             Thread.currentThread().interrupt();
+        } catch (IllegalStateException ise) {
+            eventProbe.log(ERROR, ise).counterMetric(POST_ANSWER, 0d);
+            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
+            response.withBody("{ " + ERROR_KEY + ":\"Third Party Server error occurred.\" }");
         } catch (Exception e) {
             eventProbe.log(ERROR, e).counterMetric(POST_ANSWER, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
@@ -138,17 +142,23 @@ public class QuestionAnswerHandler
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);
             kbvStorageService.update(kbvItem);
-        } else if (questionsResponse.hasQuestionRequestEnded()) {
+        } else if (questionsResponse.getResults() != null
+                && questionsResponse.hasQuestionRequestEnded()) {
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);
             kbvItem.setStatus(questionsResponse.getStatus());
             kbvStorageService.update(kbvItem);
-
             SessionItem sessionItem =
                     sessionService.getSession(String.valueOf(kbvItem.getSessionId()));
             sessionItem.setAuthorizationCode(UUID.randomUUID().toString());
             sessionService.createAuthorizationCode(sessionItem);
             auditService.sendAuditEvent(AuditEventType.THIRD_PARTY_REQUEST_ENDED);
+        } else if (questionsResponse.getError() != null) {
+            var serializedQuestionState = objectMapper.writeValueAsString(questionState);
+            kbvItem.setQuestionState(serializedQuestionState);
+            kbvItem.setStatus(questionsResponse.getError().getMessage());
+            kbvStorageService.update(kbvItem);
+            throw new IllegalStateException(questionsResponse.getError().getMessage());
         }
         return true;
     }
