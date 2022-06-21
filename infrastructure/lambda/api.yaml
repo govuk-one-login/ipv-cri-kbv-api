@@ -127,7 +127,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
       security:
-      - api_key: [ ]
+        - api_key: [ ]
       x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
@@ -243,7 +243,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
       security:
-      - api_key: []
+        - api_key: []
       x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
@@ -368,7 +368,6 @@ components:
         answerHeldFlag:
           type: "string"
         answerFormat:
-          type: "object"
           $ref: "#/components/schemas/AnswerFormat"
     AnswerFormat:
       type: "object"
@@ -395,70 +394,11 @@ components:
           description: Answer provided by the user
           maxLength: 50
           type: "string"
-    Address:
-      title: "Address Update Request"
-      type: "array"
-      items:
-        $ref: "#/components/schemas/CanonicalAddress"
-    CanonicalAddress:
-      title: "Canonical Address"
-      type: "object"
-      properties:
-        uprn:
-          type: "number"
-          example: 1234567890
-          description: "Unique Property Reference Number"
-        organisationName:
-          type: "string"
-          example: "Some Organisation"
-        departmentName:
-          type: "string"
-          example: "Some Department"
-        subBuildingName:
-          type: "string"
-          example: "Some Sub Building"
-        buildingNumber:
-          type: "string"
-          example: "1"
-        dependentStreetName:
-          type: "string"
-          example: "Some Street"
-        doubleDependentAddressLocality:
-          type: "string"
-          example: "Some Town"
-        dependentAddressLocality:
-          type: "string"
-          example: "Some Area"
-        buildingName:
-          type: "string"
-          example: "Some Building"
-        streetName:
-          type: "string"
-          example: "Some Street"
-        addressLocality:
-          type: "string"
-          example: "Some Town"
-        postalCode:
-          type: "string"
-          example: "SW1A 1AA"
-        addressCountry:
-          type: "string"
-          example: "GBR"
-          description: "ISO 3-Letter Country Code"
-        validFrom:
-          description: "Date in ISO 8601 format"
-          type: "string"
-          example: "2020-01-01"
-        validUntil:
-          description: "Date in ISO 8601 format"
-          type: "string"
-          example: "2020-01-01"
   securitySchemes:
     api_key:
       type: "apiKey"
       name: "x-api-key"
       in: "header"
-
 
 x-amazon-apigateway-request-validators:
   Validate both:
@@ -467,5 +407,3 @@ x-amazon-apigateway-request-validators:
   Validate Param only:
     validateRequestParameters: true
     validateRequestBody: false
-
-
