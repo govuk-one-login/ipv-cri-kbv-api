@@ -126,6 +126,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+      security:
+        - api_key: []
       x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
@@ -240,7 +242,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-
+      security:
+        - api_key: []
       x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
@@ -253,6 +256,32 @@ paths:
         contentHandling: "CONVERT_TO_TEXT"
         type: "aws_proxy"
 
+  /abandon:
+    post:
+      parameters:
+        - $ref: "#/components/parameters/SessionHeader"
+      responses:
+        "200":
+          description: "200 response"
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-amazon-apigateway-request-validator: "Validate Param only"
+      x-amazon-apigateway-integration:
+        type: "aws_proxy"
+        httpMethod: "POST"
+        uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KBVAbandonFunction.Arn}/invocations"
+        passthroughBehavior: "when_no_match"
 components:
   parameters:
     SessionHeader:
@@ -339,7 +368,6 @@ components:
         answerHeldFlag:
           type: "string"
         answerFormat:
-          type: "object"
           $ref: "#/components/schemas/AnswerFormat"
     AnswerFormat:
       type: "object"
@@ -353,6 +381,9 @@ components:
           items:
             type: "string"
     Answer:
+      required:
+        - "questionId"
+        - "answer"
       type: "object"
       properties:
         questionId:
@@ -363,77 +394,17 @@ components:
           description: Answer provided by the user
           maxLength: 50
           type: "string"
-    Address:
-      title: "Address Update Request"
-      type: "array"
-      items:
-        $ref: "#/components/schemas/CanonicalAddress"
-    CanonicalAddress:
-      title: "Canonical Address"
-      type: "object"
-      properties:
-        uprn:
-          type: "number"
-          example: 1234567890
-          description: "Unique Property Reference Number"
-        organisationName:
-          type: "string"
-          example: "Some Organisation"
-        departmentName:
-          type: "string"
-          example: "Some Department"
-        subBuildingName:
-          type: "string"
-          example: "Some Sub Building"
-        buildingNumber:
-          type: "string"
-          example: "1"
-        dependentStreetName:
-          type: "string"
-          example: "Some Street"
-        doubleDependentAddressLocality:
-          type: "string"
-          example: "Some Town"
-        dependentAddressLocality:
-          type: "string"
-          example: "Some Area"
-        buildingName:
-          type: "string"
-          example: "Some Building"
-        streetName:
-          type: "string"
-          example: "Some Street"
-        addressLocality:
-          type: "string"
-          example: "Some Town"
-        postalCode:
-          type: "string"
-          example: "SW1A 1AA"
-        addressCountry:
-          type: "string"
-          example: "GBR"
-          description: "ISO 3-Letter Country Code"
-        validFrom:
-          description: "Date in ISO 8601 format"
-          type: "string"
-          example: "2020-01-01"
-        validUntil:
-          description: "Date in ISO 8601 format"
-          type: "string"
-          example: "2020-01-01"
+  securitySchemes:
+    api_key:
+      type: "apiKey"
+      name: "x-api-key"
+      in: "header"
 
-
-#  securitySchemes:
-#    api_key:
-#      type: "apiKey"
-#      name: "x-api-key"
-#      in: "header"
-#
-#security:
-#  - api_key: []
 
 x-amazon-apigateway-request-validators:
   Validate both:
     validateRequestBody: true
     validateRequestParameters: true
-
+  Validate Param only:
+    validateRequestParameters: true
+    validateRequestBody: false
