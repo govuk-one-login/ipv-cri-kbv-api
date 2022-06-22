@@ -38,6 +38,9 @@ Conditions:
     - !Equals [ !Ref Environment, staging ]
     - !Equals [ !Ref Environment, integration ]
     - !Equals [ !Ref Environment, production ]
+  IsProdEnvironment: !Equals
+    - !Ref Environment
+    - production
   UsePermissionsBoundary:
     Fn::Not:
       - Fn::Equals:
@@ -757,7 +760,7 @@ Resources:
       Value: !FindInMap [ IPVCoreStubAudienceMapping, Environment, !Ref 'Environment' ]
 
   IPVCoreStubPreProdAudienceParameter:
-    Condition: IsProdLikeEnvironment
+    Condition: IsProdEnvironment
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub-pre-prod/jwtAuthentication/audience"
@@ -781,7 +784,7 @@ Resources:
       Value: !FindInMap [IPVCoreStubIssuerMapping, Environment, !Ref 'Environment']
 
   IPVCoreStubPreProdIssuerParameter:
-    Condition: IsProdLikeEnvironment
+    Condition: IsProdEnvironment
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub-pre-prod/jwtAuthentication/issuer"
@@ -805,7 +808,7 @@ Resources:
       Value: !FindInMap [IPVCoreStubPublicSigningJwkBase64Mapping, Environment, !Ref 'Environment']
 
   IPVCoreStubPreProdPublicSigningJwkBase64Parameter:
-    Condition: IsProdLikeEnvironment
+    Condition: IsProdEnvironment
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub-pre-prod/jwtAuthentication/publicSigningJwkBase64"
@@ -829,7 +832,7 @@ Resources:
       Value: !FindInMap [IPVCoreStubRedirectURIMapping, Environment, !Ref 'Environment']
 
   IPVCoreStubPreProdRedirectURIParameter:
-    Condition: IsProdLikeEnvironment
+    Condition: IsProdEnvironment
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub-pre-prod/jwtAuthentication/redirectUri"
