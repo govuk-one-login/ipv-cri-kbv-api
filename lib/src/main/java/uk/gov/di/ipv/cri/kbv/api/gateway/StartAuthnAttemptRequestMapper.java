@@ -73,7 +73,7 @@ public class StartAuthnAttemptRequestMapper {
 
     private Control createControl(QuestionRequest questionRequest) {
         Control control = new Control();
-        control.setTestDatabase("A");
+        control.setTestDatabase("S");
         Parameters parameters = new Parameters();
         parameters.setOneShotAuthentication("N");
         parameters.setStoreCaseData("P");
