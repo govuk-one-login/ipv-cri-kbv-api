@@ -41,6 +41,9 @@ Conditions:
   IsProdEnvironment: !Equals
     - !Ref Environment
     - production
+  IsDevEnvironment: !Equals
+    - !Ref Environment
+    - dev
   UsePermissionsBoundary:
     Fn::Not:
       - Fn::Equals:
@@ -74,14 +77,6 @@ Globals:
         SQS_AUDIT_EVENT_PREFIX: IPV_KBV_CRI
 
 Mappings:
-
-  VPCEndpointIdMapping:
-    Environment:
-      dev: vpce-082cab7c78139eb54
-      build: vpce-0e2d78b216ac3b3a2
-      staging: vpce-08fe2404d765e9fff
-      integration: vpce-02e2c1e10f0be4fdd
-      production: vpce-02c08839b3c7c33eb
 
   SessionTtlMapping:
     Environment:
@@ -287,7 +282,10 @@ Resources:
                 - 'execute-api:/*'
               Condition:
                 StringNotEquals:
-                  'aws:SourceVpce': !FindInMap [ VPCEndpointIdMapping, Environment, !Ref 'Environment' ]
+                  aws:SourceVpce: !If
+                    - IsDevEnvironment
+                    - vpce-082cab7c78139eb54
+                    - !ImportValue cri-vpc-ApiGatewayVpcEndpointId
 
   PublicKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
