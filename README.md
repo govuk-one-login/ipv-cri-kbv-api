@@ -27,6 +27,24 @@ Build with `./gradlew`
 
 This will run "build", "test", "buildZip", and "spotLess" reformatting
 
+## Deploy to dev account
+
+Before your **first** deploy, build a sam config toml file.
+> The stack name *must* be unique to you.
+> **Ensure you change the environment name**, when asked, to `dev` instead of `default`.
+> All other defaults can be accepted by leaving them blank
+
+The command to run is:
+
+`gds aws  di-ipv-cri-dev -- sam deploy -t infrastructure/lambda/template.yaml --guided`
+
+You will be asked for the Ordnance Survey API Key at this point.
+In production, this key is stored in the AWS Secrets Manager.
+
+Any time you wish to deploy, run:
+
+`gds aws  di-ipv-cri-dev -- ./deploy.sh`
+
 ## Deploy to AWS lambda
 
 Automated GitHub actions deployments have been enabled on this repository.
@@ -58,5 +76,5 @@ Deployment to Build:
 |-----------------------------|-------------------------------------------------------|
 | ARTIFACT_SOURCE_BUCKET_NAME | Bucket where lambda code is pushed for deployment     |
 | SIGNING_PROFILE_NAME        | The AWS signer signing profile name                   |
-| GH_ACTIONS_ROLE_ARN         | Assumed role IAM ARN                                  |        
+| GH_ACTIONS_ROLE_ARN         | Assumed role IAM ARN                                  |
 
