@@ -10,6 +10,7 @@ import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapToken;
 
 public class KBVGatewayFactory {
+    public static final String IIQ_DATABASE_MODE_PARAM_NAME = "IIQDatabaseMode";
     private final KBVGateway kbvGateway;
 
     public KBVGatewayFactory(ConfigurationService configurationService) {
@@ -27,7 +28,9 @@ public class KBVGatewayFactory {
 
         this.kbvGateway =
                 new KBVGateway(
-                        new StartAuthnAttemptRequestMapper(),
+                        new StartAuthnAttemptRequestMapper(
+                                configurationService.getParameterValue(
+                                        IIQ_DATABASE_MODE_PARAM_NAME)),
                         new ResponseToQuestionMapper(),
                         new KBVClientFactory(
                                         new IdentityIQWebService(),

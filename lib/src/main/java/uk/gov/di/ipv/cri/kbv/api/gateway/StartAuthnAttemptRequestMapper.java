@@ -31,6 +31,11 @@ public class StartAuthnAttemptRequestMapper {
 
     public static final String DEFAULT_STRATEGY = "3 out of 4";
     public static final String DEFAULT_TITLE = "MR";
+    private String testDatabase;
+
+    public StartAuthnAttemptRequestMapper(String testDatabase) {
+        this.testDatabase = testDatabase;
+    }
 
     public SAARequest mapQuestionRequest(QuestionRequest questionRequest) {
         Objects.requireNonNull(questionRequest, "The QuestionRequest must not be null");
@@ -115,7 +120,7 @@ public class StartAuthnAttemptRequestMapper {
 
     private Control createControl(QuestionRequest questionRequest) {
         Control control = new Control();
-        control.setTestDatabase("A");
+        control.setTestDatabase(testDatabase);
         Parameters parameters = new Parameters();
         parameters.setOneShotAuthentication("N");
         parameters.setStoreCaseData("P");
