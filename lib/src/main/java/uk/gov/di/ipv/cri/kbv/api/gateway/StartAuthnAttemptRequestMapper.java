@@ -41,26 +41,46 @@ public class StartAuthnAttemptRequestMapper {
     public QuestionsResponse mapSAAResponse2ToQuestionsResponse(SAAResponse2 sAAResponse2) {
         QuestionsResponse questionsResponse = new QuestionsResponse();
         questionsResponse.setQuestions(sAAResponse2.getQuestions());
-        questionsResponse.setControl(sAAResponse2.getControl());
+        Control control = sAAResponse2.getControl();
+        questionsResponse.setControl(control);
         questionsResponse.setError(sAAResponse2.getError());
         Results results = sAAResponse2.getResults();
+        logQuestionResponse(control, results);
+        questionsResponse.setResults(results);
+        return questionsResponse;
+    }
+
+    private void logQuestionResponse(Control control, Results results) {
+        String urn = "";
+        String authRefNo = "";
+        String outcome = "";
+        String authenticationResult = "";
+        String transIds = "";
+
+        if (control != null) {
+            urn = control.getURN();
+            authRefNo = control.getAuthRefNo();
+        }
         if (results != null) {
-            String outcome = results.getOutcome();
+            outcome = results.getOutcome();
             LOGGER.info("question response outcome: " + outcome);
-            String authenticationResult = results.getAuthenticationResult();
+            authenticationResult = results.getAuthenticationResult();
             LOGGER.info("question response authenticationResult: " + authenticationResult);
             ArrayOfString nextTransId = results.getNextTransId();
             if (nextTransId != null) {
                 List<String> transId = nextTransId.getString();
                 if (transId != null) {
-                    LOGGER.info(
-                            "question response transIds: "
-                                    + transId.stream().collect(Collectors.joining(",")));
+                    transIds = transId.stream().collect(Collectors.joining(","));
                 }
             }
         }
-        questionsResponse.setResults(results);
-        return questionsResponse;
+        LOGGER.info(
+                "question response: urn: {}, authRefNo: {}, outcome: {}, authenticationResult: {}, transIds: {}",
+                urn,
+                authRefNo,
+                outcome,
+                authenticationResult,
+                transIds);
     }
 
     private SAARequest createRequest(QuestionRequest questionRequest) {
