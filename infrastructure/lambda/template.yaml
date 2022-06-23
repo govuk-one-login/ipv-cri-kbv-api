@@ -861,6 +861,39 @@ Resources:
       Value: !ImportValue core-infrastructure-CriVcSigningKey1Id
       Description: Verifiable Credential Key Id
 
+  PrivateKBVApiGatewayIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/PrivateKBVApiGatewayId"
+      Type: String
+      Value: !Sub "${PrivateKBVApi}"
+      Description: "API GatewayID of the private KBV CRI API"
+
+  PrivateKBVApiBaseUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/PrivateKBVApiBaseUrl"
+      Type: String
+      Value: !Sub "https://${PrivateKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+      Description: "Base url of the private KBV CRI API"
+
+  PublicKBVApiGatewayIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/PublicKBVApiGatewayId"
+      Type: String
+      Value: !Sub "${PublicKBVApi}"
+      Description: "API GatewayID of the public KBV CRI API"
+
+  PublicKBVApiBaseUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/PublicKBVApiBaseUrl"
+      Type: String
+      Value: !Sub "https://${PublicKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+      Description: "Base url of the public KBV CRI API"
+
+
 
   SessionFunctionPermission:
     Type: AWS::Lambda::Permission
