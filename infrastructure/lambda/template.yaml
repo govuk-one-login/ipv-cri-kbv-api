@@ -82,8 +82,8 @@ Mappings:
     Environment:
       dev: Aged
       build: Aged
-      staging: Static
-      integration: Static
+      staging: Aged
+      integration: Aged
       production: Normal
 
   SessionTtlMapping:
