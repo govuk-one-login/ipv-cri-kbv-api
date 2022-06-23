@@ -4,13 +4,17 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Applicant;
 import com.experian.uk.schema.experian.identityiq.services.webservice.ApplicantDateOfBirth;
 import com.experian.uk.schema.experian.identityiq.services.webservice.ApplicantName;
 import com.experian.uk.schema.experian.identityiq.services.webservice.ApplicationData;
+import com.experian.uk.schema.experian.identityiq.services.webservice.ArrayOfString;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
 import com.experian.uk.schema.experian.identityiq.services.webservice.LocationDetails;
 import com.experian.uk.schema.experian.identityiq.services.webservice.LocationDetailsUKLocation;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Parameters;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Residency;
+import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.util.StringUtils;
@@ -22,6 +26,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class StartAuthnAttemptRequestMapper {
+
+    private static final Logger LOGGER = LogManager.getLogger();
 
     public static final String DEFAULT_STRATEGY = "3 out of 4";
     public static final String DEFAULT_TITLE = "MR";
@@ -37,7 +43,23 @@ public class StartAuthnAttemptRequestMapper {
         questionsResponse.setQuestions(sAAResponse2.getQuestions());
         questionsResponse.setControl(sAAResponse2.getControl());
         questionsResponse.setError(sAAResponse2.getError());
-        questionsResponse.setResults(sAAResponse2.getResults());
+        Results results = sAAResponse2.getResults();
+        if (results != null) {
+            String outcome = results.getOutcome();
+            LOGGER.info("question response outcome: " + outcome);
+            String authenticationResult = results.getAuthenticationResult();
+            LOGGER.info("question response authenticationResult: " + authenticationResult);
+            ArrayOfString nextTransId = results.getNextTransId();
+            if (nextTransId != null) {
+                List<String> transId = nextTransId.getString();
+                if (transId != null) {
+                    LOGGER.info(
+                            "question response transIds: "
+                                    + transId.stream().collect(Collectors.joining(",")));
+                }
+            }
+        }
+        questionsResponse.setResults(results);
         return questionsResponse;
     }
 
