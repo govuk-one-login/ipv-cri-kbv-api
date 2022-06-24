@@ -10,8 +10,6 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
 import com.experian.uk.schema.experian.identityiq.services.webservice.LocationDetails;
 import com.experian.uk.schema.experian.identityiq.services.webservice.LocationDetailsUKLocation;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Parameters;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Questions;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Residency;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
@@ -62,7 +60,7 @@ public class StartAuthnAttemptRequestMapper {
         String transIds = "";
         String errorCode = "";
         String errorMessage = "";
-            String confirmationCode = "";
+        String confirmationCode = "";
 
         if (control != null) {
             urn = control.getURN();
