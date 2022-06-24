@@ -23,6 +23,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
@@ -105,8 +106,7 @@ public class QuestionHandler
 
             Question question = processQuestionRequest(questionState, kbvItem);
             response.withBody(objectMapper.writeValueAsString(question));
-            response.withStatusCode(question != null ? OK : BAD_REQUEST);
-
+            response.withStatusCode(OK);
             eventProbe.counterMetric(GET_QUESTION);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(GET_QUESTION, 0d);
@@ -117,6 +117,10 @@ public class QuestionHandler
             eventProbe.log(ERROR, npe).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(BAD_REQUEST);
             response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
+        } catch (QuestionNotFoundException qe) {
+            eventProbe.log(ERROR, qe).counterMetric(GET_QUESTION, 0d);
+            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
+            response.withBody("{ " + ERROR_KEY + ":\"" + qe.getMessage() + "\" }");
         } catch (IOException e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
@@ -141,7 +145,7 @@ public class QuestionHandler
             saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
             return question;
         }
-        return null;
+        throw new QuestionNotFoundException("Question not Found");
     }
 
     private Question getQuestionFromDbStore(QuestionState questionState) {

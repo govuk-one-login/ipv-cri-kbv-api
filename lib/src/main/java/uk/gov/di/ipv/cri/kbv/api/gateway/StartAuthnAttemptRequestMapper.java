@@ -6,6 +6,7 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.ApplicantN
 import com.experian.uk.schema.experian.identityiq.services.webservice.ApplicationData;
 import com.experian.uk.schema.experian.identityiq.services.webservice.ArrayOfString;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
+import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
 import com.experian.uk.schema.experian.identityiq.services.webservice.LocationDetails;
 import com.experian.uk.schema.experian.identityiq.services.webservice.LocationDetailsUKLocation;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Parameters;
@@ -48,19 +49,23 @@ public class StartAuthnAttemptRequestMapper {
         questionsResponse.setQuestions(sAAResponse2.getQuestions());
         Control control = sAAResponse2.getControl();
         questionsResponse.setControl(control);
-        questionsResponse.setError(sAAResponse2.getError());
+        Error error = sAAResponse2.getError();
+        questionsResponse.setError(error);
         Results results = sAAResponse2.getResults();
-        logQuestionResponse(control, results);
+        logQuestionResponse(control, results, error);
         questionsResponse.setResults(results);
         return questionsResponse;
     }
 
-    private void logQuestionResponse(Control control, Results results) {
+    private void logQuestionResponse(Control control, Results results, Error error) {
         String urn = "";
         String authRefNo = "";
         String outcome = "";
         String authenticationResult = "";
         String transIds = "";
+        String errorCode = "";
+        String errorMessage = "";
+        String confirmationCode = "";
 
         if (control != null) {
             urn = control.getURN();
@@ -68,9 +73,7 @@ public class StartAuthnAttemptRequestMapper {
         }
         if (results != null) {
             outcome = results.getOutcome();
-            LOGGER.info("question response outcome: " + outcome);
             authenticationResult = results.getAuthenticationResult();
-            LOGGER.info("question response authenticationResult: " + authenticationResult);
             ArrayOfString nextTransId = results.getNextTransId();
             if (nextTransId != null) {
                 List<String> transId = nextTransId.getString();
@@ -78,14 +81,24 @@ public class StartAuthnAttemptRequestMapper {
                     transIds = transId.stream().collect(Collectors.joining(","));
                 }
             }
+            confirmationCode = results.getConfirmationCode();
         }
+
+        if (error != null) {
+            errorCode = error.getErrorCode();
+            errorMessage = error.getMessage();
+        }
+
         LOGGER.info(
-                "question response: urn: {}, authRefNo: {}, outcome: {}, authenticationResult: {}, transIds: {}",
+                "question response: urn: {}, authRefNo: {}, outcome: {}, authenticationResult: {}, transIds: {}, error code: {}, error message: {}, confirmation code: {}",
                 urn,
                 authRefNo,
                 outcome,
                 authenticationResult,
-                transIds);
+                transIds,
+                errorCode,
+                errorMessage,
+                confirmationCode);
     }
 
     private SAARequest createRequest(QuestionRequest questionRequest) {
