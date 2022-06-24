@@ -171,11 +171,12 @@ class QuestionHandlerTest {
         }
 
         @Test
-        void shouldReturn400ErrorWhenNoFurtherQuestions() throws IOException {
+        void shouldReturn500ErrorWhenThereAreNoFurtherQuestions() throws IOException {
             Context contextMock = mock(Context.class);
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> sessionHeader =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
+            setupEventProbeErrorBehaviour();
 
             PersonIdentity personIdentity = new PersonIdentity();
             KBVItem kbvItem = new KBVItem();
@@ -195,14 +196,15 @@ class QuestionHandlerTest {
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, contextMock);
 
-            assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
+            assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
 
             verify(mockKBVStorageService)
                     .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
 
             verify(mockPersonIdentityService).getPersonIdentity(kbvItem.getSessionId());
             verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
-            verify(mockEventProbe).counterMetric(GET_QUESTION);
+            verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
+            assertEquals("{ \"error\":\"Question not Found\" }", response.getBody());
         }
 
         @Test
