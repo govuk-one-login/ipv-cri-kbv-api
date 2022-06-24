@@ -107,7 +107,7 @@ public class QuestionHandler
             response.withBody(objectMapper.writeValueAsString(question));
             response.withStatusCode(question != null ? OK : BAD_REQUEST);
 
-            eventProbe.counterMetric(GET_QUESTION);
+            eventProbe.counterMetric(GET_QUESTION, question != null ? 1 : 0);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
