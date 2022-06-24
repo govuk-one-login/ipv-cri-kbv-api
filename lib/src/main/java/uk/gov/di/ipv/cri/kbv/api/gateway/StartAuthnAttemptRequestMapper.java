@@ -216,7 +216,8 @@ public class StartAuthnAttemptRequestMapper {
                             .collect(Collectors.toList());
 
             // locationDetails.setClientLocationID("1");
-            saaRequest.getLocationDetails().addAll(locations);
+            LocationDetails first = locations.stream().findFirst().get();
+            saaRequest.getLocationDetails().addAll(List.of(first));
         }
     }
 }
