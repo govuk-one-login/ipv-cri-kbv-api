@@ -129,7 +129,7 @@ Mappings:
 
   IPVCoreStubPreProdIssuerMapping:
     Environment:
-      production: "https://di-ipv-core-stub-pre-prod.london.cloudapps.digital"
+      production: "https://di-ipv-core-stub.london.cloudapps.digital"
 
   IPVCore1IssuerMapping:
     Environment:
