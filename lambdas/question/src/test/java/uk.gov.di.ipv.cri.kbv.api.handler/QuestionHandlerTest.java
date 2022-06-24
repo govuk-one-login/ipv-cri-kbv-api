@@ -22,7 +22,7 @@ import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
-import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
@@ -97,12 +97,11 @@ class QuestionHandlerTest {
 
             KBVItem kbvItem = new KBVItem();
             kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
-            PersonIdentity personIdentity = new PersonIdentity();
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
 
             when(input.getHeaders()).thenReturn(sessionHeader);
-            when(mockPersonIdentityService.getPersonIdentity(kbvItem.getSessionId()))
+            when(mockPersonIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId()))
                     .thenReturn(personIdentity);
-            doNothing().when(mockAuditService).sendAuditEvent(AuditEventType.REQUEST_SENT);
             doNothing().when(mockKBVStorageService).save(any());
 
             String expectedQuestion = new ObjectMapper().writeValueAsString(getQuestionOne());
@@ -117,8 +116,8 @@ class QuestionHandlerTest {
             assertEquals(HttpStatusCode.OK, response.getStatusCode());
             assertEquals(expectedQuestion, response.getBody());
 
-            verify(mockPersonIdentityService).getPersonIdentity(kbvItem.getSessionId());
-            verify(mockAuditService).sendAuditEvent(AuditEventType.REQUEST_SENT);
+            verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
+            verify(mockAuditService).sendAuditEvent(AuditEventType.REQUEST_SENT, personIdentity);
             verify(mockKBVStorageService).save(any());
             verify(mockObjectMapper, times(2)).writeValueAsString(any());
             verify(mockEventProbe).counterMetric(GET_QUESTION);
@@ -178,7 +177,7 @@ class QuestionHandlerTest {
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
             setupEventProbeErrorBehaviour();
 
-            PersonIdentity personIdentity = new PersonIdentity();
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
             KBVItem kbvItem = new KBVItem();
             kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
             QuestionState questionStateMock = mock(QuestionState.class);
@@ -187,7 +186,7 @@ class QuestionHandlerTest {
             when(mockKBVStorageService.getKBVItem(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                     .thenReturn(kbvItem);
-            when(mockPersonIdentityService.getPersonIdentity(kbvItem.getSessionId()))
+            when(mockPersonIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId()))
                     .thenReturn(personIdentity);
 
             when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
@@ -201,7 +200,7 @@ class QuestionHandlerTest {
             verify(mockKBVStorageService)
                     .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
 
-            verify(mockPersonIdentityService).getPersonIdentity(kbvItem.getSessionId());
+            verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
             verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
             verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
             assertEquals("{ \"error\":\"Question not Found\" }", response.getBody());
@@ -258,7 +257,7 @@ class QuestionHandlerTest {
                                             .build())
                             .errorMessage("AWS DynamoDbException Occurred")
                             .build();
-            when(mockPersonIdentityService.getPersonIdentity(
+            when(mockPersonIdentityService.getPersonIdentityDetailed(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                     .thenThrow(
                             AwsServiceException.builder()
@@ -274,7 +273,8 @@ class QuestionHandlerTest {
             assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
 
             verify(mockPersonIdentityService)
-                    .getPersonIdentity(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
+                    .getPersonIdentityDetailed(
+                            UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
             verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
         }
 
@@ -286,14 +286,14 @@ class QuestionHandlerTest {
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
             KBVItem kbvItemMock = mock(KBVItem.class);
-            PersonIdentity personIdentityMock = mock(PersonIdentity.class);
+            PersonIdentityDetailed personIdentityMock = mock(PersonIdentityDetailed.class);
             QuestionState questionStateMock = mock(QuestionState.class);
 
             when(input.getHeaders()).thenReturn(sessionHeader);
             when(mockKBVStorageService.getKBVItem(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                     .thenReturn(kbvItemMock);
-            when(mockPersonIdentityService.getPersonIdentity(
+            when(mockPersonIdentityService.getPersonIdentityDetailed(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                     .thenReturn(personIdentityMock);
 
@@ -345,6 +345,7 @@ class QuestionHandlerTest {
 
     @Nested
     class ProcessQuestionRequest {
+        @Test
         void shouldReturnNoQuestionsWhenQuestionStateAndKbvItemEmptyObjects()
                 throws SqsException, IOException {
             var question =
@@ -402,13 +403,14 @@ class QuestionHandlerTest {
         void shouldReturnNextQuestionFromExperianWhenFirstCalled()
                 throws IOException, SqsException {
             QuestionState questionState = new QuestionState();
-            PersonIdentity personIdentity = new PersonIdentity();
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
 
             KBVItem kbvItem = new KBVItem();
             UUID sessionId = UUID.randomUUID();
             kbvItem.setSessionId(sessionId);
 
-            when(mockPersonIdentityService.getPersonIdentity(sessionId)).thenReturn(personIdentity);
+            when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+                    .thenReturn(personIdentity);
             doReturn(getExperianQuestionResponse()).when(spyKBVService).getQuestions(any());
             Question nextQuestionFromExperian =
                     questionHandler.processQuestionRequest(questionState, kbvItem);
@@ -507,29 +509,6 @@ class QuestionHandlerTest {
         answerFormat
                 .getAnswerList()
                 .addAll(List.of("Blue", "Red", "Green", "NONE OF THE ABOVE / DOES NOT APPLY"));
-        question.setAnswerFormat(answerFormat);
-        return question;
-    }
-
-    private Question newQuestion() {
-        Question question = new Question();
-        question.setQuestionID("Q00057");
-        question.setText("What your top five movies");
-        question.setTooltip("top five movies tooltip");
-
-        AnswerFormat answerFormat = new AnswerFormat();
-        answerFormat.setIdentifier("A00006");
-        answerFormat.setIdentifier("G");
-        answerFormat
-                .getAnswerList()
-                .addAll(
-                        List.of(
-                                "The God father",
-                                "The Shawshank Redemption",
-                                "The Green Mile",
-                                "Schindler's List",
-                                "Casablanca",
-                                "NONE OF THE ABOVE / DOES NOT APPLY"));
         question.setAnswerFormat(answerFormat);
         return question;
     }
