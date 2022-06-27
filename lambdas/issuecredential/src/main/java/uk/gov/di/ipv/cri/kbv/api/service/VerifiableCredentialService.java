@@ -92,6 +92,14 @@ public class VerifiableCredentialService {
         return signedJwtFactory.createSignedJwt(claimsSet);
     }
 
+    public Map<String, Object> getAuditEventContext(KBVItem kbvItem) {
+        return Map.of(
+                ISSUER,
+                configurationService.getVerifiableCredentialIssuer(),
+                VC_EVIDENCE_KEY,
+                calculateEvidence(kbvItem));
+    }
+
     @SuppressWarnings("unchecked")
     private Object[] convertAddresses(List<Address> addresses) {
         return addresses.stream()

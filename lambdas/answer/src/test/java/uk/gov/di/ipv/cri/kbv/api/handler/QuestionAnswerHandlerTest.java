@@ -5,6 +5,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
+import com.experian.uk.schema.experian.identityiq.services.webservice.ResultsQuestions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -113,6 +115,7 @@ class QuestionAnswerHandlerTest {
         String mockUUID = UUID.randomUUID().toString();
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, mockUUID);
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
+        String responseStatus = "AUTHORISED";
 
         when(input.getHeaders()).thenReturn(sessionHeader);
         when(kbvItemMock.getSessionId())
@@ -129,6 +132,11 @@ class QuestionAnswerHandlerTest {
         when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
 
         Results resultsMock = mock(Results.class);
+        ResultsQuestions mockResultsQuestions = mock(ResultsQuestions.class);
+        when(mockResultsQuestions.getAsked()).thenReturn(4);
+        when(mockResultsQuestions.getCorrect()).thenReturn(3);
+        when(mockResultsQuestions.getIncorrect()).thenReturn(1);
+        when(resultsMock.getQuestions()).thenReturn(mockResultsQuestions);
         when(questionsResponseMock.getResults()).thenReturn(resultsMock);
 
         when(mockKBVGateway.submitAnswers(any())).thenReturn(questionsResponseMock);
@@ -137,6 +145,7 @@ class QuestionAnswerHandlerTest {
 
         when(questionsResponseMock.hasQuestions()).thenReturn(false);
         when(questionsResponseMock.hasQuestionRequestEnded()).thenReturn(true);
+        when(questionsResponseMock.getStatus()).thenReturn(responseStatus);
 
         SessionItem mockSessionItem = mock(SessionItem.class);
         when(mockSessionService.getSession(String.valueOf(kbvItemMock.getSessionId())))
@@ -151,7 +160,8 @@ class QuestionAnswerHandlerTest {
         verify(mockSessionService).createAuthorizationCode(mockSessionItem);
         assertEquals(HttpStatusCode.OK, result.getStatusCode());
         assertNull(result.getBody());
-        verify(mockAuditService).sendAuditEvent(AuditEventType.THIRD_PARTY_REQUEST_ENDED);
+        verify(mockAuditService)
+                .sendAuditEvent(eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED), any(Map.class));
     }
 
     @Test

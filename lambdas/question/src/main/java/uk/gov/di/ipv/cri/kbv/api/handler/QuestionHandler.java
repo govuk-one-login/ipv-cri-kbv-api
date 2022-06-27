@@ -14,6 +14,7 @@ import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
@@ -167,26 +168,29 @@ public class QuestionHandler
 
     private void saveQuestionStateToKbvItem(
             KBVItem kbvItem, QuestionState questionState, QuestionsResponse questionsResponse)
-            throws JsonProcessingException, SqsException {
+            throws JsonProcessingException {
         String state = objectMapper.writeValueAsString(questionState);
         kbvItem.setQuestionState(state);
         kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
         kbvItem.setUrn(questionsResponse.getControl().getURN());
         kbvItem.setExpiryDate(this.configurationService.getSessionExpirationEpoch());
-        auditService.sendAuditEvent(AuditEventType.REQUEST_SENT);
 
         kbvStorageService.save(kbvItem);
     }
 
     private QuestionsResponse getQuestionAnswerResponse(KBVItem kbvItem)
-            throws JsonProcessingException {
+            throws JsonProcessingException, SqsException {
         Objects.requireNonNull(kbvItem, "kbvItem cannot be null");
 
         if (kbvItem.getExpiryDate() == 0L) { // first request for questions for a given session
+            PersonIdentityDetailed personIdentity =
+                    personIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId());
             QuestionRequest questionRequest = new QuestionRequest();
             questionRequest.setPersonIdentity(
-                    personIdentityService.getPersonIdentity(kbvItem.getSessionId()));
-            return this.kbvService.getQuestions(questionRequest);
+                    personIdentityService.convertToPersonIdentitySummary(personIdentity));
+            QuestionsResponse questionsResponse = this.kbvService.getQuestions(questionRequest);
+            auditService.sendAuditEvent(AuditEventType.REQUEST_SENT, personIdentity);
+            return questionsResponse;
         }
         QuestionState questionState =
                 objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);

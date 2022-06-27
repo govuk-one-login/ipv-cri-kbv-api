@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.experian.uk.schema.experian.identityiq.services.webservice.ResultsQuestions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -29,7 +30,9 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import static org.apache.logging.log4j.Level.ERROR;
@@ -129,7 +132,7 @@ public class QuestionAnswerHandler
         respondWithAnswerFromExperianThenStoreInDb(questionState, kbvItem);
     }
 
-    private boolean respondWithAnswerFromExperianThenStoreInDb(
+    private void respondWithAnswerFromExperianThenStoreInDb(
             QuestionState questionState, KBVItem kbvItem) throws IOException, SqsException {
         QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
         questionAnswerRequest.setUrn(kbvItem.getUrn());
@@ -152,7 +155,9 @@ public class QuestionAnswerHandler
                     sessionService.getSession(String.valueOf(kbvItem.getSessionId()));
             sessionItem.setAuthorizationCode(UUID.randomUUID().toString());
             sessionService.createAuthorizationCode(sessionItem);
-            auditService.sendAuditEvent(AuditEventType.THIRD_PARTY_REQUEST_ENDED);
+            auditService.sendAuditEvent(
+                    AuditEventType.THIRD_PARTY_REQUEST_ENDED,
+                    createAuditEventContext(questionsResponse));
         } else if (questionsResponse.getError() != null) {
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);
@@ -160,7 +165,6 @@ public class QuestionAnswerHandler
             kbvStorageService.update(kbvItem);
             throw new IllegalStateException(questionsResponse.getError().getMessage());
         }
-        return true;
     }
 
     private boolean respondWithAnswerFromDbStore(
@@ -172,5 +176,18 @@ public class QuestionAnswerHandler
         kbvStorageService.update(kbvItem);
 
         return questionState.hasAtLeastOneUnAnswered();
+    }
+
+    private Map<String, Object> createAuditEventContext(QuestionsResponse questionsResponse) {
+        Map<String, Object> contextEntries = new HashMap<>();
+        contextEntries.put("outcome", questionsResponse.getStatus());
+        if (Objects.nonNull(questionsResponse.getResults())
+                && Objects.nonNull(questionsResponse.getResults().getQuestions())) {
+            ResultsQuestions questionSummary = questionsResponse.getResults().getQuestions();
+            contextEntries.put("totalQuestionsAsked", questionSummary.getAsked());
+            contextEntries.put("totalQuestionsAnsweredCorrect", questionSummary.getCorrect());
+            contextEntries.put("totalQuestionsAnsweredIncorrect", questionSummary.getIncorrect());
+        }
+        return Map.of("experianIiqResponse", contextEntries);
     }
 }
