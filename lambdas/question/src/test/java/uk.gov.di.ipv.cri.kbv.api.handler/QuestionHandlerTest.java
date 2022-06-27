@@ -32,6 +32,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
@@ -346,12 +347,13 @@ class QuestionHandlerTest {
     @Nested
     class ProcessQuestionRequest {
         @Test
-        void shouldReturnNoQuestionsWhenQuestionStateAndKbvItemEmptyObjects()
-                throws SqsException, IOException {
-            var question =
-                    questionHandler.processQuestionRequest(new QuestionState(), new KBVItem());
-
-            assertNull(question);
+        void shouldThrowQuestionNotFoundExceptionWhenQuestionStateAndKbvItemEmptyObjects() {
+            assertThrows(
+                    QuestionNotFoundException.class,
+                    () ->
+                            questionHandler.processQuestionRequest(
+                                    new QuestionState(), new KBVItem()),
+                    "Question not Found");
         }
 
         @Test
