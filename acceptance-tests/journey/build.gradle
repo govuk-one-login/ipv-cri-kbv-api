@@ -1,0 +1,20 @@
+
+plugins {
+	id 'java'
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
+	testImplementation 'net.sourceforge.htmlunit:htmlunit:2.62.0'
+}
+
+test {
+	useJUnitPlatform()
+	filter {
+		includeTestsMatching "*"
+	}
+}
