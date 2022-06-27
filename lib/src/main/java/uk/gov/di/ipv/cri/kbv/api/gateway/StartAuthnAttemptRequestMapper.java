@@ -20,6 +20,13 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.util.StringUtils;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.namespace.QName;
+
+import java.io.StringWriter;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -216,8 +223,39 @@ public class StartAuthnAttemptRequestMapper {
                             .collect(Collectors.toList());
 
             // locationDetails.setClientLocationID("1");
-            LocationDetails first = locations.stream().findFirst().get();
-            saaRequest.getLocationDetails().addAll(List.of(first));
+            LOGGER.info("received {} locations", locations.size());
+
+            LocationDetails locationDetails = locations.stream().findFirst().get();
+            if (LOGGER.isDebugEnabled()) {
+
+                try {
+
+                    for (LocationDetails location : locations) {
+                        String s = writeLocationDetailsToString(location);
+                        LOGGER.debug("candidate LocationDetails:" + s);
+                    }
+
+                    String xmlString = writeLocationDetailsToString(locationDetails);
+                    LOGGER.debug("sent LocationDetails:" + xmlString);
+                } catch (Throwable e) {
+                    LOGGER.warn("Could not marshall LocationDetails", e);
+                }
+            }
+            saaRequest.getLocationDetails().addAll(List.of(locationDetails));
         }
+    }
+
+    private String writeLocationDetailsToString(LocationDetails locationDetails)
+            throws JAXBException {
+        JAXBElement<LocationDetails> jaxbElement =
+                new JAXBElement<>(
+                        new QName("", "LocationDetails"), LocationDetails.class, locationDetails);
+
+        JAXBContext context = JAXBContext.newInstance(LocationDetails.class);
+        Marshaller marshaller = context.createMarshaller();
+        StringWriter sw = new StringWriter();
+        marshaller.marshal(jaxbElement, sw);
+        String xmlString = sw.toString();
+        return xmlString;
     }
 }
