@@ -19,7 +19,3 @@ project(':question').projectDir = new File('./lambdas/question')
 project(':answer').projectDir = new File('./lambdas/answer')
 project(':issuecredential').projectDir = new File('./lambdas/issuecredential')
 project(':abandon').projectDir = new File('./lambdas/abandon')
-
-// acceptance tests
-include "acceptance-tests-journey"
-project(':acceptance-tests-journey').projectDir = new File('./acceptance-tests/journey')
