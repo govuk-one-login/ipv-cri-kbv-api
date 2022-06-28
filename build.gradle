@@ -124,6 +124,12 @@ subprojects {
 	}
 
 	apply plugin: 'java'
+
+	test {
+		filter {
+			excludeTestsMatching "uk.gov.di.ipv.cri.kbv.acceptancetest.journey.*"
+		}
+	}
 }
 
 
