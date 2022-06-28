@@ -24,7 +24,7 @@ class KBVJourneyTest {
 
     @DisplayName("answer all questions correctly and produce a VC with a verification score of 2")
     @Test
-    public void shouldPassKBV() throws Exception {
+    void shouldPassKBV() throws Exception {
         HtmlPage page1OfQuestions = loadKBVPage();
         HtmlPage page2OfQuestions = chooseAnswerForQuestion1(page1OfQuestions, 0);
         HtmlPage vcResultPage = chooseAnswerForQuestion2(page2OfQuestions, 0);
@@ -34,7 +34,7 @@ class KBVJourneyTest {
     @DisplayName(
             "do not answer minimum questions correctly and produce a VC with a verification score of 0")
     @Test
-    public void shouldNotPassKBV() throws Exception {
+    void shouldNotPassKBV() throws Exception {
         HtmlPage page1OfQuestions = loadKBVPage();
         HtmlPage page2OfQuestions = chooseAnswerForQuestion1(page1OfQuestions, 0);
         HtmlPage vcResultPage = chooseAnswerForQuestion2(page2OfQuestions, 1);
