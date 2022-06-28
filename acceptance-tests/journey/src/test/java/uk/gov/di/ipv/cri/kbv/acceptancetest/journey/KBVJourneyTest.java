@@ -47,7 +47,7 @@ class KBVJourneyTest {
         assertTrue(pageAsText.contains("Question 1"));
         assertTrue(pageAsText.contains("Correct 1"));
         assertTrue(pageAsText.contains("Incorrect 1"));
-        HtmlForm form = selectAnswer(page, "Q00001", 2, answerIndex);
+        HtmlForm form = selectAnswer(page, "Q00001", answerIndex);
         return clickContinueButton(form);
     }
 
@@ -57,23 +57,17 @@ class KBVJourneyTest {
         assertTrue(pageAsText.contains("Question 2"));
         assertTrue(pageAsText.contains("Correct 2"));
         assertTrue(pageAsText.contains("Incorrect 2"));
-        HtmlForm form = selectAnswer(page, "Q00002", 3, answerIndex);
+        HtmlForm form = selectAnswer(page, "Q00002", answerIndex);
         return clickContinueButton(form);
     }
 
     private HtmlForm selectAnswer(
-            HtmlPage page, String questionId, int expectedAnswers, int answerIndex) {
+            HtmlPage page, String questionId, int answerIndex) {
         List<HtmlForm> forms = page.getForms();
         assertNotNull(forms, "no forms on page");
         assertEquals(1, forms.size(), "unexpected number of forms on page");
         HtmlForm form = forms.get(0);
         List<HtmlRadioButtonInput> answers = form.getRadioButtonsByName(questionId);
-        assertEquals(
-                expectedAnswers,
-                answers.size(),
-                String.format(
-                        "unexpected number of answers: %d, expected: %d",
-                        answers.size(), expectedAnswers));
         HtmlRadioButtonInput question = answers.get(answerIndex);
         question.setChecked(true);
         return form;
