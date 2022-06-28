@@ -61,8 +61,7 @@ class KBVJourneyTest {
         return clickContinueButton(form);
     }
 
-    private HtmlForm selectAnswer(
-            HtmlPage page, String questionId, int answerIndex) {
+    private HtmlForm selectAnswer(HtmlPage page, String questionId, int answerIndex) {
         List<HtmlForm> forms = page.getForms();
         assertNotNull(forms, "no forms on page");
         assertEquals(1, forms.size(), "unexpected number of forms on page");
