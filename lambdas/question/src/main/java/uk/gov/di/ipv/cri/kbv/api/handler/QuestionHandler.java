@@ -37,6 +37,7 @@ import java.util.UUID;
 
 import static org.apache.logging.log4j.Level.ERROR;
 import static software.amazon.awssdk.http.HttpStatusCode.BAD_REQUEST;
+import static software.amazon.awssdk.http.HttpStatusCode.NO_CONTENT;
 import static software.amazon.awssdk.http.HttpStatusCode.OK;
 
 public class QuestionHandler
@@ -99,15 +100,18 @@ public class QuestionHandler
                 kbvItem = new KBVItem();
                 kbvItem.setSessionId(sessionId);
             }
-            if (Objects.nonNull(kbvItem.getStatus())) {
+            if (Objects.nonNull(kbvItem.getStatus()) && kbvItem.getStatus().equalsIgnoreCase("END")) {
                 response.withStatusCode(HttpStatusCode.NO_CONTENT);
                 eventProbe.counterMetric(GET_QUESTION);
                 return response;
             }
-
             Question question = processQuestionRequest(questionState, kbvItem);
-            response.withBody(objectMapper.writeValueAsString(question));
-            response.withStatusCode(OK);
+            if (question == null) {
+                response.withStatusCode(NO_CONTENT);
+            } else {
+                response.withBody(objectMapper.writeValueAsString(question));
+                response.withStatusCode(OK);
+            }
             eventProbe.counterMetric(GET_QUESTION);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(GET_QUESTION, 0d);
@@ -136,7 +140,6 @@ public class QuestionHandler
 
     public Question processQuestionRequest(QuestionState questionState, KBVItem kbvItem)
             throws IOException, SqsException {
-
         Question question;
         if ((question = getQuestionFromDbStore(questionState)) != null) {
             return question;
@@ -145,6 +148,9 @@ public class QuestionHandler
         if ((question = getQuestionFromResponse(questionsResponse, questionState)) != null) {
             saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
             return question;
+        }
+        if (questionsResponse != null && questionsResponse.hasQuestionRequestEnded()) {
+            return null;
         }
         throw new QuestionNotFoundException("Question not Found");
     }

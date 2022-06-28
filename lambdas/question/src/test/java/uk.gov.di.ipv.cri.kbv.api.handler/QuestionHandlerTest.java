@@ -4,9 +4,11 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.experian.uk.schema.experian.identityiq.services.webservice.AnswerFormat;
+import com.experian.uk.schema.experian.identityiq.services.webservice.ArrayOfString;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Questions;
+import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
@@ -334,13 +336,35 @@ class QuestionHandlerTest {
                     .thenReturn(questionStateMock);
 
             when(mockEventProbe.counterMetric(GET_QUESTION)).thenReturn(mockEventProbe);
-            when(kbvItemMock.getStatus()).thenReturn("status-code");
+            when(kbvItemMock.getStatus()).thenReturn("END");
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, contextMock);
 
             assertEquals(HttpStatusCode.NO_CONTENT, response.getStatusCode());
             assertNull(response.getBody());
             verify(mockEventProbe).counterMetric(GET_QUESTION);
+        }
+
+        @Test
+        void shouldReturn204NoContentWhenThereAreInSufficientQuestionsFromExperian() {
+            APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
+            Map<String, String> sessionHeader =
+                    Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
+
+            KBVItem kbvItem = new KBVItem();
+            kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
+
+            when(input.getHeaders()).thenReturn(sessionHeader);
+            when(mockPersonIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId()))
+                    .thenReturn(personIdentity);
+            doReturn(getInsufficientQuestionResponse()).when(spyKBVService).getQuestions(any());
+
+            APIGatewayProxyResponseEvent response =
+                    questionHandler.handleRequest(input, mock(Context.class));
+
+            assertEquals(HttpStatusCode.NO_CONTENT, response.getStatusCode());
+            assertNull(response.getBody());
         }
     }
 
@@ -522,13 +546,30 @@ class QuestionHandlerTest {
     private QuestionsResponse getExperianQuestionResponse(List<Question> questionList) {
         QuestionsResponse questionsResponse = new QuestionsResponse();
         Questions questions = new Questions();
+        questions.getQuestion().addAll(questionList);
+        questionsResponse.setQuestions(questions);
+        questionsResponse.setControl(getControl());
+
+        return questionsResponse;
+    }
+
+    private QuestionsResponse getInsufficientQuestionResponse() {
+        QuestionsResponse questionsResponse = new QuestionsResponse();
+        Results results = new Results();
+        results.setOutcome("Insufficient Questions (Unable to Authenticate)");
+        results.setAuthenticationResult("Unable to Authenticate");
+        ArrayOfString authenticationMessage = new ArrayOfString();
+        authenticationMessage.getString().addAll(List.of("END"));
+        results.setNextTransId(authenticationMessage);
+        questionsResponse.setControl(getControl());
+        questionsResponse.setResults(results);
+        return questionsResponse;
+    }
+
+    private Control getControl() {
         Control control = new Control();
         control.setAuthRefNo("authrefno");
         control.setURN("urn");
-        questions.getQuestion().addAll(questionList);
-        questionsResponse.setQuestions(questions);
-        questionsResponse.setControl(control);
-
-        return questionsResponse;
+        return control;
     }
 }
