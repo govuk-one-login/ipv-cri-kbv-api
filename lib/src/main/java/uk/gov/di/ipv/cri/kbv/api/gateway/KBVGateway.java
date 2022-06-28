@@ -20,7 +20,8 @@ public class KBVGateway {
             ResponseToQuestionMapper responseToQuestionMapper,
             IdentityIQWebServiceSoap identityIQWebServiceSoap) {
         this.identityIQWebServiceSoap =
-                Objects.requireNonNull(identityIQWebServiceSoap, "httpClient must not be null");
+                Objects.requireNonNull(
+                        identityIQWebServiceSoap, "identityIQWebServiceSoap must not be null");
         this.saaRequestMapper =
                 Objects.requireNonNull(saaRequestMapper, "saaRequestMapper must not be null");
         this.responseToQuestionMapper =

@@ -4,10 +4,16 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQ
 import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
 import com.experian.uk.schema.experian.identityiq.services.webservice.RTQRequest;
 import com.experian.uk.schema.experian.identityiq.services.webservice.RTQResponse2;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
-import org.junit.jupiter.api.BeforeEach;
+import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
+import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandler;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandlerResolver;
 import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
@@ -15,121 +21,81 @@ import uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator;
 
 import javax.xml.ws.soap.SOAPFaultException;
 
-import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class KBVGatewayTest {
+    @Mock private StartAuthnAttemptRequestMapper mockSAARequestMapper;
+    @Mock private ResponseToQuestionMapper mockResponseToQuestionMapper;
+    @Mock private IdentityIQWebServiceSoap mockIdentityIQWebServiceSoap;
+    @InjectMocks private KBVGateway kbvGateway;
 
-    private class KbvGatewayContructorArgs {
-        private final IdentityIQWebServiceSoap identityIQWebServiceSoap;
-        private final ResponseToQuestionMapper responseToQuestionMapper;
-        private final StartAuthnAttemptRequestMapper saaRequestMapper;
+    @Test
+    void shouldCallGetQuestionsSuccessfully() {
+        QuestionRequest questionRequest = mock(QuestionRequest.class);
+        ArgumentCaptor<SAAResponse2> saaResponse2Captor =
+                ArgumentCaptor.forClass(SAAResponse2.class);
 
-        public KbvGatewayContructorArgs(
-                StartAuthnAttemptRequestMapper saaRequestMapper,
-                ResponseToQuestionMapper responseToQuestionMapper,
-                IdentityIQWebServiceSoap identityIQWebServiceSoap) {
+        SAARequest mockSaaRequest = mock(SAARequest.class);
+        when(mockSAARequestMapper.mapQuestionRequest(questionRequest)).thenReturn(mockSaaRequest);
 
-            this.identityIQWebServiceSoap = identityIQWebServiceSoap;
-            this.saaRequestMapper = saaRequestMapper;
-            this.responseToQuestionMapper = responseToQuestionMapper;
-        }
-    }
+        kbvGateway.getQuestions(questionRequest);
 
-    private static final String TEST_API_RESPONSE_BODY = "test-api-response-content";
-    private KBVGateway kbvGateway;
-    private StartAuthnAttemptRequestMapper mockSAARequestMapper =
-            mock(StartAuthnAttemptRequestMapper.class);
-    private ResponseToQuestionMapper mockResponseToQuestionMapper =
-            mock(ResponseToQuestionMapper.class);
-    private IdentityIQWebServiceSoap mockIdentityIQWebServiceSoap =
-            mock(IdentityIQWebServiceSoap.class);
-
-    @BeforeEach
-    void setUp() {
-        this.kbvGateway =
-                new KBVGateway(
-                        mockSAARequestMapper,
-                        mockResponseToQuestionMapper,
-                        mockIdentityIQWebServiceSoap);
+        verify(mockSAARequestMapper).mapQuestionRequest(questionRequest);
+        verify(mockSAARequestMapper)
+                .mapSAAResponse2ToQuestionsResponse(saaResponse2Captor.capture());
     }
 
     @Test
-    void shouldCallSubmitAnswersSuccessfully() throws InterruptedException {
-        // final String testRequestBody = "serialisedKbvApiRequest";
+    void shouldCallSubmitAnswersSuccessfully() {
         QuestionAnswerRequest questionAnswerRequest =
                 TestDataCreator.createTestQuestionAnswerRequest();
 
-        // when(this.mockObjectMapper.writeValueAsString(testApiRequest)).thenReturn(testRequestBody);
-        // ArgumentCaptor<HttpRequest> httpRequestCaptor =
-        // ArgumentCaptor.forClass(HttpRequest.class);
-        com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap
-                mockIdentityIQWebServiceSoap =
-                        mock(
-                                com.experian.uk.schema.experian.identityiq.services.webservice
-                                        .IdentityIQWebServiceSoap.class);
-
-        RTQResponse2 mockRtqResponse = mock(RTQResponse2.class);
-        RTQRequest mockRtqRequest = mock(RTQRequest.class);
-        Results mockResults = mock(Results.class);
+        ArgumentCaptor<RTQResponse2> mockRtqResponse = ArgumentCaptor.forClass(RTQResponse2.class);
+        RTQRequest mockRtqRequest = new RTQRequest();
 
         when(mockResponseToQuestionMapper.mapQuestionAnswersRtqRequest(questionAnswerRequest))
                 .thenReturn(mockRtqRequest);
 
-        when(mockIdentityIQWebServiceSoap.rtq(mockRtqRequest)).thenReturn(mockRtqResponse);
-        when(mockRtqResponse.getResults()).thenReturn(mockResults);
+        kbvGateway.submitAnswers(questionAnswerRequest);
 
-        QuestionsResponse questionAnswerRequestResult =
-                kbvGateway.submitAnswers(questionAnswerRequest);
-
-        // assertEquals(TEST_API_RESPONSE_BODY, questionAnswerRequestResult);
         verify(mockResponseToQuestionMapper).mapQuestionAnswersRtqRequest(questionAnswerRequest);
-        // verify(mockObjectMapper).writeValueAsString(mockRtqRequest);
-        // verify(mockKbvApiConfig).getEndpointUri();
-        // assertEquals(testEndpointUri, httpRequestCaptor.getValue().uri().toString());
-        // assertEquals("POST", httpRequestCaptor.getValue().method());
-        // HttpHeaders capturedHttpRequestHeaders = httpRequestCaptor.getValue().headers();
-        // assertEquals("application/json", capturedHttpRequestHeaders.firstValue("Accept").get());
-        // assertEquals(
-        //         "application/json", capturedHttpRequestHeaders.firstValue("Content-Type").get());
+        verify(mockResponseToQuestionMapper)
+                .mapRTQResponse2ToMapQuestionsResponse(mockRtqResponse.capture());
     }
 
     @Test
-    void shouldThrowNullPointerExceptionWhenInvalidConstructorArgumentsAreProvided() {
-        Map<String, KbvGatewayContructorArgs> testCases =
-                Map.of(
-                        "httpClient must not be null",
-                        new KbvGatewayContructorArgs(null, null, null),
-                        "rtqRequestMapper must not be null",
-                        new KBVGatewayTest.KbvGatewayContructorArgs(
-                                null, null, mock(IdentityIQWebServiceSoap.class)),
-                        "objectMapper must not be null",
-                        new KBVGatewayTest.KbvGatewayContructorArgs(
-                                null,
-                                mock(ResponseToQuestionMapper.class),
-                                mock(IdentityIQWebServiceSoap.class)),
-                        "kbvApiConfig must not be null",
-                        new KBVGatewayTest.KbvGatewayContructorArgs(
-                                null,
-                                mock(ResponseToQuestionMapper.class),
-                                mock(IdentityIQWebServiceSoap.class)));
+    void shouldThrowNullPointerExceptionWhenIdentityIQWebServiceIsNull() {
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    new KBVGateway(mockSAARequestMapper, mockResponseToQuestionMapper, null);
+                },
+                "identityIQWebServiceSoap must not be null");
+    }
 
-        testCases.forEach(
-                (errorMessage, constructorArgs) -> {
-                    assertThrows(
-                            NullPointerException.class,
-                            () -> {
-                                new KBVGateway(
-                                        constructorArgs.saaRequestMapper,
-                                        constructorArgs.responseToQuestionMapper,
-                                        constructorArgs.identityIQWebServiceSoap);
-                            },
-                            errorMessage);
-                });
+    @Test
+    void shouldThrowNullPointerExceptionWhenSaaRequestMapperIsNull() {
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    new KBVGateway(
+                            null, mockResponseToQuestionMapper, mockIdentityIQWebServiceSoap);
+                },
+                "identityIQWebServiceSoap must not be null");
+    }
+
+    @Test
+    void shouldThrowNullPointerExceptionWhenRtqRequestMapperIsNull() {
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    new KBVGateway(mockSAARequestMapper, null, mockIdentityIQWebServiceSoap);
+                },
+                "identityIQWebServiceSoap must not be null");
     }
 
     @Test
