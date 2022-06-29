@@ -26,9 +26,11 @@ import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorExcepti
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
+import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
@@ -74,6 +76,7 @@ class QuestionHandlerTest {
     @Mock private ConfigurationService mockConfigurationService;
     @Mock private AuditService mockAuditService;
     private KBVService spyKBVService;
+    @Mock private SessionService mockSessionService;
 
     @BeforeEach
     void setUp() {
@@ -86,7 +89,8 @@ class QuestionHandlerTest {
                         spyKBVService,
                         mockConfigurationService,
                         mockEventProbe,
-                        mockAuditService);
+                        mockAuditService,
+                        mockSessionService);
     }
 
     @Nested
@@ -490,7 +494,7 @@ class QuestionHandlerTest {
         }
 
         @Test
-        void shouldStoreOutcomeWhenExperianReturnsInSufficientQuestions()
+        void shouldStoreStateIntoKBVTableWhenExperianReturnsInSufficientQuestions()
                 throws SqsException, IOException {
             QuestionState questionState = new QuestionState();
             PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
@@ -517,6 +521,38 @@ class QuestionHandlerTest {
 
             verify(mockObjectMapper).writeValueAsString(questionState);
             verify(mockKBVStorageService).save(kbvItem);
+        }
+
+        @Test
+        void shouldSendAuditOutcomeWhenExperianReturnsInSufficientQuestions()
+                throws IOException, SqsException {
+            QuestionState questionState = new QuestionState();
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
+
+            KBVItem kbvItem = new KBVItem();
+            UUID sessionId = UUID.randomUUID();
+            kbvItem.setSessionId(sessionId);
+            var questionStateString = new ObjectMapper().writeValueAsString(questionState);
+
+            when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+                    .thenReturn(personIdentity);
+            doReturn(getInsufficientQuestionResponse()).when(spyKBVService).getQuestions(any());
+            when(mockObjectMapper.writeValueAsString(questionState))
+                    .thenReturn(questionStateString);
+            SessionItem mockSessionItem = mock(SessionItem.class);
+            when(mockSessionService.getSession(sessionId.toString())).thenReturn(mockSessionItem);
+            Question expectedQuestionFromExperian =
+                    questionHandler.processQuestionRequest(questionState, kbvItem);
+
+            assertNull(expectedQuestionFromExperian);
+            verify(mockSessionService).createAuthorizationCode(mockSessionItem);
+            verify(mockAuditService).sendAuditEvent(AuditEventType.REQUEST_SENT, personIdentity);
+            verify(mockAuditService)
+                    .sendAuditEvent(
+                            AuditEventType.THIRD_PARTY_REQUEST_ENDED,
+                            Map.of(
+                                    "experianIiqResponse",
+                                    Map.of("outcome", "Unable to Authenticate")));
         }
     }
 

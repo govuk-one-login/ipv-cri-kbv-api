@@ -16,9 +16,11 @@ import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverage
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
+import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
@@ -52,6 +54,7 @@ public class QuestionHandler
     private final KBVService kbvService;
     private final AuditService auditService;
     private final ConfigurationService configurationService;
+    private final SessionService sessionService;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
@@ -63,6 +66,7 @@ public class QuestionHandler
         this.kbvStorageService = new KBVStorageService(this.configurationService);
         this.eventProbe = new EventProbe();
         this.auditService = new AuditService();
+        this.sessionService = new SessionService();
     }
 
     public QuestionHandler(
@@ -72,7 +76,8 @@ public class QuestionHandler
             KBVService kbvService,
             ConfigurationService configurationService,
             EventProbe eventProbe,
-            AuditService auditService) {
+            AuditService auditService,
+            SessionService sessionService) {
         this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
         this.personIdentityService = personIdentityService;
@@ -80,6 +85,7 @@ public class QuestionHandler
         this.auditService = auditService;
         this.kbvService = kbvService;
         this.configurationService = configurationService;
+        this.sessionService = sessionService;
     }
 
     @Override
@@ -152,6 +158,7 @@ public class QuestionHandler
         }
         if (questionsResponse != null && questionsResponse.hasQuestionRequestEnded()) {
             saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
+            sendAuditEventForResponseOutcome(kbvItem, questionsResponse);
             return null;
         }
         throw new QuestionNotFoundException("Question not Found");
@@ -208,5 +215,18 @@ public class QuestionHandler
         questionAnswerRequest.setAuthRefNo(kbvItem.getAuthRefNo());
         questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
         return this.kbvService.submitAnswers(questionAnswerRequest);
+    }
+
+    private void sendAuditEventForResponseOutcome(
+            KBVItem kbvItem, QuestionsResponse questionsResponse) throws SqsException {
+        SessionItem sessionItem = sessionService.getSession(String.valueOf(kbvItem.getSessionId()));
+        sessionService.createAuthorizationCode(sessionItem);
+        auditService.sendAuditEvent(
+                AuditEventType.THIRD_PARTY_REQUEST_ENDED,
+                createAuditEventContext(questionsResponse));
+    }
+
+    private Map<String, Object> createAuditEventContext(QuestionsResponse questionsResponse) {
+        return Map.of("experianIiqResponse", Map.of("outcome", questionsResponse.getStatus()));
     }
 }
