@@ -298,11 +298,27 @@ Resources:
       LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PublicKBVApi}-public-AccessLogs
       RetentionInDays: 365
 
+  PublicKBVApiAccessLogGroupSubscriptionFilter:
+    Type: AWS::Logs::SubscriptionFilter
+    Condition: IsNotDevEnvironment
+    Properties:
+      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
+      FilterPattern: ""
+      LogGroupName: !Ref PublicKBVApiAccessLogGroup
+
   PrivateKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PrivateKBVApi}-private-AccessLogs
       RetentionInDays: 365
+
+  PrivateKBVApiAccessLogGroupSubscriptionFilter:
+    Type: AWS::Logs::SubscriptionFilter
+    Condition: IsNotDevEnvironment
+    Properties:
+      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
+      FilterPattern: ""
+      LogGroupName: !Ref PrivateKBVApiAccessLogGroup
 
   SessionFunction:
     Type: AWS::Serverless::Function
