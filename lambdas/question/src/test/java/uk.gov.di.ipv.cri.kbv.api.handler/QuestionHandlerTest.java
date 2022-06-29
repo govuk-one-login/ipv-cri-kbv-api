@@ -173,7 +173,8 @@ class QuestionHandlerTest {
         }
 
         @Test
-        void shouldReturn500ErrorWhenThereAreNoFurtherQuestionsAndQuestionResponseStateIsNotEnd() throws IOException {
+        void shouldReturn500ErrorWhenThereAreNoFurtherQuestionsAndQuestionResponseStateIsNotEnd()
+                throws IOException {
             Context contextMock = mock(Context.class);
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> sessionHeader =
@@ -487,6 +488,36 @@ class QuestionHandlerTest {
                             .get(0)
                             .getQuestionID());
         }
+
+        @Test
+        void shouldStoreOutcomeWhenExperianReturnsInSufficientQuestions()
+                throws SqsException, IOException {
+            QuestionState questionState = new QuestionState();
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
+
+            KBVItem kbvItem = new KBVItem();
+            UUID sessionId = UUID.randomUUID();
+            kbvItem.setSessionId(sessionId);
+            var questionStateString = new ObjectMapper().writeValueAsString(questionState);
+
+            when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+                    .thenReturn(personIdentity);
+            doReturn(getInsufficientQuestionResponse()).when(spyKBVService).getQuestions(any());
+            when(mockObjectMapper.writeValueAsString(questionState))
+                    .thenReturn(questionStateString);
+            Question expectedQuestionFromExperian =
+                    questionHandler.processQuestionRequest(questionState, kbvItem);
+
+            assertNull(expectedQuestionFromExperian);
+            assertEquals(questionStateString, kbvItem.getQuestionState());
+
+            assertEquals("Unable to Authenticate", kbvItem.getStatus());
+            assertEquals("authrefno", kbvItem.getAuthRefNo());
+            assertEquals("urn", kbvItem.getUrn());
+
+            verify(mockObjectMapper).writeValueAsString(questionState);
+            verify(mockKBVStorageService).save(kbvItem);
+        }
     }
 
     private KBVItem getADummyKBVItemThatRepresentAnItemInStorage(String questionStateString) {
@@ -547,21 +578,30 @@ class QuestionHandlerTest {
         questions.getQuestion().addAll(questionList);
         questionsResponse.setQuestions(questions);
         questionsResponse.setControl(getControl());
-
+        questionsResponse.setResults(
+                getResults("Authentication Questions returned", null, List.of("RTQ")));
         return questionsResponse;
     }
 
     private QuestionsResponse getInsufficientQuestionResponse() {
         QuestionsResponse questionsResponse = new QuestionsResponse();
-        Results results = new Results();
-        results.setOutcome("Insufficient Questions (Unable to Authenticate)");
-        results.setAuthenticationResult("Unable to Authenticate");
-        ArrayOfString authenticationMessage = new ArrayOfString();
-        authenticationMessage.getString().addAll(List.of("END"));
-        results.setNextTransId(authenticationMessage);
         questionsResponse.setControl(getControl());
-        questionsResponse.setResults(results);
+        questionsResponse.setResults(
+                getResults(
+                        "Insufficient Questions (Unable to Authenticate)",
+                        "Unable to Authenticate",
+                        List.of("END")));
         return questionsResponse;
+    }
+
+    private Results getResults(String outcome, String authenticationResult, List<String> state) {
+        Results results = new Results();
+        results.setOutcome(outcome);
+        results.setAuthenticationResult(authenticationResult);
+        ArrayOfString authenticationMessage = new ArrayOfString();
+        authenticationMessage.getString().addAll(state);
+        results.setNextTransId(authenticationMessage);
+        return results;
     }
 
     private Control getControl() {

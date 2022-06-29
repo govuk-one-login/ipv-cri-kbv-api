@@ -151,6 +151,7 @@ public class QuestionHandler
             return question;
         }
         if (questionsResponse != null && questionsResponse.hasQuestionRequestEnded()) {
+            saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
             return null;
         }
         throw new QuestionNotFoundException("Question not Found");
@@ -181,6 +182,7 @@ public class QuestionHandler
         kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
         kbvItem.setUrn(questionsResponse.getControl().getURN());
         kbvItem.setExpiryDate(this.configurationService.getSessionExpirationEpoch());
+        kbvItem.setStatus(questionsResponse.getStatus());
 
         kbvStorageService.save(kbvItem);
     }
