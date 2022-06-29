@@ -8,6 +8,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 public class TestDataCreator {
@@ -18,7 +19,26 @@ public class TestDataCreator {
         address.setPostalCode("Postcode");
         address.setStreetName("Street name");
         address.setAddressLocality("PostTown");
+        address.setValidFrom(LocalDate.now().minus(2, ChronoUnit.YEARS));
         personIdentity.setAddresses(List.of(address));
+        return personIdentity;
+    }
+
+    public static PersonIdentity createTestPersonIdentityWithDuplicateAddresses(
+            AddressType addressType) {
+        PersonIdentity personIdentity = new PersonIdentity();
+        personIdentity.setDateOfBirth(LocalDate.of(1976, 12, 26));
+        Address address1 = new Address();
+        address1.setPostalCode("Postcode");
+        address1.setStreetName("Street name");
+        address1.setAddressLocality("PostTown");
+        address1.setValidFrom(LocalDate.now().minus(2, ChronoUnit.YEARS));
+
+        Address address2 = new Address();
+        address2.setPostalCode("Postcode");
+        address2.setStreetName("Street name");
+        address2.setAddressLocality("PostTown");
+        personIdentity.setAddresses(List.of(address1, address2));
         return personIdentity;
     }
 
@@ -39,6 +59,16 @@ public class TestDataCreator {
         questionRequest.setUrn("urn");
         questionRequest.setStrategy("1 out of 2");
         questionRequest.setPersonIdentity(createTestPersonIdentity(addressType));
+        return questionRequest;
+    }
+
+    public static QuestionRequest createTestQuestionAnswerRequestWithDuplicateAddresses(
+            AddressType addressType) {
+        QuestionRequest questionRequest = new QuestionRequest();
+        questionRequest.setUrn("urn");
+        questionRequest.setStrategy("1 out of 2");
+        questionRequest.setPersonIdentity(
+                createTestPersonIdentityWithDuplicateAddresses(addressType));
         return questionRequest;
     }
 }
