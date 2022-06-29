@@ -100,7 +100,8 @@ public class QuestionHandler
                 kbvItem = new KBVItem();
                 kbvItem.setSessionId(sessionId);
             }
-            if (Objects.nonNull(kbvItem.getStatus()) && kbvItem.getStatus().equalsIgnoreCase("END")) {
+            if (Objects.nonNull(kbvItem.getStatus())
+                    && kbvItem.getStatus().equalsIgnoreCase("END")) {
                 response.withStatusCode(HttpStatusCode.NO_CONTENT);
                 eventProbe.counterMetric(GET_QUESTION);
                 return response;

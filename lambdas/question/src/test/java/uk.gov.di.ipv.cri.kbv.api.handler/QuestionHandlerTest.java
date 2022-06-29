@@ -173,15 +173,15 @@ class QuestionHandlerTest {
         }
 
         @Test
-        void shouldReturn500ErrorWhenThereAreNoFurtherQuestions() throws IOException {
+        void shouldReturn500ErrorWhenThereAreNoFurtherQuestionsAndQuestionResponseStateIsNotEnd() throws IOException {
             Context contextMock = mock(Context.class);
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> sessionHeader =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
             setupEventProbeErrorBehaviour();
 
-            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
-            KBVItem kbvItem = new KBVItem();
+            KBVItem kbvItem =
+                    getADummyKBVItemThatRepresentAnItemInStorage("an-existing-question-state");
             kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
             QuestionState questionStateMock = mock(QuestionState.class);
 
@@ -189,23 +189,21 @@ class QuestionHandlerTest {
             when(mockKBVStorageService.getKBVItem(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                     .thenReturn(kbvItem);
-            when(mockPersonIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId()))
-                    .thenReturn(personIdentity);
-
             when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
                     .thenReturn(questionStateMock);
+            doReturn(mock(QuestionsResponse.class)).when(spyKBVService).submitAnswers(any());
 
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, contextMock);
 
-            assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
-
             verify(mockKBVStorageService)
                     .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
 
-            verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
-            verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
+            verify(mockObjectMapper, times(2))
+                    .readValue(kbvItem.getQuestionState(), QuestionState.class);
+            verify(spyKBVService).submitAnswers(any());
             verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
+            assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
             assertEquals("{ \"error\":\"Question not Found\" }", response.getBody());
         }
 
