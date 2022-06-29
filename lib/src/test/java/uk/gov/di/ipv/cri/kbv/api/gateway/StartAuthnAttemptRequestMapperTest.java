@@ -1,5 +1,6 @@
 package uk.gov.di.ipv.cri.kbv.api.gateway;
 
+import com.experian.uk.schema.experian.identityiq.services.webservice.LocationDetails;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,11 +9,14 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.AddressType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator.createTestQuestionAnswerRequest;
+import static uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator.createTestQuestionAnswerRequestWithDuplicateAddresses;
 
 class StartAuthnAttemptRequestMapperTest {
     private StartAuthnAttemptRequestMapper startAuthnAttemptRequestMapper;
@@ -72,6 +76,19 @@ class StartAuthnAttemptRequestMapperTest {
                         assertEquals(
                                 personAddress.getStreetName(),
                                 result.getLocationDetails().get(0).getUKLocation().getStreet()));
+    }
+
+    @Test
+    void shouldOnlyMapAddressWithAValidFromValue() {
+        questionRequest =
+                createTestQuestionAnswerRequestWithDuplicateAddresses(AddressType.CURRENT);
+        assertEquals(2, questionRequest.getPersonIdentity().getAddresses().size());
+        PersonIdentity personIdentity = questionRequest.getPersonIdentity();
+        SAARequest result = startAuthnAttemptRequestMapper.mapQuestionRequest(questionRequest);
+
+        assertNotNull(result);
+        List<LocationDetails> locationDetails = result.getLocationDetails();
+        assertEquals(1, locationDetails.size());
     }
 
     @Test

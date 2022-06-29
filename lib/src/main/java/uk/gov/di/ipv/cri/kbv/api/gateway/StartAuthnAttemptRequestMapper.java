@@ -16,6 +16,7 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.util.StringUtils;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class StartAuthnAttemptRequestMapper {
@@ -182,10 +184,12 @@ public class StartAuthnAttemptRequestMapper {
 
     private void setLocationDetails(SAARequest saaRequest, PersonIdentity personIdentity) {
         if (Objects.nonNull(personIdentity.getAddresses())
-                && !personIdentity.getAddresses().isEmpty()) {
+                && !personIdentity.getAddresses().isEmpty()
+                && personIdentity.getAddresses().stream().anyMatch(addressHasValidFrom())) {
             AtomicInteger idCounter = new AtomicInteger(1);
             List<LocationDetails> locations =
                     personIdentity.getAddresses().stream()
+                            .filter(addressHasValidFrom())
                             .map(
                                     personAddress -> {
                                         LocationDetailsUKLocation ukLocation =
@@ -243,6 +247,10 @@ public class StartAuthnAttemptRequestMapper {
             }
             saaRequest.getLocationDetails().addAll(List.of(locationDetails));
         }
+    }
+
+    private Predicate<Address> addressHasValidFrom() {
+        return address -> address.getValidFrom() != null;
     }
 
     private String writeLocationDetailsToString(LocationDetails locationDetails)
