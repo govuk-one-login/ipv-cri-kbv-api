@@ -366,20 +366,13 @@ Resources:
               Resource:
                 - !ImportValue AuditEventQueueEncryptionKeyArn
 
-  SessionFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      RetentionInDays: 14
-      LogGroupName: !Sub "/aws/lambda/${SessionFunction}"
-      KmsKeyId: !GetAtt LoggingKmsKey.Arn
-
   SessionFunctionLogGroupSubscriptionFilter:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
       FilterPattern: ""
-      LogGroupName: !Ref SessionFunctionLogGroup
+      LogGroupName: !Sub "/aws/lambda/${SessionFunction}"
 
   AuthorizationFunction:
     Type: AWS::Serverless::Function
@@ -407,20 +400,13 @@ Resources:
               Resource:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
 
-  AuthorizationFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      RetentionInDays: 14
-      LogGroupName: !Sub "/aws/lambda/${AuthorizationFunction}"
-      KmsKeyId: !GetAtt LoggingKmsKey.Arn
-
   AuthorizationFunctionLogGroupSubscriptionFilter:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
       FilterPattern: ""
-      LogGroupName: !Ref AuthorizationFunctionLogGroup
+      LogGroupName: !Sub "/aws/lambda/${AuthorizationFunction}"
 
   AccessTokenFunction:
     Type: AWS::Serverless::Function
@@ -451,20 +437,13 @@ Resources:
               Resource:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
 
-  AccessTokenFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      RetentionInDays: 14
-      LogGroupName: !Sub "/aws/lambda/${AccessTokenFunction}"
-      KmsKeyId: !GetAtt LoggingKmsKey.Arn
-
   AccessTokenFunctionLogGroupSubscriptionFilter:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
       FilterPattern: ""
-      LogGroupName: !Ref AccessTokenFunctionLogGroup
+      LogGroupName: !Sub "/aws/lambda/${AccessTokenFunction}"
 
   KBVQuestionFunction:
     Type: AWS::Serverless::Function
@@ -520,20 +499,13 @@ Resources:
               Resource:
                 - !ImportValue AuditEventQueueEncryptionKeyArn
 
-  KBVQuestionFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      RetentionInDays: 14
-      LogGroupName: !Sub "/aws/lambda/${KBVQuestionFunction}"
-      KmsKeyId: !GetAtt LoggingKmsKey.Arn
-
   KBVQuestionFunctionLogGroupSubscriptionFilter:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
       FilterPattern: ""
-      LogGroupName: !Ref KBVQuestionFunctionLogGroup
+      LogGroupName: !Sub "/aws/lambda/${KBVQuestionFunction}"
 
   KBVAnswerFunction:
     Type: AWS::Serverless::Function
@@ -591,20 +563,13 @@ Resources:
               Resource:
                 - !ImportValue AuditEventQueueEncryptionKeyArn
 
-  KBVAnswerFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      RetentionInDays: 14
-      LogGroupName: !Sub "/aws/lambda/${KBVAnswerFunction}"
-      KmsKeyId: !GetAtt LoggingKmsKey.Arn
-
   KBVAnswerFunctionLogGroupSubscriptionFilter:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
       FilterPattern: ""
-      LogGroupName: !Ref KBVAnswerFunctionLogGroup
+      LogGroupName: !Sub "/aws/lambda/${KBVAnswerFunction}"
 
   KBVAbandonFunction:
     Type: AWS::Serverless::Function
@@ -633,20 +598,13 @@ Resources:
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
 
-  KBVAbandonFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      RetentionInDays: 14
-      LogGroupName: !Sub "/aws/lambda/${KBVAbandonFunction}"
-      KmsKeyId: !GetAtt LoggingKmsKey.Arn
-
   KBVAbandonFunctionLogGroupSubscriptionFilter:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
       FilterPattern: ""
-      LogGroupName: !Ref KBVAbandonFunctionLogGroup
+      LogGroupName: !Sub "/aws/lambda/${KBVAbandonFunction}"
 
   IssueCredentialFunction:
     Type: AWS::Serverless::Function
@@ -683,20 +641,13 @@ Resources:
             Resource:
               - !ImportValue AuditEventQueueEncryptionKeyArn
 
-  IssueCredentialFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      RetentionInDays: 14
-      LogGroupName: !Sub "/aws/lambda/${IssueCredentialFunction}"
-      KmsKeyId: !GetAtt LoggingKmsKey.Arn
-
   IssueCredentialFunctionLogGroupSubscriptionFilter:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
       FilterPattern: ""
-      LogGroupName: !Ref IssueCredentialFunctionLogGroup
+      LogGroupName: !Sub "/aws/lambda/${IssueCredentialFunction}"
 
   KBVTable:
     Type: "AWS::DynamoDB::Table"
