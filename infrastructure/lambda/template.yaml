@@ -75,6 +75,10 @@ Globals:
         POWERTOOLS_LOG_LEVEL: INFO
         POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
         SQS_AUDIT_EVENT_PREFIX: IPV_KBV_CRI
+    ProvisionedConcurrencyConfig: !If
+      - IsProdEnvironment
+      - ProvisionedConcurrentExecutions: 1
+      - !Ref AWS::NoValue
 
 Mappings:
 
