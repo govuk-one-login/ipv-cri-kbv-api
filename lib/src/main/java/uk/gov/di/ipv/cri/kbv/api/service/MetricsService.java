@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 public class MetricsService {
 
     public static final String OUTCOME = "outcome";
-    public static final String TRANS_ID = "transId";
+    public static final String TRANS_ID = "transition_id";
     public static final String ERROR_CODE = "error_code";
     private final EventProbe eventProbe;
 
