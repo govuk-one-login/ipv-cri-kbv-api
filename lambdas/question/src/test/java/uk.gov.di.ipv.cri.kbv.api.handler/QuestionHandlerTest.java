@@ -524,6 +524,27 @@ class QuestionHandlerTest {
         }
 
         @Test
+        void shouldThrowQuestionNotFoundExceptionWhenExperianReturnsAddressNotFound() {
+            QuestionState questionState = new QuestionState();
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
+
+            KBVItem kbvItem = new KBVItem();
+            UUID sessionId = UUID.randomUUID();
+            kbvItem.setSessionId(sessionId);
+
+            when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+                    .thenReturn(personIdentity);
+            doReturn(getAddressNotFoundQuestionResponse()).when(spyKBVService).getQuestions(any());
+
+            QuestionNotFoundException expectedException =
+                    assertThrows(
+                            QuestionNotFoundException.class,
+                            () -> questionHandler.processQuestionRequest(questionState, kbvItem));
+
+            assertEquals("Question not Found", expectedException.getMessage());
+        }
+
+        @Test
         void shouldSendAuditOutcomeWhenExperianReturnsInSufficientQuestions()
                 throws IOException, SqsException {
             QuestionState questionState = new QuestionState();
@@ -552,7 +573,9 @@ class QuestionHandlerTest {
                             AuditEventType.THIRD_PARTY_REQUEST_ENDED,
                             Map.of(
                                     "experianIiqResponse",
-                                    Map.of("outcome", "Unable to Authenticate")));
+                                    Map.of(
+                                            "outcome",
+                                            "Insufficient Questions (Unable to Authenticate)")));
         }
     }
 
@@ -627,6 +650,13 @@ class QuestionHandlerTest {
                         "Insufficient Questions (Unable to Authenticate)",
                         "Unable to Authenticate",
                         List.of("END")));
+        return questionsResponse;
+    }
+
+    private QuestionsResponse getAddressNotFoundQuestionResponse() {
+        QuestionsResponse questionsResponse = new QuestionsResponse();
+        questionsResponse.setControl(getControl());
+        questionsResponse.setResults(getResults("Address not found", null, List.of("CAA")));
         return questionsResponse;
     }
 

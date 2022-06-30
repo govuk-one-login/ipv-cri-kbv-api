@@ -8,7 +8,6 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
@@ -39,6 +38,7 @@ import java.util.UUID;
 
 import static org.apache.logging.log4j.Level.ERROR;
 import static software.amazon.awssdk.http.HttpStatusCode.BAD_REQUEST;
+import static software.amazon.awssdk.http.HttpStatusCode.INTERNAL_SERVER_ERROR;
 import static software.amazon.awssdk.http.HttpStatusCode.NO_CONTENT;
 import static software.amazon.awssdk.http.HttpStatusCode.OK;
 
@@ -108,7 +108,7 @@ public class QuestionHandler
             }
             if (Objects.nonNull(kbvItem.getStatus())
                     && kbvItem.getStatus().equalsIgnoreCase("END")) {
-                response.withStatusCode(HttpStatusCode.NO_CONTENT);
+                response.withStatusCode(NO_CONTENT);
                 eventProbe.counterMetric(GET_QUESTION);
                 return response;
             }
@@ -122,7 +122,7 @@ public class QuestionHandler
             eventProbe.counterMetric(GET_QUESTION);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
+            response.withStatusCode(INTERNAL_SERVER_ERROR);
             response.withBody(
                     "{ " + ERROR_KEY + ":\"Failed to parse object using ObjectMapper.\" }");
         } catch (NullPointerException npe) {
@@ -131,15 +131,15 @@ public class QuestionHandler
             response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
         } catch (QuestionNotFoundException qe) {
             eventProbe.log(ERROR, qe).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
+            response.withStatusCode(INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"" + qe.getMessage() + "\" }");
         } catch (IOException e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
+            response.withStatusCode(INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"Retrieving questions failed.\" }");
         } catch (Exception e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
+            response.withStatusCode(INTERNAL_SERVER_ERROR);
             response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
         }
         return response;
@@ -172,13 +172,12 @@ public class QuestionHandler
 
     private Question getQuestionFromResponse(
             QuestionsResponse questionsResponse, QuestionState questionState) {
-
+        Question question = null;
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
-            return questionState.getNextQuestion().orElse(null);
-        } else { // Alternate flow when first request does not return questions
-            return null;
+            question = questionState.getNextQuestion().orElse(null);
         }
+        return question;
     }
 
     private void saveQuestionStateToKbvItem(
@@ -189,7 +188,7 @@ public class QuestionHandler
         kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
         kbvItem.setUrn(questionsResponse.getControl().getURN());
         kbvItem.setExpiryDate(this.configurationService.getSessionExpirationEpoch());
-        kbvItem.setStatus(questionsResponse.getStatus());
+        kbvItem.setStatus(questionsResponse.getAuthenticationResult());
 
         kbvStorageService.save(kbvItem);
     }
@@ -227,6 +226,6 @@ public class QuestionHandler
     }
 
     private Map<String, Object> createAuditEventContext(QuestionsResponse questionsResponse) {
-        return Map.of("experianIiqResponse", Map.of("outcome", questionsResponse.getStatus()));
+        return Map.of("experianIiqResponse", Map.of("outcome", questionsResponse.getOutcome()));
     }
 }
