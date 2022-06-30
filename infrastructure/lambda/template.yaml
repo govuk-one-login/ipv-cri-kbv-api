@@ -462,6 +462,10 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Ref KBVTable
         - DynamoDBReadPolicy:
+            TableName: !Ref SessionTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref SessionTable
+        - DynamoDBReadPolicy:
             TableName: !Ref PersonIdentityTable
         - SQSSendMessagePolicy:
             QueueName: !ImportValue AuditEventQueueName
