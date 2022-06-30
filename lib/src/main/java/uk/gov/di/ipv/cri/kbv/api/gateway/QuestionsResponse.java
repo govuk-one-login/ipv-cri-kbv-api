@@ -40,18 +40,22 @@ public class QuestionsResponse {
     }
 
     public boolean hasQuestionRequestEnded() {
-        if (StringUtils.isNotBlank(this.getQuestionStatus())) {
-            return this.getQuestionStatus().equalsIgnoreCase("END");
+        if (StringUtils.isNotBlank(this.getTransactionState())) {
+            return this.getTransactionState().equalsIgnoreCase("END");
         }
         return false;
     }
 
-    public String getQuestionStatus() {
+    public String getTransactionState() {
         return results.getNextTransId().getString().stream().collect(Collectors.joining(""));
     }
 
-    public String getStatus() {
+    public String getAuthenticationResult() {
         return results.getAuthenticationResult();
+    }
+
+    public String getOutcome() {
+        return results.getOutcome();
     }
 
     public void setResults(Results results) {
