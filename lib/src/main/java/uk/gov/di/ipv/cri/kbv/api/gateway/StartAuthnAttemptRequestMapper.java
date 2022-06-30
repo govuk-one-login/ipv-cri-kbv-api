@@ -95,17 +95,18 @@ public class StartAuthnAttemptRequestMapper {
             errorCode = error.getErrorCode();
             errorMessage = error.getMessage();
         }
-
-        LOGGER.info(
-                "question response: urn: {}, authRefNo: {}, outcome: {}, authenticationResult: {}, transIds: {}, error code: {}, error message: {}, confirmation code: {}",
-                urn,
-                authRefNo,
-                outcome,
-                authenticationResult,
-                transIds,
-                errorCode,
-                errorMessage,
-                confirmationCode);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "question response: urn: {}, authRefNo: {}, outcome: {}, authenticationResult: {}, transIds: {}, error code: {}, error message: {}, confirmation code: {}",
+                    urn,
+                    authRefNo,
+                    outcome,
+                    authenticationResult,
+                    transIds,
+                    errorCode,
+                    errorMessage,
+                    confirmationCode);
+        }
     }
 
     private SAARequest createRequest(QuestionRequest questionRequest) {
