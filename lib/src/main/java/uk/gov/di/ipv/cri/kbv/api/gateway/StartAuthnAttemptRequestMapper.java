@@ -19,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
+import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 import uk.gov.di.ipv.cri.kbv.api.util.StringUtils;
 
 import javax.xml.bind.JAXBContext;
@@ -42,9 +43,11 @@ public class StartAuthnAttemptRequestMapper {
     public static final String DEFAULT_STRATEGY = "3 out of 4";
     public static final String DEFAULT_TITLE = "MR";
     private String testDatabase;
+    private MetricsService metricsService;
 
-    public StartAuthnAttemptRequestMapper(String testDatabase) {
+    public StartAuthnAttemptRequestMapper(String testDatabase, MetricsService metricsService) {
         this.testDatabase = testDatabase;
+        this.metricsService = metricsService;
     }
 
     public SAARequest mapQuestionRequest(QuestionRequest questionRequest) {
@@ -109,6 +112,9 @@ public class StartAuthnAttemptRequestMapper {
                     errorMessage,
                     confirmationCode);
         }
+
+        metricsService.sendResultMetric(results, "initial_questions_response");
+        metricsService.sendErrorMetric(error, "initial_questions_response_error");
     }
 
     private SAARequest createRequest(QuestionRequest questionRequest) {

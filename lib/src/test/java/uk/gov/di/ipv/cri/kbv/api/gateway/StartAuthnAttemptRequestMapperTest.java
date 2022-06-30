@@ -1,13 +1,20 @@
 package uk.gov.di.ipv.cri.kbv.api.gateway;
 
+import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
 import com.experian.uk.schema.experian.identityiq.services.webservice.LocationDetails;
+import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
+import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.AddressType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
+import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 
 import java.util.List;
 
@@ -15,16 +22,35 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator.createTestQuestionAnswerRequest;
 import static uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator.createTestQuestionAnswerRequestWithDuplicateAddresses;
 
+@ExtendWith(MockitoExtension.class)
 class StartAuthnAttemptRequestMapperTest {
     private StartAuthnAttemptRequestMapper startAuthnAttemptRequestMapper;
     QuestionRequest questionRequest;
 
+    @Mock private MetricsService metricsService;
+
     @BeforeEach
     void setUp() {
-        startAuthnAttemptRequestMapper = new StartAuthnAttemptRequestMapper("Static");
+        startAuthnAttemptRequestMapper =
+                new StartAuthnAttemptRequestMapper("Static", metricsService);
+    }
+
+    @Test
+    void shouldSendMetrics() {
+        SAAResponse2 response = mock(SAAResponse2.class);
+        Results results = mock(Results.class);
+        when(response.getResults()).thenReturn(results);
+        Error error = mock(Error.class);
+        when(response.getError()).thenReturn(error);
+        startAuthnAttemptRequestMapper.mapSAAResponse2ToQuestionsResponse(response);
+        verify(metricsService).sendResultMetric(results, "initial_questions_response");
+        verify(metricsService).sendErrorMetric(error, "initial_questions_response_error");
     }
 
     @Test
