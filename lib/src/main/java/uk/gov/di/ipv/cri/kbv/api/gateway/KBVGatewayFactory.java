@@ -3,11 +3,13 @@ package uk.gov.di.ipv.cri.kbv.api.gateway;
 import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebService;
 import com.experian.uk.wasp.TokenService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.security.Base64TokenCacheLoader;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandler;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandlerResolver;
 import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapToken;
+import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 
 public class KBVGatewayFactory {
     public static final String IIQ_DATABASE_MODE_PARAM_NAME = "IIQDatabaseMode";
@@ -26,12 +28,14 @@ public class KBVGatewayFactory {
 
         new KeyStoreLoader(configurationService).load();
 
+        MetricsService metricsService = new MetricsService(new EventProbe());
         this.kbvGateway =
                 new KBVGateway(
                         new StartAuthnAttemptRequestMapper(
                                 configurationService.getParameterValue(
-                                        IIQ_DATABASE_MODE_PARAM_NAME)),
-                        new ResponseToQuestionMapper(),
+                                        IIQ_DATABASE_MODE_PARAM_NAME),
+                                metricsService),
+                        new ResponseToQuestionMapper(metricsService),
                         new KBVClientFactory(
                                         new IdentityIQWebService(),
                                         new HeaderHandlerResolver(headerHandler),
