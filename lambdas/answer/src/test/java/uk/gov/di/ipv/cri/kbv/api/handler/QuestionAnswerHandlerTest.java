@@ -145,7 +145,7 @@ class QuestionAnswerHandlerTest {
 
         when(questionsResponseMock.hasQuestions()).thenReturn(false);
         when(questionsResponseMock.hasQuestionRequestEnded()).thenReturn(true);
-        when(questionsResponseMock.getAuthenticationResult()).thenReturn(responseStatus);
+        when(questionsResponseMock.getStatus()).thenReturn(responseStatus);
 
         SessionItem mockSessionItem = mock(SessionItem.class);
         when(mockSessionService.getSession(String.valueOf(kbvItemMock.getSessionId())))
