@@ -149,10 +149,11 @@ public class QuestionAnswerHandler
                 && questionsResponse.hasQuestionRequestEnded()) {
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);
-            kbvItem.setStatus(questionsResponse.getAuthenticationResult());
+            kbvItem.setStatus(questionsResponse.getStatus());
             kbvStorageService.update(kbvItem);
             SessionItem sessionItem =
                     sessionService.getSession(String.valueOf(kbvItem.getSessionId()));
+            sessionItem.setAuthorizationCode(UUID.randomUUID().toString());
             sessionService.createAuthorizationCode(sessionItem);
             auditService.sendAuditEvent(
                     AuditEventType.THIRD_PARTY_REQUEST_ENDED,
@@ -179,7 +180,7 @@ public class QuestionAnswerHandler
 
     private Map<String, Object> createAuditEventContext(QuestionsResponse questionsResponse) {
         Map<String, Object> contextEntries = new HashMap<>();
-        contextEntries.put("outcome", questionsResponse.getAuthenticationResult());
+        contextEntries.put("outcome", questionsResponse.getStatus());
         if (Objects.nonNull(questionsResponse.getResults())
                 && Objects.nonNull(questionsResponse.getResults().getQuestions())) {
             ResultsQuestions questionSummary = questionsResponse.getResults().getQuestions();
