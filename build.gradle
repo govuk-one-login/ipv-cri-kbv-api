@@ -101,7 +101,8 @@ subprojects {
 				"org.apache.cxf:cxf-rt-transports-http:3.4.5"
 
 		powertools "software.amazon.lambda:powertools-logging:${dependencyVersions.powertools_version}",
-				"software.amazon.lambda:powertools-metrics:${dependencyVersions.powertools_version}"
+				"software.amazon.lambda:powertools-metrics:${dependencyVersions.powertools_version}",
+				"software.amazon.lambda:powertools-tracing:${dependencyVersions.powertools_version}"
 
 
 		tests "org.junit.jupiter:junit-jupiter-api:${dependencyVersions.junit}",
