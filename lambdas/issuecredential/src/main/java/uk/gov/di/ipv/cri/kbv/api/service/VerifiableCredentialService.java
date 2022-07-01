@@ -6,6 +6,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
@@ -58,6 +59,7 @@ public class VerifiableCredentialService {
         this.objectMapper = objectMapper;
     }
 
+    @Tracing
     public SignedJWT generateSignedVerifiableCredentialJwt(
             String subject, PersonIdentityDetailed personIdentity, KBVItem kbvItem)
             throws JOSEException {
