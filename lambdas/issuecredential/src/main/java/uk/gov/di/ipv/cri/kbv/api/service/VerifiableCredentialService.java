@@ -139,21 +139,13 @@ public class VerifiableCredentialService {
         Evidence evidence = new Evidence();
         evidence.setTxn(kbvItem.getAuthRefNo());
 
-        if (kbvItem.getStatus() == null) {
-            throw new IllegalArgumentException("KBV item status is null");
-        }
-
         switch (kbvItem.getStatus().toUpperCase()) {
             case VC_THIRD_PARTY_KBV_CHECK_PASS:
                 evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
                 break;
-            case VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED:
-            case VC_THIRD_PARTY_KBV_CHECK_UNABLE_TO_AUTHENTICATE:
-            case VC_THIRD_PARTY_KBV_CHECK_ABANDONED:
+            default:
                 evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
                 break;
-            default:
-                throw new IllegalArgumentException("KBV item status is unknown");
         }
 
         return new Map[] {objectMapper.convertValue(evidence, Map.class)};
