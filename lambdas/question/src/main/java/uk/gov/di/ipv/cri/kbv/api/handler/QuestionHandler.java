@@ -51,6 +51,7 @@ public class QuestionHandler
     private final KBVService kbvService;
     private final AuditService auditService;
     private final ConfigurationService configurationService;
+    private final SessionService sessionService;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
@@ -62,6 +63,7 @@ public class QuestionHandler
         this.kbvStorageService = new KBVStorageService(this.configurationService);
         this.eventProbe = new EventProbe();
         this.auditService = new AuditService();
+        this.sessionService = new SessionService();
     }
 
     public QuestionHandler(
@@ -71,7 +73,8 @@ public class QuestionHandler
             KBVService kbvService,
             ConfigurationService configurationService,
             EventProbe eventProbe,
-            AuditService auditService) {
+            AuditService auditService,
+            SessionService sessionService) {
         this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
         this.personIdentityService = personIdentityService;
@@ -79,6 +82,7 @@ public class QuestionHandler
         this.auditService = auditService;
         this.kbvService = kbvService;
         this.configurationService = configurationService;
+        this.sessionService = sessionService;
     }
 
     @Override
@@ -134,6 +138,30 @@ public class QuestionHandler
         return response;
     }
 
+    private void sendNoQuestionAuditEvent(QuestionsResponse questionsResponse) throws SqsException {
+        auditService.sendAuditEvent(
+                AuditEventType.THIRD_PARTY_REQUEST_ENDED,
+                createAuditEventContext(questionsResponse));
+    }
+
+    private void setAuthCode(KBVItem kbvItem) {
+        SessionItem sessionItem = sessionService.getSession(String.valueOf(kbvItem.getSessionId()));
+        sessionService.createAuthorizationCode(sessionItem);
+    }
+
+    private Map<String, Object> createAuditEventContext(QuestionsResponse questionsResponse) {
+        Map<String, Object> contextEntries = new HashMap<>();
+        contextEntries.put("outcome", questionsResponse.getStatus());
+        if (Objects.nonNull(questionsResponse.getResults())
+                && Objects.nonNull(questionsResponse.getResults().getQuestions())) {
+            ResultsQuestions questionSummary = questionsResponse.getResults().getQuestions();
+            contextEntries.put("totalQuestionsAsked", questionSummary.getAsked());
+            contextEntries.put("totalQuestionsAnsweredCorrect", questionSummary.getCorrect());
+            contextEntries.put("totalQuestionsAnsweredIncorrect", questionSummary.getIncorrect());
+        }
+        return Map.of("experianIiqResponse", contextEntries);
+    }
+
     public Question processQuestionRequest(QuestionState questionState, KBVItem kbvItem)
             throws IOException, SqsException {
 
@@ -146,7 +174,9 @@ public class QuestionHandler
             saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
             return question;
         }
-        throw new QuestionNotFoundException("Question not Found");
+        setAuthCode(kbvItem);
+        sendNoQuestionAuditEvent(questionsResponse);
+        throw new QuestionNotFoundException("No questions available");
     }
 
     private Question getQuestionFromDbStore(QuestionState questionState) {
