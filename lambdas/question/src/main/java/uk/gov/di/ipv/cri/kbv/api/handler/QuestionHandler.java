@@ -5,6 +5,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
+import com.experian.uk.schema.experian.identityiq.services.webservice.ResultsQuestions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -16,9 +17,11 @@ import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverage
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
+import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
@@ -31,6 +34,7 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -124,8 +128,7 @@ public class QuestionHandler
             response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
         } catch (QuestionNotFoundException qe) {
             eventProbe.log(ERROR, qe).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR_KEY + ":\"" + qe.getMessage() + "\" }");
+            response.withStatusCode(HttpStatusCode.NO_CONTENT);
         } catch (IOException e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
