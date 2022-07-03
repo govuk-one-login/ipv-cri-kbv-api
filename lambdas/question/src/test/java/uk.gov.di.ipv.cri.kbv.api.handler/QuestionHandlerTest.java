@@ -9,10 +9,13 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Questions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -24,9 +27,11 @@ import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorExcepti
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
+import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
@@ -44,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -51,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -71,6 +78,9 @@ class QuestionHandlerTest {
     @Mock private KBVGateway mockKBVGateway;
     @Mock private ConfigurationService mockConfigurationService;
     @Mock private AuditService mockAuditService;
+    @Mock private SessionService sessionService;
+    @Captor private ArgumentCaptor<Map<String, Object>> captor;
+
     private KBVService spyKBVService;
 
     @BeforeEach
@@ -84,7 +94,8 @@ class QuestionHandlerTest {
                         spyKBVService,
                         mockConfigurationService,
                         mockEventProbe,
-                        mockAuditService);
+                        mockAuditService,
+                        sessionService);
     }
 
     @Nested
@@ -171,8 +182,9 @@ class QuestionHandlerTest {
         }
 
         @Test
-        void shouldReturn500ErrorWhenThereAreNoFurtherQuestions() throws IOException {
+        void shouldReturn204WhenThereAreNoQuestions() throws IOException {
             Context contextMock = mock(Context.class);
+            QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> sessionHeader =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
@@ -182,6 +194,8 @@ class QuestionHandlerTest {
             KBVItem kbvItem = new KBVItem();
             kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
             QuestionState questionStateMock = mock(QuestionState.class);
+            when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
+                    .thenReturn(questionsResponse);
 
             when(input.getHeaders()).thenReturn(sessionHeader);
             when(mockKBVStorageService.getKBVItem(
@@ -196,7 +210,8 @@ class QuestionHandlerTest {
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, contextMock);
 
-            assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
+            assertEquals(HttpStatusCode.NO_CONTENT, response.getStatusCode());
+            assertNull(response.getBody());
 
             verify(mockKBVStorageService)
                     .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
@@ -204,7 +219,6 @@ class QuestionHandlerTest {
             verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
             verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
             verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
-            assertEquals("{ \"error\":\"Question not Found\" }", response.getBody());
         }
 
         @Test
@@ -347,13 +361,34 @@ class QuestionHandlerTest {
     @Nested
     class ProcessQuestionRequest {
         @Test
-        void shouldThrowQuestionNotFoundExceptionWhenQuestionStateAndKbvItemEmptyObjects() {
+        void shouldThrowQuestionNotFoundExceptionWhenQuestionStateAndKbvItemEmptyObjects()
+                throws SqsException {
+            String expectedOutcome = "Insufficient Questions (Unable to Authenticate)";
+            UUID sessionId = UUID.randomUUID();
+            KBVItem kbvItem = mock(KBVItem.class);
+            SessionItem sessionItem = mock(SessionItem.class);
+            QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
+            when(kbvItem.getSessionId()).thenReturn(sessionId);
+            when(questionsResponse.getStatus()).thenReturn(expectedOutcome);
+
+            when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
+                    .thenReturn(questionsResponse);
+            when(sessionService.getSession(sessionId.toString())).thenReturn(sessionItem);
+
             assertThrows(
                     QuestionNotFoundException.class,
-                    () ->
-                            questionHandler.processQuestionRequest(
-                                    new QuestionState(), new KBVItem()),
+                    () -> {
+                        questionHandler.processQuestionRequest(new QuestionState(), kbvItem);
+                    },
                     "Question not Found");
+            verify(sessionService).createAuthorizationCode(sessionItem);
+            verify(mockAuditService)
+                    .sendAuditEvent(eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED), captor.capture());
+
+            Map<String, Object> response =
+                    (Map<String, Object>) captor.getValue().get("experianIiqResponse");
+            String outcome = (String) response.get("outcome");
+            assertThat(outcome, Matchers.equalTo(expectedOutcome));
         }
 
         @Test
