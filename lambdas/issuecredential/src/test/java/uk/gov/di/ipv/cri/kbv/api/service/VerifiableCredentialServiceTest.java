@@ -12,6 +12,8 @@ import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
@@ -35,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -50,6 +54,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
     private static final String SUBJECT = "subject";
     @Mock private ObjectMapper mockObjectMapper;
     @Mock private ConfigurationService mockConfigurationService;
+    @Captor private ArgumentCaptor<JWTClaimsSet> jwtClaimsSetCaptor;
 
     @BeforeEach
     void setUp() {
@@ -181,10 +186,10 @@ class VerifiableCredentialServiceTest implements TestFixtures {
     @Test
     void shouldCreateValidSignedJWT() throws JOSEException {
 
-        SignedJWTFactory mockSignedClaimSetJwt = mock(SignedJWTFactory.class);
+        SignedJWTFactory signedJWTFactory = mock(SignedJWTFactory.class);
         var verifiableCredentialService =
                 new VerifiableCredentialService(
-                        mockSignedClaimSetJwt, mockConfigurationService, mockObjectMapper);
+                        signedJWTFactory, mockConfigurationService, new ObjectMapper());
 
         when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("kbv-cri-issue");
         when(mockConfigurationService.getMaxJwtTtl()).thenReturn(342L);
@@ -193,13 +198,51 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         kbvItem.setSessionId(UUID.randomUUID());
         kbvItem.setExpiryDate(Instant.now().plusSeconds(342).getEpochSecond());
         kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED);
+        kbvItem.setAuthRefNo("an auth ref no");
 
         PersonIdentityDetailed personIdentity = createPersonIdentity();
 
         verifiableCredentialService.generateSignedVerifiableCredentialJwt(
                 SUBJECT, personIdentity, kbvItem);
 
-        verify(mockSignedClaimSetJwt).createSignedJwt(any());
+        verify(signedJWTFactory).createSignedJwt(jwtClaimsSetCaptor.capture());
+        assertThat(
+                jwtClaimsSetCaptor.getValue().toString(),
+                containsString("\"verificationScore\":0"));
+        assertThat(
+                jwtClaimsSetCaptor.getValue().toString(),
+                containsString("\"txn\":\"an auth ref no\""));
+    }
+
+    @Test
+    void shouldSetAVCVerificationScoreOf0WhenKBVStatusIsNull() throws JOSEException {
+
+        SignedJWTFactory signedJWTFactory = mock(SignedJWTFactory.class);
+        var verifiableCredentialService =
+                new VerifiableCredentialService(
+                        signedJWTFactory, mockConfigurationService, new ObjectMapper());
+
+        when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("kbv-cri-issue");
+        when(mockConfigurationService.getMaxJwtTtl()).thenReturn(342L);
+
+        KBVItem kbvItem = new KBVItem();
+        kbvItem.setSessionId(UUID.randomUUID());
+        kbvItem.setExpiryDate(Instant.now().plusSeconds(342).getEpochSecond());
+        kbvItem.setStatus(null);
+        kbvItem.setAuthRefNo("an auth ref no");
+
+        PersonIdentityDetailed personIdentity = createPersonIdentity();
+
+        verifiableCredentialService.generateSignedVerifiableCredentialJwt(
+                SUBJECT, personIdentity, kbvItem);
+
+        verify(signedJWTFactory).createSignedJwt(jwtClaimsSetCaptor.capture());
+        assertThat(
+                jwtClaimsSetCaptor.getValue().toString(),
+                containsString("\"verificationScore\":0"));
+        assertThat(
+                jwtClaimsSetCaptor.getValue().toString(),
+                containsString("\"txn\":\"an auth ref no\""));
     }
 
     private PersonIdentityDetailed createPersonIdentity() {
