@@ -23,20 +23,11 @@ import uk.gov.di.ipv.cri.kbv.api.service.EnvironmentVariablesService;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 import uk.gov.di.ipv.cri.kbv.api.util.StringUtils;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.namespace.QName;
-
-import java.io.StringWriter;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class StartAuthnAttemptRequestMapper {
 
@@ -97,7 +88,7 @@ public class StartAuthnAttemptRequestMapper {
             if (nextTransId != null) {
                 List<String> transId = nextTransId.getString();
                 if (transId != null) {
-                    transIds = transId.stream().collect(Collectors.joining(","));
+                    transIds = String.join(",", transId);
                 }
             }
             confirmationCode = results.getConfirmationCode();
@@ -202,87 +193,41 @@ public class StartAuthnAttemptRequestMapper {
     }
 
     private void setLocationDetails(SAARequest saaRequest, PersonIdentity personIdentity) {
-        if (Objects.nonNull(personIdentity.getAddresses())
-                && !personIdentity.getAddresses().isEmpty()
-                && personIdentity.getAddresses().stream().anyMatch(addressHasValidFrom())) {
-            AtomicInteger idCounter = new AtomicInteger(1);
-            List<LocationDetails> locations =
-                    personIdentity.getAddresses().stream()
-                            .filter(addressHasValidFrom())
-                            .map(
-                                    personAddress -> {
-                                        LocationDetailsUKLocation ukLocation =
-                                                new LocationDetailsUKLocation();
+        List<Address> addresses =
+                Objects.requireNonNull(
+                        personIdentity.getAddresses(), "personIdentity must have addresses");
+        AtomicInteger locationIdentifier = new AtomicInteger(1);
+        addresses.stream()
+                .filter(address -> address.getValidFrom() != null)
+                .map(personAddress -> mapAddressToLocation(locationIdentifier, personAddress))
+                .forEach(locationDetails -> saaRequest.getLocationDetails().add(locationDetails));
+    }
 
-                                        if (StringUtils.isNotBlank(
-                                                personAddress.getBuildingName())) {
-                                            ukLocation.setHouseName(
-                                                    personAddress.getBuildingName());
-                                        }
+    private LocationDetails mapAddressToLocation(
+            AtomicInteger locationIdentifier, Address personAddress) {
+        LocationDetailsUKLocation ukLocation = new LocationDetailsUKLocation();
 
-                                        if (StringUtils.isNotBlank(
-                                                personAddress.getBuildingNumber())) {
-                                            ukLocation.setHouseNumber(
-                                                    personAddress.getBuildingNumber());
-                                        }
-
-                                        ukLocation.setPostcode(personAddress.getPostalCode());
-                                        ukLocation.setPostTown(personAddress.getAddressLocality());
-                                        ukLocation.setStreet(personAddress.getStreetName());
-
-                                        LocationDetails locationDetails = new LocationDetails();
-                                        locationDetails.setLocationIdentifier(
-                                                idCounter.getAndIncrement());
-                                        locationDetails.setUKLocation(ukLocation);
-
-                                        return locationDetails;
-
-                                        // TODO: examine the edge cases, specifically when the
-                                        // following fields are populated:
-                                        // personAddress.getDependentAddressLocality() &
-                                        // personAddress.getDoubleDependentAddressLocality()
-
-                                    })
-                            .collect(Collectors.toList());
-
-            // locationDetails.setClientLocationID("1");
-            LOGGER.info("received {} locations", locations.size());
-
-            LocationDetails locationDetails = locations.stream().findFirst().get();
-            if (LOGGER.isDebugEnabled()) {
-
-                try {
-
-                    for (LocationDetails location : locations) {
-                        String s = writeLocationDetailsToString(location);
-                        LOGGER.debug("candidate LocationDetails:" + s);
-                    }
-
-                    String xmlString = writeLocationDetailsToString(locationDetails);
-                    LOGGER.debug("sent LocationDetails:" + xmlString);
-                } catch (Throwable e) {
-                    LOGGER.warn("Could not marshall LocationDetails", e);
-                }
-            }
-            saaRequest.getLocationDetails().addAll(List.of(locationDetails));
+        if (StringUtils.isNotBlank(personAddress.getBuildingName())) {
+            ukLocation.setHouseName(personAddress.getBuildingName());
         }
-    }
 
-    private Predicate<Address> addressHasValidFrom() {
-        return address -> address.getValidFrom() != null;
-    }
+        if (StringUtils.isNotBlank(personAddress.getBuildingNumber())) {
+            ukLocation.setHouseNumber(personAddress.getBuildingNumber());
+        }
 
-    private String writeLocationDetailsToString(LocationDetails locationDetails)
-            throws JAXBException {
-        JAXBElement<LocationDetails> jaxbElement =
-                new JAXBElement<>(
-                        new QName("", "LocationDetails"), LocationDetails.class, locationDetails);
+        ukLocation.setPostcode(personAddress.getPostalCode());
+        ukLocation.setPostTown(personAddress.getAddressLocality());
+        ukLocation.setStreet(personAddress.getStreetName());
 
-        JAXBContext context = JAXBContext.newInstance(LocationDetails.class);
-        Marshaller marshaller = context.createMarshaller();
-        StringWriter sw = new StringWriter();
-        marshaller.marshal(jaxbElement, sw);
-        String xmlString = sw.toString();
-        return xmlString;
+        LocationDetails locationDetails = new LocationDetails();
+        locationDetails.setLocationIdentifier(locationIdentifier.getAndIncrement());
+        locationDetails.setUKLocation(ukLocation);
+
+        return locationDetails;
+
+        // TODO: examine the edge cases, specifically when the
+        // following fields are populated:
+        // personAddress.getDependentAddressLocality() &
+        // personAddress.getDoubleDependentAddressLocality()
     }
 }

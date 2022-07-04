@@ -114,13 +114,12 @@ class StartAuthnAttemptRequestMapperTest {
     void shouldOnlyMapAddressWithAValidFromValue() {
         questionRequest =
                 createTestQuestionAnswerRequestWithDuplicateAddresses(AddressType.CURRENT);
-        assertEquals(2, questionRequest.getPersonIdentity().getAddresses().size());
-        PersonIdentity personIdentity = questionRequest.getPersonIdentity();
+        assertEquals(4, questionRequest.getPersonIdentity().getAddresses().size());
         SAARequest result = startAuthnAttemptRequestMapper.mapQuestionRequest(questionRequest);
 
         assertNotNull(result);
         List<LocationDetails> locationDetails = result.getLocationDetails();
-        assertEquals(1, locationDetails.size());
+        assertEquals(2, locationDetails.size());
     }
 
     @Test
