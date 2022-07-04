@@ -9,7 +9,6 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Questions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -50,6 +49,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -79,7 +79,7 @@ class QuestionHandlerTest {
     @Mock private ConfigurationService mockConfigurationService;
     @Mock private AuditService mockAuditService;
     @Mock private SessionService sessionService;
-    @Captor private ArgumentCaptor<Map<String, Object>> captor;
+    @Captor private ArgumentCaptor<Map<String, Object>> auditEventMap;
 
     private KBVService spyKBVService;
 
@@ -185,6 +185,7 @@ class QuestionHandlerTest {
         void shouldReturn204WhenThereAreNoQuestions() throws IOException {
             Context contextMock = mock(Context.class);
             QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
+            Control control = mock(Control.class);
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> sessionHeader =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
@@ -196,6 +197,7 @@ class QuestionHandlerTest {
             QuestionState questionStateMock = mock(QuestionState.class);
             when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
+            when(questionsResponse.getControl()).thenReturn(control);
 
             when(input.getHeaders()).thenReturn(sessionHeader);
             when(mockKBVStorageService.getKBVItem(
@@ -367,9 +369,13 @@ class QuestionHandlerTest {
             UUID sessionId = UUID.randomUUID();
             KBVItem kbvItem = mock(KBVItem.class);
             SessionItem sessionItem = mock(SessionItem.class);
+            Control control = mock(Control.class);
             QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
             when(kbvItem.getSessionId()).thenReturn(sessionId);
             when(questionsResponse.getStatus()).thenReturn(expectedOutcome);
+            when(questionsResponse.getControl()).thenReturn(control);
+            when(control.getAuthRefNo()).thenReturn("an auth ref no");
+            when(control.getURN()).thenReturn("a urn");
 
             when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
@@ -383,12 +389,16 @@ class QuestionHandlerTest {
                     "Question not Found");
             verify(sessionService).createAuthorizationCode(sessionItem);
             verify(mockAuditService)
-                    .sendAuditEvent(eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED), captor.capture());
+                    .sendAuditEvent(
+                            eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED), auditEventMap.capture());
+            verify(mockKBVStorageService).save(kbvItem);
+            verify(kbvItem).setAuthRefNo("an auth ref no");
+            verify(kbvItem).setUrn("a urn");
 
             Map<String, Object> response =
-                    (Map<String, Object>) captor.getValue().get("experianIiqResponse");
+                    (Map<String, Object>) auditEventMap.getValue().get("experianIiqResponse");
             String outcome = (String) response.get("outcome");
-            assertThat(outcome, Matchers.equalTo(expectedOutcome));
+            assertThat(outcome, equalTo(expectedOutcome));
         }
 
         @Test
@@ -460,53 +470,6 @@ class QuestionHandlerTest {
                             .get(0)
                             .getQuestionID());
         }
-
-        @Test
-        void shouldReturnNextQuestionFromExperianWhenBothAnQuestionsInStorageAreAnswered()
-                throws IOException, SqsException {
-            QuestionState questionState = new QuestionState();
-            Questions questions = new Questions();
-
-            Question firstAnsweredQuestion = getQuestionOne();
-            QuestionAnswer questionAnswerOne = new QuestionAnswer();
-            questionAnswerOne.setQuestionId(firstAnsweredQuestion.getQuestionID());
-            questionAnswerOne.setAnswer("OVER £35,000 UP TO £60,000");
-
-            Question secondAnsweredQuestion = getQuestionTwo();
-            QuestionAnswer questionAnswerTwo = new QuestionAnswer();
-            questionAnswerTwo.setQuestionId(secondAnsweredQuestion.getQuestionID());
-            questionAnswerTwo.setAnswer("Blue");
-
-            questions.getQuestion().addAll(List.of(firstAnsweredQuestion, secondAnsweredQuestion));
-
-            questionState.setQAPairs(questions);
-            questionState.setAnswer(questionAnswerOne);
-            questionState.setAnswer(questionAnswerTwo);
-
-            KBVItem kbvItem =
-                    getADummyKBVItemThatRepresentAnItemInStorage(
-                            new ObjectMapper().writeValueAsString(questionState));
-            when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
-                    .thenReturn(questionState);
-            doReturn(getExperianQuestionResponse()).when(spyKBVService).submitAnswers(any());
-            Question nextQuestionFromExperian =
-                    questionHandler.processQuestionRequest(questionState, kbvItem);
-
-            assertEquals(
-                    nextQuestionFromExperian.getQuestionID(),
-                    getExperianQuestionResponse()
-                            .getQuestions()
-                            .getQuestion()
-                            .get(0)
-                            .getQuestionID());
-        }
-    }
-
-    private KBVItem getADummyKBVItemThatRepresentAnItemInStorage(String questionStateString) {
-        KBVItem kbvItem = new KBVItem();
-        kbvItem.setQuestionState(questionStateString);
-        kbvItem.setExpiryDate(9090L); // this implies kbvItem already exists
-        return kbvItem;
     }
 
     private void setupEventProbeErrorBehaviour() {

@@ -173,13 +173,14 @@ public class QuestionHandler
             return question;
         }
         var questionsResponse = getQuestionAnswerResponse(kbvItem);
+        saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
         if ((question = getQuestionFromResponse(questionsResponse, questionState)) != null) {
-            saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
             return question;
+        } else {
+            setAuthCode(kbvItem);
+            sendNoQuestionAuditEvent(questionsResponse);
+            throw new QuestionNotFoundException("No questions available");
         }
-        setAuthCode(kbvItem);
-        sendNoQuestionAuditEvent(questionsResponse);
-        throw new QuestionNotFoundException("No questions available");
     }
 
     private Question getQuestionFromDbStore(QuestionState questionState) {
