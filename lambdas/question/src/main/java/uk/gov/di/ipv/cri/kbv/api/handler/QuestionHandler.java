@@ -173,8 +173,9 @@ public class QuestionHandler
             return question;
         }
         var questionsResponse = getQuestionAnswerResponse(kbvItem);
+        question = getQuestionFromResponse(questionsResponse, questionState);
         saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
-        if ((question = getQuestionFromResponse(questionsResponse, questionState)) != null) {
+        if (question != null) {
             return question;
         } else {
             setAuthCode(kbvItem);
