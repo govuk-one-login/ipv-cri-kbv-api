@@ -5,6 +5,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
+import com.experian.uk.schema.experian.identityiq.services.webservice.ResultsQuestions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -16,9 +17,11 @@ import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverage
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
+import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
@@ -31,6 +34,7 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -51,6 +55,7 @@ public class QuestionHandler
     private final KBVService kbvService;
     private final AuditService auditService;
     private final ConfigurationService configurationService;
+    private final SessionService sessionService;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
@@ -62,6 +67,7 @@ public class QuestionHandler
         this.kbvStorageService = new KBVStorageService(this.configurationService);
         this.eventProbe = new EventProbe();
         this.auditService = new AuditService();
+        this.sessionService = new SessionService();
     }
 
     public QuestionHandler(
@@ -71,7 +77,8 @@ public class QuestionHandler
             KBVService kbvService,
             ConfigurationService configurationService,
             EventProbe eventProbe,
-            AuditService auditService) {
+            AuditService auditService,
+            SessionService sessionService) {
         this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
         this.personIdentityService = personIdentityService;
@@ -79,6 +86,7 @@ public class QuestionHandler
         this.auditService = auditService;
         this.kbvService = kbvService;
         this.configurationService = configurationService;
+        this.sessionService = sessionService;
     }
 
     @Override
@@ -120,8 +128,7 @@ public class QuestionHandler
             response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
         } catch (QuestionNotFoundException qe) {
             eventProbe.log(ERROR, qe).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR_KEY + ":\"" + qe.getMessage() + "\" }");
+            response.withStatusCode(HttpStatusCode.NO_CONTENT);
         } catch (IOException e) {
             eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
@@ -134,6 +141,30 @@ public class QuestionHandler
         return response;
     }
 
+    private void sendNoQuestionAuditEvent(QuestionsResponse questionsResponse) throws SqsException {
+        auditService.sendAuditEvent(
+                AuditEventType.THIRD_PARTY_REQUEST_ENDED,
+                createAuditEventContext(questionsResponse));
+    }
+
+    private void setAuthCode(KBVItem kbvItem) {
+        SessionItem sessionItem = sessionService.getSession(String.valueOf(kbvItem.getSessionId()));
+        sessionService.createAuthorizationCode(sessionItem);
+    }
+
+    private Map<String, Object> createAuditEventContext(QuestionsResponse questionsResponse) {
+        Map<String, Object> contextEntries = new HashMap<>();
+        contextEntries.put("outcome", questionsResponse.getStatus());
+        if (Objects.nonNull(questionsResponse.getResults())
+                && Objects.nonNull(questionsResponse.getResults().getQuestions())) {
+            ResultsQuestions questionSummary = questionsResponse.getResults().getQuestions();
+            contextEntries.put("totalQuestionsAsked", questionSummary.getAsked());
+            contextEntries.put("totalQuestionsAnsweredCorrect", questionSummary.getCorrect());
+            contextEntries.put("totalQuestionsAnsweredIncorrect", questionSummary.getIncorrect());
+        }
+        return Map.of("experianIiqResponse", contextEntries);
+    }
+
     public Question processQuestionRequest(QuestionState questionState, KBVItem kbvItem)
             throws IOException, SqsException {
 
@@ -142,11 +173,15 @@ public class QuestionHandler
             return question;
         }
         var questionsResponse = getQuestionAnswerResponse(kbvItem);
-        if ((question = getQuestionFromResponse(questionsResponse, questionState)) != null) {
-            saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
+        question = getQuestionFromResponse(questionsResponse, questionState);
+        saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
+        if (question != null) {
             return question;
+        } else {
+            setAuthCode(kbvItem);
+            sendNoQuestionAuditEvent(questionsResponse);
+            throw new QuestionNotFoundException("No questions available");
         }
-        throw new QuestionNotFoundException("Question not Found");
     }
 
     private Question getQuestionFromDbStore(QuestionState questionState) {
