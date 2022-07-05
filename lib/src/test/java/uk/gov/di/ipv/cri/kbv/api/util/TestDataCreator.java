@@ -28,17 +28,30 @@ public class TestDataCreator {
             AddressType addressType) {
         PersonIdentity personIdentity = new PersonIdentity();
         personIdentity.setDateOfBirth(LocalDate.of(1976, 12, 26));
+
         Address address1 = new Address();
-        address1.setPostalCode("Postcode");
-        address1.setStreetName("Street name");
+        address1.setPostalCode("Postcode 1");
+        address1.setStreetName("Street name 1");
         address1.setAddressLocality("PostTown");
         address1.setValidFrom(LocalDate.now().minus(2, ChronoUnit.YEARS));
 
         Address address2 = new Address();
-        address2.setPostalCode("Postcode");
-        address2.setStreetName("Street name");
+        address2.setPostalCode("Postcode 2");
+        address2.setStreetName("Street name 2");
         address2.setAddressLocality("PostTown");
-        personIdentity.setAddresses(List.of(address1, address2));
+        address2.setValidFrom(LocalDate.now().minus(1, ChronoUnit.YEARS));
+
+        Address address3 = new Address();
+        address3.setPostalCode("Postcode 1");
+        address3.setStreetName("Street name 1");
+        address3.setAddressLocality("PostTown");
+
+        Address address4 = new Address();
+        address4.setPostalCode("Postcode 2");
+        address4.setStreetName("Street name 2");
+        address4.setAddressLocality("PostTown");
+
+        personIdentity.setAddresses(List.of(address1, address2, address3, address4));
         return personIdentity;
     }
 

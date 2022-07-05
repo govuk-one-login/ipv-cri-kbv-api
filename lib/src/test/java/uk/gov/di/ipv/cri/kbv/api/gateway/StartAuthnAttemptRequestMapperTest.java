@@ -14,10 +14,14 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.AddressType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
+import uk.gov.di.ipv.cri.kbv.api.service.EnvironmentVariablesService;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 
 import java.util.List;
+import java.util.Optional;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -34,11 +38,13 @@ class StartAuthnAttemptRequestMapperTest {
     QuestionRequest questionRequest;
 
     @Mock private MetricsService metricsService;
+    @Mock private EnvironmentVariablesService environmentVariablesService;
 
     @BeforeEach
     void setUp() {
         startAuthnAttemptRequestMapper =
-                new StartAuthnAttemptRequestMapper("Static", metricsService);
+                new StartAuthnAttemptRequestMapper(
+                        "Static", metricsService, environmentVariablesService);
     }
 
     @Test
@@ -108,13 +114,12 @@ class StartAuthnAttemptRequestMapperTest {
     void shouldOnlyMapAddressWithAValidFromValue() {
         questionRequest =
                 createTestQuestionAnswerRequestWithDuplicateAddresses(AddressType.CURRENT);
-        assertEquals(2, questionRequest.getPersonIdentity().getAddresses().size());
-        PersonIdentity personIdentity = questionRequest.getPersonIdentity();
+        assertEquals(4, questionRequest.getPersonIdentity().getAddresses().size());
         SAARequest result = startAuthnAttemptRequestMapper.mapQuestionRequest(questionRequest);
 
         assertNotNull(result);
         List<LocationDetails> locationDetails = result.getLocationDetails();
-        assertEquals(1, locationDetails.size());
+        assertEquals(2, locationDetails.size());
     }
 
     @Test
@@ -179,5 +184,16 @@ class StartAuthnAttemptRequestMapperTest {
                         NullPointerException.class,
                         () -> startAuthnAttemptRequestMapper.mapQuestionRequest(questionRequest));
         assertEquals("The QuestionRequest must not be null", exception.getMessage());
+    }
+
+    @Test
+    void shouldSetGenderIfGenderEnvVarPresent() {
+        questionRequest = createTestQuestionAnswerRequest(AddressType.CURRENT);
+        when(environmentVariablesService.getEnvironmentVariable(EnvironmentVariablesService.GENDER))
+                .thenReturn(Optional.of("F"));
+        SAARequest saaRequest = startAuthnAttemptRequestMapper.mapQuestionRequest(questionRequest);
+        assertThat(saaRequest.getApplicant().getGender(), equalTo("F"));
+        verify(environmentVariablesService)
+                .getEnvironmentVariable(EnvironmentVariablesService.GENDER);
     }
 }

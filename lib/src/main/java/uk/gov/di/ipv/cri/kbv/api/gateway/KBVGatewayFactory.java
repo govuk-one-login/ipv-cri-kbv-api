@@ -9,6 +9,7 @@ import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandler;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandlerResolver;
 import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapToken;
+import uk.gov.di.ipv.cri.kbv.api.service.EnvironmentVariablesService;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 
 public class KBVGatewayFactory {
@@ -34,7 +35,8 @@ public class KBVGatewayFactory {
                         new StartAuthnAttemptRequestMapper(
                                 configurationService.getParameterValue(
                                         IIQ_DATABASE_MODE_PARAM_NAME),
-                                metricsService),
+                                metricsService,
+                                new EnvironmentVariablesService()),
                         new ResponseToQuestionMapper(metricsService),
                         new KBVClientFactory(
                                         new IdentityIQWebService(),

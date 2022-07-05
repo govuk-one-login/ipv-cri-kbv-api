@@ -454,6 +454,7 @@ Resources:
         Variables:
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-question
           SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
+          GENDER: !If [IsProdEnvironment, !Ref AWS::NoValue, "F"]
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
