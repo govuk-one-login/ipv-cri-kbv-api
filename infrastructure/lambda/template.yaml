@@ -748,6 +748,7 @@ Resources:
         RateLimit: 50 # allowed requests per second
 
   LinkUsagePlanApiKey1:
+    Condition: IsNotDevEnvironment
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
       KeyId: !ImportValue core-infrastructure-ApiKey1
@@ -755,6 +756,7 @@ Resources:
       UsagePlanId: !Ref PublicApiUsagePlan
 
   LinkUsagePlanApiKey2:
+    Condition: IsNotDevEnvironment
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
       KeyId: !ImportValue core-infrastructure-ApiKey2
