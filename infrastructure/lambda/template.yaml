@@ -46,6 +46,7 @@ Conditions:
     - dev
   IsNotDevEnvironment: !Not
     - Condition: IsDevEnvironment
+  UseProvisionedConcurrency: !Or [!Equals IsProdEnvironment, IsDevEnvironment]
   UsePermissionsBoundary:
     Fn::Not:
       - Fn::Equals:
@@ -67,7 +68,6 @@ Globals:
       - !Ref AWS::NoValue
     Timeout: 30 # seconds
     Runtime: java11
-    AutoPublishAlias: live
     Tracing: Active
     MemorySize: 512
     Environment:
@@ -77,10 +77,11 @@ Globals:
         POWERTOOLS_LOG_LEVEL: INFO
         POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
         SQS_AUDIT_EVENT_PREFIX: IPV_KBV_CRI
+    AutoPublishAlias: live
     ProvisionedConcurrencyConfig: !If
-      - IsProdEnvironment
+      - UseProvisionedConcurrency
       - ProvisionedConcurrentExecutions: 1
-      - !Ref AWS::NoValue
+      - ProvisionedConcurrentExecutions: 0
 
 Mappings:
 
