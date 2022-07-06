@@ -86,10 +86,10 @@ Mappings:
 
   IIQAPIDatabaseModeMapping:
     Environment:
-      dev: Aged
-      build: Aged
-      staging: Aged
-      integration: Aged
+      dev: Static
+      build: Static
+      staging: Static
+      integration: Static
       production: Normal
 
   SessionTtlMapping:
