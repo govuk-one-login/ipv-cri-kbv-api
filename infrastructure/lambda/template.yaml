@@ -92,6 +92,14 @@ Mappings:
       integration: Static
       production: Normal
 
+  IIQOperatorIdMapping:
+    Environment:
+      dev: GDSCABINETUIIQ01U
+      build: GDSCABINETUIIQ01U
+      staging: GDSCABINETUIIQ01U
+      integration: GDSCABINETUIIQ01U
+      production: GDSCABINETUIIQ01U
+
   SessionTtlMapping:
     Environment:
       dev: 7200 # 2 hours
@@ -483,6 +491,7 @@ Resources:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/PersonIdentityTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/verifiable-credential/issuer"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQDatabaseMode"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQOperatorId"
         - Statement:
             - Sid: ReadSecretsPolicy
               Effect: Allow
@@ -808,6 +817,14 @@ Resources:
       Type: String
       Value: !FindInMap [ IIQAPIDatabaseModeMapping, Environment, !Ref 'Environment' ]
       Description: "one of: S or Static, A or Aged, N or Normal (Live)"
+
+  IIQOperatorIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/IIQOperatorId"
+      Type: String
+      Value: !FindInMap [ IIQOperatorIdMapping, Environment, !Ref 'Environment' ]
+      Description: Unique operator id provided by Experian to GDS
 
   IPVCoreStubAuthenticationAlgParameter:
     Condition: IsStubEnvironment
