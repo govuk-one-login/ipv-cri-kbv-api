@@ -82,8 +82,6 @@ subprojects {
 
 		kms "software.amazon.awssdk:kms"
 
-		lambda_tests "software.amazon.awssdk:aws-lambda-java-tests:1.1.1"
-
 		cache "com.github.ben-manes.caffeine:caffeine:3.0.5"
 
 		jackson "com.fasterxml.jackson.core:jackson-core:${dependencyVersions.jackson_version}",
@@ -103,6 +101,7 @@ subprojects {
 		powertools "software.amazon.lambda:powertools-logging:${dependencyVersions.powertools_version}",
 				"software.amazon.lambda:powertools-metrics:${dependencyVersions.powertools_version}"
 
+		lambda_tests "software.amazon.awssdk:aws-lambda-java-tests:1.1.1"
 
 		tests "org.junit.jupiter:junit-jupiter-api:${dependencyVersions.junit}",
 				"org.junit.jupiter:junit-jupiter-params:${dependencyVersions.junit}",
@@ -117,7 +116,6 @@ subprojects {
 		hibernate "org.hibernate.validator:hibernate-validator:7.0.1.Final",
 				"org.hibernate:hibernate-validator-annotation-processor:7.0.1.Final"
 
-		lambda_tests "software.amazon.awssdk:aws-lambda-java-tests:1.1.1"
 
 		nimbus "com.nimbusds:oauth2-oidc-sdk:${dependencyVersions.nimbusds_oauth_version}",
 				"com.nimbusds:nimbus-jose-jwt:${dependencyVersions.nimbusds_jwt_version}"
@@ -167,5 +165,6 @@ gradle.projectsEvaluated {
 		options.compilerArgs << "-Xlint:unchecked"
 	}
 }
+
 
 defaultTasks 'clean', 'spotlessApply', 'build'

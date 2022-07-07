@@ -5,8 +5,8 @@ plugins {
 }
 
 dependencies {
-	implementation project(":common-lib"),
-			project(":lib"),
+	compileOnly project(":lib"),
+			project(":common-lib"),
 			configurations.aws,
 			configurations.lambda,
 			configurations.nimbus,
@@ -16,27 +16,34 @@ dependencies {
 
 	aspect configurations.powertools
 
-	testImplementation configurations.tests
+	testImplementation project(":lib"),
+			project(":common-lib"),
+			configurations.aws,
+			configurations.lambda,
+			configurations.nimbus,
+			configurations.dynamodb,
+			configurations.jackson,
+			configurations.sqs,
+			configurations.tests
+
 	testRuntimeOnly configurations.test_runtime
 }
 
 task buildZip(type: Zip) {
 	from compileJava
 	from processResources
-	into('lib') {
-		from configurations.runtimeClasspath
-	}
 }
-
-build.finalizedBy(buildZip)
 
 test {
 	useJUnitPlatform()
 	finalizedBy jacocoTestReport
 }
+
 jacocoTestReport {
 	dependsOn test
 	reports {
 		xml.required.set(true)
 	}
 }
+
+build.finalizedBy(buildZip)

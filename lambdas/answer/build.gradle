@@ -4,7 +4,7 @@ plugins {
 }
 
 dependencies {
-	implementation project(":lib"),
+	compileOnly project(":lib"),
 			project(":common-lib"),
 			configurations.aws,
 			configurations.lambda,
@@ -13,8 +13,15 @@ dependencies {
 			configurations.sqs
 
 	aspect configurations.powertools
-
-	testImplementation configurations.tests
+	testImplementation configurations.lambda,
+			configurations.aws,
+			configurations.lambda,
+			configurations.dynamodb,
+			configurations.jackson,
+			configurations.sqs,
+			configurations.tests,
+			project(":lib"),
+			project(":common-lib")
 
 	testRuntimeOnly configurations.test_runtime
 }
@@ -22,13 +29,15 @@ dependencies {
 task buildZip(type: Zip) {
 	from compileJava
 	from processResources
-	into('lib') {
-		from configurations.runtimeClasspath
-	}
 }
 
-build.finalizedBy(buildZip)
+task buildLayer(type: Copy) {
+	into "lib"
+	from configurations.runtimeClasspath
+}
 
 test {
 	useJUnitPlatform()
 }
+
+build.finalizedBy(buildZip)

@@ -4,13 +4,19 @@ plugins {
 }
 
 dependencies {
-	implementation project(":common-lib"),
-			project(":lib"),
+	compileOnly project(":lib"),
+			project(":common-lib"),
 			configurations.aws,
 			configurations.lambda
 
 	aspect configurations.powertools
-	testImplementation configurations.tests
+
+	testImplementation configurations.lambda,
+			configurations.aws,
+			configurations.tests,
+			project(":lib"),
+			project(":common-lib")
+
 	testRuntimeOnly configurations.test_runtime
 }
 
@@ -21,13 +27,6 @@ test {
 task buildZip(type: Zip) {
 	from compileJava
 	from processResources
-	into('lib') {
-		from configurations.runtimeClasspath
-	}
 }
 
 build.finalizedBy(buildZip)
-
-test {
-	useJUnitPlatform()
-}

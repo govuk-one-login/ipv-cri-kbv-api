@@ -9,8 +9,8 @@ repositories {
 }
 
 dependencies {
-	implementation project(":common-lib"),
-			project(":lib"),
+	compileOnly project(":lib"),
+			project(":common-lib"),
 			configurations.aws,
 			configurations.lambda,
 			configurations.jackson,
@@ -19,8 +19,16 @@ dependencies {
 
 	aspect configurations.powertools
 
-	testImplementation configurations.tests,
-			configurations.test_runtime
+	testImplementation project(":lib"),
+			project(":common-lib"),
+			configurations.aws,
+			configurations.lambda,
+			configurations.jackson,
+			configurations.dynamodb,
+			configurations.sqs,
+			configurations.tests
+
+	testRuntimeOnly configurations.test_runtime
 }
 
 test {
@@ -30,9 +38,6 @@ test {
 task buildZip(type: Zip) {
 	from compileJava
 	from processResources
-	into('lib') {
-		from configurations.runtimeClasspath
-	}
 }
 
 build.finalizedBy(buildZip)

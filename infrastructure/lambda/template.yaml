@@ -185,6 +185,30 @@ Mappings:
       production: "https://review-k.account.gov.uk"
 
 Resources:
+  kbvLibLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: di-ipv-cri-kbv-api-lib-layer
+      Description: "KBV libs for lambdas"
+      ContentUri: ../../lib/.
+      CompatibleRuntimes:
+        - java11
+      RetentionPolicy: Retain
+    Metadata:
+      BuildMethod: java11
+
+  commonLibLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: di-ipv-cri-kbv-api-common-lib-layer
+      Description: "KBV libs for lambdas"
+      ContentUri: ../../common-lambdas/.
+      CompatibleRuntimes:
+        - java11
+      RetentionPolicy: Retain
+    Metadata:
+      BuildMethod: java11
+
   PublicKBVApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -450,6 +474,9 @@ Resources:
     Properties:
       CodeUri: ../../lambdas/question/build/distributions/question.zip
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler::handleRequest
+      Layers:
+        - !Ref commonLibLayer
+        - !Ref kbvLibLayer
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-question
@@ -517,6 +544,9 @@ Resources:
     Properties:
       CodeUri: ../../lambdas/answer/build/distributions/answer.zip
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionAnswerHandler::handleRequest
+      Layers:
+        - !Ref commonLibLayer
+        - !Ref kbvLibLayer
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-answer
@@ -581,6 +611,9 @@ Resources:
     Properties:
       CodeUri: ../../lambdas/abandon/build/distributions/abandon.zip
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.AbandonKbvHandler::handleRequest
+      Layers:
+        - !Ref commonLibLayer
+        - !Ref kbvLibLayer
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-abandon
@@ -608,6 +641,9 @@ Resources:
     Properties:
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler::handleRequest
       CodeUri: ../../lambdas/issuecredential/build/distributions/issuecredential.zip
+      Layers:
+        - !Ref commonLibLayer
+        - !Ref kbvLibLayer
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-issuecredential
