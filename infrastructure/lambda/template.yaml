@@ -271,7 +271,7 @@ Resources:
             Location: './private-api.yaml'
       OpenApiVersion: 3.0.1
       EndpointConfiguration:
-        Type: PRIVATE
+        Type: !If [IsNotDevEnvironment, PRIVATE, REGIONAL]
       Auth:
         ResourcePolicy:
           CustomStatements:
@@ -281,7 +281,7 @@ Resources:
               Resource:
                 - 'execute-api:/*'
             - Action: 'execute-api:Invoke'
-              Effect: Deny
+              Effect: !If [IsNotDevEnvironment, Deny, Allow]
               Principal: '*'
               Resource:
                 - 'execute-api:/*'
