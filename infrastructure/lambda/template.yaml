@@ -92,6 +92,14 @@ Mappings:
       integration: Static
       production: Normal
 
+  IIQAPIStrategyMapping:
+    Environment:
+      dev: 3 out of 4
+      build: 3 out of 4
+      staging: 3 out of 4
+      integration: 3 out of 4
+      production: 3 out of 4
+
   SessionTtlMapping:
     Environment:
       dev: 7200 # 2 hours
@@ -483,6 +491,7 @@ Resources:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/PersonIdentityTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/verifiable-credential/issuer"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQDatabaseMode"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQStrategy"
         - Statement:
             - Sid: ReadSecretsPolicy
               Effect: Allow
@@ -808,6 +817,14 @@ Resources:
       Type: String
       Value: !FindInMap [ IIQAPIDatabaseModeMapping, Environment, !Ref 'Environment' ]
       Description: "one of: S or Static, A or Aged, N or Normal (Live)"
+
+  IIQAPIStrategyParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/IIQStrategy"
+      Type: String
+      Value: !FindInMap [ IIQAPIStrategyMapping, Environment, !Ref 'Environment' ]
+      Description: Strategy to be used for Experian KBV Questions. Example - 3 of 4
 
   IPVCoreStubAuthenticationAlgParameter:
     Condition: IsStubEnvironment

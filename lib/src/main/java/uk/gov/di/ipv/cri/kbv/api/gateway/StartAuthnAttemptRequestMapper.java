@@ -33,7 +33,6 @@ public class StartAuthnAttemptRequestMapper {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
-    public static final String DEFAULT_STRATEGY = "3 out of 4";
     public static final String DEFAULT_TITLE = "MR";
     private String testDatabase;
     private MetricsService metricsService;
@@ -137,7 +136,7 @@ public class StartAuthnAttemptRequestMapper {
         applicationData.setApplicationType("IG");
         applicationData.setChannel("IN");
         applicationData.setSearchConsent("Y");
-        applicationData.setProduct(StringUtils.isNotBlank(strategy) ? strategy : DEFAULT_STRATEGY);
+        applicationData.setProduct(strategy);
         saaRequest.setApplicationData(applicationData);
     }
 

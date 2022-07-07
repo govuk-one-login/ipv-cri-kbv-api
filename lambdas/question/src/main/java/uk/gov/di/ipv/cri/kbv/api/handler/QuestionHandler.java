@@ -48,6 +48,7 @@ public class QuestionHandler
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String GET_QUESTION = "get_question";
     public static final String ERROR_KEY = "\"error\"";
+    public static final String IIQ_STRATEGY_PARAM_NAME = "IIQStrategy";
     private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
@@ -221,6 +222,8 @@ public class QuestionHandler
             PersonIdentityDetailed personIdentity =
                     personIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId());
             QuestionRequest questionRequest = new QuestionRequest();
+            questionRequest.setStrategy(
+                    this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME));
             questionRequest.setPersonIdentity(
                     personIdentityService.convertToPersonIdentitySummary(personIdentity));
             QuestionsResponse questionsResponse = this.kbvService.getQuestions(questionRequest);
