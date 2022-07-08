@@ -155,7 +155,7 @@ public class StartAuthnAttemptRequestMapper {
                 StringUtils.isNotBlank(questionRequest.getUrn())
                         ? questionRequest.getUrn()
                         : UUID.randomUUID().toString());
-        control.setOperatorID("GDSCABINETUIIQ01U");
+        control.setOperatorID(questionRequest.getIiqOperatorId());
         return control;
     }
 

@@ -132,6 +132,7 @@ class QuestionHandlerTest {
             verify(mockAuditService).sendAuditEvent(AuditEventType.REQUEST_SENT, personIdentity);
             verify(mockKBVStorageService).save(any());
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
+            verify(mockConfigurationService).getParameterValue("IIQOperatorId");
             verify(mockObjectMapper, times(2)).writeValueAsString(any());
             verify(mockEventProbe).counterMetric(GET_QUESTION);
         }
@@ -177,6 +178,7 @@ class QuestionHandlerTest {
             assertEquals(expectedQuestion, response.getBody());
             verify(mockKBVStorageService)
                     .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
+            verify(mockConfigurationService, times(0)).getParameterValue("IIQOperatorId");
             verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
             verify(mockConfigurationService, times(0)).getParameterValue("IIQStrategy");
             verify(mockObjectMapper).writeValueAsString(unAnsweredQuestion);
@@ -223,6 +225,7 @@ class QuestionHandlerTest {
             verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
             verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
+            verify(mockConfigurationService).getParameterValue("IIQOperatorId");
             verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
         }
 
@@ -361,6 +364,7 @@ class QuestionHandlerTest {
             assertNull(response.getBody());
             verify(mockEventProbe).counterMetric(GET_QUESTION);
             verify(mockConfigurationService, times(0)).getParameterValue("IIQStrategy");
+            verify(mockConfigurationService, times(0)).getParameterValue("IIQOperatorId");
         }
     }
 
@@ -404,6 +408,7 @@ class QuestionHandlerTest {
             String outcome = (String) response.get("outcome");
             assertThat(outcome, equalTo(expectedOutcome));
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
+            verify(mockConfigurationService).getParameterValue("IIQOperatorId");
         }
 
         @Test

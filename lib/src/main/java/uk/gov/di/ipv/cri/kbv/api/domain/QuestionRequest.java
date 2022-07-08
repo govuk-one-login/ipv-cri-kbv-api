@@ -7,7 +7,17 @@ public class QuestionRequest {
 
     private String strategy;
 
+    private String iiqOperatorId;
+
     private PersonIdentity personIdentity;
+
+    public String getIiqOperatorId() {
+        return iiqOperatorId;
+    }
+
+    public void setIiqOperatorId(String iiqOperatorId) {
+        this.iiqOperatorId = iiqOperatorId;
+    }
 
     public void setStrategy(String strategy) {
         this.strategy = strategy;

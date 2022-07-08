@@ -100,6 +100,14 @@ Mappings:
       integration: 3 out of 4
       production: 3 out of 4
 
+  IIQOperatorIdMapping:
+    Environment:
+      dev: GDSCABINETUIIQ01U
+      build: GDSCABINETUIIQ01U
+      staging: GDSCABINETUIIQ01U
+      integration: GDSCABINETUIIQ01U
+      production: GDSCABINETUIIQ01U
+
   SessionTtlMapping:
     Environment:
       dev: 7200 # 2 hours
@@ -492,6 +500,7 @@ Resources:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/verifiable-credential/issuer"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQDatabaseMode"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQStrategy"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQOperatorId"
         - Statement:
             - Sid: ReadSecretsPolicy
               Effect: Allow
@@ -757,6 +766,7 @@ Resources:
         RateLimit: 50 # allowed requests per second
 
   LinkUsagePlanApiKey1:
+    Condition: IsNotDevEnvironment
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
       KeyId: !ImportValue core-infrastructure-ApiKey1
@@ -764,6 +774,7 @@ Resources:
       UsagePlanId: !Ref PublicApiUsagePlan
 
   LinkUsagePlanApiKey2:
+    Condition: IsNotDevEnvironment
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
       KeyId: !ImportValue core-infrastructure-ApiKey2
@@ -825,6 +836,14 @@ Resources:
       Type: String
       Value: !FindInMap [ IIQAPIStrategyMapping, Environment, !Ref 'Environment' ]
       Description: Strategy to be used for Experian KBV Questions. Example - 3 of 4
+
+  IIQOperatorIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/IIQOperatorId"
+      Type: String
+      Value: !FindInMap [ IIQOperatorIdMapping, Environment, !Ref 'Environment' ]
+      Description: Unique operator id provided by Experian to GDS
 
   IPVCoreStubAuthenticationAlgParameter:
     Condition: IsStubEnvironment
