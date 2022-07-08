@@ -10,13 +10,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.lambda.powertools.parameters.SSMProvider;
+import software.amazon.lambda.powertools.parameters.SecretsProvider;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.AddressType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.service.EnvironmentVariablesService;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,17 +38,24 @@ import static uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator.createTestQuestionA
 
 @ExtendWith(MockitoExtension.class)
 class StartAuthnAttemptRequestMapperTest {
+    private static final String TEST_STACK_NAME = "stack-name";
+    private static final String PARAM_NAME_FORMAT = "/%s/%s";
     private StartAuthnAttemptRequestMapper startAuthnAttemptRequestMapper;
     QuestionRequest questionRequest;
-
     @Mock private MetricsService metricsService;
     @Mock private EnvironmentVariablesService environmentVariablesService;
+    @Mock private SSMProvider mockSsmProvider;
+    @Mock private SecretsProvider mockSecretsProvider;
+    @Mock private Clock mockClock;
 
     @BeforeEach
     void setUp() {
         startAuthnAttemptRequestMapper =
                 new StartAuthnAttemptRequestMapper(
-                        "Static", metricsService, environmentVariablesService);
+                        new ConfigurationService(
+                                mockSsmProvider, mockSecretsProvider, TEST_STACK_NAME, mockClock),
+                        metricsService,
+                        environmentVariablesService);
     }
 
     @Test
@@ -124,6 +135,8 @@ class StartAuthnAttemptRequestMapperTest {
 
     @Test
     void shouldConvertPersonIdentityToSAARequestForPreviousAddress() {
+        String fullParamName = String.format(PARAM_NAME_FORMAT, TEST_STACK_NAME, "IIQDatabaseMode");
+        when(mockSsmProvider.get(fullParamName)).thenReturn("Static");
         questionRequest = createTestQuestionAnswerRequest(AddressType.CURRENT);
         PersonIdentity personIdentity = questionRequest.getPersonIdentity();
 

@@ -17,7 +17,6 @@ import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
-import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SessionExpiredException;
 import uk.gov.di.ipv.cri.common.library.exception.SessionNotFoundException;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
@@ -71,12 +70,12 @@ public class QuestionHandler
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.personIdentityService = new PersonIdentityService();
         this.configurationService = new ConfigurationService();
-        this.kbvService =
-                new KBVService(new KBVGatewayFactory(this.configurationService).getKbvGateway());
+        this.kbvService = new KBVService(new KBVGatewayFactory().create(this.configurationService));
         this.kbvStorageService = new KBVStorageService(this.configurationService);
+        this.auditService = new AuditService(this.configurationService);
+        this.sessionService = new SessionService(this.configurationService);
+
         this.eventProbe = new EventProbe();
-        this.auditService = new AuditService();
-        this.sessionService = new SessionService();
     }
 
     public QuestionHandler(
@@ -106,10 +105,10 @@ public class QuestionHandler
             APIGatewayProxyRequestEvent input, Context context) {
 
         try {
-            UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
-            SessionItem sessionItem = sessionService.validateSessionId(String.valueOf(sessionId));
-            KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
-            QuestionState questionState = new QuestionState();
+            var sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
+            var sessionItem = sessionService.validateSessionId(String.valueOf(sessionId));
+            var kbvItem = kbvStorageService.getKBVItem(sessionId);
+            var questionState = new QuestionState();
             if (kbvItem != null) {
                 questionState =
                         objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
@@ -226,7 +225,7 @@ public class QuestionHandler
     private void saveQuestionStateToKbvItem(
             KBVItem kbvItem, QuestionState questionState, QuestionsResponse questionsResponse)
             throws JsonProcessingException {
-        String state = objectMapper.writeValueAsString(questionState);
+        var state = objectMapper.writeValueAsString(questionState);
         kbvItem.setQuestionState(state);
         kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
         kbvItem.setUrn(questionsResponse.getControl().getURN());
@@ -241,25 +240,23 @@ public class QuestionHandler
         Objects.requireNonNull(kbvItem, "kbvItem cannot be null");
 
         if (kbvItem.getExpiryDate() == 0L) { // first request for questions for a given session
-            PersonIdentityDetailed personIdentity =
+            var personIdentity =
                     personIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId());
-            QuestionRequest questionRequest = new QuestionRequest();
-            String strategy = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
+            var questionRequest = new QuestionRequest();
+            var strategy = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
             questionRequest.setStrategy(strategy);
             questionRequest.setIiqOperatorId(
                     this.configurationService.getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME));
             questionRequest.setPersonIdentity(
                     personIdentityService.convertToPersonIdentitySummary(personIdentity));
             eventProbe.addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, strategy));
-            QuestionsResponse questionsResponse = this.kbvService.getQuestions(questionRequest);
             auditService.sendAuditEvent(
                     AuditEventType.REQUEST_SENT,
                     new AuditEventContext(personIdentity, requestHeaders, sessionItem));
-            return questionsResponse;
+            return this.kbvService.getQuestions(questionRequest);
         }
-        QuestionState questionState =
-                objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
-        QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
+        var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
+        var questionAnswerRequest = new QuestionAnswerRequest();
         questionAnswerRequest.setUrn(kbvItem.getUrn());
         questionAnswerRequest.setAuthRefNo(kbvItem.getAuthRefNo());
         questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());

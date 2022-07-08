@@ -59,13 +59,13 @@ public class QuestionAnswerHandler
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        ConfigurationService configurationService = new ConfigurationService();
+        var configurationService = new ConfigurationService();
         this.kbvStorageService = new KBVStorageService(configurationService);
-        this.kbvService =
-                new KBVService(new KBVGatewayFactory(configurationService).getKbvGateway());
+        this.kbvService = new KBVService(new KBVGatewayFactory().create(configurationService));
+        this.sessionService = new SessionService(configurationService);
+        this.auditService = new AuditService(configurationService);
+
         this.eventProbe = new EventProbe();
-        this.sessionService = new SessionService();
-        this.auditService = new AuditService();
     }
 
     public QuestionAnswerHandler(
@@ -77,10 +77,11 @@ public class QuestionAnswerHandler
             AuditService auditService) {
         this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
-        this.eventProbe = eventProbe;
         this.sessionService = sessionService;
         this.auditService = auditService;
         this.kbvService = kbvService;
+
+        this.eventProbe = eventProbe;
     }
 
     @Override
@@ -134,13 +135,11 @@ public class QuestionAnswerHandler
 
     public void handleRequest(String requestBody, Map<String, String> requestHeaders)
             throws IOException, SqsException {
-        SessionItem sessionItem =
-                sessionService.validateSessionId(requestHeaders.get(HEADER_SESSION_ID));
-        KBVItem kbvItem = kbvStorageService.getKBVItem(sessionItem.getSessionId());
+        var sessionItem = sessionService.validateSessionId(requestHeaders.get(HEADER_SESSION_ID));
+        var kbvItem = kbvStorageService.getKBVItem(sessionItem.getSessionId());
 
-        QuestionState questionState =
-                objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
-        QuestionAnswer submittedAnswer = objectMapper.readValue(requestBody, QuestionAnswer.class);
+        var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
+        var submittedAnswer = objectMapper.readValue(requestBody, QuestionAnswer.class);
 
         if (respondWithAnswerFromDbStore(submittedAnswer, questionState, kbvItem)) return;
         respondWithAnswerFromExperianThenStoreInDb(
@@ -153,12 +152,12 @@ public class QuestionAnswerHandler
             SessionItem sessionItem,
             Map<String, String> requestHeaders)
             throws IOException, SqsException {
-        QuestionAnswerRequest questionAnswerRequest = new QuestionAnswerRequest();
+        var questionAnswerRequest = new QuestionAnswerRequest();
         questionAnswerRequest.setUrn(kbvItem.getUrn());
         questionAnswerRequest.setAuthRefNo(kbvItem.getAuthRefNo());
         questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
 
-        QuestionsResponse questionsResponse = kbvService.submitAnswers(questionAnswerRequest);
+        var questionsResponse = kbvService.submitAnswers(questionAnswerRequest);
         if (questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
