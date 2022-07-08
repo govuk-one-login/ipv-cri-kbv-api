@@ -231,6 +231,7 @@ Resources:
 
   PrivateKBVApi:
     Type: AWS::Serverless::Api
+    Condition: IsNotDevEnvironment
     Properties:
       Description: Private KBV CRI API
       MethodSettings:
@@ -271,7 +272,7 @@ Resources:
             Location: './private-api.yaml'
       OpenApiVersion: 3.0.1
       EndpointConfiguration:
-        Type: !If [IsNotDevEnvironment, PRIVATE, REGIONAL]
+        Type: PRIVATE
       Auth:
         ResourcePolicy:
           CustomStatements:
@@ -281,7 +282,7 @@ Resources:
               Resource:
                 - 'execute-api:/*'
             - Action: 'execute-api:Invoke'
-              Effect: !If [IsNotDevEnvironment, Deny, Allow]
+              Effect: Deny
               Principal: '*'
               Resource:
                 - 'execute-api:/*'
@@ -291,6 +292,50 @@ Resources:
                     - IsDevEnvironment
                     - vpce-082cab7c78139eb54
                     - !ImportValue cri-vpc-ApiGatewayVpcEndpointId
+
+  DevOnlyKBVApi:
+    Type: AWS::Serverless::Api
+    Condition: IsDevEnvironment
+    Properties:
+      Description: Private Dev KBV CRI API
+      MethodSettings:
+        - LoggingLevel: INFO
+          ResourcePath: '/*'
+          HttpMethod: '*'
+          DataTraceEnabled: true
+          MetricsEnabled: true
+          ThrottlingRateLimit: 5
+          ThrottlingBurstLimit: 10
+      AccessLogSetting:
+        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${DevOnlyKBVApiAccessLogGroup}'
+        Format: >-
+          {
+          "requestId":"$context.requestId",
+          "ip":"$context.identity.sourceIp",
+          "requestTime":"$context.requestTime",
+          "httpMethod":"$context.httpMethod",
+          "path":"$context.path",
+          "routeKey":"$context.routeKey",
+          "status":"$context.status",
+          "protocol":"$context.protocol",
+          "responseLatency":"$context.responseLatency",
+          "responseLength":"$context.responseLength"
+          }
+      TracingEnabled: true
+      Name: !Sub "kbv-cri-private-${AWS::StackName}"
+      StageName: !Ref Environment
+      DefinitionBody:
+        openapi: "3.0.1" # workaround to get `sam validate` to work
+        paths: # workaround to get `sam validate` to work
+          /never-created:
+            options: { } # workaround to get `sam validate` to work
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: './private-api.yaml'
+      OpenApiVersion: 3.0.1
+      EndpointConfiguration:
+        Type: REGIONAL
 
   PublicKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
@@ -308,9 +353,17 @@ Resources:
 
   PrivateKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
+    Condition: IsNotDevEnvironment
     Properties:
       LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PrivateKBVApi}-private-AccessLogs
       RetentionInDays: 365
+
+  DevOnlyKBVApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: IsDevEnvironment
+    Properties:
+      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${DevOnlyKBVApi}-private-AccessLogs
+      RetentionInDays: 30
 
   PrivateKBVApiAccessLogGroupSubscriptionFilter:
     Type: AWS::Logs::SubscriptionFilter
@@ -719,6 +772,7 @@ Resources:
 
   PublicApiUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
+    Condition: IsNotDevEnvironment
     DependsOn:
       - PublicKBVApiStage
     Properties:
@@ -734,6 +788,7 @@ Resources:
 
   PrivateApiUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
+    Condition: IsNotDevEnvironment
     DependsOn:
       - PrivateKBVApiStage
     Properties:
@@ -955,22 +1010,6 @@ Resources:
       Value: !ImportValue core-infrastructure-CriVcSigningKey1Id
       Description: Verifiable Credential Key Id
 
-  PrivateKBVApiGatewayIdParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/PrivateKBVApiGatewayId"
-      Type: String
-      Value: !Sub "${PrivateKBVApi}"
-      Description: "API GatewayID of the private KBV CRI API"
-
-  PrivateKBVApiBaseUrlParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/PrivateKBVApiBaseUrl"
-      Type: String
-      Value: !Sub "https://${PrivateKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
-      Description: "Base url of the private KBV CRI API"
-
   PublicKBVApiGatewayIdParameter:
     Type: AWS::SSM::Parameter
     Properties:
@@ -1066,38 +1105,14 @@ Resources:
                 "kms:EncryptionContext:aws:logs:arn": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
 Outputs:
 
-  KBVApiBaseUrl:
-    Description: "Base url of the KBV CRI API"
-    Value: !Sub "https://${PublicKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
-    Export:
-      Name: !Sub ${AWS::StackName}-KBVApiBaseUrl
-
-  KBVApiGatewayId:
-    Description: "API GatewayID of the KBV CRI API"
-    Value: !Sub "${PublicKBVApi}"
-    Export:
-      Name: !Sub ${AWS::StackName}-KBVApiGatewayId
-
-  PublicKBVApiBaseUrl:
-    Description: "Base url of the public KBV CRI API"
-    Value: !Sub "https://${PublicKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
-    Export:
-      Name: !Sub ${AWS::StackName}-PublicKBVApiBaseUrl
-
   PublicKBVApiGatewayId:
     Description: "API GatewayID of the public KBV CRI API"
     Value: !Sub "${PublicKBVApi}"
     Export:
       Name: !Sub ${AWS::StackName}-PublicKBVApiGatewayId
 
-  PrivateKBVApiBaseUrl:
-    Description: "Base url of the private KBV CRI API"
-    Value: !Sub "https://${PrivateKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
-    Export:
-      Name: !Sub ${AWS::StackName}-PrivateKBVApiBaseUrl
-
   PrivateKBVApiGatewayId:
     Description: "API GatewayID of the private KBV CRI API"
-    Value: !Sub "${PrivateKBVApi}"
+    Value: !If [IsNotDevEnvironment, !Ref PrivateKBVApi, !Ref DevOnlyKBVApi]
     Export:
       Name: !Sub ${AWS::StackName}-PrivateKBVApiGatewayId
