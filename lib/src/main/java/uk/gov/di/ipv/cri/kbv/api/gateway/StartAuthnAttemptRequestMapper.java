@@ -137,7 +137,8 @@ public class StartAuthnAttemptRequestMapper {
         applicationData.setApplicationType("IG");
         applicationData.setChannel("IN");
         applicationData.setSearchConsent("Y");
-        applicationData.setProduct(StringUtils.isNotBlank(strategy) ? strategy : DEFAULT_STRATEGY);
+        applicationData.setProduct(
+                StringUtils.isNotBlank(strategy) ? strategy : "DEFAULT_STRATEGY");
         saaRequest.setApplicationData(applicationData);
     }
 
@@ -156,7 +157,7 @@ public class StartAuthnAttemptRequestMapper {
                 StringUtils.isNotBlank(questionRequest.getUrn())
                         ? questionRequest.getUrn()
                         : UUID.randomUUID().toString());
-        control.setOperatorID("GDSCABINETUIIQ01U");
+        control.setOperatorID(questionRequest.getIiqOperatorId());
         return control;
     }
 
