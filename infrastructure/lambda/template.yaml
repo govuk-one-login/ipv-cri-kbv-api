@@ -1150,3 +1150,9 @@ Outputs:
     Value: !If [IsNotDevEnvironment, !Ref PrivateKBVApi, !Ref DevOnlyKBVApi]
     Export:
       Name: !Sub ${AWS::StackName}-PrivateKBVApiGatewayId
+
+  KBVApiGatewayId:
+    Description: "API GatewayID of the KBV CRI API - export currently used by dns-records stack"
+    Value: !Sub "${PublicKBVApi}"
+    Export:
+      Name: !Sub ${AWS::StackName}-KBVApiGatewayId
