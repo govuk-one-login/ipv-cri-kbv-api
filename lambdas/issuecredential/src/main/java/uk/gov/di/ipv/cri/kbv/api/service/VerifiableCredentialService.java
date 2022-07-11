@@ -95,7 +95,7 @@ public class VerifiableCredentialService {
         return signedJwtFactory.createSignedJwt(claimsSet);
     }
 
-    public Map<String, Object> getAuditEventContext(KBVItem kbvItem) {
+    public Map<String, Object> getAuditEventExtensions(KBVItem kbvItem) {
         return Map.of(
                 ISSUER,
                 configurationService.getVerifiableCredentialIssuer(),

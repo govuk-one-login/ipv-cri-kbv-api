@@ -23,6 +23,7 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
@@ -44,6 +45,7 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -66,8 +68,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.GET_QUESTION;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.HEADER_SESSION_ID;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.LAMBDA_NAME;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.IIQ_STRATEGY_PARAM_NAME;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_ID;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_STRATEGY;
@@ -84,6 +86,7 @@ class QuestionHandlerTest {
     @Mock private AuditService mockAuditService;
     @Mock private SessionService sessionService;
     @Captor private ArgumentCaptor<Map<String, Object>> auditEventMap;
+    @Captor private ArgumentCaptor<AuditEventContext> auditEventContextArgCaptor;
 
     private KBVService spyKBVService;
 
@@ -108,14 +111,17 @@ class QuestionHandlerTest {
         void shouldReturn200OkWhen1stCalledAndReturn1stUnAnsweredQuestionFromExperianEndpoint()
                 throws IOException, SqsException {
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
-            Map<String, String> sessionHeader =
+            Map<String, String> requestHeaders =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
             KBVItem kbvItem = new KBVItem();
-            kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
+            kbvItem.setSessionId(UUID.fromString(requestHeaders.get(HEADER_SESSION_ID)));
             PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
+            SessionItem sessionItem = mock(SessionItem.class);
 
-            when(input.getHeaders()).thenReturn(sessionHeader);
+            when(input.getHeaders()).thenReturn(requestHeaders);
+            when(sessionService.validateSessionId(requestHeaders.get(HEADER_SESSION_ID)))
+                    .thenReturn(sessionItem);
             when(mockPersonIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId()))
                     .thenReturn(personIdentity);
             doNothing().when(mockKBVStorageService).save(any());
@@ -135,16 +141,22 @@ class QuestionHandlerTest {
             assertEquals(expectedQuestion, response.getBody());
 
             verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
-            verify(mockAuditService).sendAuditEvent(AuditEventType.REQUEST_SENT, personIdentity);
+            verify(mockAuditService)
+                    .sendAuditEvent(
+                            eq(AuditEventType.REQUEST_SENT), auditEventContextArgCaptor.capture());
             verify(mockKBVStorageService).save(any());
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
-            verify(mockObjectMapper, times(2)).writeValueAsString(any());
-            verify(mockEventProbe).counterMetric(GET_QUESTION);
+            verify(mockObjectMapper).writeValueAsString(any());
+            verify(mockEventProbe).counterMetric(LAMBDA_NAME);
             verify(mockEventProbe)
                     .addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4"));
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_QUESTION_ID, "Q00015"));
             verifyNoMoreInteractions(mockEventProbe);
+
+            assertEquals(sessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
+            assertEquals(requestHeaders, auditEventContextArgCaptor.getValue().getRequestHeaders());
+            assertEquals(personIdentity, auditEventContextArgCaptor.getValue().getPersonIdentity());
         }
 
         @Test
@@ -157,17 +169,17 @@ class QuestionHandlerTest {
             KBVItem kbvItem = new KBVItem();
             kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
 
-            QuestionState questionState = new QuestionState();
-            Questions questions = new Questions();
-
             Question answeredQuestion = getQuestionOne();
             QuestionAnswer questionAnswer = new QuestionAnswer();
             questionAnswer.setQuestionId(answeredQuestion.getQuestionID());
             questionAnswer.setAnswer("OVER £35,000 UP TO £60,000");
 
             Question unAnsweredQuestion = getQuestionTwo();
+
+            Questions questions = new Questions();
             questions.getQuestion().addAll(List.of(answeredQuestion, unAnsweredQuestion));
 
+            QuestionState questionState = new QuestionState();
             questionState.setQAPairs(questions);
             questionState.setAnswer(questionAnswer);
 
@@ -178,8 +190,6 @@ class QuestionHandlerTest {
             when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
                     .thenReturn(questionState);
             String expectedQuestion = new ObjectMapper().writeValueAsString(unAnsweredQuestion);
-            when(mockObjectMapper.writeValueAsString(unAnsweredQuestion))
-                    .thenReturn(expectedQuestion);
 
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, mock(Context.class));
@@ -191,8 +201,7 @@ class QuestionHandlerTest {
             verify(mockConfigurationService, times(0)).getParameterValue("IIQOperatorId");
             verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
             verify(mockConfigurationService, times(0)).getParameterValue("IIQStrategy");
-            verify(mockObjectMapper).writeValueAsString(unAnsweredQuestion);
-            verify(mockEventProbe).counterMetric(GET_QUESTION);
+            verify(mockEventProbe).counterMetric(LAMBDA_NAME);
         }
 
         @Test
@@ -239,7 +248,7 @@ class QuestionHandlerTest {
             verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
-            verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
+            verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
             verify(mockEventProbe)
                     .addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4"));
             verifyNoMoreInteractions(mockEventProbe);
@@ -256,7 +265,7 @@ class QuestionHandlerTest {
             String expectedMessage = "java.lang.NullPointerException";
             assertTrue(response.getBody().contains(expectedMessage));
             assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
-            verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
+            verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
         }
 
         @Test
@@ -274,9 +283,9 @@ class QuestionHandlerTest {
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, mock(Context.class));
 
-            assertEquals("{ \"error\":\"AWS Server error occurred.\" }", response.getBody());
+            assertEquals("{\"error\":\"AWS Server error occurred.\"}", response.getBody());
             assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
-            verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
+            verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
         }
 
         @Test
@@ -308,13 +317,13 @@ class QuestionHandlerTest {
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, mock(Context.class));
 
-            assertEquals("{ \"error\":\"AWS Server error occurred.\" }", response.getBody());
+            assertEquals("{\"error\":\"AWS Server error occurred.\"}", response.getBody());
             assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
 
             verify(mockPersonIdentityService)
                     .getPersonIdentityDetailed(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
-            verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
+            verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
         }
 
         @Test
@@ -348,7 +357,7 @@ class QuestionHandlerTest {
                     questionHandler.handleRequest(input, mock(Context.class));
 
             assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
-            verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
+            verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
         }
 
         @Test
@@ -371,14 +380,14 @@ class QuestionHandlerTest {
             when(mockObjectMapper.readValue(kbvItemMock.getQuestionState(), QuestionState.class))
                     .thenReturn(questionStateMock);
 
-            when(mockEventProbe.counterMetric(GET_QUESTION)).thenReturn(mockEventProbe);
+            when(mockEventProbe.counterMetric(LAMBDA_NAME)).thenReturn(mockEventProbe);
             when(kbvItemMock.getStatus()).thenReturn("status-code");
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, contextMock);
 
             assertEquals(HttpStatusCode.NO_CONTENT, response.getStatusCode());
             assertNull(response.getBody());
-            verify(mockEventProbe).counterMetric(GET_QUESTION);
+            verify(mockEventProbe).counterMetric(LAMBDA_NAME);
             verify(mockConfigurationService, times(0)).getParameterValue("IIQStrategy");
             verify(mockConfigurationService, times(0)).getParameterValue("IIQOperatorId");
         }
@@ -393,6 +402,7 @@ class QuestionHandlerTest {
             UUID sessionId = UUID.randomUUID();
             KBVItem kbvItem = mock(KBVItem.class);
             SessionItem sessionItem = mock(SessionItem.class);
+            Map<String, String> requestHeaders = new HashMap<>();
             Control control = mock(Control.class);
             QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
             when(kbvItem.getSessionId()).thenReturn(sessionId);
@@ -403,19 +413,21 @@ class QuestionHandlerTest {
 
             when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
-            when(sessionService.getSession(sessionId.toString())).thenReturn(sessionItem);
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
             assertThrows(
                     QuestionNotFoundException.class,
                     () -> {
-                        questionHandler.processQuestionRequest(new QuestionState(), kbvItem);
+                        questionHandler.processQuestionRequest(
+                                new QuestionState(), kbvItem, sessionItem, requestHeaders);
                     },
                     "Question not Found");
             verify(sessionService).createAuthorizationCode(sessionItem);
             verify(mockAuditService)
                     .sendAuditEvent(
-                            eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED), auditEventMap.capture());
+                            eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED),
+                            auditEventContextArgCaptor.capture(),
+                            auditEventMap.capture());
             verify(mockKBVStorageService).save(kbvItem);
             verify(mockEventProbe)
                     .addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4"));
@@ -429,17 +441,19 @@ class QuestionHandlerTest {
             assertThat(outcome, equalTo(expectedOutcome));
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
+            assertEquals(sessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
+            assertEquals(requestHeaders, auditEventContextArgCaptor.getValue().getRequestHeaders());
         }
 
         @Test
         void shouldReturnThrowErrorWhenQuestionStateIsNull() {
             var kbvItem = new KBVItem();
-            NullPointerException expectedException =
-                    assertThrows(
-                            NullPointerException.class,
-                            () -> questionHandler.processQuestionRequest(null, kbvItem));
-
-            assertEquals("questionState cannot be null", expectedException.getMessage());
+            assertThrows(
+                    NullPointerException.class,
+                    () ->
+                            questionHandler.processQuestionRequest(
+                                    null, kbvItem, new SessionItem(), new HashMap<>()),
+                    "questionState cannot be null");
         }
 
         @Test
@@ -448,7 +462,12 @@ class QuestionHandlerTest {
             NullPointerException expectedException =
                     assertThrows(
                             NullPointerException.class,
-                            () -> questionHandler.processQuestionRequest(questionState, null));
+                            () ->
+                                    questionHandler.processQuestionRequest(
+                                            questionState,
+                                            null,
+                                            mock(SessionItem.class),
+                                            new HashMap<>()));
 
             assertEquals("kbvItem cannot be null", expectedException.getMessage());
         }
@@ -471,7 +490,11 @@ class QuestionHandlerTest {
             questionState.setAnswer(questionAnswer);
 
             Question nextQuestion =
-                    questionHandler.processQuestionRequest(questionState, mock(KBVItem.class));
+                    questionHandler.processQuestionRequest(
+                            questionState,
+                            mock(KBVItem.class),
+                            mock(SessionItem.class),
+                            new HashMap<>());
 
             assertEquals(nextQuestion.getQuestionID(), unAnsweredQuestion.getQuestionID());
         }
@@ -492,7 +515,8 @@ class QuestionHandlerTest {
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
             Question nextQuestionFromExperian =
-                    questionHandler.processQuestionRequest(questionState, kbvItem);
+                    questionHandler.processQuestionRequest(
+                            questionState, kbvItem, mock(SessionItem.class), new HashMap<>());
 
             assertEquals(
                     nextQuestionFromExperian.getQuestionID(),
