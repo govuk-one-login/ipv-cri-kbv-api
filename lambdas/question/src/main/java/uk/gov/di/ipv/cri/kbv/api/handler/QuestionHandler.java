@@ -50,6 +50,8 @@ public class QuestionHandler
     public static final String ERROR_KEY = "\"error\"";
     public static final String IIQ_STRATEGY_PARAM_NAME = "IIQStrategy";
     private static final String IIQ_OPERATOR_ID_PARAM_NAME = "IIQOperatorId";
+    public static final String METRIC_DIMENSION_QUESTION_ID = "kbv_question_id";
+    public static final String METRIC_DIMENSION_QUESTION_STRATEGY = "question_strategy";
     private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
@@ -118,6 +120,8 @@ public class QuestionHandler
             Question question = processQuestionRequest(questionState, kbvItem);
             response.withBody(objectMapper.writeValueAsString(question));
             response.withStatusCode(OK);
+            eventProbe.addDimensions(
+                    Map.of(METRIC_DIMENSION_QUESTION_ID, question.getQuestionID()));
             eventProbe.counterMetric(GET_QUESTION);
         } catch (JsonProcessingException jsonProcessingException) {
             eventProbe.log(ERROR, jsonProcessingException).counterMetric(GET_QUESTION, 0d);
@@ -223,12 +227,13 @@ public class QuestionHandler
             PersonIdentityDetailed personIdentity =
                     personIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId());
             QuestionRequest questionRequest = new QuestionRequest();
-            questionRequest.setStrategy(
-                    this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME));
+            String strategy = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
+            questionRequest.setStrategy(strategy);
             questionRequest.setIiqOperatorId(
                     this.configurationService.getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME));
             questionRequest.setPersonIdentity(
                     personIdentityService.convertToPersonIdentitySummary(personIdentity));
+            eventProbe.addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, strategy));
             QuestionsResponse questionsResponse = this.kbvService.getQuestions(questionRequest);
             auditService.sendAuditEvent(AuditEventType.REQUEST_SENT, personIdentity);
             return questionsResponse;

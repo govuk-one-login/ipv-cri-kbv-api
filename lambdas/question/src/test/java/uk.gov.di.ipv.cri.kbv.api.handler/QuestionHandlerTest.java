@@ -64,9 +64,13 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.GET_QUESTION;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.HEADER_SESSION_ID;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.IIQ_STRATEGY_PARAM_NAME;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_ID;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_STRATEGY;
 
 @ExtendWith(MockitoExtension.class)
 class QuestionHandlerTest {
@@ -122,6 +126,8 @@ class QuestionHandlerTest {
                     .when(spyKBVService)
                     .getQuestions(any());
             when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
+            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
+                    .thenReturn("3 out of 4");
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, mock(Context.class));
 
@@ -135,6 +141,10 @@ class QuestionHandlerTest {
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
             verify(mockObjectMapper, times(2)).writeValueAsString(any());
             verify(mockEventProbe).counterMetric(GET_QUESTION);
+            verify(mockEventProbe)
+                    .addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4"));
+            verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_QUESTION_ID, "Q00015"));
+            verifyNoMoreInteractions(mockEventProbe);
         }
 
         @Test
@@ -213,6 +223,9 @@ class QuestionHandlerTest {
             when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
                     .thenReturn(questionStateMock);
 
+            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
+                    .thenReturn("3 out of 4");
+
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, contextMock);
 
@@ -227,6 +240,9 @@ class QuestionHandlerTest {
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
             verify(mockEventProbe).counterMetric(GET_QUESTION, 0d);
+            verify(mockEventProbe)
+                    .addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4"));
+            verifyNoMoreInteractions(mockEventProbe);
         }
 
         @Test
@@ -388,7 +404,8 @@ class QuestionHandlerTest {
             when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
             when(sessionService.getSession(sessionId.toString())).thenReturn(sessionItem);
-
+            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
+                    .thenReturn("3 out of 4");
             assertThrows(
                     QuestionNotFoundException.class,
                     () -> {
@@ -400,6 +417,9 @@ class QuestionHandlerTest {
                     .sendAuditEvent(
                             eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED), auditEventMap.capture());
             verify(mockKBVStorageService).save(kbvItem);
+            verify(mockEventProbe)
+                    .addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4"));
+            verifyNoMoreInteractions(mockEventProbe);
             verify(kbvItem).setAuthRefNo("an auth ref no");
             verify(kbvItem).setUrn("a urn");
 
@@ -469,6 +489,8 @@ class QuestionHandlerTest {
             when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
                     .thenReturn(personIdentity);
             doReturn(getExperianQuestionResponse()).when(spyKBVService).getQuestions(any());
+            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
+                    .thenReturn("3 out of 4");
             Question nextQuestionFromExperian =
                     questionHandler.processQuestionRequest(questionState, kbvItem);
 
