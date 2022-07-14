@@ -16,6 +16,8 @@ import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,6 +25,7 @@ import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpResponse;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
@@ -62,7 +65,8 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler.KBV_CREDE
 @SuppressWarnings("rawtypes")
 @ExtendWith(MockitoExtension.class)
 class IssueCredentialHandlerTest {
-    public static final String SUBJECT = "subject";
+    private static final String SUBJECT = "subject";
+    private static final UUID SESSION_ID = UUID.randomUUID();
     @Mock private Context context;
     @Mock private VerifiableCredentialService mockVerifiableCredentialService;
     @Mock private SessionService mockSessionService;
@@ -72,35 +76,40 @@ class IssueCredentialHandlerTest {
     @Mock private PersonIdentityService mockPersonIdentityService;
     @Mock private EventProbe mockEventProbe;
     @Mock private AuditService mockAuditService;
+    @Captor private ArgumentCaptor<Map<String, Object>> auditEventExtensionsArgCaptor;
     @InjectMocks private IssueCredentialHandler handler;
 
     @Test
     void shouldReturn200OkWhenIssueCredentialRequestIsValid() throws JOSEException, SqsException {
+        ArgumentCaptor<AuditEventContext> auditEventContextArgCaptor =
+                ArgumentCaptor.forClass(AuditEventContext.class);
         APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
         AccessToken accessToken = new BearerAccessToken();
-        event.withHeaders(
+        Map<String, String> requestHeaders =
                 Map.of(
                         IssueCredentialHandler.AUTHORIZATION_HEADER_KEY,
-                        accessToken.toAuthorizationHeader()));
+                        accessToken.toAuthorizationHeader());
+        event.withHeaders(requestHeaders);
         setRequestBodyAsPlainJWT(event);
-
-        final UUID sessionId = UUID.randomUUID();
 
         SessionItem sessionItem = new SessionItem();
         sessionItem.setSubject(SUBJECT);
-        sessionItem.setSessionId(sessionId);
+        sessionItem.setSessionId(SESSION_ID);
 
         KBVItem kbvItem = new KBVItem();
         kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_PASS);
-        kbvItem.setSessionId(sessionId);
+        kbvItem.setSessionId(SESSION_ID);
         kbvItem.setExpiryDate(Instant.now().plusSeconds(6000L).getEpochSecond());
 
         PersonIdentityDetailed personIdentity = createPersonIdentity();
+        Map<String, Object> auditEventExtensions = Map.of("test", "audit-data");
 
         when(mockSessionService.getSessionByAccessToken(accessToken)).thenReturn(sessionItem);
-        when(mockKBVStorageService.getKBVItem(sessionId)).thenReturn(kbvItem);
-        when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+        when(mockKBVStorageService.getKBVItem(SESSION_ID)).thenReturn(kbvItem);
+        when(mockPersonIdentityService.getPersonIdentityDetailed(SESSION_ID))
                 .thenReturn(personIdentity);
+        when(mockVerifiableCredentialService.getAuditEventExtensions(kbvItem))
+                .thenReturn(auditEventExtensions);
         when(mockVerifiableCredentialService.generateSignedVerifiableCredentialJwt(
                         SUBJECT, personIdentity, kbvItem))
                 .thenReturn(mock(SignedJWT.class));
@@ -108,11 +117,18 @@ class IssueCredentialHandlerTest {
         APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
 
         verify(mockSessionService).getSessionByAccessToken(accessToken);
-        verify(mockKBVStorageService).getKBVItem(sessionId);
+        verify(mockKBVStorageService).getKBVItem(SESSION_ID);
         verify(mockVerifiableCredentialService)
                 .generateSignedVerifiableCredentialJwt(SUBJECT, personIdentity, kbvItem);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER);
-        verify(mockAuditService).sendAuditEvent(eq(AuditEventType.VC_ISSUED), any(Map.class));
+        verify(mockAuditService)
+                .sendAuditEvent(
+                        eq(AuditEventType.VC_ISSUED),
+                        auditEventContextArgCaptor.capture(),
+                        auditEventExtensionsArgCaptor.capture());
+        assertEquals(sessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
+        assertEquals(requestHeaders, auditEventContextArgCaptor.getValue().getRequestHeaders());
+        assertEquals(auditEventExtensions, auditEventExtensionsArgCaptor.getValue());
         assertEquals(
                 ContentType.APPLICATION_JWT.getType(), response.getHeaders().get("Content-Type"));
         assertEquals(HttpStatusCode.OK, response.getStatusCode());
@@ -131,21 +147,19 @@ class IssueCredentialHandlerTest {
         setupEventProbeErrorBehaviour();
         var unExpectedJOSEException = new JOSEException("Unexpected JOSE object type: JWSObject");
 
-        final UUID sessionId = UUID.randomUUID();
-
         SessionItem sessionItem = new SessionItem();
         sessionItem.setSubject(SUBJECT);
-        sessionItem.setSessionId(sessionId);
+        sessionItem.setSessionId(SESSION_ID);
 
         KBVItem kbvItem = new KBVItem();
         kbvItem.setStatus(VC_THIRD_PARTY_KBV_CHECK_PASS);
-        kbvItem.setSessionId(sessionId);
+        kbvItem.setSessionId(SESSION_ID);
 
         PersonIdentityDetailed personIdentity = createPersonIdentity();
 
         when(mockSessionService.getSessionByAccessToken(accessToken)).thenReturn(sessionItem);
-        when(mockKBVStorageService.getKBVItem(sessionId)).thenReturn(kbvItem);
-        when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+        when(mockKBVStorageService.getKBVItem(SESSION_ID)).thenReturn(kbvItem);
+        when(mockPersonIdentityService.getPersonIdentityDetailed(SESSION_ID))
                 .thenReturn(personIdentity);
         when(mockVerifiableCredentialService.generateSignedVerifiableCredentialJwt(
                         SUBJECT, personIdentity, kbvItem))
@@ -154,7 +168,7 @@ class IssueCredentialHandlerTest {
         APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
 
         verify(mockSessionService).getSessionByAccessToken(accessToken);
-        verify(mockKBVStorageService).getKBVItem(sessionId);
+        verify(mockKBVStorageService).getKBVItem(SESSION_ID);
         verify(mockVerifiableCredentialService)
                 .generateSignedVerifiableCredentialJwt(SUBJECT, personIdentity, kbvItem);
         verify(mockEventProbe).log(Level.ERROR, unExpectedJOSEException);
@@ -246,11 +260,10 @@ class IssueCredentialHandlerTest {
                         .errorMessage("AWS DynamoDbException Occurred")
                         .build();
 
-        final UUID sessionId = UUID.randomUUID();
         SessionItem mockSessionItem = mock(SessionItem.class);
-        when(mockSessionItem.getSessionId()).thenReturn(sessionId);
+        when(mockSessionItem.getSessionId()).thenReturn(SESSION_ID);
         when(mockSessionService.getSessionByAccessToken(accessToken)).thenReturn(mockSessionItem);
-        when(mockKBVStorageService.getKBVItem(sessionId))
+        when(mockKBVStorageService.getKBVItem(SESSION_ID))
                 .thenThrow(
                         AwsServiceException.builder()
                                 .statusCode(500)
@@ -260,7 +273,7 @@ class IssueCredentialHandlerTest {
         APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
 
         verify(mockSessionService).getSessionByAccessToken(accessToken);
-        verify(mockKBVStorageService).getKBVItem(sessionId);
+        verify(mockKBVStorageService).getKBVItem(SESSION_ID);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
         verify(mockAuditService, never()).sendAuditEvent(any(AuditEventType.class));
         String responseBody = new ObjectMapper().readValue(response.getBody(), String.class);

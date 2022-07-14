@@ -14,14 +14,18 @@ import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
+import uk.gov.di.ipv.cri.common.library.exception.SessionExpiredException;
+import uk.gov.di.ipv.cri.common.library.exception.SessionNotFoundException;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
+import uk.gov.di.ipv.cri.common.library.util.ApiGatewayResponseGenerator;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
@@ -40,14 +44,14 @@ import java.util.Objects;
 import java.util.UUID;
 
 import static org.apache.logging.log4j.Level.ERROR;
-import static software.amazon.awssdk.http.HttpStatusCode.BAD_REQUEST;
-import static software.amazon.awssdk.http.HttpStatusCode.OK;
+import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_EXPIRED;
+import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_NOT_FOUND;
 
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     public static final String HEADER_SESSION_ID = "session-id";
-    public static final String GET_QUESTION = "get_question";
-    public static final String ERROR_KEY = "\"error\"";
+    public static final String LAMBDA_NAME = "get_question";
+    public static final String ERROR_KEY = "error";
     public static final String IIQ_STRATEGY_PARAM_NAME = "IIQStrategy";
     private static final String IIQ_OPERATOR_ID_PARAM_NAME = "IIQOperatorId";
     public static final String METRIC_DIMENSION_QUESTION_ID = "kbv_question_id";
@@ -98,10 +102,10 @@ public class QuestionHandler
     @Metrics(captureColdStart = true)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
-        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
-        response.withHeaders(Map.of("Content-Type", "application/json"));
+
         try {
             UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
+            SessionItem sessionItem = sessionService.validateSessionId(String.valueOf(sessionId));
             KBVItem kbvItem = kbvStorageService.getKBVItem(sessionId);
             QuestionState questionState = new QuestionState();
             if (kbvItem != null) {
@@ -112,82 +116,92 @@ public class QuestionHandler
                 kbvItem.setSessionId(sessionId);
             }
             if (Objects.nonNull(kbvItem.getStatus())) {
-                response.withStatusCode(HttpStatusCode.NO_CONTENT);
-                eventProbe.counterMetric(GET_QUESTION);
-                return response;
+                eventProbe.counterMetric(LAMBDA_NAME);
+                return createNoContentResponse();
             }
 
-            Question question = processQuestionRequest(questionState, kbvItem);
-            response.withBody(objectMapper.writeValueAsString(question));
-            response.withStatusCode(OK);
+            Question question =
+                    processQuestionRequest(questionState, kbvItem, sessionItem, input.getHeaders());
             eventProbe.addDimensions(
                     Map.of(METRIC_DIMENSION_QUESTION_ID, question.getQuestionID()));
-            eventProbe.counterMetric(GET_QUESTION);
+            eventProbe.counterMetric(LAMBDA_NAME);
+            return ApiGatewayResponseGenerator.proxyJsonResponse(HttpStatusCode.OK, question);
+        } catch (SessionExpiredException sessionExpiredException) {
+            return handleException(
+                    HttpStatusCode.FORBIDDEN,
+                    sessionExpiredException,
+                    "Access denied by resource owner or authorization server - "
+                            + SESSION_EXPIRED.getErrorSummary());
+        } catch (SessionNotFoundException sessionNotFoundException) {
+            return handleException(
+                    HttpStatusCode.FORBIDDEN,
+                    sessionNotFoundException,
+                    "Access denied by resource owner or authorization server - "
+                            + SESSION_NOT_FOUND.getErrorSummary());
         } catch (JsonProcessingException jsonProcessingException) {
-            eventProbe.log(ERROR, jsonProcessingException).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-            response.withBody(
-                    "{ " + ERROR_KEY + ":\"Failed to parse object using ObjectMapper.\" }");
+            return handleException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR,
+                    jsonProcessingException,
+                    "Failed to parse object using ObjectMapper.");
         } catch (NullPointerException npe) {
-            eventProbe.log(ERROR, npe).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(BAD_REQUEST);
-            response.withBody("{ " + ERROR_KEY + ":\"" + npe + "\" }");
+            return handleException(HttpStatusCode.BAD_REQUEST, npe, npe.toString());
         } catch (QuestionNotFoundException qe) {
-            eventProbe.log(ERROR, qe).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.NO_CONTENT);
+            return handleException(HttpStatusCode.NO_CONTENT, qe, null);
         } catch (IOException e) {
-            eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR_KEY + ":\"Retrieving questions failed.\" }");
+            return handleException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR, e, "Retrieving questions failed.");
         } catch (Exception e) {
-            eventProbe.log(ERROR, e).counterMetric(GET_QUESTION, 0d);
-            response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
-            response.withBody("{ " + ERROR_KEY + ":\"AWS Server error occurred.\" }");
+            return handleException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR, e, "AWS Server error occurred.");
         }
-        return response;
     }
 
-    private void sendNoQuestionAuditEvent(QuestionsResponse questionsResponse) throws SqsException {
+    private void sendNoQuestionAuditEvent(
+            QuestionsResponse questionsResponse,
+            SessionItem sessionItem,
+            Map<String, String> requestHeaders)
+            throws SqsException {
         auditService.sendAuditEvent(
                 AuditEventType.THIRD_PARTY_REQUEST_ENDED,
-                createAuditEventContext(questionsResponse));
+                new AuditEventContext(requestHeaders, sessionItem),
+                createAuditEventExtensions(questionsResponse));
     }
 
-    private void setAuthCode(KBVItem kbvItem) {
-        SessionItem sessionItem = sessionService.getSession(String.valueOf(kbvItem.getSessionId()));
-        sessionService.createAuthorizationCode(sessionItem);
-    }
-
-    private Map<String, Object> createAuditEventContext(QuestionsResponse questionsResponse) {
-        Map<String, Object> contextEntries = new HashMap<>();
-        contextEntries.put("outcome", questionsResponse.getStatus());
+    private Map<String, Object> createAuditEventExtensions(QuestionsResponse questionsResponse) {
+        Map<String, Object> auditExtensionsEntries = new HashMap<>();
+        auditExtensionsEntries.put("outcome", questionsResponse.getStatus());
         if (Objects.nonNull(questionsResponse.getResults())
                 && Objects.nonNull(questionsResponse.getResults().getQuestions())) {
             ResultsQuestions questionSummary = questionsResponse.getResults().getQuestions();
-            contextEntries.put("totalQuestionsAsked", questionSummary.getAsked());
-            contextEntries.put("totalQuestionsAnsweredCorrect", questionSummary.getCorrect());
-            contextEntries.put("totalQuestionsAnsweredIncorrect", questionSummary.getIncorrect());
+            auditExtensionsEntries.put("totalQuestionsAsked", questionSummary.getAsked());
+            auditExtensionsEntries.put(
+                    "totalQuestionsAnsweredCorrect", questionSummary.getCorrect());
+            auditExtensionsEntries.put(
+                    "totalQuestionsAnsweredIncorrect", questionSummary.getIncorrect());
         }
-        return Map.of("experianIiqResponse", contextEntries);
+        return Map.of("experianIiqResponse", auditExtensionsEntries);
     }
 
-    public Question processQuestionRequest(QuestionState questionState, KBVItem kbvItem)
+    Question processQuestionRequest(
+            QuestionState questionState,
+            KBVItem kbvItem,
+            SessionItem sessionItem,
+            Map<String, String> requestHeaders)
             throws IOException, SqsException {
 
         Question question;
         if ((question = getQuestionFromDbStore(questionState)) != null) {
             return question;
         }
-        var questionsResponse = getQuestionAnswerResponse(kbvItem);
+        var questionsResponse = getQuestionAnswerResponse(kbvItem, sessionItem, requestHeaders);
         question = getQuestionFromResponse(questionsResponse, questionState);
         saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
         if (question != null) {
             return question;
-        } else {
-            setAuthCode(kbvItem);
-            sendNoQuestionAuditEvent(questionsResponse);
-            throw new QuestionNotFoundException("No questions available");
         }
+        sessionService.createAuthorizationCode(sessionItem);
+        sendNoQuestionAuditEvent(questionsResponse, sessionItem, requestHeaders);
+        throw new QuestionNotFoundException("No questions available");
     }
 
     private Question getQuestionFromDbStore(QuestionState questionState) {
@@ -202,9 +216,9 @@ public class QuestionHandler
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
             return questionState.getNextQuestion().orElse(null);
-        } else { // Alternate flow when first request does not return questions
-            return null;
         }
+        // Alternate flow when first request does not return questions
+        return null;
     }
 
     private void saveQuestionStateToKbvItem(
@@ -219,7 +233,8 @@ public class QuestionHandler
         kbvStorageService.save(kbvItem);
     }
 
-    private QuestionsResponse getQuestionAnswerResponse(KBVItem kbvItem)
+    private QuestionsResponse getQuestionAnswerResponse(
+            KBVItem kbvItem, SessionItem sessionItem, Map<String, String> requestHeaders)
             throws JsonProcessingException, SqsException {
         Objects.requireNonNull(kbvItem, "kbvItem cannot be null");
 
@@ -235,7 +250,9 @@ public class QuestionHandler
                     personIdentityService.convertToPersonIdentitySummary(personIdentity));
             eventProbe.addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, strategy));
             QuestionsResponse questionsResponse = this.kbvService.getQuestions(questionRequest);
-            auditService.sendAuditEvent(AuditEventType.REQUEST_SENT, personIdentity);
+            auditService.sendAuditEvent(
+                    AuditEventType.REQUEST_SENT,
+                    new AuditEventContext(personIdentity, requestHeaders, sessionItem));
             return questionsResponse;
         }
         QuestionState questionState =
@@ -245,5 +262,18 @@ public class QuestionHandler
         questionAnswerRequest.setAuthRefNo(kbvItem.getAuthRefNo());
         questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
         return this.kbvService.submitAnswers(questionAnswerRequest);
+    }
+
+    private APIGatewayProxyResponseEvent handleException(
+            int httpStatusCode, Throwable throwable, String errorMessage) {
+        eventProbe.log(ERROR, throwable).counterMetric(LAMBDA_NAME, 0d);
+        return httpStatusCode == HttpStatusCode.NO_CONTENT
+                ? createNoContentResponse()
+                : ApiGatewayResponseGenerator.proxyJsonResponse(
+                        httpStatusCode, Map.of(ERROR_KEY, errorMessage));
+    }
+
+    private APIGatewayProxyResponseEvent createNoContentResponse() {
+        return new APIGatewayProxyResponseEvent().withStatusCode(HttpStatusCode.NO_CONTENT);
     }
 }
