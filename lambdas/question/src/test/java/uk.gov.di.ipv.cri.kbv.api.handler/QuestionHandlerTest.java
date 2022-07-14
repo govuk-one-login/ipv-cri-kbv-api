@@ -107,6 +107,11 @@ class QuestionHandlerTest {
 
     @Nested
     class QuestionHandlerCalled {
+        @BeforeEach
+        void setUp() {
+            questionHandler.setLoaded(true);
+        }
+
         @Test
         void shouldReturn200OkWhen1stCalledAndReturn1stUnAnsweredQuestionFromExperianEndpoint()
                 throws IOException, SqsException {

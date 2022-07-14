@@ -12,11 +12,11 @@ import java.util.Base64;
 import java.util.Objects;
 import java.util.UUID;
 
-class KeyStoreLoader {
+public class KeyStoreLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(KeyStoreLoader.class);
     private final ConfigurationService configurationService;
 
-    KeyStoreLoader(ConfigurationService configurationService) {
+    public KeyStoreLoader(ConfigurationService configurationService) {
         this.configurationService =
                 Objects.requireNonNull(
                         configurationService, "configurationService must not be null");
@@ -41,7 +41,7 @@ class KeyStoreLoader {
         return this.configurationService.getSecretValue("experian/keystore-password");
     }
 
-    void load() {
+    public void load() {
         System.setProperty("javax.net.ssl.keyStoreType", "pkcs12");
         System.setProperty("javax.net.ssl.keyStore", getKeyStorePath());
         System.setProperty("javax.net.ssl.keyStorePassword", getPassword());

@@ -50,19 +50,18 @@ public class QuestionAnswerHandler
     private static final String ERROR_KEY = "error";
     private static final String LAMBDA_NAME = "post_answer";
     private final ObjectMapper objectMapper;
-    private final KBVService kbvService;
-    private final KBVStorageService kbvStorageService;
+    private KBVService kbvService;
+    private KBVStorageService kbvStorageService;
     private final SessionService sessionService;
     private final EventProbe eventProbe;
     private final AuditService auditService;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
-        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         ConfigurationService configurationService = new ConfigurationService();
+        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.kbvStorageService = new KBVStorageService(configurationService);
-        this.kbvService =
-                new KBVService(new KBVGatewayFactory(configurationService).getKbvGateway());
+        this.kbvService = new KBVService(new KBVGatewayFactory().create(configurationService));
         this.eventProbe = new EventProbe();
         this.sessionService = new SessionService();
         this.auditService = new AuditService();

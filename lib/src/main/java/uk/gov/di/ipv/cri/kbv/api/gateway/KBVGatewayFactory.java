@@ -13,33 +13,27 @@ import uk.gov.di.ipv.cri.kbv.api.service.EnvironmentVariablesService;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 
 public class KBVGatewayFactory {
-    private final KBVGateway kbvGateway;
 
-    public KBVGatewayFactory(ConfigurationService configurationService) {
-        HeaderHandler headerHandler =
-                new HeaderHandler(
-                        new Base64TokenCacheLoader(
-                                new SoapToken(
-                                        "GDS DI", true, new TokenService(), configurationService)));
-
-        new KeyStoreLoader(configurationService).load();
-
-        MetricsService metricsService = new MetricsService(new EventProbe());
-        this.kbvGateway =
-                new KBVGateway(
-                        new StartAuthnAttemptRequestMapper(
-                                configurationService,
-                                metricsService,
-                                new EnvironmentVariablesService()),
-                        new ResponseToQuestionMapper(metricsService),
-                        new KBVClientFactory(
-                                        new IdentityIQWebService(),
-                                        new HeaderHandlerResolver(headerHandler),
-                                        configurationService)
-                                .createClient());
+    public KBVGateway create(ConfigurationService configurationService) {
+        return getKbvGateway(configurationService);
     }
 
-    public KBVGateway getKbvGateway() {
-        return this.kbvGateway;
+    private KBVGateway getKbvGateway(ConfigurationService configurationService) {
+        var metricsService = new MetricsService(new EventProbe());
+        return new KBVGateway(
+                new StartAuthnAttemptRequestMapper(
+                        configurationService, metricsService, new EnvironmentVariablesService()),
+                new ResponseToQuestionMapper(metricsService),
+                new KBVClientFactory(
+                                new IdentityIQWebService(),
+                                new HeaderHandlerResolver(getHeaderHandler(configurationService)),
+                                configurationService)
+                        .createClient());
+    }
+
+    private HeaderHandler getHeaderHandler(ConfigurationService configurationService) {
+        return new HeaderHandler(
+                new Base64TokenCacheLoader(
+                        new SoapToken("GDS DI", true, new TokenService(), configurationService)));
     }
 }

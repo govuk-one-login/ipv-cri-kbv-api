@@ -34,6 +34,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
+import uk.gov.di.ipv.cri.kbv.api.gateway.KeyStoreLoader;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
@@ -65,14 +66,14 @@ public class QuestionHandler
     private final AuditService auditService;
     private final ConfigurationService configurationService;
     private final SessionService sessionService;
+    private boolean isLoaded;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.personIdentityService = new PersonIdentityService();
         this.configurationService = new ConfigurationService();
-        this.kbvService =
-                new KBVService(new KBVGatewayFactory(this.configurationService).getKbvGateway());
+        this.kbvService = new KBVService(new KBVGatewayFactory().create(configurationService));
         this.kbvStorageService = new KBVStorageService(this.configurationService);
         this.eventProbe = new EventProbe();
         this.auditService = new AuditService();
@@ -98,13 +99,30 @@ public class QuestionHandler
         this.sessionService = sessionService;
     }
 
+    boolean isLoaded() {
+        return isLoaded;
+    }
+
+    void setLoaded(boolean loaded) {
+        isLoaded = loaded;
+    }
+
+    private void loadKeyStore() {
+        if (!isLoaded()) {
+            new KeyStoreLoader(this.configurationService).load();
+        }
+        setLoaded(true);
+    }
+
     @Override
     @Logging(correlationIdPath = CorrelationIdPathConstants.API_GATEWAY_REST)
     @Metrics(captureColdStart = true)
     @Tracing
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
-
+        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+        loadKeyStore();
+        response.withHeaders(Map.of("Content-Type", "application/json"));
         try {
             UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
             SessionItem sessionItem = sessionService.validateSessionId(String.valueOf(sessionId));
