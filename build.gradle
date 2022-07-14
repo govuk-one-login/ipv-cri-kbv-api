@@ -101,7 +101,8 @@ subprojects {
 				"org.apache.cxf:cxf-rt-transports-http:3.4.5"
 
 		powertools "software.amazon.lambda:powertools-logging:${dependencyVersions.powertools_version}",
-				"software.amazon.lambda:powertools-metrics:${dependencyVersions.powertools_version}"
+				"software.amazon.lambda:powertools-metrics:${dependencyVersions.powertools_version}",
+				"software.amazon.lambda:powertools-tracing:${dependencyVersions.powertools_version}"
 
 
 		tests "org.junit.jupiter:junit-jupiter-api:${dependencyVersions.junit}",
@@ -126,6 +127,8 @@ subprojects {
 	apply plugin: 'java'
 
 	test {
+		// Configures environment variable to avoid initialization of AWS X-Ray segments for each tests
+		environment "LAMBDA_TASK_ROOT", "handler"
 		filter {
 			excludeTestsMatching "uk.gov.di.ipv.cri.kbv.acceptancetest.journey.*"
 		}
