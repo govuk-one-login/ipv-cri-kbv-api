@@ -16,7 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
@@ -38,10 +37,10 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
-import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.ServiceRegistry;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -61,8 +60,6 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -81,24 +78,21 @@ class QuestionHandlerTest {
     @Mock private KBVStorageService mockKBVStorageService;
     @Mock private PersonIdentityService mockPersonIdentityService;
     @Mock private EventProbe mockEventProbe;
-    @Mock private KBVGateway mockKBVGateway;
     @Mock private ConfigurationService mockConfigurationService;
     @Mock private AuditService mockAuditService;
     @Mock private SessionService sessionService;
+    @Mock private ServiceRegistry mockServiceRegistry;
     @Captor private ArgumentCaptor<Map<String, Object>> auditEventMap;
     @Captor private ArgumentCaptor<AuditEventContext> auditEventContextArgCaptor;
 
-    private KBVService spyKBVService;
+    @Mock private KBVService mockKBVService;
 
     @BeforeEach
     void setUp() {
-        spyKBVService = Mockito.spy(new KBVService(mockKBVGateway));
         questionHandler =
                 new QuestionHandler(
                         mockObjectMapper,
-                        mockKBVStorageService,
-                        mockPersonIdentityService,
-                        spyKBVService,
+                        mockServiceRegistry,
                         mockConfigurationService,
                         mockEventProbe,
                         mockAuditService,
@@ -127,15 +121,22 @@ class QuestionHandlerTest {
             when(input.getHeaders()).thenReturn(requestHeaders);
             when(sessionService.validateSessionId(requestHeaders.get(HEADER_SESSION_ID)))
                     .thenReturn(sessionItem);
+            when(mockServiceRegistry.getPersonIdentityService())
+                    .thenReturn(mockPersonIdentityService);
             when(mockPersonIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId()))
                     .thenReturn(personIdentity);
+            when(mockServiceRegistry.getKBVStorageService()).thenReturn(mockKBVStorageService);
             doNothing().when(mockKBVStorageService).save(any());
 
             String expectedQuestion = new ObjectMapper().writeValueAsString(getQuestionOne());
 
-            doReturn(getExperianQuestionResponse(List.of(getQuestionOne(), getQuestionTwo())))
-                    .when(spyKBVService)
-                    .getQuestions(any());
+            when(mockServiceRegistry.getKBVService()).thenReturn(mockKBVService);
+
+            when(mockKBVService.getQuestions(any()))
+                    .thenReturn(
+                            getExperianQuestionResponse(
+                                    List.of(getQuestionOne(), getQuestionTwo())));
+
             when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
@@ -189,6 +190,7 @@ class QuestionHandlerTest {
             questionState.setAnswer(questionAnswer);
 
             when(input.getHeaders()).thenReturn(sessionHeader);
+            when(mockServiceRegistry.getKBVStorageService()).thenReturn(mockKBVStorageService);
             when(mockKBVStorageService.getKBVItem(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                     .thenReturn(kbvItem);
@@ -223,14 +225,18 @@ class QuestionHandlerTest {
             KBVItem kbvItem = new KBVItem();
             kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
             QuestionState questionStateMock = mock(QuestionState.class);
-            when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
-                    .thenReturn(questionsResponse);
+
+            when(mockServiceRegistry.getKBVStorageService()).thenReturn(mockKBVStorageService);
+
             when(questionsResponse.getControl()).thenReturn(control);
 
             when(input.getHeaders()).thenReturn(sessionHeader);
             when(mockKBVStorageService.getKBVItem(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                     .thenReturn(kbvItem);
+            when(mockServiceRegistry.getKBVService()).thenReturn(mockKBVService);
+            when(mockServiceRegistry.getPersonIdentityService())
+                    .thenReturn(mockPersonIdentityService);
             when(mockPersonIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId()))
                     .thenReturn(personIdentity);
 
@@ -240,6 +246,8 @@ class QuestionHandlerTest {
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
 
+            when(mockKBVService.getQuestions(any(QuestionRequest.class)))
+                    .thenReturn(questionsResponse);
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, contextMock);
 
@@ -248,7 +256,6 @@ class QuestionHandlerTest {
 
             verify(mockKBVStorageService)
                     .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
-
             verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
             verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
@@ -280,9 +287,10 @@ class QuestionHandlerTest {
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
             when(input.getHeaders()).thenReturn(sessionHeader);
-            doThrow(InternalServerErrorException.class)
-                    .when(mockKBVStorageService)
-                    .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
+            when(mockServiceRegistry.getKBVStorageService()).thenReturn(mockKBVStorageService);
+            when(mockKBVStorageService.getKBVItem(
+                            UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
+                    .thenThrow(InternalServerErrorException.class);
 
             setupEventProbeErrorBehaviour();
             APIGatewayProxyResponseEvent response =
@@ -310,6 +318,10 @@ class QuestionHandlerTest {
                                             .build())
                             .errorMessage("AWS DynamoDbException Occurred")
                             .build();
+            when(mockServiceRegistry.getKBVStorageService()).thenReturn(mockKBVStorageService);
+            when(mockServiceRegistry.getKBVService()).thenReturn(mockKBVService);
+            when(mockServiceRegistry.getPersonIdentityService())
+                    .thenReturn(mockPersonIdentityService);
             when(mockPersonIdentityService.getPersonIdentityDetailed(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                     .thenThrow(
@@ -343,9 +355,13 @@ class QuestionHandlerTest {
             QuestionState questionStateMock = mock(QuestionState.class);
 
             when(input.getHeaders()).thenReturn(sessionHeader);
+            when(mockServiceRegistry.getKBVStorageService()).thenReturn(mockKBVStorageService);
             when(mockKBVStorageService.getKBVItem(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                     .thenReturn(kbvItemMock);
+            when(mockServiceRegistry.getKBVService()).thenReturn(mockKBVService);
+            when(mockServiceRegistry.getPersonIdentityService())
+                    .thenReturn(mockPersonIdentityService);
             when(mockPersonIdentityService.getPersonIdentityDetailed(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                     .thenReturn(personIdentityMock);
@@ -353,9 +369,8 @@ class QuestionHandlerTest {
             when(mockObjectMapper.readValue(kbvItemMock.getQuestionState(), QuestionState.class))
                     .thenReturn(questionStateMock);
 
-            doThrow(RuntimeException.class)
-                    .when(spyKBVService)
-                    .getQuestions(any(QuestionRequest.class));
+            when(mockKBVService.getQuestions(any(QuestionRequest.class)))
+                    .thenThrow(RuntimeException.class);
 
             setupEventProbeErrorBehaviour();
             APIGatewayProxyResponseEvent response =
@@ -378,6 +393,7 @@ class QuestionHandlerTest {
             QuestionState questionStateMock = mock(QuestionState.class);
 
             when(input.getHeaders()).thenReturn(sessionHeader);
+            when(mockServiceRegistry.getKBVStorageService()).thenReturn(mockKBVStorageService);
             when(mockKBVStorageService.getKBVItem(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                     .thenReturn(kbvItemMock);
@@ -415,11 +431,19 @@ class QuestionHandlerTest {
             when(questionsResponse.getControl()).thenReturn(control);
             when(control.getAuthRefNo()).thenReturn("an auth ref no");
             when(control.getURN()).thenReturn("a urn");
+            KBVService mockKBVService = mock(KBVService.class);
+            when(mockServiceRegistry.getKBVService()).thenReturn(mockKBVService);
 
-            when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
+            when(mockKBVService.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
+            // when(sessionService.getSession(sessionId.toString())).thenReturn(sessionItem);
+            when(mockServiceRegistry.getPersonIdentityService())
+                    .thenReturn(mockPersonIdentityService);
+            when(mockServiceRegistry.getKBVStorageService()).thenReturn(mockKBVStorageService);
+            when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+                    .thenReturn(mock(PersonIdentityDetailed.class));
             assertThrows(
                     QuestionNotFoundException.class,
                     () -> {
@@ -514,11 +538,16 @@ class QuestionHandlerTest {
             UUID sessionId = UUID.randomUUID();
             kbvItem.setSessionId(sessionId);
 
+            when(mockServiceRegistry.getPersonIdentityService())
+                    .thenReturn(mockPersonIdentityService);
             when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
                     .thenReturn(personIdentity);
-            doReturn(getExperianQuestionResponse()).when(spyKBVService).getQuestions(any());
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
+            when(mockServiceRegistry.getKBVService()).thenReturn(mockKBVService);
+            when(mockServiceRegistry.getKBVStorageService()).thenReturn(mockKBVStorageService);
+
+            when(mockKBVService.getQuestions(any())).thenReturn(getExperianQuestionResponse());
             Question nextQuestionFromExperian =
                     questionHandler.processQuestionRequest(
                             questionState, kbvItem, mock(SessionItem.class), new HashMap<>());

@@ -24,7 +24,6 @@ import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
-import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.ApiGatewayResponseGenerator;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
@@ -33,11 +32,9 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
-import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KeyStoreLoader;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.ServiceRegistry;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -51,6 +48,7 @@ import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_NOT_F
 
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
+
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String LAMBDA_NAME = "get_question";
     public static final String ERROR_KEY = "error";
@@ -59,22 +57,18 @@ public class QuestionHandler
     public static final String METRIC_DIMENSION_QUESTION_ID = "kbv_question_id";
     public static final String METRIC_DIMENSION_QUESTION_STRATEGY = "question_strategy";
     private final ObjectMapper objectMapper;
-    private final KBVStorageService kbvStorageService;
-    private final PersonIdentityService personIdentityService;
+    private final ServiceRegistry serviceRegistry;
     private final EventProbe eventProbe;
-    private final KBVService kbvService;
     private final AuditService auditService;
-    private final ConfigurationService configurationService;
+    private ConfigurationService configurationService;
     private final SessionService sessionService;
     private boolean isLoaded;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        this.personIdentityService = new PersonIdentityService();
         this.configurationService = new ConfigurationService();
-        this.kbvService = new KBVService(new KBVGatewayFactory().create(configurationService));
-        this.kbvStorageService = new KBVStorageService(this.configurationService);
+        this.serviceRegistry = new ServiceRegistry(configurationService);
         this.eventProbe = new EventProbe();
         this.auditService = new AuditService();
         this.sessionService = new SessionService();
@@ -82,20 +76,16 @@ public class QuestionHandler
 
     public QuestionHandler(
             ObjectMapper objectMapper,
-            KBVStorageService kbvStorageService,
-            PersonIdentityService personIdentityService,
-            KBVService kbvService,
+            ServiceRegistry serviceRegistry,
             ConfigurationService configurationService,
             EventProbe eventProbe,
             AuditService auditService,
             SessionService sessionService) {
         this.objectMapper = objectMapper;
-        this.kbvStorageService = kbvStorageService;
-        this.personIdentityService = personIdentityService;
+        this.configurationService = configurationService;
         this.eventProbe = eventProbe;
         this.auditService = auditService;
-        this.kbvService = kbvService;
-        this.configurationService = configurationService;
+        this.serviceRegistry = serviceRegistry;
         this.sessionService = sessionService;
     }
 
@@ -122,6 +112,7 @@ public class QuestionHandler
             APIGatewayProxyRequestEvent input, Context context) {
         APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
         loadKeyStore();
+        var kbvStorageService = serviceRegistry.getKBVStorageService();
         response.withHeaders(Map.of("Content-Type", "application/json"));
         try {
             UUID sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
@@ -244,6 +235,7 @@ public class QuestionHandler
     private void saveQuestionStateToKbvItem(
             KBVItem kbvItem, QuestionState questionState, QuestionsResponse questionsResponse)
             throws JsonProcessingException {
+        var kbvStorageService = serviceRegistry.getKBVStorageService();
         String state = objectMapper.writeValueAsString(questionState);
         kbvItem.setQuestionState(state);
         kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
@@ -257,8 +249,10 @@ public class QuestionHandler
             KBVItem kbvItem, SessionItem sessionItem, Map<String, String> requestHeaders)
             throws JsonProcessingException, SqsException {
         Objects.requireNonNull(kbvItem, "kbvItem cannot be null");
+        var kbvService = serviceRegistry.getKBVService();
 
         if (kbvItem.getExpiryDate() == 0L) { // first request for questions for a given session
+            var personIdentityService = serviceRegistry.getPersonIdentityService();
             PersonIdentityDetailed personIdentity =
                     personIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId());
             QuestionRequest questionRequest = new QuestionRequest();
@@ -269,10 +263,11 @@ public class QuestionHandler
             questionRequest.setPersonIdentity(
                     personIdentityService.convertToPersonIdentitySummary(personIdentity));
             eventProbe.addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, strategy));
-            QuestionsResponse questionsResponse = this.kbvService.getQuestions(questionRequest);
             auditService.sendAuditEvent(
                     AuditEventType.REQUEST_SENT,
                     new AuditEventContext(personIdentity, requestHeaders, sessionItem));
+            QuestionsResponse questionsResponse = kbvService.getQuestions(questionRequest);
+            auditService.sendAuditEvent(AuditEventType.REQUEST_SENT, personIdentity);
             return questionsResponse;
         }
         QuestionState questionState =
@@ -281,7 +276,7 @@ public class QuestionHandler
         questionAnswerRequest.setUrn(kbvItem.getUrn());
         questionAnswerRequest.setAuthRefNo(kbvItem.getAuthRefNo());
         questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
-        return this.kbvService.submitAnswers(questionAnswerRequest);
+        return kbvService.submitAnswers(questionAnswerRequest);
     }
 
     private APIGatewayProxyResponseEvent handleException(
