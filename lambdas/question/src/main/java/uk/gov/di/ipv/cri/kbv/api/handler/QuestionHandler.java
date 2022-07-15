@@ -32,7 +32,6 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
-import uk.gov.di.ipv.cri.kbv.api.gateway.KeyStoreLoader;
 import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceRegistry;
 
@@ -98,9 +97,8 @@ public class QuestionHandler
     }
 
     private void loadKeyStore() {
-        if (!isLoaded()) {
-            new KeyStoreLoader(this.configurationService).load();
-        }
+        if (!isLoaded()) serviceRegistry.loadKeystore();
+
         setLoaded(true);
     }
 
