@@ -69,7 +69,9 @@ Globals:
     Runtime: java11
     AutoPublishAlias: live
     Tracing: Active
-    MemorySize: 512
+    MemorySize: !FindInMap [MemorySizeMapping, Environment, !Ref 'Environment']
+    Architectures:
+      - arm64
     Environment:
       Variables:
         JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
@@ -79,6 +81,14 @@ Globals:
         SQS_AUDIT_EVENT_PREFIX: IPV_KBV_CRI
 
 Mappings:
+
+  MemorySizeMapping:
+    Environment:
+      dev: 512
+      build: 1024
+      staging: 1024
+      integration: 1024
+      production: 2048
 
   IIQAPIDatabaseModeMapping:
     Environment:
