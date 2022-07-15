@@ -1143,6 +1143,10 @@ Resources:
                 "kms:EncryptionContext:aws:logs:arn": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
 Outputs:
 
+  StackName:
+    Description: "CloudFormation stack name"
+    Value: !Sub "${AWS::StackName}"
+
   PublicKBVApiGatewayId:
     Description: "API GatewayID of the public KBV CRI API"
     Value: !Sub "${PublicKBVApi}"
