@@ -18,7 +18,6 @@ dependencies {
 			configurations.lambda,
 			configurations.jackson,
 			configurations.hibernate,
-			configurations.powertools,
 			configurations.nimbus,
 			configurations.soap
 
