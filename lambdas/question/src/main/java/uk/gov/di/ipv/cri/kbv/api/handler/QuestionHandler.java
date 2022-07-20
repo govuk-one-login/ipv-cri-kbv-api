@@ -184,6 +184,7 @@ public class QuestionHandler
         return Map.of("experianIiqResponse", auditExtensionsEntries);
     }
 
+    @Tracing
     Question processQuestionRequest(
             QuestionState questionState,
             KBVItem kbvItem,
