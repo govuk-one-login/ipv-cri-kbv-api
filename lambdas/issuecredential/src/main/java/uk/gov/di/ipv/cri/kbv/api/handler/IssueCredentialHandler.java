@@ -44,7 +44,7 @@ import static org.apache.logging.log4j.Level.ERROR;
 public class IssueCredentialHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     public static final String AUTHORIZATION_HEADER_KEY = "Authorization";
-    public static final String KBV_CREDENTIAL_ISSUER = "kbv_credential_issuer";
+    public static final String KBV_CREDENTIAL_ISSUER = "kbv_credentials_issued";
     private final VerifiableCredentialService verifiableCredentialService;
     private final KBVStorageService kbvStorageService;
     private final SessionService sessionService;

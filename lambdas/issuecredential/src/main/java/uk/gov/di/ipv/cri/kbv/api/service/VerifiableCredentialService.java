@@ -31,8 +31,7 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.*;
 
 public class VerifiableCredentialService {
 
-    public static final String METRIC_KBV_VERIFICATION_SCORE = "kbv_verification_score";
-    public static final String METRIC_KBV_PASS = "kbv_pass";
+    public static final String METRIC_DIMENSION_KBV_VERIFICATION = "kbv_verification";
     private final SignedJWTFactory signedJwtFactory;
     private final ConfigurationService configurationService;
 
@@ -148,11 +147,11 @@ public class VerifiableCredentialService {
 
         if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
             evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
-            eventProbe.counterMetric(METRIC_KBV_PASS, 1d);
+            eventProbe.addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
 
         } else {
             evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
-            eventProbe.counterMetric(METRIC_KBV_PASS, 0d);
+            eventProbe.addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
         }
 
         return new Map[] {objectMapper.convertValue(evidence, Map.class)};
