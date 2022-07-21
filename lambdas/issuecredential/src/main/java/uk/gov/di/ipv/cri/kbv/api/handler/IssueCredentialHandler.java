@@ -10,6 +10,8 @@ import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.AccessTokenType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
@@ -23,7 +25,6 @@ import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverage
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.error.ErrorResponse;
-import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.service.AuditEventFactory;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
@@ -43,6 +44,7 @@ import static org.apache.logging.log4j.Level.ERROR;
 
 public class IssueCredentialHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
+    private static final Logger LOGGER = LogManager.getLogger();
     public static final String AUTHORIZATION_HEADER_KEY = "Authorization";
     public static final String KBV_CREDENTIAL_ISSUER = "kbv_credentials_issued";
     private final VerifiableCredentialService verifiableCredentialService;
@@ -109,21 +111,22 @@ public class IssueCredentialHandler
                     new AuditEventContext(input.getHeaders(), sessionItem),
                     verifiableCredentialService.getAuditEventExtensions(kbvItem));
             eventProbe.counterMetric(KBV_CREDENTIAL_ISSUER);
-
+            LOGGER.info("credential issued");
             return ApiGatewayResponseGenerator.proxyJwtResponse(
                     HttpStatusCode.OK, signedJWT.serialize());
         } catch (AwsServiceException ex) {
             eventProbe.log(ERROR, ex).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
-
+            LOGGER.info("credential not issued: " + ex.getMessage());
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     HttpStatusCode.INTERNAL_SERVER_ERROR, ex.awsErrorDetails().errorMessage());
         } catch (CredentialRequestException | ParseException | JOSEException e) {
             eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
-
+            LOGGER.info("credential not issued: " + e.getMessage());
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     HttpStatusCode.BAD_REQUEST, ErrorResponse.VERIFIABLE_CREDENTIAL_ERROR);
-        } catch (SqsException e) {
+        } catch (Exception e) {
             eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
+            LOGGER.info("credential not issued: " + e.getMessage());
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     HttpStatusCode.INTERNAL_SERVER_ERROR, e.getMessage());
         }

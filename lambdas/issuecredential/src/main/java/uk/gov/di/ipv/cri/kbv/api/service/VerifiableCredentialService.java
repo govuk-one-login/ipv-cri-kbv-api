@@ -6,6 +6,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
@@ -31,6 +33,7 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.*;
 
 public class VerifiableCredentialService {
 
+    private static final Logger LOGGER = LogManager.getLogger();
     public static final String METRIC_DIMENSION_KBV_VERIFICATION = "kbv_verification";
     private final SignedJWTFactory signedJwtFactory;
     private final ConfigurationService configurationService;
@@ -148,10 +151,12 @@ public class VerifiableCredentialService {
         if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
             evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
             eventProbe.addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
+            LOGGER.info("kbv pass");
 
         } else {
             evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
             eventProbe.addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
+            LOGGER.info("kbv fail");
         }
 
         return new Map[] {objectMapper.convertValue(evidence, Map.class)};
