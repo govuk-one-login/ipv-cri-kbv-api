@@ -9,7 +9,6 @@ import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandler;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandlerResolver;
 import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapToken;
-import uk.gov.di.ipv.cri.kbv.api.service.EnvironmentVariablesService;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 
 public class KBVGatewayFactory {
@@ -21,8 +20,7 @@ public class KBVGatewayFactory {
     private KBVGateway getKbvGateway(ConfigurationService configurationService) {
         var metricsService = new MetricsService(new EventProbe());
         return new KBVGateway(
-                new StartAuthnAttemptRequestMapper(
-                        configurationService, metricsService, new EnvironmentVariablesService()),
+                new StartAuthnAttemptRequestMapper(configurationService, metricsService),
                 new ResponseToQuestionMapper(metricsService),
                 new KBVClientFactory(
                                 new IdentityIQWebService(),

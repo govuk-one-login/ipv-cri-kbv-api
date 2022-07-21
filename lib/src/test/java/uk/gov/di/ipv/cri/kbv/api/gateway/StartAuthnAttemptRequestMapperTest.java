@@ -17,15 +17,11 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.AddressType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
-import uk.gov.di.ipv.cri.kbv.api.service.EnvironmentVariablesService;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 
 import java.time.Clock;
 import java.util.List;
-import java.util.Optional;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -43,7 +39,6 @@ class StartAuthnAttemptRequestMapperTest {
     private StartAuthnAttemptRequestMapper startAuthnAttemptRequestMapper;
     QuestionRequest questionRequest;
     @Mock private MetricsService metricsService;
-    @Mock private EnvironmentVariablesService environmentVariablesService;
     @Mock private SSMProvider mockSsmProvider;
     @Mock private SecretsProvider mockSecretsProvider;
     @Mock private Clock mockClock;
@@ -54,8 +49,7 @@ class StartAuthnAttemptRequestMapperTest {
                 new StartAuthnAttemptRequestMapper(
                         new ConfigurationService(
                                 mockSsmProvider, mockSecretsProvider, TEST_STACK_NAME, mockClock),
-                        metricsService,
-                        environmentVariablesService);
+                        metricsService);
     }
 
     @Test
@@ -197,16 +191,5 @@ class StartAuthnAttemptRequestMapperTest {
                         NullPointerException.class,
                         () -> startAuthnAttemptRequestMapper.mapQuestionRequest(questionRequest));
         assertEquals("The QuestionRequest must not be null", exception.getMessage());
-    }
-
-    @Test
-    void shouldSetGenderIfGenderEnvVarPresent() {
-        questionRequest = createTestQuestionAnswerRequest(AddressType.CURRENT);
-        when(environmentVariablesService.getEnvironmentVariable(EnvironmentVariablesService.GENDER))
-                .thenReturn(Optional.of("F"));
-        SAARequest saaRequest = startAuthnAttemptRequestMapper.mapQuestionRequest(questionRequest);
-        assertThat(saaRequest.getApplicant().getGender(), equalTo("F"));
-        verify(environmentVariablesService)
-                .getEnvironmentVariable(EnvironmentVariablesService.GENDER);
     }
 }

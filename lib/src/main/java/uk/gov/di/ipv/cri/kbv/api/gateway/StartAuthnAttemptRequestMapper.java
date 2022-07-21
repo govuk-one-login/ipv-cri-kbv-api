@@ -20,13 +20,11 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
-import uk.gov.di.ipv.cri.kbv.api.service.EnvironmentVariablesService;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 import uk.gov.di.ipv.cri.kbv.api.util.StringUtils;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -40,15 +38,11 @@ public class StartAuthnAttemptRequestMapper {
 
     private final ConfigurationService configurationService;
     private MetricsService metricsService;
-    private EnvironmentVariablesService environmentVariablesService;
 
     public StartAuthnAttemptRequestMapper(
-            ConfigurationService configurationService,
-            MetricsService metricsService,
-            EnvironmentVariablesService environmentVariablesService) {
+            ConfigurationService configurationService, MetricsService metricsService) {
         this.configurationService = configurationService;
         this.metricsService = metricsService;
-        this.environmentVariablesService = environmentVariablesService;
     }
 
     public SAARequest mapQuestionRequest(QuestionRequest questionRequest) {
@@ -179,10 +173,6 @@ public class StartAuthnAttemptRequestMapper {
 
         name.setTitle(DEFAULT_TITLE);
         applicant.setName(name);
-        Optional<String> environmentVariable =
-                environmentVariablesService.getEnvironmentVariable(
-                        EnvironmentVariablesService.GENDER);
-        environmentVariable.ifPresent(applicant::setGender);
 
         ApplicantDateOfBirth dateOfBirth = new ApplicantDateOfBirth();
 
