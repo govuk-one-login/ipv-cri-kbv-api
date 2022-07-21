@@ -12,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandler;
@@ -22,6 +23,7 @@ import uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator;
 import javax.xml.ws.soap.SOAPFaultException;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -104,6 +106,8 @@ class KBVGatewayTest {
 
         HeaderHandler headerHandler = mock(HeaderHandler.class);
 
+        ConfigurationService mockConfigurationService = mock(ConfigurationService.class);
+        when(mockConfigurationService.getSecretValue(any())).thenReturn("endpoint");
         KBVGateway kbvGateway =
                 new KBVGateway(
                         mock(StartAuthnAttemptRequestMapper.class),
@@ -111,7 +115,7 @@ class KBVGatewayTest {
                         new KBVClientFactory(
                                         new IdentityIQWebService(),
                                         new HeaderHandlerResolver(headerHandler),
-                                        "endpoint")
+                                        mockConfigurationService)
                                 .createClient());
 
         assertThrows(

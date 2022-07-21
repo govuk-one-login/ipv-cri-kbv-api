@@ -18,6 +18,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.service.EnvironmentVariablesService;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
@@ -34,15 +35,18 @@ public class StartAuthnAttemptRequestMapper {
     private static final Logger LOGGER = LogManager.getLogger();
 
     public static final String DEFAULT_TITLE = "MR";
-    private String testDatabase;
+
+    public static final String IIQ_DATABASE_MODE_PARAM_NAME = "IIQDatabaseMode";
+
+    private final ConfigurationService configurationService;
     private MetricsService metricsService;
     private EnvironmentVariablesService environmentVariablesService;
 
     public StartAuthnAttemptRequestMapper(
-            String testDatabase,
+            ConfigurationService configurationService,
             MetricsService metricsService,
             EnvironmentVariablesService environmentVariablesService) {
-        this.testDatabase = testDatabase;
+        this.configurationService = configurationService;
         this.metricsService = metricsService;
         this.environmentVariablesService = environmentVariablesService;
     }
@@ -146,7 +150,8 @@ public class StartAuthnAttemptRequestMapper {
 
     private Control createControl(QuestionRequest questionRequest) {
         Control control = new Control();
-        control.setTestDatabase(testDatabase);
+        control.setTestDatabase(
+                configurationService.getParameterValue(IIQ_DATABASE_MODE_PARAM_NAME));
         Parameters parameters = new Parameters();
         parameters.setOneShotAuthentication("N");
         parameters.setStoreCaseData("P");
