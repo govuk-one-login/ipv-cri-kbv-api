@@ -18,15 +18,16 @@ public class KBVGatewayFactory {
     }
 
     private KBVGateway getKbvGateway(ConfigurationService configurationService) {
-        var metricsService = new MetricsService(new EventProbe());
         return new KBVGateway(
-                new StartAuthnAttemptRequestMapper(configurationService, metricsService),
-                new ResponseToQuestionMapper(metricsService),
+                new StartAuthnAttemptRequestMapper(configurationService),
+                new ResponseToQuestionMapper(),
+                new QuestionsResponseMapper(),
                 new KBVClientFactory(
                                 new IdentityIQWebService(),
                                 new HeaderHandlerResolver(getHeaderHandler(configurationService)),
                                 configurationService)
-                        .createClient());
+                        .createClient(),
+                new MetricsService(new EventProbe()));
     }
 
     private HeaderHandler getHeaderHandler(ConfigurationService configurationService) {

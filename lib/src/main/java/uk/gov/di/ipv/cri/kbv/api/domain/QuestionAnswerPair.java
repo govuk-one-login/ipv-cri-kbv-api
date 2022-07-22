@@ -2,17 +2,16 @@ package uk.gov.di.ipv.cri.kbv.api.domain;
 
 public class QuestionAnswerPair {
 
-    private com.experian.uk.schema.experian.identityiq.services.webservice.Question question;
+    private KbvQuestion question;
     private String answer;
 
     public QuestionAnswerPair() {}
 
-    public QuestionAnswerPair(
-            com.experian.uk.schema.experian.identityiq.services.webservice.Question question) {
+    public QuestionAnswerPair(KbvQuestion question) {
         this.question = question;
     }
 
-    public com.experian.uk.schema.experian.identityiq.services.webservice.Question getQuestion() {
+    public KbvQuestion getQuestion() {
         return question;
     }
 

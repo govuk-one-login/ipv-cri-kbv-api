@@ -4,23 +4,16 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Applicant;
 import com.experian.uk.schema.experian.identityiq.services.webservice.ApplicantDateOfBirth;
 import com.experian.uk.schema.experian.identityiq.services.webservice.ApplicantName;
 import com.experian.uk.schema.experian.identityiq.services.webservice.ApplicationData;
-import com.experian.uk.schema.experian.identityiq.services.webservice.ArrayOfString;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
 import com.experian.uk.schema.experian.identityiq.services.webservice.LocationDetails;
 import com.experian.uk.schema.experian.identityiq.services.webservice.LocationDetailsUKLocation;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Parameters;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Residency;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
-import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
-import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 import uk.gov.di.ipv.cri.kbv.api.util.StringUtils;
 
 import java.util.List;
@@ -28,88 +21,21 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class StartAuthnAttemptRequestMapper {
+class StartAuthnAttemptRequestMapper {
 
-    private static final Logger LOGGER = LogManager.getLogger();
-
-    public static final String DEFAULT_TITLE = "MR";
-
-    public static final String IIQ_DATABASE_MODE_PARAM_NAME = "IIQDatabaseMode";
+    private static final String DEFAULT_TITLE = "MR";
+    private static final String IIQ_DATABASE_MODE_PARAM_NAME = "IIQDatabaseMode";
 
     private final ConfigurationService configurationService;
-    private MetricsService metricsService;
 
-    public StartAuthnAttemptRequestMapper(
-            ConfigurationService configurationService, MetricsService metricsService) {
+    StartAuthnAttemptRequestMapper(ConfigurationService configurationService) {
         this.configurationService = configurationService;
-        this.metricsService = metricsService;
     }
 
-    public SAARequest mapQuestionRequest(QuestionRequest questionRequest) {
+    SAARequest mapQuestionRequest(QuestionRequest questionRequest) {
         Objects.requireNonNull(questionRequest, "The QuestionRequest must not be null");
 
         return createRequest(questionRequest);
-    }
-
-    public QuestionsResponse mapSAAResponse2ToQuestionsResponse(SAAResponse2 sAAResponse2) {
-        QuestionsResponse questionsResponse = new QuestionsResponse();
-        questionsResponse.setQuestions(sAAResponse2.getQuestions());
-        Control control = sAAResponse2.getControl();
-        questionsResponse.setControl(control);
-        Error error = sAAResponse2.getError();
-        questionsResponse.setError(error);
-        Results results = sAAResponse2.getResults();
-        logQuestionResponse(control, results, error);
-        questionsResponse.setResults(results);
-        return questionsResponse;
-    }
-
-    private void logQuestionResponse(Control control, Results results, Error error) {
-        String urn = "";
-        String authRefNo = "";
-        String outcome = "";
-        String authenticationResult = "";
-        String transIds = "";
-        String errorCode = "";
-        String errorMessage = "";
-        String confirmationCode = "";
-
-        if (control != null) {
-            urn = control.getURN();
-            authRefNo = control.getAuthRefNo();
-        }
-        if (results != null) {
-            outcome = results.getOutcome();
-            authenticationResult = results.getAuthenticationResult();
-            ArrayOfString nextTransId = results.getNextTransId();
-            if (nextTransId != null) {
-                List<String> transId = nextTransId.getString();
-                if (transId != null) {
-                    transIds = String.join(",", transId);
-                }
-            }
-            confirmationCode = results.getConfirmationCode();
-        }
-
-        if (error != null) {
-            errorCode = error.getErrorCode();
-            errorMessage = error.getMessage();
-        }
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(
-                    "question response: urn: {}, authRefNo: {}, outcome: {}, authenticationResult: {}, transIds: {}, error code: {}, error message: {}, confirmation code: {}",
-                    urn,
-                    authRefNo,
-                    outcome,
-                    authenticationResult,
-                    transIds,
-                    errorCode,
-                    errorMessage,
-                    confirmationCode);
-        }
-
-        metricsService.sendResultMetric(results, "initial_questions_response");
-        metricsService.sendErrorMetric(error, "initial_questions_response_error");
     }
 
     private SAARequest createRequest(QuestionRequest questionRequest) {
