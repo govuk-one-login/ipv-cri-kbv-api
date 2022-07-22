@@ -1,5 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -43,6 +45,7 @@ public class QuestionState {
         return this.qaPairs;
     }
 
+    @JsonIgnore
     public List<QuestionAnswer> getAnswers() {
         return getQaPairs().stream()
                 .map(
@@ -55,6 +58,7 @@ public class QuestionState {
                 .collect(Collectors.toList());
     }
 
+    @JsonIgnore
     public Optional<KbvQuestion> getNextQuestion() {
         return qaPairs.stream()
                 .filter(pair -> pair.getAnswer() == null)
