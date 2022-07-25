@@ -4,7 +4,6 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.experian.uk.schema.experian.identityiq.services.webservice.ResultsQuestions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -30,14 +29,11 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
-import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.apache.logging.log4j.Level.ERROR;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_EXPIRED;
@@ -175,13 +171,16 @@ public class QuestionAnswerHandler
             auditService.sendAuditEvent(
                     AuditEventType.THIRD_PARTY_REQUEST_ENDED,
                     new AuditEventContext(requestHeaders, sessionItem),
-                    createAuditEventExtensions(questionsResponse));
-        } else if (questionsResponse.getError() != null) {
+                    this.kbvService.createAuditEventExtensions(questionsResponse));
+        } else if (questionsResponse.hasError()) {
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);
-            kbvItem.setStatus(questionsResponse.getError().getMessage());
+            kbvItem.setStatus(questionsResponse.getErrorMessage());
             kbvStorageService.update(kbvItem);
-            throw new IllegalStateException(questionsResponse.getError().getMessage());
+            throw new IllegalStateException(
+                    String.format(
+                            "Third party API invocation error, code: %s, message: %s",
+                            questionsResponse.getErrorCode(), questionsResponse.getErrorMessage()));
         }
     }
 
@@ -194,19 +193,6 @@ public class QuestionAnswerHandler
         kbvStorageService.update(kbvItem);
 
         return questionState.hasAtLeastOneUnAnswered();
-    }
-
-    private Map<String, Object> createAuditEventExtensions(QuestionsResponse questionsResponse) {
-        Map<String, Object> contextEntries = new HashMap<>();
-        contextEntries.put("outcome", questionsResponse.getStatus());
-        if (Objects.nonNull(questionsResponse.getResults())
-                && Objects.nonNull(questionsResponse.getResults().getQuestions())) {
-            ResultsQuestions questionSummary = questionsResponse.getResults().getQuestions();
-            contextEntries.put("totalQuestionsAsked", questionSummary.getAsked());
-            contextEntries.put("totalQuestionsAnsweredCorrect", questionSummary.getCorrect());
-            contextEntries.put("totalQuestionsAnsweredIncorrect", questionSummary.getIncorrect());
-        }
-        return Map.of("experianIiqResponse", contextEntries);
     }
 
     private APIGatewayProxyResponseEvent handleException(

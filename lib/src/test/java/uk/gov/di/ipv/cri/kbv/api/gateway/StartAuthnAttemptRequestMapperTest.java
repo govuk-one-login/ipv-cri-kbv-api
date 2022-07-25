@@ -1,67 +1,38 @@
 package uk.gov.di.ipv.cri.kbv.api.gateway;
 
-import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
 import com.experian.uk.schema.experian.identityiq.services.webservice.LocationDetails;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
-import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.lambda.powertools.parameters.SSMProvider;
-import software.amazon.lambda.powertools.parameters.SecretsProvider;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.AddressType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
-import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 
-import java.time.Clock;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator.createTestQuestionAnswerRequest;
 import static uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator.createTestQuestionAnswerRequestWithDuplicateAddresses;
 
 @ExtendWith(MockitoExtension.class)
 class StartAuthnAttemptRequestMapperTest {
-    private static final String TEST_STACK_NAME = "stack-name";
-    private static final String PARAM_NAME_FORMAT = "/%s/%s";
     private StartAuthnAttemptRequestMapper startAuthnAttemptRequestMapper;
-    QuestionRequest questionRequest;
-    @Mock private MetricsService metricsService;
-    @Mock private SSMProvider mockSsmProvider;
-    @Mock private SecretsProvider mockSecretsProvider;
-    @Mock private Clock mockClock;
+    private QuestionRequest questionRequest;
+    @Mock private ConfigurationService mockConfigurationService;
 
     @BeforeEach
     void setUp() {
         startAuthnAttemptRequestMapper =
-                new StartAuthnAttemptRequestMapper(
-                        new ConfigurationService(
-                                mockSsmProvider, mockSecretsProvider, TEST_STACK_NAME, mockClock),
-                        metricsService);
-    }
-
-    @Test
-    void shouldSendMetrics() {
-        SAAResponse2 response = mock(SAAResponse2.class);
-        Results results = mock(Results.class);
-        when(response.getResults()).thenReturn(results);
-        Error error = mock(Error.class);
-        when(response.getError()).thenReturn(error);
-        startAuthnAttemptRequestMapper.mapSAAResponse2ToQuestionsResponse(response);
-        verify(metricsService).sendResultMetric(results, "initial_questions_response");
-        verify(metricsService).sendErrorMetric(error, "initial_questions_response_error");
+                new StartAuthnAttemptRequestMapper(mockConfigurationService);
     }
 
     @Test
@@ -73,10 +44,7 @@ class StartAuthnAttemptRequestMapperTest {
         assertNotNull(result);
         Address personAddress = personIdentity.getAddresses().get(0);
         assertAll(
-                //                () ->
-                //                        assertEquals(
-                //                                result.getApplicant().getName().getTitle(),
-                //                                personIdentity.getTitle()),
+                () -> assertEquals("MR", result.getApplicant().getName().getTitle()),
                 () ->
                         assertEquals(
                                 result.getApplicant().getName().getForename(),
@@ -129,8 +97,7 @@ class StartAuthnAttemptRequestMapperTest {
 
     @Test
     void shouldConvertPersonIdentityToSAARequestForPreviousAddress() {
-        String fullParamName = String.format(PARAM_NAME_FORMAT, TEST_STACK_NAME, "IIQDatabaseMode");
-        when(mockSsmProvider.get(fullParamName)).thenReturn("Static");
+        when(mockConfigurationService.getParameterValue("IIQDatabaseMode")).thenReturn("Static");
         questionRequest = createTestQuestionAnswerRequest(AddressType.CURRENT);
         PersonIdentity personIdentity = questionRequest.getPersonIdentity();
 
@@ -142,30 +109,6 @@ class StartAuthnAttemptRequestMapperTest {
                 () -> assertEquals("Static", result.getControl().getTestDatabase()),
                 () -> assertEquals("urn", result.getControl().getURN()),
                 () -> assertEquals("1 out of 2", result.getApplicationData().getProduct()),
-                //                () ->
-                //                        assertEquals(
-                //                                personIdentity.getTitle(),
-                //                                result.getApplicant().getName().getTitle()),
-                () ->
-                        assertEquals(
-                                personIdentity.getFirstName(),
-                                result.getApplicant().getName().getForename()),
-                () ->
-                        assertEquals(
-                                personIdentity.getSurname(),
-                                result.getApplicant().getName().getSurname()),
-                () ->
-                        assertEquals(
-                                personIdentity.getDateOfBirth().getYear(),
-                                result.getApplicant().getDateOfBirth().getCCYY()),
-                () ->
-                        assertEquals(
-                                personIdentity.getDateOfBirth().getMonth().getValue(),
-                                result.getApplicant().getDateOfBirth().getMM()),
-                () ->
-                        assertEquals(
-                                personIdentity.getDateOfBirth().getDayOfMonth(),
-                                result.getApplicant().getDateOfBirth().getDD()),
                 () ->
                         assertEquals(
                                 personAddress.getBuildingName(),

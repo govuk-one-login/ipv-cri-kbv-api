@@ -1,25 +1,23 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
-import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
-import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class QuestionState {
-    // private Integer skipsRemaining;
-    // private String skipWarning;
     private List<QuestionAnswerPair> qaPairs = new ArrayList<>();
-    private NextQuestion nextQuestion;
 
     public void setAnswer(QuestionAnswer questionAnswer) {
         this.getQaPairs().stream()
                 .filter(
                         pair ->
                                 pair.getQuestion()
-                                        .getQuestionID()
+                                        .getQuestionId()
                                         .equals(questionAnswer.getQuestionId()))
                 .findFirst()
                 .orElseThrow(
@@ -31,42 +29,37 @@ public class QuestionState {
     }
 
     public boolean setQuestionsResponse(QuestionsResponse questionsResponse) {
-        var questions = questionsResponse.getQuestions();
-        boolean hasQuestions = questions != null && questions.getQuestion() != null;
+        boolean hasQuestions = questionsResponse.hasQuestions();
         if (hasQuestions) {
-            // skipsRemaining = questions.getSkipsRemaining();
-            // skipWarning = questions.getSkipWarning();
-
-            setQAPairs(questions);
+            setQAPairs(questionsResponse.getQuestions());
         }
         return hasQuestions;
     }
 
-    public void setQAPairs(
-            com.experian.uk.schema.experian.identityiq.services.webservice.Questions questions) {
-        qaPairs =
-                questions.getQuestion().stream()
-                        .map(QuestionAnswerPair::new)
-                        .collect(Collectors.toList());
+    public void setQAPairs(KbvQuestion[] questions) {
+        this.qaPairs =
+                Arrays.stream(questions).map(QuestionAnswerPair::new).collect(Collectors.toList());
     }
 
     public List<QuestionAnswerPair> getQaPairs() {
-        return qaPairs;
+        return this.qaPairs;
     }
 
+    @JsonIgnore
     public List<QuestionAnswer> getAnswers() {
         return getQaPairs().stream()
                 .map(
                         pair -> {
                             QuestionAnswer questionAnswer = new QuestionAnswer();
                             questionAnswer.setAnswer(pair.getAnswer());
-                            questionAnswer.setQuestionId(pair.getQuestion().getQuestionID());
+                            questionAnswer.setQuestionId(pair.getQuestion().getQuestionId());
                             return questionAnswer;
                         })
                 .collect(Collectors.toList());
     }
 
-    public Optional<Question> getNextQuestion() {
+    @JsonIgnore
+    public Optional<KbvQuestion> getNextQuestion() {
         return qaPairs.stream()
                 .filter(pair -> pair.getAnswer() == null)
                 .map(QuestionAnswerPair::getQuestion)
@@ -74,10 +67,10 @@ public class QuestionState {
     }
 
     public boolean questionsHaveAllBeenAnswered() {
-        return qaPairs.stream().allMatch(qa -> qa.getAnswer() != null);
+        return qaPairs.stream().allMatch(qa -> Objects.nonNull(qa.getAnswer()));
     }
 
     public boolean hasAtLeastOneUnAnswered() {
-        return qaPairs.stream().anyMatch(qa -> qa.getAnswer() == null);
+        return qaPairs.stream().anyMatch(qa -> Objects.isNull(qa.getAnswer()));
     }
 }

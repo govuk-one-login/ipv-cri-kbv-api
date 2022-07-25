@@ -3,10 +3,6 @@ package uk.gov.di.ipv.cri.kbv.api.handler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.experian.uk.schema.experian.identityiq.services.webservice.AnswerFormat;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Questions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,17 +30,18 @@ import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionOptions;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
-import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -128,7 +125,9 @@ class QuestionHandlerTest {
 
             String expectedQuestion = new ObjectMapper().writeValueAsString(getQuestionOne());
 
-            doReturn(getExperianQuestionResponse(List.of(getQuestionOne(), getQuestionTwo())))
+            doReturn(
+                            getExperianQuestionResponse(
+                                    new KbvQuestion[] {getQuestionOne(), getQuestionTwo()}))
                     .when(spyKBVService)
                     .getQuestions(any());
             when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
@@ -169,18 +168,15 @@ class QuestionHandlerTest {
             KBVItem kbvItem = new KBVItem();
             kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
 
-            Question answeredQuestion = getQuestionOne();
+            KbvQuestion answeredQuestion = getQuestionOne();
             QuestionAnswer questionAnswer = new QuestionAnswer();
-            questionAnswer.setQuestionId(answeredQuestion.getQuestionID());
+            questionAnswer.setQuestionId(answeredQuestion.getQuestionId());
             questionAnswer.setAnswer("OVER £35,000 UP TO £60,000");
 
-            Question unAnsweredQuestion = getQuestionTwo();
-
-            Questions questions = new Questions();
-            questions.getQuestion().addAll(List.of(answeredQuestion, unAnsweredQuestion));
+            KbvQuestion unAnsweredQuestion = getQuestionTwo();
 
             QuestionState questionState = new QuestionState();
-            questionState.setQAPairs(questions);
+            questionState.setQAPairs(new KbvQuestion[] {answeredQuestion, unAnsweredQuestion});
             questionState.setAnswer(questionAnswer);
 
             when(input.getHeaders()).thenReturn(sessionHeader);
@@ -208,7 +204,6 @@ class QuestionHandlerTest {
         void shouldReturn204WhenThereAreNoQuestions() throws IOException {
             Context contextMock = mock(Context.class);
             QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
-            Control control = mock(Control.class);
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> sessionHeader =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
@@ -220,7 +215,6 @@ class QuestionHandlerTest {
             QuestionState questionStateMock = mock(QuestionState.class);
             when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
-            when(questionsResponse.getControl()).thenReturn(control);
 
             when(input.getHeaders()).thenReturn(sessionHeader);
             when(mockKBVStorageService.getKBVItem(
@@ -403,13 +397,12 @@ class QuestionHandlerTest {
             KBVItem kbvItem = mock(KBVItem.class);
             SessionItem sessionItem = mock(SessionItem.class);
             Map<String, String> requestHeaders = new HashMap<>();
-            Control control = mock(Control.class);
+
             QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
             when(kbvItem.getSessionId()).thenReturn(sessionId);
             when(questionsResponse.getStatus()).thenReturn(expectedOutcome);
-            when(questionsResponse.getControl()).thenReturn(control);
-            when(control.getAuthRefNo()).thenReturn("an auth ref no");
-            when(control.getURN()).thenReturn("a urn");
+            when(questionsResponse.getAuthReference()).thenReturn("an auth ref no");
+            when(questionsResponse.getUniqueReference()).thenReturn("a urn");
 
             when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
@@ -417,10 +410,9 @@ class QuestionHandlerTest {
                     .thenReturn("3 out of 4");
             assertThrows(
                     QuestionNotFoundException.class,
-                    () -> {
-                        questionHandler.processQuestionRequest(
-                                new QuestionState(), kbvItem, sessionItem, requestHeaders);
-                    },
+                    () ->
+                            questionHandler.processQuestionRequest(
+                                    new QuestionState(), kbvItem, sessionItem, requestHeaders),
                     "Question not Found");
             verify(sessionService).createAuthorizationCode(sessionItem);
             verify(mockAuditService)
@@ -448,11 +440,10 @@ class QuestionHandlerTest {
         @Test
         void shouldReturnThrowErrorWhenQuestionStateIsNull() {
             var kbvItem = new KBVItem();
+            SessionItem sessionItem = new SessionItem();
             assertThrows(
                     NullPointerException.class,
-                    () ->
-                            questionHandler.processQuestionRequest(
-                                    null, kbvItem, new SessionItem(), new HashMap<>()),
+                    () -> questionHandler.processQuestionRequest(null, kbvItem, sessionItem, null),
                     "questionState cannot be null");
         }
 
@@ -464,10 +455,7 @@ class QuestionHandlerTest {
                             NullPointerException.class,
                             () ->
                                     questionHandler.processQuestionRequest(
-                                            questionState,
-                                            null,
-                                            mock(SessionItem.class),
-                                            new HashMap<>()));
+                                            questionState, null, mock(SessionItem.class), null));
 
             assertEquals("kbvItem cannot be null", expectedException.getMessage());
         }
@@ -476,27 +464,25 @@ class QuestionHandlerTest {
         void shouldReturnNextQuestionFromDbStoreWhenThereIsAnUnansweredQuestionInStorage()
                 throws IOException, SqsException {
             QuestionState questionState = new QuestionState();
-            Questions questions = new Questions();
 
-            Question answeredQuestion = getQuestionOne();
+            KbvQuestion answeredQuestion = getQuestionOne();
             QuestionAnswer questionAnswer = new QuestionAnswer();
-            questionAnswer.setQuestionId(answeredQuestion.getQuestionID());
+            questionAnswer.setQuestionId(answeredQuestion.getQuestionId());
             questionAnswer.setAnswer("OVER £35,000 UP TO £60,000");
 
-            Question unAnsweredQuestion = getQuestionTwo();
-            questions.getQuestion().addAll(List.of(answeredQuestion, unAnsweredQuestion));
+            KbvQuestion unAnsweredQuestion = getQuestionTwo();
 
-            questionState.setQAPairs(questions);
+            questionState.setQAPairs(new KbvQuestion[] {answeredQuestion, unAnsweredQuestion});
             questionState.setAnswer(questionAnswer);
 
-            Question nextQuestion =
+            KbvQuestion nextQuestion =
                     questionHandler.processQuestionRequest(
                             questionState,
                             mock(KBVItem.class),
                             mock(SessionItem.class),
                             new HashMap<>());
 
-            assertEquals(nextQuestion.getQuestionID(), unAnsweredQuestion.getQuestionID());
+            assertEquals(nextQuestion.getQuestionId(), unAnsweredQuestion.getQuestionId());
         }
 
         @Test
@@ -514,17 +500,13 @@ class QuestionHandlerTest {
             doReturn(getExperianQuestionResponse()).when(spyKBVService).getQuestions(any());
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
-            Question nextQuestionFromExperian =
+            KbvQuestion nextQuestionFromExperian =
                     questionHandler.processQuestionRequest(
                             questionState, kbvItem, mock(SessionItem.class), new HashMap<>());
 
             assertEquals(
-                    nextQuestionFromExperian.getQuestionID(),
-                    getExperianQuestionResponse()
-                            .getQuestions()
-                            .getQuestion()
-                            .get(0)
-                            .getQuestionID());
+                    nextQuestionFromExperian.getQuestionId(),
+                    getExperianQuestionResponse().getQuestions()[0].getQuestionId());
         }
     }
 
@@ -533,55 +515,51 @@ class QuestionHandlerTest {
         when(mockEventProbe.log(any(Level.class), any(Exception.class))).thenReturn(mockEventProbe);
     }
 
-    private Question getQuestionOne() {
-        Question question = new Question();
-        question.setQuestionID("Q00015");
+    private KbvQuestion getQuestionOne() {
+        KbvQuestionOptions questionOptions = new KbvQuestionOptions();
+        questionOptions.setIdentifier("A00004");
+        questionOptions.setFieldType("G");
+        questionOptions.setOptions(
+                List.of(
+                        "UP TO £10,000",
+                        "OVER £35,000 UP TO £60,000",
+                        "OVER £60,000 UP TO £85,000",
+                        "NONE OF THE ABOVE / DOES NOT APPLY"));
+
+        KbvQuestion question = new KbvQuestion();
+        question.setQuestionId("Q00015");
         question.setText("What is the outstanding balance ");
         question.setTooltip("outstanding balance tooltip");
-        AnswerFormat answerFormat = new AnswerFormat();
-        answerFormat.setIdentifier("A00004");
-        answerFormat.setIdentifier("G");
-        answerFormat
-                .getAnswerList()
-                .addAll(
-                        List.of(
-                                "UP TO £10,000",
-                                "OVER £35,000 UP TO £60,000",
-                                "OVER £60,000 UP TO £85,000",
-                                "NONE OF THE ABOVE / DOES NOT APPLY"));
-        question.setAnswerFormat(answerFormat);
+        question.setQuestionOptions(questionOptions);
+
         return question;
     }
 
-    private Question getQuestionTwo() {
-        Question question = new Question();
-        question.setQuestionID("Q00040");
+    private KbvQuestion getQuestionTwo() {
+        KbvQuestionOptions questionOptions = new KbvQuestionOptions();
+        questionOptions.setIdentifier("A00005");
+        questionOptions.setFieldType("G");
+        questionOptions.setOptions(
+                List.of("Blue", "Red", "Green", "NONE OF THE ABOVE / DOES NOT APPLY"));
+
+        KbvQuestion question = new KbvQuestion();
+        question.setQuestionId("Q00040");
         question.setText("What your favorite color");
         question.setTooltip("favorite color tooltip");
+        question.setQuestionOptions(questionOptions);
 
-        AnswerFormat answerFormat = new AnswerFormat();
-        answerFormat.setIdentifier("A00005");
-        answerFormat.setIdentifier("G");
-        answerFormat
-                .getAnswerList()
-                .addAll(List.of("Blue", "Red", "Green", "NONE OF THE ABOVE / DOES NOT APPLY"));
-        question.setAnswerFormat(answerFormat);
         return question;
     }
 
     private QuestionsResponse getExperianQuestionResponse() {
-        return getExperianQuestionResponse(Collections.singletonList(new Question()));
+        return getExperianQuestionResponse(new KbvQuestion[] {new KbvQuestion()});
     }
 
-    private QuestionsResponse getExperianQuestionResponse(List<Question> questionList) {
+    private QuestionsResponse getExperianQuestionResponse(KbvQuestion[] kbvQuestions) {
         QuestionsResponse questionsResponse = new QuestionsResponse();
-        Questions questions = new Questions();
-        Control control = new Control();
-        control.setAuthRefNo("authrefno");
-        control.setURN("urn");
-        questions.getQuestion().addAll(questionList);
-        questionsResponse.setQuestions(questions);
-        questionsResponse.setControl(control);
+        questionsResponse.setAuthReference("authrefno");
+        questionsResponse.setUniqueReference("urn");
+        questionsResponse.setQuestions(kbvQuestions);
 
         return questionsResponse;
     }

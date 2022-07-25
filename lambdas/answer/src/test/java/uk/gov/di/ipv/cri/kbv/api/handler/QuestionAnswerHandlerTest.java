@@ -3,9 +3,6 @@ package uk.gov.di.ipv.cri.kbv.api.handler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
-import com.experian.uk.schema.experian.identityiq.services.webservice.ResultsQuestions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
@@ -27,10 +24,12 @@ import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionAnswerSummary;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
-import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
@@ -122,8 +121,9 @@ class QuestionAnswerHandlerTest {
         QuestionState questionStateMock = mock(QuestionState.class);
         QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
-        Results resultsMock = mock(Results.class);
-        ResultsQuestions mockResultsQuestions = mock(ResultsQuestions.class);
+        KbvResult resultsMock = mock(KbvResult.class);
+        KbvQuestionAnswerSummary mockAnswerSummary = mock(KbvQuestionAnswerSummary.class);
+
         String responseStatus = "AUTHORISED";
         int totalQuestionsAsked = 4;
         int totalCorrectAnswers = 3;
@@ -140,14 +140,11 @@ class QuestionAnswerHandlerTest {
         when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
                 .thenReturn(questionAnswerMock);
         when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
-        when(mockResultsQuestions.getAsked()).thenReturn(4);
-        when(mockResultsQuestions.getCorrect()).thenReturn(3);
-        when(mockResultsQuestions.getIncorrect()).thenReturn(1);
-        when(resultsMock.getQuestions()).thenReturn(mockResultsQuestions);
+        when(resultsMock.getAnswerSummary()).thenReturn(mockAnswerSummary);
         when(questionsResponseMock.getResults()).thenReturn(resultsMock);
-        when(mockResultsQuestions.getAsked()).thenReturn(totalQuestionsAsked);
-        when(mockResultsQuestions.getCorrect()).thenReturn(totalCorrectAnswers);
-        when(mockResultsQuestions.getIncorrect()).thenReturn(totalIncorrectAnswers);
+        when(mockAnswerSummary.getQuestionsAsked()).thenReturn(totalQuestionsAsked);
+        when(mockAnswerSummary.getAnsweredCorrect()).thenReturn(totalCorrectAnswers);
+        when(mockAnswerSummary.getAnsweredIncorrect()).thenReturn(totalIncorrectAnswers);
         when(mockKBVGateway.submitAnswers(any())).thenReturn(questionsResponseMock);
         when(mockObjectMapper.writeValueAsString(any())).thenReturn("question-response");
         when(questionsResponseMock.hasQuestions()).thenReturn(false);
@@ -301,7 +298,6 @@ class QuestionAnswerHandlerTest {
 
     @Test
     void shouldReturn500ErrorWhenExperianServerReturnsAnError() throws JsonProcessingException {
-        Error errorMock = mock(Error.class);
         KBVItem kbvItemMock = mock(KBVItem.class);
         SessionItem mockSessionItem = mock(SessionItem.class);
         QuestionState questionStateMock = mock(QuestionState.class);
@@ -321,9 +317,10 @@ class QuestionAnswerHandlerTest {
         when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
         when(mockKBVGateway.submitAnswers(any())).thenReturn(questionsResponseMock);
         when(mockObjectMapper.writeValueAsString(any())).thenReturn("question-response");
-        when(errorMock.getMessage()).thenReturn("Third Party Server error occurred.");
         when(questionsResponseMock.getResults()).thenReturn(null);
-        when(questionsResponseMock.getError()).thenReturn(errorMock);
+        when(questionsResponseMock.hasError()).thenReturn(Boolean.TRUE);
+        when(questionsResponseMock.getErrorMessage())
+                .thenReturn("Third Party Server error occurred.");
         when(mockObjectMapper.writeValueAsString(questionStateMock))
                 .thenReturn("question-state-mock-string");
         doNothing().when(mockKBVStorageService).update(any());

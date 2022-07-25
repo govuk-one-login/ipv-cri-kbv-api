@@ -1,13 +1,11 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
-import com.experian.uk.schema.experian.identityiq.services.webservice.ArrayOfString;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
+import com.nimbusds.oauth2.sdk.util.StringUtils;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 public class MetricsService {
 
@@ -20,28 +18,21 @@ public class MetricsService {
         this.eventProbe = eventProbe;
     }
 
-    public void sendErrorMetric(Error error, String metricName) {
-        if (error != null && error.getErrorCode() != null) {
-            String errorCode = error.getErrorCode();
+    public void sendErrorMetric(String errorCode, String metricName) {
+        if (StringUtils.isNotBlank(errorCode)) {
             eventProbe.addDimensions(Map.of(ERROR_CODE, errorCode));
             eventProbe.counterMetric(metricName);
         }
     }
 
-    public void sendResultMetric(Results results, String metricName) {
-        if (results != null) {
-            String outcome = results.getOutcome();
-            ArrayOfString nextTransId = results.getNextTransId();
+    public void sendResultMetric(KbvResult result, String metricName) {
+        if (Objects.nonNull(result)) {
             String transIds = "";
-            if (nextTransId != null) {
-                List<String> transId = nextTransId.getString();
-                if (transId != null) {
-                    transIds = transId.stream().collect(Collectors.joining(","));
-                }
+            if (Objects.nonNull(result.getNextTransId()) && result.getNextTransId().length > 0) {
+                transIds = String.join(",", result.getNextTransId());
             }
-
-            if (outcome != null && !outcome.isBlank()) {
-                eventProbe.addDimensions(Map.of(OUTCOME, outcome, TRANS_ID, transIds));
+            if (StringUtils.isNotBlank(result.getOutcome())) {
+                eventProbe.addDimensions(Map.of(OUTCOME, result.getOutcome(), TRANS_ID, transIds));
                 eventProbe.counterMetric(metricName);
             }
         }

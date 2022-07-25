@@ -4,8 +4,6 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
-import com.experian.uk.schema.experian.identityiq.services.webservice.ResultsQuestions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -28,17 +26,17 @@ import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.ApiGatewayResponseGenerator;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
-import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -121,10 +119,10 @@ public class QuestionHandler
                 return createNoContentResponse();
             }
 
-            Question question =
+            KbvQuestion question =
                     processQuestionRequest(questionState, kbvItem, sessionItem, input.getHeaders());
             eventProbe.addDimensions(
-                    Map.of(METRIC_DIMENSION_QUESTION_ID, question.getQuestionID()));
+                    Map.of(METRIC_DIMENSION_QUESTION_ID, question.getQuestionId()));
             eventProbe.counterMetric(LAMBDA_NAME);
             return ApiGatewayResponseGenerator.proxyJsonResponse(HttpStatusCode.OK, question);
         } catch (SessionExpiredException sessionExpiredException) {
@@ -165,33 +163,18 @@ public class QuestionHandler
         auditService.sendAuditEvent(
                 AuditEventType.THIRD_PARTY_REQUEST_ENDED,
                 new AuditEventContext(requestHeaders, sessionItem),
-                createAuditEventExtensions(questionsResponse));
-    }
-
-    private Map<String, Object> createAuditEventExtensions(QuestionsResponse questionsResponse) {
-        Map<String, Object> auditExtensionsEntries = new HashMap<>();
-        auditExtensionsEntries.put("outcome", questionsResponse.getStatus());
-        if (Objects.nonNull(questionsResponse.getResults())
-                && Objects.nonNull(questionsResponse.getResults().getQuestions())) {
-            ResultsQuestions questionSummary = questionsResponse.getResults().getQuestions();
-            auditExtensionsEntries.put("totalQuestionsAsked", questionSummary.getAsked());
-            auditExtensionsEntries.put(
-                    "totalQuestionsAnsweredCorrect", questionSummary.getCorrect());
-            auditExtensionsEntries.put(
-                    "totalQuestionsAnsweredIncorrect", questionSummary.getIncorrect());
-        }
-        return Map.of("experianIiqResponse", auditExtensionsEntries);
+                this.kbvService.createAuditEventExtensions(questionsResponse));
     }
 
     @Tracing
-    Question processQuestionRequest(
+    KbvQuestion processQuestionRequest(
             QuestionState questionState,
             KBVItem kbvItem,
             SessionItem sessionItem,
             Map<String, String> requestHeaders)
             throws IOException, SqsException {
 
-        Question question;
+        KbvQuestion question;
         if ((question = getQuestionFromDbStore(questionState)) != null) {
             return question;
         }
@@ -206,13 +189,13 @@ public class QuestionHandler
         throw new QuestionNotFoundException("No questions available");
     }
 
-    private Question getQuestionFromDbStore(QuestionState questionState) {
+    private KbvQuestion getQuestionFromDbStore(QuestionState questionState) {
         Objects.requireNonNull(questionState, "questionState cannot be null");
         // TODO Handle scenario when no questions are available
         return questionState.getNextQuestion().orElse(null);
     }
 
-    private Question getQuestionFromResponse(
+    private KbvQuestion getQuestionFromResponse(
             QuestionsResponse questionsResponse, QuestionState questionState) {
 
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
@@ -228,8 +211,8 @@ public class QuestionHandler
             throws JsonProcessingException {
         var state = objectMapper.writeValueAsString(questionState);
         kbvItem.setQuestionState(state);
-        kbvItem.setAuthRefNo(questionsResponse.getControl().getAuthRefNo());
-        kbvItem.setUrn(questionsResponse.getControl().getURN());
+        kbvItem.setAuthRefNo(questionsResponse.getAuthReference());
+        kbvItem.setUrn(questionsResponse.getUniqueReference());
         kbvItem.setExpiryDate(this.configurationService.getSessionExpirationEpoch());
 
         kbvStorageService.save(kbvItem);

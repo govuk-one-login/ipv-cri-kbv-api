@@ -1,12 +1,9 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
-import com.experian.uk.schema.experian.identityiq.services.webservice.Question;
-import com.experian.uk.schema.experian.identityiq.services.webservice.Questions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.di.ipv.cri.kbv.api.gateway.QuestionsResponse;
 
 import java.util.List;
 
@@ -56,9 +53,9 @@ class QuestionStateTest {
     @Test
     void shouldEvaluateToTrueWhenQuestionsResponseHasQuestions() {
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
-        Questions questionsMock = mock(Questions.class);
-        when(questionsMock.getQuestion()).thenReturn(List.of(new Question[0]));
-        when(questionsResponseMock.getQuestions()).thenReturn(questionsMock);
+        when(questionsResponseMock.getQuestions())
+                .thenReturn(new KbvQuestion[] {new KbvQuestion()});
+        when(questionsResponseMock.hasQuestions()).thenReturn(Boolean.TRUE);
 
         boolean hasMoreQuestions = questionState.setQuestionsResponse(questionsResponseMock);
         assertTrue(hasMoreQuestions);
@@ -67,18 +64,7 @@ class QuestionStateTest {
     @Test
     void shouldEvaluateToFalseWhenQuestionResponseHasNoQuestion() {
         QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
-        Questions questionsMock = mock(Questions.class);
-        when(questionsMock.getQuestion()).thenReturn(null);
-        when(questionsResponse.getQuestions()).thenReturn(questionsMock);
-
-        boolean hasMoreQuestions = questionState.setQuestionsResponse(questionsResponse);
-        assertFalse(hasMoreQuestions);
-    }
-
-    @Test
-    void shouldEvaluateToFalseWhenQuestionResponseHasNoQuestions() {
-        QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
-        when(questionsResponse.getQuestions()).thenReturn(null);
+        when(questionsResponse.hasQuestions()).thenReturn(Boolean.FALSE);
 
         boolean hasMoreQuestions = questionState.setQuestionsResponse(questionsResponse);
         assertFalse(hasMoreQuestions);
