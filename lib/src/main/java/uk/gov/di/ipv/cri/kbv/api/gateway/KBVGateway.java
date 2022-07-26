@@ -12,6 +12,7 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.SAARespons
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.lambda.powertools.tracing.Tracing;
+import software.amazon.lambda.powertools.tracing.TracingUtils;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class KBVGateway {
+    private static final String EXPERIAN_IIQ_REQUEST = "experian_iiq_request_type";
     private static final Logger LOGGER = LogManager.getLogger();
 
     private final StartAuthnAttemptRequestMapper saaRequestMapper;
@@ -53,6 +55,7 @@ public class KBVGateway {
 
     @Tracing
     public QuestionsResponse getQuestions(QuestionRequest questionRequest) {
+        TracingUtils.putAnnotation(EXPERIAN_IIQ_REQUEST, "saa");
         SAARequest saaRequest = saaRequestMapper.mapQuestionRequest(questionRequest);
         SAAResponse2 saaResponse2 = identityIQWebServiceSoap.saa(saaRequest);
         QuestionsResponse questionsResponse = questionsResponseMapper.mapSAAResponse(saaResponse2);
@@ -75,6 +78,7 @@ public class KBVGateway {
 
     @Tracing
     public QuestionsResponse submitAnswers(QuestionAnswerRequest questionAnswerRequest) {
+        TracingUtils.putAnnotation(EXPERIAN_IIQ_REQUEST, "rtq");
         RTQRequest rtqRequest =
                 responseToQuestionMapper.mapQuestionAnswersRtqRequest(questionAnswerRequest);
         RTQResponse2 rtqResponse2 = identityIQWebServiceSoap.rtq(rtqRequest);
