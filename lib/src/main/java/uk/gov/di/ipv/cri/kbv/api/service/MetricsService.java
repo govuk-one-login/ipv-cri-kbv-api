@@ -12,6 +12,7 @@ public class MetricsService {
     public static final String OUTCOME = "outcome";
     public static final String TRANS_ID = "transition_id";
     public static final String ERROR_CODE = "error_code";
+    static final String TIME_TAKEN = "time_taken";
     private final EventProbe eventProbe;
 
     public MetricsService(EventProbe eventProbe) {
@@ -21,6 +22,13 @@ public class MetricsService {
     public void sendErrorMetric(String errorCode, String metricName) {
         if (StringUtils.isNotBlank(errorCode)) {
             eventProbe.addDimensions(Map.of(ERROR_CODE, errorCode));
+            eventProbe.counterMetric(metricName);
+        }
+    }
+
+    public void sendTimeTakenMetric(String timeTaken, String metricName) {
+        if (StringUtils.isNotBlank(timeTaken)) {
+            eventProbe.addDimensions(Map.of(TIME_TAKEN, timeTaken));
             eventProbe.counterMetric(metricName);
         }
     }

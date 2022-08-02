@@ -13,6 +13,7 @@ import java.util.Map;
 import static org.mockito.Mockito.verify;
 import static uk.gov.di.ipv.cri.kbv.api.service.MetricsService.ERROR_CODE;
 import static uk.gov.di.ipv.cri.kbv.api.service.MetricsService.OUTCOME;
+import static uk.gov.di.ipv.cri.kbv.api.service.MetricsService.TIME_TAKEN;
 import static uk.gov.di.ipv.cri.kbv.api.service.MetricsService.TRANS_ID;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,5 +43,13 @@ class MetricsServiceTest {
         this.metricsService.sendErrorMetric(errorCode, "baz");
         verify(eventProbe).counterMetric("baz");
         verify(eventProbe).addDimensions(Map.of(ERROR_CODE, errorCode));
+    }
+
+    @Test
+    void shouldSendTimeTakenMetric() {
+        String timeTaken = "time-taken";
+        this.metricsService.sendTimeTakenMetric(timeTaken, "some request time taken");
+        verify(eventProbe).counterMetric("some request time taken");
+        verify(eventProbe).addDimensions(Map.of(TIME_TAKEN, timeTaken));
     }
 }
