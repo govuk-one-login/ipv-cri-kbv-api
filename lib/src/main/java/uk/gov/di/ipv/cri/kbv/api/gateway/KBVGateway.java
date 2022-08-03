@@ -57,7 +57,8 @@ public class KBVGateway {
     public QuestionsResponse getQuestions(QuestionRequest questionRequest) {
         TracingUtils.putAnnotation(EXPERIAN_IIQ_REQUEST, "saa");
         SAARequest saaRequest = saaRequestMapper.mapQuestionRequest(questionRequest);
-        SAAResponse2 saaResponse2 = identityIQWebServiceSoap.saa(saaRequest);
+
+        SAAResponse2 saaResponse2 = getQuestionRequestResponse(saaRequest);
         QuestionsResponse questionsResponse = questionsResponseMapper.mapSAAResponse(saaResponse2);
 
         if (questionsResponse.hasError()) {
@@ -76,12 +77,18 @@ public class KBVGateway {
         return questionsResponse;
     }
 
+    @Tracing(segmentName = "getQuestionResponse")
+    private SAAResponse2 getQuestionRequestResponse(SAARequest saaRequest) {
+        return identityIQWebServiceSoap.saa(saaRequest);
+    }
+
     @Tracing
     public QuestionsResponse submitAnswers(QuestionAnswerRequest questionAnswerRequest) {
         TracingUtils.putAnnotation(EXPERIAN_IIQ_REQUEST, "rtq");
         RTQRequest rtqRequest =
                 responseToQuestionMapper.mapQuestionAnswersRtqRequest(questionAnswerRequest);
-        RTQResponse2 rtqResponse2 = identityIQWebServiceSoap.rtq(rtqRequest);
+
+        RTQResponse2 rtqResponse2 = submitQuestionAnswerResponse(rtqRequest);
 
         QuestionsResponse questionsResponse = questionsResponseMapper.mapRTQResponse(rtqResponse2);
 
@@ -95,6 +102,11 @@ public class KBVGateway {
         sendResultMetric("submit_questions_response", questionsResponse.getResults());
 
         return questionsResponse;
+    }
+
+    @Tracing(segmentName = "submitQuestionAnswerResponse")
+    private RTQResponse2 submitQuestionAnswerResponse(RTQRequest rtqRequest) {
+        return identityIQWebServiceSoap.rtq(rtqRequest);
     }
 
     private void logError(String context, QuestionsResponse questionsResponse) {
