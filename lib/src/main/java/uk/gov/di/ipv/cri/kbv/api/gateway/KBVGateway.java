@@ -63,7 +63,7 @@ public class KBVGateway {
         SAARequest saaRequest = saaRequestMapper.mapQuestionRequest(questionRequest);
 
         Instant start = Instant.now();
-        SAAResponse2 saaResponse2 = identityIQWebServiceSoap.saa(saaRequest);
+        SAAResponse2 saaResponse2 = getQuestionRequestResponse(saaRequest);
         Instant end = Instant.now();
         logTimeTaken(start, end, EXPERIAN_START_AUTHENTICATION_ATTEMPT);
 
@@ -92,7 +92,7 @@ public class KBVGateway {
                 responseToQuestionMapper.mapQuestionAnswersRtqRequest(questionAnswerRequest);
 
         Instant start = Instant.now();
-        RTQResponse2 rtqResponse2 = identityIQWebServiceSoap.rtq(rtqRequest);
+        RTQResponse2 rtqResponse2 = submitQuestionAnswerResponse(rtqRequest);
         Instant end = Instant.now();
         logTimeTaken(start, end, EXPERIAN_RESPONSE_TO_QUESTIONS);
 
@@ -108,6 +108,16 @@ public class KBVGateway {
         sendResultMetric("submit_questions_response", questionsResponse.getResults());
 
         return questionsResponse;
+    }
+
+    @Tracing(segmentName = "getQuestionResponse")
+    private SAAResponse2 getQuestionRequestResponse(SAARequest saaRequest) {
+        return identityIQWebServiceSoap.saa(saaRequest);
+    }
+
+    @Tracing(segmentName = "submitQuestionAnswerResponse")
+    private RTQResponse2 submitQuestionAnswerResponse(RTQRequest rtqRequest) {
+        return identityIQWebServiceSoap.rtq(rtqRequest);
     }
 
     private void logTimeTaken(Instant start, Instant end, String requestType) {
