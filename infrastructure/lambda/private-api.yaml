@@ -38,6 +38,14 @@ paths:
 
   /session:
     post:
+      summary: IP address of the client.
+      parameters:
+        - in: header
+          name: X-Forwarded-For
+          schema:
+            type: string
+            format: uuid
+          required: true
       requestBody:
         content:
           application/json:
