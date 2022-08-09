@@ -22,7 +22,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class StartAuthnAttemptRequestMapper {
-
     private static final String DEFAULT_TITLE = "MR";
     private static final String IIQ_DATABASE_MODE_PARAM_NAME = "IIQDatabaseMode";
 

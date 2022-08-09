@@ -12,7 +12,7 @@ public class MetricsService {
     public static final String OUTCOME = "outcome";
     public static final String TRANS_ID = "transition_id";
     public static final String ERROR_CODE = "error_code";
-    static final String TIME_TAKEN = "time_taken";
+    public static final String EXECUTION_DURATION = "execution_duration";
     private final EventProbe eventProbe;
 
     public MetricsService(EventProbe eventProbe) {
@@ -26,21 +26,21 @@ public class MetricsService {
         }
     }
 
-    public void sendTimeTakenMetric(String timeTaken, String metricName) {
-        if (StringUtils.isNotBlank(timeTaken)) {
-            eventProbe.addDimensions(Map.of(TIME_TAKEN, timeTaken));
-            eventProbe.counterMetric(metricName);
-        }
-    }
-
-    public void sendResultMetric(KbvResult result, String metricName) {
+    public void sendResultMetric(KbvResult result, String metricName, long executionDuration) {
         if (Objects.nonNull(result)) {
             String transIds = "";
             if (Objects.nonNull(result.getNextTransId()) && result.getNextTransId().length > 0) {
                 transIds = String.join(",", result.getNextTransId());
             }
             if (StringUtils.isNotBlank(result.getOutcome())) {
-                eventProbe.addDimensions(Map.of(OUTCOME, result.getOutcome(), TRANS_ID, transIds));
+                eventProbe.addDimensions(
+                        Map.of(
+                                OUTCOME,
+                                result.getOutcome(),
+                                TRANS_ID,
+                                transIds,
+                                EXECUTION_DURATION,
+                                String.valueOf(executionDuration)));
                 eventProbe.counterMetric(metricName);
             }
         }

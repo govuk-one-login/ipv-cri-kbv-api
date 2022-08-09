@@ -27,8 +27,8 @@ import java.util.Objects;
 public class KBVGateway {
     private static final String EXPERIAN_IIQ_REQUEST = "experian_iiq_request_type";
     private static final Logger LOGGER = LogManager.getLogger();
-    private static final String EXPERIAN_START_AUTHENTICATION_ATTEMPT = "saa";
-    private static final String EXPERIAN_RESPONSE_TO_QUESTIONS = "rtq";
+    private static final String EXPERIAN_INITIAL_QUESTION_RESPONSE = "initial_questions_response";
+    private static final String EXPERIAN_SUBMIT_RESPONSE = "submit_questions_response";
 
     private final StartAuthnAttemptRequestMapper saaRequestMapper;
     private final ResponseToQuestionMapper responseToQuestionMapper;
@@ -59,13 +59,11 @@ public class KBVGateway {
 
     @Tracing
     public QuestionsResponse getQuestions(QuestionRequest questionRequest) {
-        TracingUtils.putAnnotation(EXPERIAN_IIQ_REQUEST, EXPERIAN_START_AUTHENTICATION_ATTEMPT);
         SAARequest saaRequest = saaRequestMapper.mapQuestionRequest(questionRequest);
 
         Instant start = Instant.now();
         SAAResponse2 saaResponse2 = getQuestionRequestResponse(saaRequest);
         Instant end = Instant.now();
-        logTimeTaken(start, end, EXPERIAN_START_AUTHENTICATION_ATTEMPT);
 
         QuestionsResponse questionsResponse = questionsResponseMapper.mapSAAResponse(saaResponse2);
 
@@ -77,7 +75,10 @@ public class KBVGateway {
                     questionsResponse);
         }
 
-        sendResultMetric("initial_questions_response", questionsResponse.getResults());
+        sendResultMetric(
+                EXPERIAN_INITIAL_QUESTION_RESPONSE,
+                questionsResponse.getResults(),
+                Duration.between(start, end).toMillis());
 
         logQuestionResponse(
                 saaResponse2.getControl(), saaResponse2.getResults(), saaResponse2.getError());
@@ -87,14 +88,12 @@ public class KBVGateway {
 
     @Tracing
     public QuestionsResponse submitAnswers(QuestionAnswerRequest questionAnswerRequest) {
-        TracingUtils.putAnnotation(EXPERIAN_IIQ_REQUEST, EXPERIAN_RESPONSE_TO_QUESTIONS);
         RTQRequest rtqRequest =
                 responseToQuestionMapper.mapQuestionAnswersRtqRequest(questionAnswerRequest);
 
         Instant start = Instant.now();
         RTQResponse2 rtqResponse2 = submitQuestionAnswerResponse(rtqRequest);
         Instant end = Instant.now();
-        logTimeTaken(start, end, EXPERIAN_RESPONSE_TO_QUESTIONS);
 
         QuestionsResponse questionsResponse = questionsResponseMapper.mapRTQResponse(rtqResponse2);
 
@@ -105,30 +104,25 @@ public class KBVGateway {
                     "Answer submission to the third party API resulted in an error",
                     questionsResponse);
         }
-        sendResultMetric("submit_questions_response", questionsResponse.getResults());
+
+        sendResultMetric(
+                EXPERIAN_SUBMIT_RESPONSE,
+                questionsResponse.getResults(),
+                Duration.between(start, end).toMillis());
 
         return questionsResponse;
     }
 
     @Tracing(segmentName = "getQuestionResponse")
     private SAAResponse2 getQuestionRequestResponse(SAARequest saaRequest) {
+        TracingUtils.putAnnotation(EXPERIAN_IIQ_REQUEST, EXPERIAN_INITIAL_QUESTION_RESPONSE);
         return identityIQWebServiceSoap.saa(saaRequest);
     }
 
     @Tracing(segmentName = "submitQuestionAnswerResponse")
     private RTQResponse2 submitQuestionAnswerResponse(RTQRequest rtqRequest) {
+        TracingUtils.putAnnotation(EXPERIAN_IIQ_REQUEST, EXPERIAN_SUBMIT_RESPONSE);
         return identityIQWebServiceSoap.rtq(rtqRequest);
-    }
-
-    private void logTimeTaken(Instant start, Instant end, String requestType) {
-        long timeTaken = Duration.between(start, end).toMillis();
-        this.metricsService.sendTimeTakenMetric(
-                String.valueOf(timeTaken), EXPERIAN_IIQ_REQUEST + "_" + requestType);
-        LOGGER.info(
-                "Experian Response - Time taken for {} of value: {} is: {}",
-                EXPERIAN_IIQ_REQUEST,
-                requestType,
-                timeTaken);
     }
 
     private void logError(String context, QuestionsResponse questionsResponse) {
@@ -139,9 +133,9 @@ public class KBVGateway {
                 questionsResponse.getErrorMessage());
     }
 
-    private void sendResultMetric(String metricName, KbvResult result) {
+    private void sendResultMetric(String metricName, KbvResult result, long executionDuration) {
         if (Objects.nonNull(result)) {
-            this.metricsService.sendResultMetric(result, metricName);
+            this.metricsService.sendResultMetric(result, metricName, executionDuration);
         }
     }
 

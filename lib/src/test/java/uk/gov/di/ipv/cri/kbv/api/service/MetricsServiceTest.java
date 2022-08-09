@@ -12,8 +12,8 @@ import java.util.Map;
 
 import static org.mockito.Mockito.verify;
 import static uk.gov.di.ipv.cri.kbv.api.service.MetricsService.ERROR_CODE;
+import static uk.gov.di.ipv.cri.kbv.api.service.MetricsService.EXECUTION_DURATION;
 import static uk.gov.di.ipv.cri.kbv.api.service.MetricsService.OUTCOME;
-import static uk.gov.di.ipv.cri.kbv.api.service.MetricsService.TIME_TAKEN;
 import static uk.gov.di.ipv.cri.kbv.api.service.MetricsService.TRANS_ID;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,14 +27,23 @@ class MetricsServiceTest {
     void shouldSendResultsMetric() {
         String resultOutcome = "outcome";
         String resultTransId = "transId";
+        long executionDuration = 7500l;
         KbvResult kbvResult = new KbvResult();
         kbvResult.setOutcome(resultOutcome);
         kbvResult.setNextTransId(new String[] {resultTransId});
 
-        this.metricsService.sendResultMetric(kbvResult, "baz");
+        this.metricsService.sendResultMetric(kbvResult, "baz", executionDuration);
 
         verify(eventProbe).counterMetric("baz");
-        verify(eventProbe).addDimensions(Map.of(OUTCOME, resultOutcome, TRANS_ID, resultTransId));
+        verify(eventProbe)
+                .addDimensions(
+                        Map.of(
+                                OUTCOME,
+                                resultOutcome,
+                                TRANS_ID,
+                                resultTransId,
+                                EXECUTION_DURATION,
+                                String.valueOf(executionDuration)));
     }
 
     @Test
@@ -43,13 +52,5 @@ class MetricsServiceTest {
         this.metricsService.sendErrorMetric(errorCode, "baz");
         verify(eventProbe).counterMetric("baz");
         verify(eventProbe).addDimensions(Map.of(ERROR_CODE, errorCode));
-    }
-
-    @Test
-    void shouldSendTimeTakenMetric() {
-        String timeTaken = "time-taken";
-        this.metricsService.sendTimeTakenMetric(timeTaken, "some request time taken");
-        verify(eventProbe).counterMetric("some request time taken");
-        verify(eventProbe).addDimensions(Map.of(TIME_TAKEN, timeTaken));
     }
 }
