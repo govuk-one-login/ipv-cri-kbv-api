@@ -17,6 +17,8 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,7 +51,8 @@ class KBVGatewayTest {
         verify(mockSAARequestMapper).mapQuestionRequest(questionRequest);
         verify(mockIdentityIQWebServiceSoap).saa(mockSaaRequest);
         verify(mockQuestionsResponseMapper).mapSAAResponse(mockSaaResponse);
-        verify(mockMetricsService).sendResultMetric(mockKbvResult, "initial_questions_response");
+        verify(mockMetricsService)
+                .sendResultMetric(eq(mockKbvResult), eq("initial_questions_response"), anyLong());
     }
 
     @Test
@@ -71,7 +74,8 @@ class KBVGatewayTest {
         verify(mockResponseToQuestionMapper).mapQuestionAnswersRtqRequest(questionAnswerRequest);
         verify(mockIdentityIQWebServiceSoap).rtq(mockRtqRequest);
         verify(mockQuestionsResponseMapper).mapRTQResponse(mockRtqResponse);
-        verify(mockMetricsService).sendResultMetric(mockKbvResult, "submit_questions_response");
+        verify(mockMetricsService)
+                .sendResultMetric(eq(mockKbvResult), eq("submit_questions_response"), anyLong());
     }
 
     @Test
