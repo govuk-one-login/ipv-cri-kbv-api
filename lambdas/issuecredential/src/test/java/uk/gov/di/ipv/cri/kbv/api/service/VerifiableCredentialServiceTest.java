@@ -23,6 +23,7 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.NamePart;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
+import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
 import uk.gov.di.ipv.cri.kbv.api.domain.Evidence;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.service.fixtures.TestFixtures;
@@ -73,7 +74,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
                         signedJwtFactory, mockConfigurationService, mockObjectMapper);
 
         when(mockObjectMapper.convertValue(any(Evidence.class), eq(Map.class)))
-                .thenReturn(Map.of("verificationScore", 2));
+                .thenReturn(Map.of("verificationScore", VC_PASS_EVIDENCE_SCORE));
         when(mockObjectMapper.convertValue(any(Address.class), eq(Map.class)))
                 .thenReturn(Map.of("address", new Address()));
 
@@ -132,7 +133,12 @@ class VerifiableCredentialServiceTest implements TestFixtures {
                 new VerifiableCredentialService(
                         signedJwtFactory, mockConfigurationService, mockObjectMapper);
         when(mockObjectMapper.convertValue(any(Evidence.class), eq(Map.class)))
-                .thenReturn(Map.of("verificationScore", 0));
+                .thenReturn(
+                        Map.of(
+                                "verificationScore",
+                                VC_FAIL_EVIDENCE_SCORE,
+                                "ci",
+                                new ContraIndicator[] {ContraIndicator.V03}));
 
         when(mockObjectMapper.convertValue(any(Address.class), eq(Map.class)))
                 .thenReturn(Map.of("address", new Address()));
@@ -178,6 +184,17 @@ class VerifiableCredentialServiceTest implements TestFixtures {
                                     .get(0)
                                     .get("verificationScore")
                                     .asInt());
+
+                    assertEquals(
+                            ContraIndicator.V03,
+                            ContraIndicator.valueOf(
+                                    claimsSet
+                                            .get(VC_CLAIM)
+                                            .get(VC_EVIDENCE_KEY)
+                                            .get(0)
+                                            .get("ci")
+                                            .get(0)
+                                            .asText()));
                 });
         ECDSAVerifier ecVerifier = new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1));
         assertTrue(signedJWT.verify(ecVerifier));
@@ -208,10 +225,12 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         verify(signedJWTFactory).createSignedJwt(jwtClaimsSetCaptor.capture());
         assertThat(
                 jwtClaimsSetCaptor.getValue().toString(),
-                containsString("\"verificationScore\":0"));
+                containsString("\"txn\":\"an auth ref no\""));
         assertThat(
                 jwtClaimsSetCaptor.getValue().toString(),
-                containsString("\"txn\":\"an auth ref no\""));
+                containsString("\"verificationScore\":0"));
+
+        assertThat(jwtClaimsSetCaptor.getValue().toString(), containsString("\"ci\":[\"V03\"]"));
     }
 
     @Test

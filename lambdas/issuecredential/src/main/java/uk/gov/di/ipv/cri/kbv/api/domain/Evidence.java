@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonGetter;
 public class Evidence {
     private String txn;
     private Integer verificationScore;
+    private ContraIndicator[] ci;
 
     public String getTxn() {
         return txn;
@@ -25,5 +26,13 @@ public class Evidence {
 
     public void setVerificationScore(Integer verificationScore) {
         this.verificationScore = verificationScore;
+    }
+
+    public void setCi(ContraIndicator[] ci) {
+        this.ci = ci;
+    }
+
+    public ContraIndicator[] getCi() {
+        return ci;
     }
 }

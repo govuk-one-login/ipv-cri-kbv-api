@@ -16,6 +16,7 @@ import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.common.library.util.KMSSigner;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
+import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
 import uk.gov.di.ipv.cri.kbv.api.domain.Evidence;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 
@@ -29,7 +30,19 @@ import static com.nimbusds.jwt.JWTClaimNames.EXPIRATION_TIME;
 import static com.nimbusds.jwt.JWTClaimNames.ISSUER;
 import static com.nimbusds.jwt.JWTClaimNames.NOT_BEFORE;
 import static com.nimbusds.jwt.JWTClaimNames.SUBJECT;
-import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.*;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.KBV_CREDENTIAL_TYPE;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_ADDRESS_KEY;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_BIRTHDATE_KEY;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_CLAIM;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_CREDENTIAL_SUBJECT;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_EVIDENCE_KEY;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_NAME_KEY;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_PASS_EVIDENCE_SCORE;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_PASS;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_TYPE;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VERIFIABLE_CREDENTIAL_TYPE;
 
 public class VerifiableCredentialService {
 
@@ -142,23 +155,26 @@ public class VerifiableCredentialService {
     }
 
     private Object[] calculateEvidence(KBVItem kbvItem) {
-
         Evidence evidence = new Evidence();
         evidence.setTxn(kbvItem.getAuthRefNo());
 
-        EventProbe eventProbe = new EventProbe();
-
-        if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
+        if (VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED.equalsIgnoreCase(kbvItem.getStatus())) {
+            evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
+            evidence.setCi(new ContraIndicator[] {ContraIndicator.V03});
+            logVcScore("fail", new EventProbe());
+        } else if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
             evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
-            eventProbe.addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
-            LOGGER.info("kbv pass");
-
+            logVcScore("pass", new EventProbe());
         } else {
             evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
-            eventProbe.addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
-            LOGGER.info("kbv fail");
+            logVcScore("fail", new EventProbe());
         }
 
         return new Map[] {objectMapper.convertValue(evidence, Map.class)};
+    }
+
+    private void logVcScore(String result, EventProbe eventProbe) {
+        eventProbe.addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, result));
+        LOGGER.info("kbv {}", result);
     }
 }
