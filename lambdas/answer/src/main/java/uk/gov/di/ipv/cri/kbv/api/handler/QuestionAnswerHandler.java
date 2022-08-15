@@ -164,6 +164,8 @@ public class QuestionAnswerHandler
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);
             kbvItem.setStatus(questionsResponse.getStatus());
+            kbvItem.setQuestionAnswerResultSummary(
+                    questionsResponse.getQuestionAnswerResultSummary());
             kbvStorageService.update(kbvItem);
 
             sessionService.createAuthorizationCode(sessionItem);

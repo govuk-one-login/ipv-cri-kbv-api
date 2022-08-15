@@ -86,4 +86,12 @@ public class QuestionsResponse {
     public boolean hasError() {
         return StringUtils.isNotBlank(this.errorMessage) || StringUtils.isNotBlank(this.errorCode);
     }
+
+    public KbvQuestionAnswerSummary getQuestionAnswerResultSummary() {
+        if (Objects.nonNull(this.results)
+                && Objects.nonNull(this.getResults().getAnswerSummary())) {
+            return this.getResults().getAnswerSummary();
+        }
+        return null;
+    }
 }

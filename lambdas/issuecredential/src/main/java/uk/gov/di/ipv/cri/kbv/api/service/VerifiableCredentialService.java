@@ -25,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.nimbusds.jwt.JWTClaimNames.EXPIRATION_TIME;
 import static com.nimbusds.jwt.JWTClaimNames.ISSUER;
@@ -45,9 +46,9 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VERIFIABLE_CREDENTIAL_TYPE;
 
 public class VerifiableCredentialService {
-
     private static final Logger LOGGER = LogManager.getLogger();
     public static final String METRIC_DIMENSION_KBV_VERIFICATION = "kbv_verification";
+
     private final SignedJWTFactory signedJwtFactory;
     private final ConfigurationService configurationService;
 
@@ -161,7 +162,7 @@ public class VerifiableCredentialService {
     private Object[] calculateEvidence(KBVItem kbvItem) {
         Evidence evidence = new Evidence();
         evidence.setTxn(kbvItem.getAuthRefNo());
-        if (VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED.equalsIgnoreCase(kbvItem.getStatus())) {
+        if (hasMultipleIncorrectAnswers(kbvItem)) {
             evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
             evidence.setCi(new ContraIndicator[] {ContraIndicator.V03});
             logVcScore("fail");
@@ -174,6 +175,12 @@ public class VerifiableCredentialService {
         }
 
         return new Map[] {objectMapper.convertValue(evidence, Map.class)};
+    }
+
+    private boolean hasMultipleIncorrectAnswers(KBVItem kbvItem) {
+        return VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED.equalsIgnoreCase(kbvItem.getStatus())
+                && Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
+                && kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() > 1;
     }
 
     private void logVcScore(String result) {

@@ -9,6 +9,8 @@ import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -24,7 +26,9 @@ import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionAnswerSummary;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionOptions;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
@@ -34,9 +38,12 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -70,17 +77,13 @@ class QuestionAnswerHandlerTest {
     @Mock private KBVGateway mockKBVGateway;
     @Captor private ArgumentCaptor<Map<String, Object>> auditEventExtensionsArgCaptor;
 
-    private KBVService spyKBVService;
-
     @BeforeEach
     void setUp() {
-        spyKBVService = Mockito.spy(new KBVService(mockKBVGateway));
-
         questionAnswerHandler =
                 new QuestionAnswerHandler(
                         mockObjectMapper,
                         mockKBVStorageService,
-                        spyKBVService,
+                        Mockito.spy(new KBVService(mockKBVGateway)),
                         mockEventProbe,
                         mockSessionService,
                         mockAuditService);
@@ -334,6 +337,82 @@ class QuestionAnswerHandlerTest {
         verify(mockEventProbe).counterMetric("post_answer", 0d);
     }
 
+    @ParameterizedTest(
+            name =
+                    "{index} => authenticationResult={0}, answeredCorrectly={1}, answeredInCorrectly={2}, totalQuestionsAsked={3}")
+    @CsvSource({"Authenticated, 3, 1, 4", "Not Authenticated, 2, 2, 4"})
+    void shouldReturnOkWhenFinalExperianResponseIncludesAQuestionAnswerSummary(
+            String authenticationResult,
+            int answeredCorrectly,
+            int answeredInCorrectly,
+            int totalQuestionsAsked)
+            throws JsonProcessingException, SqsException {
+        KbvQuestion[] kbvQuestions =
+                new KbvQuestion[] {getQuestion("First"), getQuestion("Second")};
+        QuestionAnswer questionAnswerOne = new QuestionAnswer();
+        QuestionAnswer questionAnswerTwo = new QuestionAnswer();
+        questionAnswerOne.setQuestionId("First");
+        questionAnswerTwo.setQuestionId("Second");
+
+        QuestionAnswer[] questionAnswers =
+                new QuestionAnswer[] {questionAnswerOne, questionAnswerTwo};
+
+        KBVItem kbvItem = getKbvItem(getQuestionStateWithAnswer(kbvQuestions, questionAnswers));
+        QuestionState questionState = getQuestionStateWithAnswer(kbvQuestions, questionAnswers);
+
+        String questionAnswerTwoAsString = new ObjectMapper().writeValueAsString(questionAnswerTwo);
+        SessionItem mockSessionItem = mock(SessionItem.class);
+        when(input.getHeaders()).thenReturn(createRequestHeaders());
+        when(input.getBody()).thenReturn(questionAnswerTwoAsString);
+        when(mockSessionItem.getSessionId()).thenReturn(SESSION_ID);
+        when(mockSessionService.validateSessionId(SESSION_ID_AS_STRING))
+                .thenReturn(mockSessionItem);
+        when(mockKBVStorageService.getKBVItem(SESSION_ID)).thenReturn(kbvItem);
+        when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
+                .thenReturn(questionState);
+        when(mockObjectMapper.readValue(questionAnswerTwoAsString, QuestionAnswer.class))
+                .thenReturn(questionAnswerTwo);
+        when(mockKBVGateway.submitAnswers(any()))
+                .thenReturn(
+                        getQuestionResponseWithResults(
+                                authenticationResult,
+                                getKbvQuestionAnswerSummary(
+                                        answeredCorrectly,
+                                        answeredInCorrectly,
+                                        totalQuestionsAsked)));
+
+        APIGatewayProxyResponseEvent result =
+                questionAnswerHandler.handleRequest(input, contextMock);
+
+        verify(mockKBVStorageService, times(2)).update(kbvItem);
+        verify(mockSessionService).validateSessionId(SESSION_ID_AS_STRING);
+        verify(mockSessionService).createAuthorizationCode(mockSessionItem);
+        verify(mockAuditService)
+                .sendAuditEvent(
+                        eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED),
+                        any(AuditEventContext.class),
+                        any(Object.class));
+
+        assertAll(
+                () -> assertNotNull(kbvItem.getQuestionAnswerResultSummary()),
+                () -> assertEquals(authenticationResult, kbvItem.getStatus()),
+                () ->
+                        assertEquals(
+                                totalQuestionsAsked,
+                                kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked()),
+                () ->
+                        assertEquals(
+                                answeredCorrectly,
+                                kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect()),
+                () ->
+                        assertEquals(
+                                answeredInCorrectly,
+                                kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect()));
+
+        assertEquals(HttpStatusCode.OK, result.getStatusCode());
+        assertNull(result.getBody());
+    }
+
     private void setupMockEventProbe() {
         when(mockEventProbe.counterMetric(anyString(), anyDouble())).thenReturn(mockEventProbe);
         when(mockEventProbe.log(any(Level.class), any(Exception.class))).thenReturn(mockEventProbe);
@@ -341,5 +420,73 @@ class QuestionAnswerHandlerTest {
 
     private Map<String, String> createRequestHeaders() {
         return Map.of(HEADER_SESSION_ID, SESSION_ID_AS_STRING);
+    }
+
+    private QuestionState getQuestionStateWithAnswer(
+            KbvQuestion[] kbvQuestions, QuestionAnswer[] questionAnswers) {
+        QuestionState questionState = getQuestionState(kbvQuestions);
+
+        for (KbvQuestion question : kbvQuestions) {
+            Optional<QuestionAnswer> questionAnswer =
+                    Arrays.stream(questionAnswers)
+                            .filter(qa -> qa.getQuestionId().equals(question.getQuestionId()))
+                            .findFirst();
+            questionAnswer.ifPresent(
+                    ans -> {
+                        ans.setQuestionId(question.getQuestionId());
+                        ans.setAnswer(String.format("%s Answer", question.getQuestionId()));
+                        questionState.setAnswer(ans);
+                    });
+        }
+        return questionState;
+    }
+
+    private QuestionState getQuestionState(KbvQuestion[] kbvQuestions) {
+        QuestionState questionState = new QuestionState();
+        questionState.setQAPairs(kbvQuestions);
+        return questionState;
+    }
+
+    private KbvQuestionAnswerSummary getKbvQuestionAnswerSummary(
+            int answeredCorrect, int answeredIncorrect, int totalQuestionsAsked) {
+        KbvQuestionAnswerSummary kbvQuestionAnswerSummary = new KbvQuestionAnswerSummary();
+        kbvQuestionAnswerSummary.setAnsweredCorrect(answeredCorrect);
+        kbvQuestionAnswerSummary.setAnsweredIncorrect(answeredIncorrect);
+        kbvQuestionAnswerSummary.setQuestionsAsked(totalQuestionsAsked);
+        return kbvQuestionAnswerSummary;
+    }
+
+    private KBVItem getKbvItem(QuestionState questionState) throws JsonProcessingException {
+        KBVItem kbvItem = new KBVItem();
+        kbvItem.setQuestionState(new ObjectMapper().writeValueAsString(questionState));
+        return kbvItem;
+    }
+
+    private KbvQuestion getQuestion(String questionId) {
+        KbvQuestionOptions questionOptions = new KbvQuestionOptions();
+        questionOptions.setIdentifier(questionId);
+        questionOptions.setFieldType("G");
+
+        KbvQuestion question = new KbvQuestion();
+        question.setQuestionId(questionId);
+        question.setQuestionOptions(questionOptions);
+
+        return question;
+    }
+
+    private QuestionsResponse getQuestionResponseWithResults(
+            String authenticationResult, KbvQuestionAnswerSummary kbvQuestionAnswerSummary) {
+        QuestionsResponse questionsResponse = new QuestionsResponse();
+        KbvResult kbvResult = getKbvResult("END");
+        kbvResult.setAuthenticationResult(authenticationResult);
+        kbvResult.setAnswerSummary(kbvQuestionAnswerSummary);
+        questionsResponse.setResults(kbvResult);
+        return questionsResponse;
+    }
+
+    private KbvResult getKbvResult(String transactionValue) {
+        KbvResult kbvResult = new KbvResult();
+        kbvResult.setNextTransId(new String[] {transactionValue});
+        return kbvResult;
     }
 }
