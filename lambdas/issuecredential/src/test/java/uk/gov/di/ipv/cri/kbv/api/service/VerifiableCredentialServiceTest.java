@@ -22,6 +22,7 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.Name;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.NamePart;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
 import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
 import uk.gov.di.ipv.cri.kbv.api.domain.Evidence;
@@ -55,6 +56,8 @@ class VerifiableCredentialServiceTest implements TestFixtures {
     private static final String SUBJECT = "subject";
     @Mock private ObjectMapper mockObjectMapper;
     @Mock private ConfigurationService mockConfigurationService;
+    @Mock private EventProbe mockEventProbe;
+
     @Captor private ArgumentCaptor<JWTClaimsSet> jwtClaimsSetCaptor;
 
     @BeforeEach
@@ -71,7 +74,10 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         SignedJWTFactory signedJwtFactory = new SignedJWTFactory(new ECDSASigner(getPrivateKey()));
         var verifiableCredentialService =
                 new VerifiableCredentialService(
-                        signedJwtFactory, mockConfigurationService, mockObjectMapper);
+                        signedJwtFactory,
+                        mockConfigurationService,
+                        mockObjectMapper,
+                        mockEventProbe);
 
         when(mockObjectMapper.convertValue(any(Evidence.class), eq(Map.class)))
                 .thenReturn(Map.of("verificationScore", VC_PASS_EVIDENCE_SCORE));
@@ -131,7 +137,10 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         SignedJWTFactory signedJwtFactory = new SignedJWTFactory(new ECDSASigner(getPrivateKey()));
         VerifiableCredentialService verifiableCredentialService =
                 new VerifiableCredentialService(
-                        signedJwtFactory, mockConfigurationService, mockObjectMapper);
+                        signedJwtFactory,
+                        mockConfigurationService,
+                        mockObjectMapper,
+                        mockEventProbe);
         when(mockObjectMapper.convertValue(any(Evidence.class), eq(Map.class)))
                 .thenReturn(
                         Map.of(
@@ -206,7 +215,10 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         SignedJWTFactory signedJWTFactory = mock(SignedJWTFactory.class);
         var verifiableCredentialService =
                 new VerifiableCredentialService(
-                        signedJWTFactory, mockConfigurationService, new ObjectMapper());
+                        signedJWTFactory,
+                        mockConfigurationService,
+                        new ObjectMapper(),
+                        mockEventProbe);
 
         when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("kbv-cri-issue");
         when(mockConfigurationService.getMaxJwtTtl()).thenReturn(342L);
@@ -239,7 +251,10 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         SignedJWTFactory signedJWTFactory = mock(SignedJWTFactory.class);
         var verifiableCredentialService =
                 new VerifiableCredentialService(
-                        signedJWTFactory, mockConfigurationService, new ObjectMapper());
+                        signedJWTFactory,
+                        mockConfigurationService,
+                        new ObjectMapper(),
+                        mockEventProbe);
 
         when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("kbv-cri-issue");
         when(mockConfigurationService.getMaxJwtTtl()).thenReturn(342L);
