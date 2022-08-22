@@ -13,6 +13,7 @@ public class KBVItem {
     private String authRefNo;
     private String urn;
     private String status;
+    private KbvQuestionAnswerSummary kbvQuestionAnswerSummary;
 
     public void setQuestionState(String questionState) {
         this.questionState = questionState;
@@ -61,5 +62,13 @@ public class KBVItem {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public void setQuestionAnswerResultSummary(KbvQuestionAnswerSummary answerSummary) {
+        this.kbvQuestionAnswerSummary = answerSummary;
+    }
+
+    public KbvQuestionAnswerSummary getQuestionAnswerResultSummary() {
+        return kbvQuestionAnswerSummary;
     }
 }
