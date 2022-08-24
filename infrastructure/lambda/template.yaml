@@ -583,6 +583,8 @@ Resources:
             TableName: !Ref SessionTable
         - DynamoDBReadPolicy:
             TableName: !Ref PersonIdentityTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref KBVAnswerTable
         - SQSSendMessagePolicy:
             QueueName: !ImportValue AuditEventQueueName
         - KMSDecryptPolicy:
@@ -593,6 +595,7 @@ Resources:
                 - ssm:GetParameter
               Resource:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVAnswerTable"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/PersonIdentityTableName"
@@ -655,6 +658,8 @@ Resources:
             TableName: !Ref KBVTable
         - DynamoDBWritePolicy:
             TableName: !Ref KBVTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref KBVAnswerTable
         - DynamoDBReadPolicy:
             TableName: !Ref SessionTable
         - DynamoDBWritePolicy:
@@ -669,6 +674,7 @@ Resources:
                 - ssm:GetParameter
               Resource:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVAnswerTable"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/PersonIdentityTableName"
@@ -878,6 +884,21 @@ Resources:
         AttributeName: expiryDate
         Enabled: true
 
+  KBVAnswerTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: !Sub "kbv-answer-${AWS::StackName}"
+      BillingMode: "PAY_PER_REQUEST"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      AttributeDefinitions:
+        - AttributeName: "id"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "id"
+          KeyType: "HASH"
+
+
   PublicApiUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
     Condition: IsNotDevEnvironment
@@ -949,6 +970,14 @@ Resources:
       Value: !Sub person-identity-${AWS::StackName}
       Type: String
       Description: person identity dynamodb table name
+
+  ParameterKBVAnswerTableName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/KBVAnswerTableName"
+      Value: !Sub kbv-answer-${AWS::StackName}
+      Type: String
+      Description: kbv answer dynamodb table name
 
   MaxJwtTtlParameter:
     Type: AWS::SSM::Parameter
