@@ -3,6 +3,7 @@ package uk.gov.di.ipv.cri.kbv.api.handler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +39,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVAnswerStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
@@ -76,6 +78,7 @@ class QuestionHandlerTest {
     private QuestionHandler questionHandler;
     @Mock private ObjectMapper mockObjectMapper;
     @Mock private KBVStorageService mockKBVStorageService;
+    @Mock private KBVAnswerStorageService mockKBVAnswerStorageService;
     @Mock private PersonIdentityService mockPersonIdentityService;
     @Mock private EventProbe mockEventProbe;
     @Mock private KBVGateway mockKBVGateway;
@@ -94,6 +97,7 @@ class QuestionHandlerTest {
                 new QuestionHandler(
                         mockObjectMapper,
                         mockKBVStorageService,
+                        mockKBVAnswerStorageService,
                         mockPersonIdentityService,
                         spyKBVService,
                         mockConfigurationService,
@@ -125,11 +129,11 @@ class QuestionHandlerTest {
 
             String expectedQuestion = new ObjectMapper().writeValueAsString(getQuestionOne());
 
-            doReturn(
-                            getExperianQuestionResponse(
-                                    new KbvQuestion[] {getQuestionOne(), getQuestionTwo()}))
-                    .when(spyKBVService)
-                    .getQuestions(any());
+            QuestionsResponse experianQuestionResponse =
+                    getExperianQuestionResponse(
+                            new KbvQuestion[] {getQuestionOne(), getQuestionTwo()});
+            doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
+            doNothing().when(mockKBVAnswerStorageService).save(experianQuestionResponse);
             when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
@@ -144,6 +148,7 @@ class QuestionHandlerTest {
                     .sendAuditEvent(
                             eq(AuditEventType.REQUEST_SENT), auditEventContextArgCaptor.capture());
             verify(mockKBVStorageService).save(any());
+            verify(mockKBVAnswerStorageService).save(experianQuestionResponse);
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
             verify(mockObjectMapper).writeValueAsString(any());
@@ -156,6 +161,61 @@ class QuestionHandlerTest {
             assertEquals(sessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
             assertEquals(requestHeaders, auditEventContextArgCaptor.getValue().getRequestHeaders());
             assertEquals(personIdentity, auditEventContextArgCaptor.getValue().getPersonIdentity());
+        }
+
+        @Test
+        void shouldReturn500ErrorDueKBVAnswerStorageServiceAwsError()
+                throws JsonProcessingException {
+            APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
+            Map<String, String> requestHeaders =
+                    Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
+
+            KBVItem kbvItem = new KBVItem();
+            kbvItem.setSessionId(UUID.fromString(requestHeaders.get(HEADER_SESSION_ID)));
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
+            SessionItem sessionItem = mock(SessionItem.class);
+
+            when(input.getHeaders()).thenReturn(requestHeaders);
+            when(sessionService.validateSessionId(requestHeaders.get(HEADER_SESSION_ID)))
+                    .thenReturn(sessionItem);
+            when(mockPersonIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId()))
+                    .thenReturn(personIdentity);
+            doNothing().when(mockKBVStorageService).save(any());
+            String expectedQuestion = new ObjectMapper().writeValueAsString(getQuestionOne());
+            when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
+            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
+                    .thenReturn("3 out of 4");
+            QuestionsResponse experianQuestionResponse =
+                    getExperianQuestionResponse(
+                            new KbvQuestion[] {getQuestionOne(), getQuestionTwo()});
+            doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
+
+            AwsErrorDetails awsErrorDetails =
+                    AwsErrorDetails.builder()
+                            .errorCode("")
+                            .sdkHttpResponse(
+                                    SdkHttpResponse.builder()
+                                            .statusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
+                                            .build())
+                            .errorMessage("AWS DynamoDbException Occurred")
+                            .build();
+
+            doThrow(
+                            AwsServiceException.builder()
+                                    .statusCode(500)
+                                    .awsErrorDetails(awsErrorDetails)
+                                    .build())
+                    .when(mockKBVAnswerStorageService)
+                    .save(experianQuestionResponse);
+
+            setupEventProbeErrorBehaviour();
+            APIGatewayProxyResponseEvent response =
+                    questionHandler.handleRequest(input, mock(Context.class));
+
+            assertEquals("{\"error\":\"AWS Server error occurred.\"}", response.getBody());
+            assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
+            verify(mockKBVAnswerStorageService).save(experianQuestionResponse);
+            verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
         }
 
         @Test

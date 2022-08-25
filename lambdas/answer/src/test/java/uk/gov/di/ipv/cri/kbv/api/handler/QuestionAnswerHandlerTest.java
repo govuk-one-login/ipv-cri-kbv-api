@@ -16,7 +16,10 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
+import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
@@ -34,6 +37,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
+import uk.gov.di.ipv.cri.kbv.api.service.KBVAnswerStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
@@ -69,6 +73,7 @@ class QuestionAnswerHandlerTest {
     private QuestionAnswerHandler questionAnswerHandler;
     @Mock private ObjectMapper mockObjectMapper;
     @Mock private KBVStorageService mockKBVStorageService;
+    @Mock private KBVAnswerStorageService mockKBVAnswerStorageService;
     @Mock private APIGatewayProxyRequestEvent input;
     @Mock private Context contextMock;
     @Mock private EventProbe mockEventProbe;
@@ -83,6 +88,7 @@ class QuestionAnswerHandlerTest {
                 new QuestionAnswerHandler(
                         mockObjectMapper,
                         mockKBVStorageService,
+                        mockKBVAnswerStorageService,
                         Mockito.spy(new KBVService(mockKBVGateway)),
                         mockEventProbe,
                         mockSessionService,
@@ -205,6 +211,7 @@ class QuestionAnswerHandlerTest {
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
         when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
         when(mockKBVGateway.submitAnswers(any())).thenReturn(questionsResponseMock);
+        doNothing().when(mockKBVAnswerStorageService).save(questionsResponseMock);
         when(questionsResponseMock.hasQuestions()).thenReturn(true);
         doNothing().when(questionStateMock).setQAPairs(any());
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
@@ -213,8 +220,60 @@ class QuestionAnswerHandlerTest {
                 questionAnswerHandler.handleRequest(input, contextMock);
 
         verify(mockKBVStorageService, times(2)).update(kbvItemMock);
+        verify(mockKBVAnswerStorageService).save(questionsResponseMock);
         assertEquals(HttpStatusCode.OK, result.getStatusCode());
         assertNull(result.getBody());
+    }
+
+    @Test
+    void shouldReturn500ErrorDueKBVAnswerStorageServiceAwsError() throws JsonProcessingException {
+        KBVItem kbvItemMock = mock(KBVItem.class);
+        SessionItem mockSessionItem = mock(SessionItem.class);
+        QuestionState questionStateMock = mock(QuestionState.class);
+        QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
+        QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
+        setupMockEventProbe();
+
+        when(input.getHeaders()).thenReturn(createRequestHeaders());
+        when(input.getBody()).thenReturn(REQUEST_PAYLOAD);
+        when(mockSessionItem.getSessionId()).thenReturn(SESSION_ID);
+        when(mockSessionService.validateSessionId(SESSION_ID_AS_STRING))
+                .thenReturn(mockSessionItem);
+        when(mockKBVStorageService.getKBVItem(SESSION_ID)).thenReturn(kbvItemMock);
+        when(mockObjectMapper.readValue(kbvItemMock.getQuestionState(), QuestionState.class))
+                .thenReturn(questionStateMock);
+        when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
+                .thenReturn(questionAnswerMock);
+        when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
+        when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
+        when(mockKBVGateway.submitAnswers(any())).thenReturn(questionsResponseMock);
+        when(questionsResponseMock.hasQuestions()).thenReturn(true);
+
+        AwsErrorDetails awsErrorDetails =
+                AwsErrorDetails.builder()
+                        .errorCode("")
+                        .sdkHttpResponse(
+                                SdkHttpResponse.builder()
+                                        .statusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
+                                        .build())
+                        .errorMessage("AWS DynamoDbException Occurred")
+                        .build();
+
+        doThrow(
+                        AwsServiceException.builder()
+                                .statusCode(500)
+                                .awsErrorDetails(awsErrorDetails)
+                                .build())
+                .when(mockKBVAnswerStorageService)
+                .save(questionsResponseMock);
+
+        APIGatewayProxyResponseEvent result =
+                questionAnswerHandler.handleRequest(input, contextMock);
+
+        assertEquals("{\"error\":\"AWS Server error occurred.\"}", result.getBody());
+        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, result.getStatusCode());
+        verify(mockKBVAnswerStorageService).save(questionsResponseMock);
+        verify(mockEventProbe).counterMetric("post_answer", 0d);
     }
 
     @Test
