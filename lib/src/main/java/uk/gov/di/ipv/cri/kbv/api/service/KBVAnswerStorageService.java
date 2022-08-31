@@ -29,6 +29,8 @@ public class KBVAnswerStorageService {
     }
 
     public void save(QuestionsResponse questionsResponse) {
-        dataStore.createItems(kbvAnswerStorageMapper.mapToKBVAnswerItems(questionsResponse));
+        if (questionsResponse.hasQuestions()) {
+            dataStore.createItems(kbvAnswerStorageMapper.mapToKBVAnswerItems(questionsResponse));
+        }
     }
 }

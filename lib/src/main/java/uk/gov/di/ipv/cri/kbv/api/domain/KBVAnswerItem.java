@@ -10,6 +10,7 @@ public class KBVAnswerItem {
     private UUID id;
     private String questionId;
     private String answer;
+    private String identifier;
 
     public KBVAnswerItem() {
         id = UUID.randomUUID();
@@ -38,5 +39,13 @@ public class KBVAnswerItem {
 
     public void setAnswer(String answer) {
         this.answer = answer;
+    }
+
+    public String getIdentifier() {
+        return identifier;
+    }
+
+    public void setIdentifier(String identifier) {
+        this.identifier = identifier;
     }
 }

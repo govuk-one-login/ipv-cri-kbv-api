@@ -211,7 +211,6 @@ class QuestionAnswerHandlerTest {
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
         when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
         when(mockKBVGateway.submitAnswers(any())).thenReturn(questionsResponseMock);
-        doNothing().when(mockKBVAnswerStorageService).save(questionsResponseMock);
         when(questionsResponseMock.hasQuestions()).thenReturn(true);
         doNothing().when(questionStateMock).setQAPairs(any());
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");

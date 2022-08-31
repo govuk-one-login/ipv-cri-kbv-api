@@ -4,34 +4,37 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KBVAnswerItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class KBVAnswerStorageMapper {
     public List<KBVAnswerItem> mapToKBVAnswerItems(QuestionsResponse questionsResponse) {
-        List<KBVAnswerItem> kbvAnswerItems = new ArrayList<>();
-        for (KbvQuestion kbvQuestion : questionsResponse.getQuestions()) {
-            kbvAnswerItems.addAll(getAnswersForQuestion(kbvQuestion));
-        }
-        return kbvAnswerItems;
+        return Arrays.stream(questionsResponse.getQuestions())
+                .filter(Objects::nonNull)
+                .filter(this::containsAListOfAnswers)
+                .flatMap(this::getKbvAnswerItemStream)
+                .collect(Collectors.toList());
     }
 
-    private List<KBVAnswerItem> getAnswersForQuestion(KbvQuestion kbvQuestion) {
-        if (Objects.nonNull(kbvQuestion.getQuestionOptions())
-                && Objects.nonNull(kbvQuestion.getQuestionOptions().getOptions())) {
-            return kbvQuestion.getQuestionOptions().getOptions().stream()
-                    .map(
-                            answer -> {
-                                KBVAnswerItem kbvAnswerItem = new KBVAnswerItem();
-                                kbvAnswerItem.setQuestionId(kbvQuestion.getQuestionId());
-                                kbvAnswerItem.setAnswer(answer);
-                                return kbvAnswerItem;
-                            })
-                    .collect(Collectors.toList());
-        }
-        return Collections.emptyList();
+    private boolean containsAListOfAnswers(KbvQuestion kbvQuestion) {
+        return Objects.nonNull(kbvQuestion.getQuestionOptions())
+                && Objects.nonNull(kbvQuestion.getQuestionOptions().getOptions())
+                && !kbvQuestion.getQuestionOptions().getOptions().isEmpty();
+    }
+
+    private Stream<KBVAnswerItem> getKbvAnswerItemStream(KbvQuestion kbvQuestion) {
+        return kbvQuestion.getQuestionOptions().getOptions().stream()
+                .map(
+                        answer -> {
+                            KBVAnswerItem kbvAnswerItem = new KBVAnswerItem();
+                            kbvAnswerItem.setQuestionId(kbvQuestion.getQuestionId());
+                            kbvAnswerItem.setIdentifier(
+                                    kbvQuestion.getQuestionOptions().getIdentifier());
+                            kbvAnswerItem.setAnswer(answer);
+                            return kbvAnswerItem;
+                        });
     }
 }
