@@ -1,6 +1,11 @@
 # di-ipv-cri-kbv-api
 IPV Knowledge Based Verification Credential Issuer
 
+## Hooks
+
+**important:** One you've cloned the repo, run `pre-commit install` to install the pre-commit hooks.
+If you have not installed `pre-commit` then please do so [here](https://pre-commit.com/).
+
 ## Check out submodules (First Time)
 > The first time you check out or clone the repository, you will need to run the following commands:
 
@@ -58,5 +63,5 @@ Deployment to Build:
 |-----------------------------|-------------------------------------------------------|
 | ARTIFACT_SOURCE_BUCKET_NAME | Bucket where lambda code is pushed for deployment     |
 | SIGNING_PROFILE_NAME        | The AWS signer signing profile name                   |
-| GH_ACTIONS_ROLE_ARN         | Assumed role IAM ARN                                  |        
+| GH_ACTIONS_ROLE_ARN         | Assumed role IAM ARN                                  |
 
