@@ -19,3 +19,8 @@ project(':abandon').projectDir = new File('./lambdas/abandon')
 // acceptance tests
 include "acceptance-tests-journey"
 project(':acceptance-tests-journey').projectDir = new File('./acceptance-tests/journey')
+
+include 'integration-tests'
+project(':integration-tests').projectDir = new File('./integration-tests')
+
+startParameter.excludedTaskNames = [':integration-tests:test']
