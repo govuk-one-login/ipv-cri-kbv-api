@@ -4,7 +4,6 @@ info:
   version: "1.0"
 
 paths:
-
   /token:
     post:
       requestBody:
@@ -59,21 +58,20 @@ paths:
       security:
         - api_key:
             Fn::If:
-            - IsNotDevEnvironment
-            - []
-            - Ref: AWS::NoValue
+              - IsNotDevEnvironment
+              - [ ]
+              - Ref: AWS::NoValue
       x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
         uri:
-          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AccessTokenFunction.Arn}/invocations
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${CommonStackName}-AccessTokenFunction/invocations
         responses:
           default:
             statusCode: "200"
         passthroughBehavior: "when_no_match"
         contentHandling: "CONVERT_TO_TEXT"
         type: "aws_proxy"
-
   /credential/issue:
     summary: Resource for the KBV API
     description: >-

@@ -4,38 +4,6 @@ info:
   version: "1.0"
 
 paths:
-
-  /authorization:
-    get:
-      parameters:
-        - $ref: "#/components/parameters/SessionHeader"
-      responses:
-        "200":
-          description: "200 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthorizationResponse"
-        "400":
-          description: "400 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          description: "500 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-      x-amazon-apigateway-request-validator: "Validate both"
-      x-amazon-apigateway-integration:
-        type: "aws_proxy"
-        httpMethod: "POST"
-        uri:
-          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizationFunction.Arn}/invocations"
-        passthroughBehavior: "when_no_match"
-
   /session:
     post:
       requestBody:
@@ -67,13 +35,44 @@ paths:
       x-amazon-apigateway-integration:
         httpMethod: "POST"
         uri:
-          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SessionFunction.Arn}/invocations
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${CommonStackName}-SessionFunction/invocations
         responses:
           default:
             statusCode: "200"
         passthroughBehavior: "when_no_match"
         contentHandling: "CONVERT_TO_TEXT"
         type: "aws_proxy"
+
+  /authorization:
+    get:
+      parameters:
+        - $ref: "#/components/parameters/SessionHeader"
+      responses:
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorizationResponse"
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-amazon-apigateway-request-validator: "Validate both"
+      x-amazon-apigateway-integration:
+        type: "aws_proxy"
+        httpMethod: "POST"
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${CommonStackName}-AuthorizationFunction/invocations
+        passthroughBehavior: "when_no_match"
 
   /question:
     get:
@@ -207,18 +206,18 @@ components:
           type: "string"
           format: "uri"
           example: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
-    Error:
-      title: "Error Schema"
-      type: "object"
-      properties:
-        message:
-          type: "string"
     Session:
       required:
         - "session_id"
       type: "object"
       properties:
         session_id:
+          type: "string"
+    Error:
+      title: "Error Schema"
+      type: "object"
+      properties:
+        message:
           type: "string"
     Question:
       type: "object"

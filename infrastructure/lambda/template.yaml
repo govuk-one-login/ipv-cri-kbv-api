@@ -29,6 +29,18 @@ Parameters:
     Type: String
     Default: "none"
     Description: Secrets name prefix
+  AuditEventNamePrefix:
+    Description: "The audit event name prefix"
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/common-cri-parameters/AuditEventNamePrefix"
+  CriIdentifier:
+    Description: "The unique credential issuer identifier"
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/common-cri-parameters/CriIdentifier"
+  CommonStackName:
+    Description: "The name of the stack containing the common CRI lambdas/infra"
+    Type: String
+    Default: "common-cri-api"
 
 Conditions:
   EnforceCodeSigning: !Equals
@@ -94,11 +106,11 @@ Globals:
         AWS_STACK_NAME: !Sub ${AWS::StackName}
         SECRET_PREFIX: !If [UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName]
         POWERTOOLS_LOG_LEVEL: INFO
-        POWERTOOLS_METRICS_NAMESPACE: di-ipv-cri-kbv-api
-        SQS_AUDIT_EVENT_PREFIX: IPV_KBV_CRI
+        POWERTOOLS_METRICS_NAMESPACE: !Ref CriIdentifier
+        SQS_AUDIT_EVENT_PREFIX: !Ref AuditEventNamePrefix
+        COMMON_PARAMETER_NAME_PREFIX: !Ref CommonStackName
 
 Mappings:
-
   MemorySizeMapping:
     Environment:
       dev: 512
@@ -131,14 +143,6 @@ Mappings:
       integration: GDSCABINETUIIQ01U
       production: GDSCABINETUIIQ01U
 
-  SessionTtlMapping:
-    Environment:
-      dev: 7200 # 2 hours
-      build: 7200 # 2 hours
-      staging: 7200 # 2 hours
-      integration: 7200 # 2 hours
-      production: 7200 # 2 hours
-
   MaxJwtTtlMapping:
     Environment:
       dev: 7200 # 2 hours
@@ -146,82 +150,6 @@ Mappings:
       staging: 7200 # 2 hours
       integration: 7200 # 2 hours
       production: 7200 # 2 hours
-
-  IPVCoreStubAudienceMapping:
-    Environment:
-      dev: "https://review-k.dev.account.gov.uk"
-      build: "https://review-k.build.account.gov.uk"
-      staging: "https://review-k.staging.account.gov.uk"
-      integration: "https://review-k.integration.account.gov.uk"
-
-  IPVCoreStubPreProdAudienceMapping:
-    Environment:
-      production: "https://review-k.account.gov.uk"
-
-  IPVCore1AudienceMapping:
-    Environment:
-      staging: "https://review-k.staging.account.gov.uk"
-      integration: "https://review-k.integration.account.gov.uk"
-      production: "https://review-k.account.gov.uk"
-
-  IPVCoreStubIssuerMapping:
-    Environment:
-      dev: "https://di-ipv-core-stub.london.cloudapps.digital"
-      build: "https://di-ipv-core-stub.london.cloudapps.digital"
-      staging: "https://di-ipv-core-stub.london.cloudapps.digital"
-      integration: "https://di-ipv-core-stub.london.cloudapps.digital"
-
-  IPVCoreStubPreProdIssuerMapping:
-    Environment:
-      production: "https://di-ipv-core-stub.london.cloudapps.digital"
-
-  IPVCore1IssuerMapping:
-    Environment:
-      staging: "https://identity.staging.account.gov.uk"
-      integration: "https://identity.integration.account.gov.uk"
-      production: "https://identity.account.gov.uk"
-
-  IPVCoreStubPublicSigningJwkBase64Mapping:
-    Environment:
-      dev: "ewogICAgImt0eSI6ICJFQyIsCiAgICAidXNlIjogInNpZyIsCiAgICAiY3J2IjogIlAtMjU2IiwKICAgICJraWQiOiAiaXB2LWNvcmUtc3R1Yi0yLWZyb20tbWtqd2sub3JnIiwKICAgICJ4IjogImszOXVLYWNTdWtRQnJNWnJIRFRCVVpzbGl2cFhLRE5aVGc2aW5DSHdyTGMiLAogICAgInkiOiAiOEY4TG5RN3dHOWh4c1Q0YXgwQXR5N2lNR0l5aVlfWUdwM19xSVp6S28xQSIsCiAgICAiYWxnIjogIkVTMjU2Igp9"
-      build: "ewogICAgImt0eSI6ICJFQyIsCiAgICAidXNlIjogInNpZyIsCiAgICAiY3J2IjogIlAtMjU2IiwKICAgICJraWQiOiAiaXB2LWNvcmUtc3R1Yi0yLWZyb20tbWtqd2sub3JnIiwKICAgICJ4IjogImszOXVLYWNTdWtRQnJNWnJIRFRCVVpzbGl2cFhLRE5aVGc2aW5DSHdyTGMiLAogICAgInkiOiAiOEY4TG5RN3dHOWh4c1Q0YXgwQXR5N2lNR0l5aVlfWUdwM19xSVp6S28xQSIsCiAgICAiYWxnIjogIkVTMjU2Igp9"
-      staging: "ewogICAgImt0eSI6ICJFQyIsCiAgICAidXNlIjogInNpZyIsCiAgICAiY3J2IjogIlAtMjU2IiwKICAgICJraWQiOiAiaXB2LWNvcmUtc3R1Yi0yLWZyb20tbWtqd2sub3JnIiwKICAgICJ4IjogImszOXVLYWNTdWtRQnJNWnJIRFRCVVpzbGl2cFhLRE5aVGc2aW5DSHdyTGMiLAogICAgInkiOiAiOEY4TG5RN3dHOWh4c1Q0YXgwQXR5N2lNR0l5aVlfWUdwM19xSVp6S28xQSIsCiAgICAiYWxnIjogIkVTMjU2Igp9"
-      integration: "ewogICAgImt0eSI6ICJFQyIsCiAgICAidXNlIjogInNpZyIsCiAgICAiY3J2IjogIlAtMjU2IiwKICAgICJraWQiOiAiaXB2LWNvcmUtc3R1Yi0yLWZyb20tbWtqd2sub3JnIiwKICAgICJ4IjogImszOXVLYWNTdWtRQnJNWnJIRFRCVVpzbGl2cFhLRE5aVGc2aW5DSHdyTGMiLAogICAgInkiOiAiOEY4TG5RN3dHOWh4c1Q0YXgwQXR5N2lNR0l5aVlfWUdwM19xSVp6S28xQSIsCiAgICAiYWxnIjogIkVTMjU2Igp9"
-
-  IPVCoreStubPreProdPublicSigningJwkBase64Mapping:
-    Environment:
-      production: "ewogICAgImt0eSI6ICJFQyIsCiAgICAidXNlIjogInNpZyIsCiAgICAiY3J2IjogIlAtMjU2IiwKICAgICJraWQiOiAiaXB2LWNvcmUtc3R1Yi0yLWZyb20tbWtqd2sub3JnIiwKICAgICJ4IjogImszOXVLYWNTdWtRQnJNWnJIRFRCVVpzbGl2cFhLRE5aVGc2aW5DSHdyTGMiLAogICAgInkiOiAiOEY4TG5RN3dHOWh4c1Q0YXgwQXR5N2lNR0l5aVlfWUdwM19xSVp6S28xQSIsCiAgICAiYWxnIjogIkVTMjU2Igp9"
-
-  IPVCore1PublicSigningJwkBase64Mapping:
-    Environment:
-      staging: "eyJrdHkiOiJFQyIsImNydiI6IlAtMjU2IiwieCI6ImtlMVRNRnFNb0Z5eHg1eXpOdFFRbGw0dk9yeHZUdFBKQ0huUzRqOHpoMlUiLCJ5IjoicURLX0g4QXpKS2FIbU1zaHg5TGp2LTB0ek5rV2EtSkVHUzJtZHRKUjFPQSJ9"
-      integration: "eyJrdHkiOiJFQyIsImNydiI6IlAtMjU2IiwieCI6IkJUUWdWQjU0RE9JcDU0eGRVSVg0SGtUX3pCdjZHdVdMV1RUTkdxMk15dEkiLCJ5IjoiTFFRamx5ZEtOMUhXZFJQcFBpalJObEJrbi1qaDgzZzBBUmIyNms2WVh1byJ9"
-      production: "eyJrdHkiOiJFQyIsImNydiI6IlAtMjU2IiwieCI6IlVQdlU1TlBtRUxyV2lXU01WZkREN0c4dTNFSllyeXFQSVo0Nlc5TUFsUmMiLCJ5Ijoicjc3RjItS1BocHZUSUdFV2d0NVNtYXZTdkJVSENxV1V4RDZSR19GSkhWayJ9"
-
-  IPVCoreStubRedirectURIMapping:
-    Environment:
-      dev: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
-      build: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
-      staging: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
-      integration: "https://di-ipv-core-stub.london.cloudapps.digital/callback"
-
-  IPVCoreStubPreProdRedirectURIMapping:
-    Environment:
-      production: "https://di-ipv-core-stub-pre-prod.london.cloudapps.digital/callback"
-
-  IPVCore1RedirectURIMapping:
-    Environment:
-      staging: "https://identity.staging.account.gov.uk/credential-issuer/callback?id=kbv"
-      integration: "https://identity.integration.account.gov.uk/credential-issuer/callback?id=kbv"
-      production: "https://identity.account.gov.uk/credential-issuer/callback?id=kbv"
-
-  VerifiableCredentialIssuerMapping:
-    Environment:
-      dev: "https://review-k.dev.account.gov.uk"
-      build: "https://review-k.build.account.gov.uk"
-      staging: "https://review-k.staging.account.gov.uk"
-      integration: "https://review-k.integration.account.gov.uk"
-      production: "https://review-k.account.gov.uk"
 
 Resources:
   PublicKBVApi:
@@ -412,155 +340,6 @@ Resources:
       FilterPattern: ""
       LogGroupName: !Ref PrivateKBVApiAccessLogGroup
 
-  SessionFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ../../common-lambdas/session/build/distributions/session.zip
-      Handler: uk.gov.di.ipv.cri.common.api.handler.SessionHandler::handleRequest
-      Environment:
-        Variables:
-          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-session
-          SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - AWSXrayWriteOnlyAccess
-        - DynamoDBWritePolicy:
-            TableName: !Ref SessionTable
-        - DynamoDBWritePolicy:
-            TableName: !Ref PersonIdentityTable
-        - SQSSendMessagePolicy:
-            QueueName: !ImportValue AuditEventQueueName
-        - KMSDecryptPolicy:
-            KeyId: !ImportValue core-infrastructure-CriDecryptionKey1Id
-        - Statement:
-            - Effect: Allow
-              Action:
-                - ssm:GetParameter
-              Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVCriAudience"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/AuthRequestKmsEncryptionKeyId"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/PersonIdentityTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/verifiable-credential/issuer"
-        - Statement:
-            - Effect: Allow
-              Action:
-                - ssm:GetParametersByPath
-              Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
-        - Statement:
-            - Sid: auditEventQueueKmsEncryptionKeyPermission
-              Effect: Allow
-              Action:
-                - 'kms:Decrypt'
-                - 'kms:GenerateDataKey'
-              Resource:
-                - !ImportValue AuditEventQueueEncryptionKeyArn
-
-# Will need to enable and import at later date to overcome clean deployment issues
-#  SessionFunctionLogGroup:
-#    Type: AWS::Logs::LogGroup
-#    DeletionPolicy: "Retain"
-#    Properties:
-#      LogGroupName: !Sub "/aws/lambda/${SessionFunction}"
-#      RetentionInDays: 14
-
-  SessionFunctionLogGroupSubscriptionFilter:
-    Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
-    Properties:
-      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
-      FilterPattern: ""
-      LogGroupName: !Sub "/aws/lambda/${SessionFunction}"
-
-  AuthorizationFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ../../common-lambdas/authorization/build/distributions/authorization.zip
-      Handler: uk.gov.di.ipv.cri.common.api.handler.AuthorizationHandler::handleRequest
-      Environment:
-        Variables:
-          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-authorization
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - AWSXrayWriteOnlyAccess
-        - DynamoDBReadPolicy:
-            TableName: !Ref SessionTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - ssm:GetParameter
-              Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
-        - Statement:
-            - Effect: Allow
-              Action:
-                - ssm:GetParametersByPath
-              Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
-
-  # Will need to enable and import at later date to overcome clean deployment issues
-#  AuthorizationFunctionLogGroup:
-#    Type: AWS::Logs::LogGroup
-#    DeletionPolicy: "Retain"
-#    Properties:
-#      LogGroupName: !Sub "/aws/lambda/${AuthorizationFunction}"
-#      RetentionInDays: 14
-
-  AuthorizationFunctionLogGroupSubscriptionFilter:
-    Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
-    Properties:
-      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
-      FilterPattern: ""
-      LogGroupName: !Sub "/aws/lambda/${AuthorizationFunction}"
-
-  AccessTokenFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ../../common-lambdas/accesstoken/build/distributions/accesstoken.zip
-      Handler: uk.gov.di.ipv.cri.common.api.handler.AccessTokenHandler::handleRequest
-      Environment:
-        Variables:
-          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-access-token
-      Policies:
-        - DynamoDBReadPolicy:
-            TableName:
-              Ref: SessionTable
-        - DynamoDBWritePolicy:
-            TableName:
-              Ref: SessionTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - ssm:GetParameter
-              Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
-        - Statement:
-            - Effect: Allow
-              Action:
-                - ssm:GetParametersByPath
-              Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
-
-# Will need to enable and import at later date to overcome clean deployment issues
-#  AccessTokenFunctionLogGroup:
-#    Type: AWS::Logs::LogGroup
-#    DeletionPolicy: "Retain"
-#    Properties:
-#      LogGroupName: !Sub "/aws/lambda/${AccessTokenFunction}"
-#      RetentionInDays: 14
-
-  AccessTokenFunctionLogGroupSubscriptionFilter:
-    Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
-    Properties:
-      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
-      FilterPattern: ""
-      LogGroupName: !Sub "/aws/lambda/${AccessTokenFunction}"
-
   KBVQuestionFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -568,7 +347,7 @@ Resources:
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler::handleRequest
       Environment:
         Variables:
-          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-question
+          POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-question"
           SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -578,11 +357,11 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Ref KBVTable
         - DynamoDBReadPolicy:
-            TableName: !Ref SessionTable
+            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - DynamoDBWritePolicy:
-            TableName: !Ref SessionTable
+            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - DynamoDBReadPolicy:
-            TableName: !Ref PersonIdentityTable
+            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
         - DynamoDBWritePolicy:
             TableName: !Ref KBVAnswerTable
         - SQSSendMessagePolicy:
@@ -594,12 +373,12 @@ Resources:
               Action:
                 - ssm:GetParameter
               Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTtl"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVAnswerTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/PersonIdentityTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/verifiable-credential/issuer"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQDatabaseMode"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQStrategy"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQOperatorId"
@@ -626,14 +405,6 @@ Resources:
               Resource:
                 - !ImportValue AuditEventQueueEncryptionKeyArn
 
-# Will need to enable and import at later date to overcome clean deployment issues
-#  KBVQuestionFunctionLogGroup:
-#    Type: AWS::Logs::LogGroup
-#    DeletionPolicy: "Retain"
-#    Properties:
-#      LogGroupName: !Sub "/aws/lambda/${KBVQuestionFunction}"
-#      RetentionInDays: 14
-
   KBVQuestionFunctionLogGroupSubscriptionFilter:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
@@ -649,7 +420,7 @@ Resources:
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionAnswerHandler::handleRequest
       Environment:
         Variables:
-          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-answer
+          POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-answer"
           SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -661,9 +432,9 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Ref KBVAnswerTable
         - DynamoDBReadPolicy:
-            TableName: !Ref SessionTable
+            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - DynamoDBWritePolicy:
-            TableName: !Ref SessionTable
+            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - SQSSendMessagePolicy:
             QueueName: !ImportValue AuditEventQueueName
         - KMSDecryptPolicy:
@@ -673,12 +444,12 @@ Resources:
               Action:
                 - ssm:GetParameter
               Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTtl"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVAnswerTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTtl"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/PersonIdentityTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/verifiable-credential/issuer"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQDatabaseMode"
         - Statement:
             - Sid: ReadSecretsPolicy
@@ -703,14 +474,6 @@ Resources:
               Resource:
                 - !ImportValue AuditEventQueueEncryptionKeyArn
 
-# Will need to enable and import at later date to overcome clean deployment issues
-#  KBVAnswerFunctionLogGroup:
-#    Type: AWS::Logs::LogGroup
-#    DeletionPolicy: "Retain"
-#    Properties:
-#      LogGroupName: !Sub "/aws/lambda/${KBVAnswerFunction}"
-#      RetentionInDays: 14
-
   KBVAnswerFunctionLogGroupSubscriptionFilter:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
@@ -726,7 +489,7 @@ Resources:
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.AbandonKbvHandler::handleRequest
       Environment:
         Variables:
-          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-abandon
+          POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-abandon"
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
@@ -735,24 +498,16 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Ref KBVTable
         - DynamoDBReadPolicy:
-            TableName: !Ref SessionTable
+            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - DynamoDBWritePolicy:
-            TableName: !Ref SessionTable
+            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - Statement:
           - Effect: Allow
             Action:
               - ssm:GetParameter
             Resource:
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/SessionTableName"
-
-# Will need to enable and import at later date to overcome clean deployment issues
-#  KBVAbandonFunctionLogGroup:
-#    Type: AWS::Logs::LogGroup
-#    DeletionPolicy: "Retain"
-#    Properties:
-#      LogGroupName: !Sub "/aws/lambda/${KBVAbandonFunction}"
-#      RetentionInDays: 14
 
   KBVAbandonFunctionLogGroupSubscriptionFilter:
     Type: AWS::Logs::SubscriptionFilter
@@ -769,17 +524,17 @@ Resources:
       CodeUri: ../../lambdas/issuecredential/build/distributions/issuecredential.zip
       Environment:
         Variables:
-          POWERTOOLS_SERVICE_NAME: di-ipv-cri-kbv-api-issuecredential
+          POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-issuecredential"
           SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
         - DynamoDBReadPolicy:
-            TableName: !Ref SessionTable
+            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - DynamoDBReadPolicy:
             TableName: !Ref KBVTable
         - DynamoDBReadPolicy:
-            TableName: !Ref PersonIdentityTable
+            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
         - Statement:
             Effect: Allow
             Action:
@@ -787,8 +542,17 @@ Resources:
             Resource: !ImportValue core-infrastructure-CriVcSigningKey1Arn
         - SQSSendMessagePolicy:
             QueueName: !ImportValue AuditEventQueueName
-        - SSMParameterReadPolicy:
-            ParameterName: !Sub "${AWS::StackName}/*"
+        - Statement:
+            Effect: Allow
+            Action:
+              - ssm:GetParameter
+            Resource:
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/verifiableCredentialKmsSigningKeyId"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/MaxJwtTtl"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
         - Statement:
             Effect: Allow
             Action:
@@ -796,14 +560,6 @@ Resources:
               - kms:GenerateDataKey
             Resource:
               - !ImportValue AuditEventQueueEncryptionKeyArn
-
-# Will need to enable and import at later date to overcome clean deployment issues
-#  IssueCredentialFunctionLogGroup:
-#    Type: AWS::Logs::LogGroup
-#    DeletionPolicy: "Retain"
-#    Properties:
-#      LogGroupName: !Sub "/aws/lambda/${IssueCredentialFunction}"
-#      RetentionInDays: 14
 
   IssueCredentialFunctionLogGroupSubscriptionFilter:
     Type: AWS::Logs::SubscriptionFilter
@@ -818,62 +574,6 @@ Resources:
     Properties:
       TableName: !Sub "kbv-${AWS::StackName}"
       BillingMode: "PAY_PER_REQUEST"
-      AttributeDefinitions:
-        - AttributeName: "sessionId"
-          AttributeType: "S"
-      KeySchema:
-        - AttributeName: "sessionId"
-          KeyType: "HASH"
-      TimeToLiveSpecification:
-        AttributeName: expiryDate
-        Enabled: true
-
-  SessionTable:
-    Type: "AWS::DynamoDB::Table"
-    Properties:
-      TableName: !Sub "session-${AWS::StackName}"
-      BillingMode: "PAY_PER_REQUEST"
-      AttributeDefinitions:
-        - AttributeName: "sessionId"
-          AttributeType: "S"
-        - AttributeName: "authorizationCode"
-          AttributeType: "S"
-        - AttributeName: "accessToken"
-          AttributeType: "S"
-      KeySchema:
-        - AttributeName: "sessionId"
-          KeyType: "HASH"
-      GlobalSecondaryIndexes:
-        - IndexName: "authorizationCode-index"
-          KeySchema:
-            - AttributeName: "authorizationCode"
-              KeyType: "HASH"
-          Projection:
-            NonKeyAttributes:
-              - "sessionId"
-              - "redirectUri"
-              - "clientId"
-            ProjectionType: "INCLUDE"
-        - IndexName: "access-token-index"
-          KeySchema:
-            - AttributeName: "accessToken"
-              KeyType: "HASH"
-          Projection:
-            NonKeyAttributes:
-              - "sessionId"
-              - "subject"
-            ProjectionType: "INCLUDE"
-      TimeToLiveSpecification:
-        AttributeName: expiryDate
-        Enabled: true
-
-  PersonIdentityTable:
-    Type: "AWS::DynamoDB::Table"
-    Properties:
-      TableName: !Sub "person-identity-${AWS::StackName}"
-      BillingMode: "PAY_PER_REQUEST"
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
       AttributeDefinitions:
         - AttributeName: "sessionId"
           AttributeType: "S"
@@ -947,14 +647,6 @@ Resources:
       KeyType: API_KEY
       UsagePlanId: !Ref PublicApiUsagePlan
 
-  ParameterSessionTableName:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/SessionTableName"
-      Value: !Sub session-${AWS::StackName}
-      Type: String
-      Description: session dynamodb table name
-
   ParameterKBVItemTableName:
     Type: AWS::SSM::Parameter
     Properties:
@@ -962,14 +654,6 @@ Resources:
       Value: !Sub kbv-${AWS::StackName}
       Type: String
       Description: kbv item dynamodb table name
-
-  ParameterPersonIdentityTableName:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/PersonIdentityTableName"
-      Value: !Sub person-identity-${AWS::StackName}
-      Type: String
-      Description: person identity dynamodb table name
 
   ParameterKBVAnswerTableName:
     Type: AWS::SSM::Parameter
@@ -986,14 +670,6 @@ Resources:
       Type: String
       Value: !FindInMap [MaxJwtTtlMapping, Environment, !Ref 'Environment']
       Description: default time to live for an JWT in (seconds)
-
-  SessionTtlParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/SessionTtl"
-      Type: String
-      Value: !FindInMap [ SessionTtlMapping, Environment, !Ref 'Environment' ]
-      Description: default time to live for an kbv session item (seconds)
 
   IIQAPIDatabaseModeParameter:
     Type: AWS::SSM::Parameter
@@ -1027,134 +703,6 @@ Resources:
       Type: String
       Value: ES256
 
-  IPVCoreStubPreProdAuthenticationAlgParameter:
-    Condition: IsProdLikeEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub-pre-prod/jwtAuthentication/authenticationAlg"
-      Type: String
-      Value: ES256
-
-  IPVCore1AuthenticationAlgParameter:
-    Condition: IsProdLikeEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core/jwtAuthentication/authenticationAlg"
-      Type: String
-      Value: ES256
-
-  IPVCoreStubAudienceParameter:
-    Condition: IsStubEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/audience"
-      Type: String
-      Value: !FindInMap [ IPVCoreStubAudienceMapping, Environment, !Ref 'Environment' ]
-
-  IPVCoreStubPreProdAudienceParameter:
-    Condition: IsProdEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub-pre-prod/jwtAuthentication/audience"
-      Type: String
-      Value: !FindInMap [ IPVCoreStubPreProdAudienceMapping, Environment, !Ref 'Environment' ]
-
-  IPVCore1AudienceParameter:
-    Condition: IsProdLikeEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core/jwtAuthentication/audience"
-      Type: String
-      Value: !FindInMap [ IPVCore1AudienceMapping, Environment, !Ref 'Environment' ]
-
-  IPVCoreStubIssuerParameter:
-    Condition: IsStubEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/issuer"
-      Type: String
-      Value: !FindInMap [IPVCoreStubIssuerMapping, Environment, !Ref 'Environment']
-
-  IPVCoreStubPreProdIssuerParameter:
-    Condition: IsProdEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub-pre-prod/jwtAuthentication/issuer"
-      Type: String
-      Value: !FindInMap [IPVCoreStubPreProdIssuerMapping, Environment, !Ref 'Environment']
-
-  IPVCore1IssuerParameter:
-    Condition: IsProdLikeEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core/jwtAuthentication/issuer"
-      Type: String
-      Value: !FindInMap [IPVCore1IssuerMapping, Environment, !Ref 'Environment']
-
-  IPVCoreStubPublicSigningJwkBase64Parameter:
-    Condition: IsStubEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/publicSigningJwkBase64"
-      Type: String
-      Value: !FindInMap [IPVCoreStubPublicSigningJwkBase64Mapping, Environment, !Ref 'Environment']
-
-  IPVCoreStubPreProdPublicSigningJwkBase64Parameter:
-    Condition: IsProdEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub-pre-prod/jwtAuthentication/publicSigningJwkBase64"
-      Type: String
-      Value: !FindInMap [IPVCoreStubPreProdPublicSigningJwkBase64Mapping, Environment, !Ref 'Environment']
-
-  IPVCore1PublicSigningJwkBase64Parameter:
-    Condition: IsProdLikeEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core/jwtAuthentication/publicSigningJwkBase64"
-      Type: String
-      Value: !FindInMap [IPVCore1PublicSigningJwkBase64Mapping, Environment, !Ref 'Environment']
-
-  IPVCoreStubRedirectURIParameter:
-    Condition: IsStubEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub/jwtAuthentication/redirectUri"
-      Type: String
-      Value: !FindInMap [IPVCoreStubRedirectURIMapping, Environment, !Ref 'Environment']
-
-  IPVCoreStubPreProdRedirectURIParameter:
-    Condition: IsProdEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core-stub-pre-prod/jwtAuthentication/redirectUri"
-      Type: String
-      Value: !FindInMap [IPVCoreStubPreProdRedirectURIMapping, Environment, !Ref 'Environment']
-
-  IPVCore1RedirectURIParameter:
-    Condition: IsProdLikeEnvironment
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/clients/ipv-core/jwtAuthentication/redirectUri"
-      Type: String
-      Value: !FindInMap [IPVCore1RedirectURIMapping, Environment, !Ref 'Environment']
-
-  AuthRequestKmsEncryptionKeyIdParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/AuthRequestKmsEncryptionKeyId"
-      Type: String
-      Value: !ImportValue core-infrastructure-CriDecryptionKey1Id
-      Description: The (KMS) encryption key identifier for decrypting authorisation requests
-
-  VerifiableCredentialIssuerParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/verifiable-credential/issuer"
-      Type: String
-      Value: !FindInMap [VerifiableCredentialIssuerMapping, Environment, !Ref 'Environment']
-      Description: Issuer of the Verifiable Credential
-
   VerifiableCredentialKmsSigningKeyParameter:
     Type: AWS::SSM::Parameter
     Properties:
@@ -1178,29 +726,6 @@ Resources:
       Type: String
       Value: !Sub "https://${PublicKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
       Description: "Base url of the public KBV CRI API"
-
-
-
-  SessionFunctionPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt SessionFunction.Arn
-      Principal: apigateway.amazonaws.com
-
-  AccessTokenFunctionPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt AccessTokenFunction.Arn
-      Principal: apigateway.amazonaws.com
-
-  AuthorizationFunctionPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt AuthorizationFunction.Arn
-      Principal: apigateway.amazonaws.com
 
   KBVQuestionFunctionPermission:
     Type: AWS::Lambda::Permission
