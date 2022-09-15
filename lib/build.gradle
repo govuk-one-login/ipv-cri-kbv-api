@@ -12,8 +12,8 @@ repositories {
 }
 
 dependencies {
-	implementation project(":common-lib")
-	implementation configurations.aws,
+	implementation configurations.cri_common_lib,
+			configurations.aws,
 			configurations.dynamodb,
 			configurations.cache,
 			configurations.lambda,

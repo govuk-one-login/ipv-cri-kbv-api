@@ -5,7 +5,7 @@ plugins {
 
 dependencies {
 	implementation project(":lib"),
-			project(":common-lib"),
+			configurations.cri_common_lib,
 			configurations.aws,
 			configurations.lambda,
 			configurations.dynamodb,
