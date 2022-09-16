@@ -117,11 +117,11 @@ Mappings:
 
   IIQAPIStrategyMapping:
     Environment:
-      dev: 3 out of 4 wide pool
-      build: 3 out of 4 wide pool
-      staging: 3 out of 4 wide pool
+      dev: 3 out of 4 prioritised
+      build: 3 out of 4 prioritised
+      staging: 3 out of 4 prioritised
       integration: 3 out of 4 prioritised
-      production: 3 out of 4 wide pool
+      production: 3 out of 4 prioritised
 
   IIQOperatorIdMapping:
     Environment:
