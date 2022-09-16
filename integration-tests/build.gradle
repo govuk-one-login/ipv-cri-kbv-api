@@ -24,6 +24,7 @@ dependencies {
 	testImplementation "org.apache.commons:commons-lang3:$apacheCommonLang"
 	testImplementation "org.junit.jupiter:junit-jupiter-api:$junitJupiterapi"
 	testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonDatabind"
+	testImplementation configurations.nimbus
 }
 
 configurations {
