@@ -1179,13 +1179,7 @@ Resources:
       Value: !Sub "https://${PublicKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
       Description: "Base url of the public KBV CRI API"
 
-  PrivateKBVApiGatewayIdParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/PrivateKBVApiGatewayId"
-      Type: String
-      Value: !If [IsNotDevEnvironment, !Ref PrivateKBVApi, !Ref DevOnlyKBVApi]
-      Description: "API GatewayID of the private KBV CRI API"
+
 
   SessionFunctionPermission:
     Type: AWS::Lambda::Permission
