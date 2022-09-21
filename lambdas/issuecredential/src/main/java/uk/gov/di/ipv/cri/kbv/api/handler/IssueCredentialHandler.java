@@ -90,7 +90,7 @@ public class IssueCredentialHandler
     }
 
     @Override
-    @Logging(correlationIdPath = CorrelationIdPathConstants.API_GATEWAY_REST)
+    @Logging(correlationIdPath = CorrelationIdPathConstants.API_GATEWAY_REST, clearState = true)
     @Metrics(captureColdStart = true)
     @Tracing
     public APIGatewayProxyResponseEvent handleRequest(
