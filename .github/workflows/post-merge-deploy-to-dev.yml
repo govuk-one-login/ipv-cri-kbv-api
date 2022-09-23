@@ -12,7 +12,6 @@ jobs:
     timeout-minutes: 15
     env:
       AWS_REGION: eu-west-2
-      STACK_NAME: di-ipv-cri-kbv-api-dev
     permissions:
       id-token: write
       contents: read

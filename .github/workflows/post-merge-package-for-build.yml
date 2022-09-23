@@ -65,4 +65,3 @@ jobs:
         env:
           ARTIFACT_SOURCE_BUCKET_NAME: ${{ secrets.ARTIFACT_SOURCE_BUCKET_NAME }}
         run: aws s3 cp template.zip "s3://$ARTIFACT_SOURCE_BUCKET_NAME/template.zip"
-
