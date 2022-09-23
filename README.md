@@ -59,9 +59,9 @@ Deployment to Dev:
 
 Deployment to Build:
 
-| Secret                      | Description                                           |
-|-----------------------------|-------------------------------------------------------|
-| ARTIFACT_SOURCE_BUCKET_NAME | Bucket where lambda code is pushed for deployment     |
-| SIGNING_PROFILE_NAME        | The AWS signer signing profile name                   |
-| GH_ACTIONS_ROLE_ARN         | Assumed role IAM ARN                                  |
+| Secret                            | Description                                           |
+|-----------------------------------|-------------------------------------------------------|
+| BUILD_ARTIFACT_SOURCE_BUCKET_NAME | Bucket where lambda code is pushed for deployment     |
+| BUILD_SIGNING_PROFILE_NAME        | The AWS signer signing profile name                   |
+| BUILD_GH_ACTIONS_ROLE_ARN         | Assumed role IAM ARN                                  |
 
