@@ -58,7 +58,7 @@ jobs:
           sam deploy -t infrastructure/lambda/template.yaml \
             --no-fail-on-empty-changeset \
             --no-confirm-changeset \
-            --parameter-overrides "Environment=${{ env.ENVIRONMENT }} SecretPrefix=${{ env.SECRET_PREFIX }} CodeSigningEnabled=false AuditEventNamePrefix=/common-cri-parameters/KbvAuditEventNamePrefix CriIdentifier=/common-cri-parameters/KbvCriIdentifier" \
+            --parameter-overrides "Environment=${{ env.ENVIRONMENT }} SecretPrefix=${{ env.SECRET_PREFIX }} CodeSigningEnabled=false AuditEventNamePrefix=/common-cri-parameters/KbvAuditEventNamePrefix CriIdentifier=/common-cri-parameters/KbvCriIdentifier CommonStackName=kbv-common-cri-api" \
             --stack-name $STACK_NAME \
             --s3-bucket ${{ secrets.AWS_CONFIG_BUCKET }} \
             --s3-prefix $STACK_NAME \
