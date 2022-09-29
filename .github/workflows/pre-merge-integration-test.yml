@@ -1,8 +1,5 @@
 name: Pre-merge integration test
 on:
-  schedule:
-    # Every weekday at 5am
-    - cron: '0 5 * * 1-5'
   pull_request:
     types:
       - opened
