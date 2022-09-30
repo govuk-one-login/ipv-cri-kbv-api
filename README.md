@@ -1,5 +1,4 @@
-# di-ipv-cri-kbv-api
-IPV Knowledge Based Verification Credential Issuer
+# IPV Knowledge Based Verification Credential Issuer
 
 ## Hooks
 
@@ -31,6 +30,18 @@ cd into each submodule (folders are `/lib` and `/common-lambdas`) and run the fo
 Build with `./gradlew`
 
 This will run "build", "test", "buildZip", and "spotLess" reformatting
+
+## Deploy to dev environment
+
+Ensure you have the `sam-cli` and `gds-cli` installed, and that you can assume an admin role on the `di-ipv-cri-dev` AWS account.
+
+
+Copy `infrastructure/lambda/samconfig.toml.example` to `infrastructure/lambda/samconfig.toml`, and change the stack name in the new file.
+
+Deploy to the dev environment with:
+
+`gds aws di-ipv-cri-dev -- ./deploy.sh`
+
 
 ## Deploy to AWS lambda
 
@@ -65,3 +76,8 @@ Deployment to Build:
 | BUILD_SIGNING_PROFILE_NAME        | The AWS signer signing profile name                   |
 | BUILD_GH_ACTIONS_ROLE_ARN         | Assumed role IAM ARN                                  |
 
+## Required SSM Parameters
+
+| Parameter                  | Description                      |
+|----------------------------|----------------------------------|
+| `/alerting/email-address`  | email address to receive alerts  |
