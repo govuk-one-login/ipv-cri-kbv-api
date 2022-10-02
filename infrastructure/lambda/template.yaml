@@ -81,6 +81,8 @@ Conditions:
 
 Globals:
   Function:
+    Layers:
+      - !Ref kbvLibLayer
     VpcConfig:
       SecurityGroupIds:
         - !ImportValue cri-vpc-LambdaSecurityGroup
@@ -152,6 +154,19 @@ Mappings:
       production: 7200 # 2 hours
 
 Resources:
+
+  kbvLibLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: di-ipv-cri-kbv-api-lib-layer
+      Description: "KBV libs for lambdas"
+      ContentUri: ../../lib/.
+      CompatibleRuntimes:
+        - java11
+      RetentionPolicy: Retain
+    Metadata:
+      BuildMethod: java11
+
   PublicKBVApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -343,7 +358,7 @@ Resources:
   KBVQuestionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../../lambdas/question/build/distributions/question.zip
+      CodeUri: ../../lambdas/question
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler::handleRequest
       Environment:
         Variables:
@@ -422,7 +437,7 @@ Resources:
   KBVAnswerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../../lambdas/answer/build/distributions/answer.zip
+      CodeUri: ../../lambdas/answer
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionAnswerHandler::handleRequest
       Environment:
         Variables:
@@ -497,7 +512,7 @@ Resources:
   KBVAbandonFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../../lambdas/abandon/build/distributions/abandon.zip
+      CodeUri: ../../lambdas/abandon
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.AbandonKbvHandler::handleRequest
       Environment:
         Variables:
@@ -539,7 +554,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler::handleRequest
-      CodeUri: ../../lambdas/issuecredential/build/distributions/issuecredential.zip
+      CodeUri: ../../lambdas/issuecredential
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-issuecredential"

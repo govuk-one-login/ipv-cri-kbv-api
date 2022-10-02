@@ -21,18 +21,19 @@ dependencies {
 
 	testImplementation configurations.tests,
 			configurations.test_runtime
+
+	testCompileOnly project(":lib"),
+			configurations.cri_common_lib,
+			configurations.aws,
+			configurations.lambda
+
+	testRuntimeOnly configurations.test_runtime,
+			project(":lib"),
+			configurations.cri_common_lib,
+			configurations.aws,
+			configurations.lambda
 }
 
 test {
 	useJUnitPlatform ()
 }
-
-task buildZip(type: Zip) {
-	from compileJava
-	from processResources
-	into('lib') {
-		from configurations.runtimeClasspath
-	}
-}
-
-build.finalizedBy(buildZip)
