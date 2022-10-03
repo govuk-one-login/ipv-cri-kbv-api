@@ -318,6 +318,14 @@ Resources:
       FilterPattern: ""
       LogGroupName: !Ref PublicKBVApiAccessLogGroup
 
+  PublicKBVApiAccessLogGroupSubscriptionFilterCSLS:
+    Type: AWS::Logs::SubscriptionFilter
+    Condition: IsNotDevEnvironment
+    Properties:
+      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
+      FilterPattern: ""
+      LogGroupName: !Ref PublicKBVApiAccessLogGroup
+
   PrivateKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Condition: IsNotDevEnvironment
@@ -337,6 +345,13 @@ Resources:
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
+      FilterPattern: ""
+      LogGroupName: !Ref PrivateKBVApiAccessLogGroup
+  PrivateKBVApiAccessLogGroupSubscriptionFilterCSLS:
+    Type: AWS::Logs::SubscriptionFilter
+    Condition: IsNotDevEnvironment
+    Properties:
+      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
       FilterPattern: ""
       LogGroupName: !Ref PrivateKBVApiAccessLogGroup
 
@@ -419,6 +434,14 @@ Resources:
       FilterPattern: ""
       LogGroupName: !Ref KBVQuestionFunctionLogGroup
 
+  KBVQuestionFunctionLogGroupSubscriptionFilterCSLS:
+    Type: AWS::Logs::SubscriptionFilter
+    Condition: IsNotDevEnvironment
+    Properties:
+      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
+      FilterPattern: ""
+      LogGroupName: !Ref KBVQuestionFunctionLogGroup
+
   KBVAnswerFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -494,6 +517,14 @@ Resources:
       FilterPattern: ""
       LogGroupName: !Ref KBVAnswerFunctionLogGroup
 
+  KBVAnswerFunctionLogGroupSubscriptionFilterCSLS:
+    Type: AWS::Logs::SubscriptionFilter
+    Condition: IsNotDevEnvironment
+    Properties:
+      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
+      FilterPattern: ""
+      LogGroupName: !Ref KBVAnswerFunctionLogGroup
+
   KBVAbandonFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -532,6 +563,14 @@ Resources:
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
+      FilterPattern: ""
+      LogGroupName: !Ref KBVAbandonFunctionLogGroup
+
+  KBVAbandonFunctionLogGroupSubscriptionFilterCSLS:
+    Type: AWS::Logs::SubscriptionFilter
+    Condition: IsNotDevEnvironment
+    Properties:
+      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
       FilterPattern: ""
       LogGroupName: !Ref KBVAbandonFunctionLogGroup
 
@@ -590,6 +629,14 @@ Resources:
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
+      FilterPattern: ""
+      LogGroupName: !Ref IssueCredentialFunctionLogGroup
+
+  IssueCredentialFunctionLogGroupSubscriptionFilterCSLS:
+    Type: AWS::Logs::SubscriptionFilter
+    Condition: IsNotDevEnvironment
+    Properties:
+      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
       FilterPattern: ""
       LogGroupName: !Ref IssueCredentialFunctionLogGroup
 
