@@ -146,7 +146,8 @@ public class QuestionHandler
         } catch (NullPointerException npe) {
             return handleException(HttpStatusCode.BAD_REQUEST, npe, npe.toString());
         } catch (QuestionNotFoundException qe) {
-            return handleException(HttpStatusCode.NO_CONTENT, qe, null);
+            eventProbe.counterMetric(LAMBDA_NAME, 0d);
+            return createNoContentResponse();
         } catch (IOException e) {
             return handleException(
                     HttpStatusCode.INTERNAL_SERVER_ERROR, e, "Retrieving questions failed.");
