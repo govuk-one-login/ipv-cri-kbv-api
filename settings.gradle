@@ -6,6 +6,7 @@ include "lib"
 // CRI specific lambdas
 include "lambdas:question", "lambdas:answer", "lambdas:issuecredential", "lambdas:abandon"
 
+// pre-merge integration tests
 include 'integration-tests'
 
 startParameter.excludedTaskNames = [':integration-tests:test']
