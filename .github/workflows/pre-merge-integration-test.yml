@@ -80,8 +80,8 @@ jobs:
           export API_GATEWAY_ID_PUBLIC=$API_GATEWAY_ID_PUBLIC
           
           gradle cucumber -P tags=@pre_merge_happy
-      - name: Delete integration test stack
-        if: always()
-        run: |
-          STACK_NAME=${{ env.STACK_NAME_PREFIX }}-${{ steps.vars.outputs.sha_short }}
-          sam delete --stack-name $STACK_NAME --region ${{ env.AWS_REGION }} --no-prompts
+#      - name: Delete integration test stack
+#        if: always()
+#        run: |
+#          STACK_NAME=${{ env.STACK_NAME_PREFIX }}-${{ steps.vars.outputs.sha_short }}
+#          sam delete --stack-name $STACK_NAME --region ${{ env.AWS_REGION }} --no-prompts
