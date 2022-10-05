@@ -852,6 +852,126 @@ Resources:
             Condition:
               ArnLike:
                 "kms:EncryptionContext:aws:logs:arn": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+
+  AlarmLambdaErrors:
+    Type: AWS::CloudWatch::Alarm
+    Condition: IsNotDevEnvironment
+    Properties:
+      AlarmName: !Sub "${Environment}-${AWS::StackName}-lambda"
+      AlarmDescription: !Sub "${Environment} lambda errors"
+      ActionsEnabled: true
+      OKActions:
+        - !Ref AlarmTopic
+      AlarmActions:
+        - !Ref AlarmTopic
+      InsufficientDataActions: []
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Dimensions: []
+      Period: 60
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 2
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  AlarmAPIGW5XXErrors:
+    Type: AWS::CloudWatch::Alarm
+    Condition: IsNotDevEnvironment
+    Properties:
+      AlarmName: !Sub "${Environment}-${AWS::StackName}-APIGW5XX"
+      AlarmDescription: !Sub "${Environment} API Gateway 5XX errors"
+      ActionsEnabled: true
+      OKActions:
+        - !Ref AlarmTopic
+      AlarmActions:
+        - !Ref AlarmTopic
+      InsufficientDataActions: []
+      Dimensions: []
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 2
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      Metrics:
+        - Id: e1
+          Label: Expression1
+          ReturnData: true
+          Expression: SUM(METRICS())
+        - Id: m1
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/ApiGateway
+              MetricName: 5XXError
+              Dimensions:
+                - Name: Stage
+                  Value: !Ref Environment
+            Period: 60
+            Stat: Sum
+
+  AlarmAPIGW4XXErrors:
+    Type: AWS::CloudWatch::Alarm
+    Condition: IsNotDevEnvironment
+    Properties:
+      AlarmName: !Sub "${Environment}-${AWS::StackName}-APIGW4XX"
+      AlarmDescription: !Sub "${Environment} API Gateway 4XX errors"
+      ActionsEnabled: true
+      OKActions:
+        - !Ref AlarmTopic
+      AlarmActions:
+        - !Ref AlarmTopic
+      InsufficientDataActions: []
+      Dimensions: []
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 2
+      Threshold: 2
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      Metrics:
+        - Id: e1
+          Label: Expression1
+          ReturnData: true
+          Expression: SUM(METRICS())
+        - Id: m1
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/ApiGateway
+              MetricName: 4XXError
+              Dimensions:
+                - Name: Stage
+                  Value: !Ref Environment
+            Period: 60
+            Stat: Sum
+
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Condition: IsNotDevEnvironment
+    Properties:
+      Subscription:
+        - Protocol: email
+          Endpoint: !Sub "{{resolve:ssm:/alerting/email-address}}"
+
+  AlarmToPublishTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Condition: IsNotDevEnvironment
+    Properties:
+      Topics:
+        - !Ref AlarmTopic
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: sns:Publish
+            Resource: !Ref AlarmTopic
+            Principal:
+              Service: 'cloudwatch.amazonaws.com'
+            Condition:
+              ArnLike:
+                AWS:SourceArn: !Sub 'arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:*'
+
 Outputs:
 
   StackName:
