@@ -12,7 +12,7 @@ jobs:
     name: pre-merge-integration-tests
     runs-on: ubuntu-latest
     environment: di-ipv-cri-dev
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       AWS_REGION: eu-west-2
       ENVIRONMENT: dev
@@ -24,8 +24,6 @@ jobs:
     steps:
       - name: Check out repo
         uses: actions/checkout@v2
-        with:
-          submodules: true
       - name: Set up JDK 11
         uses: actions/setup-java@v2
         with:
@@ -42,9 +40,6 @@ jobs:
           role-session-name: ${{ secrets.AWS_ROLE_SESSION }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Gradle build
-        run: ./gradlew build -x test -x spotlessCheck
-
       - name: SAM build
         run: sam build -t infrastructure/lambda/template.yaml
 
@@ -55,7 +50,7 @@ jobs:
       - name: SAM deploy integration test stack
         run: |
           STACK_NAME=${{ env.STACK_NAME_PREFIX }}-${{ steps.vars.outputs.sha_short }}
-          sam deploy -t infrastructure/lambda/template.yaml \
+          sam deploy \
             --no-fail-on-empty-changeset \
             --no-confirm-changeset \
             --parameter-overrides "Environment=${{ env.ENVIRONMENT }} SecretPrefix=${{ env.SECRET_PREFIX }} CodeSigningEnabled=false AuditEventNamePrefix=/common-cri-parameters/KbvAuditEventNamePrefix CriIdentifier=/common-cri-parameters/KbvCriIdentifier CommonStackName=kbv-common-cri-api" \
@@ -78,10 +73,10 @@ jobs:
 
           export API_GATEWAY_ID_PRIVATE=$API_GATEWAY_ID_PRIVATE
           export API_GATEWAY_ID_PUBLIC=$API_GATEWAY_ID_PUBLIC
-          
+
           gradle cucumber -P tags=@pre_merge_happy
       - name: Delete integration test stack
-        if: always()
+        if: success()
         run: |
           STACK_NAME=${{ env.STACK_NAME_PREFIX }}-${{ steps.vars.outputs.sha_short }}
           sam delete --stack-name $STACK_NAME --region ${{ env.AWS_REGION }} --no-prompts

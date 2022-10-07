@@ -4,17 +4,8 @@ rootProject.name = "di-ipv-cri-kbv-api"
 include "lib"
 
 // CRI specific lambdas
-include "question", "answer", "issuecredential", "abandon"
-project(':question').projectDir = new File('./lambdas/question')
-project(':answer').projectDir = new File('./lambdas/answer')
-project(':issuecredential').projectDir = new File('./lambdas/issuecredential')
-project(':abandon').projectDir = new File('./lambdas/abandon')
-
-// acceptance tests
-include "acceptance-tests-journey"
-project(':acceptance-tests-journey').projectDir = new File('./acceptance-tests/journey')
+include "lambdas:question", "lambdas:answer", "lambdas:issuecredential", "lambdas:abandon"
 
 include 'integration-tests'
-project(':integration-tests').projectDir = new File('./integration-tests')
 
 startParameter.excludedTaskNames = [':integration-tests:test']
