@@ -27,7 +27,6 @@ hs_err_pid*
 .idea
 **/build/*
 
-samconfig.toml
 .gradle
 /integration-tests/target/
 /integration-tests/bin/
