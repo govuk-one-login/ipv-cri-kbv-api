@@ -12,7 +12,7 @@ jobs:
     name: pre-merge-integration-tests
     runs-on: ubuntu-latest
     environment: di-ipv-cri-dev
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       AWS_REGION: eu-west-2
       ENVIRONMENT: dev
@@ -24,8 +24,6 @@ jobs:
     steps:
       - name: Check out repo
         uses: actions/checkout@v2
-        with:
-          submodules: true
       - name: Set up JDK 11
         uses: actions/setup-java@v2
         with:
@@ -41,9 +39,6 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: ${{ secrets.AWS_ROLE_SESSION }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Gradle build
-        run: ./gradlew build -x test -x spotlessCheck
 
       - name: SAM build
         run: sam build -t infrastructure/lambda/template.yaml
@@ -81,7 +76,7 @@ jobs:
           
           gradle cucumber -P tags=@pre_merge_happy
       - name: Delete integration test stack
-        if: always()
+        if: success()
         run: |
           STACK_NAME=${{ env.STACK_NAME_PREFIX }}-${{ steps.vars.outputs.sha_short }}
           sam delete --stack-name $STACK_NAME --region ${{ env.AWS_REGION }} --no-prompts
