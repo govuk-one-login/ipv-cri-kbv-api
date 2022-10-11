@@ -307,7 +307,7 @@ Resources:
   PublicKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PublicKBVApi}-public-AccessLogs
+      LogGroupName: !Sub "/aws/apigateway/${AWS::StackName}-${PublicKBVApi}-public-AccessLogs"
       RetentionInDays: 365
 
   PublicKBVApiAccessLogGroupSubscriptionFilter:
@@ -330,14 +330,14 @@ Resources:
     Type: AWS::Logs::LogGroup
     Condition: IsNotDevEnvironment
     Properties:
-      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PrivateKBVApi}-private-AccessLogs
+      LogGroupName: !Sub "/aws/apigateway/${AWS::StackName}-${PrivateKBVApi}-private-AccessLogs"
       RetentionInDays: 365
 
   DevOnlyKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Condition: IsDevEnvironment
     Properties:
-      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${DevOnlyKBVApi}-private-AccessLogs
+      LogGroupName: !Sub "/aws/apigateway/${AWS::StackName}-${DevOnlyKBVApi}-private-AccessLogs"
       RetentionInDays: 30
 
   PrivateKBVApiAccessLogGroupSubscriptionFilter:
@@ -423,7 +423,7 @@ Resources:
   KBVQuestionFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${KBVQuestionFunction}"
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-${KBVQuestionFunction}"
       RetentionInDays: 30
 
   KBVQuestionFunctionLogGroupSubscriptionFilter:
@@ -506,7 +506,7 @@ Resources:
   KBVAnswerFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${KBVAnswerFunction}"
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-${KBVAnswerFunction}"
       RetentionInDays: 30
 
   KBVAnswerFunctionLogGroupSubscriptionFilter:
@@ -555,7 +555,7 @@ Resources:
   KBVAbandonFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${KBVAbandonFunction}"
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-${KBVAbandonFunction}"
       RetentionInDays: 30
 
   KBVAbandonFunctionLogGroupSubscriptionFilter:
@@ -621,7 +621,7 @@ Resources:
   IssueCredentialFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${IssueCredentialFunction}"
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-${IssueCredentialFunction}"
       RetentionInDays: 30
 
   IssueCredentialFunctionLogGroupSubscriptionFilter:
