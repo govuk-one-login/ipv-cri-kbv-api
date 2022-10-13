@@ -23,5 +23,5 @@ sam deploy --stack-name "$stack_name" \
    Environment=dev \
    AuditEventNamePrefix=/common-cri-parameters/KbvAuditEventNamePrefix \
    CriIdentifier=/common-cri-parameters/KbvCriIdentifier \
-   CommonStackName=kbv-common-cri-api \
+   CommonStackName=kbv-common-cri-api-local \
    SecretPrefix=kbv-cri-api
