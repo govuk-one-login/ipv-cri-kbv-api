@@ -17,7 +17,7 @@ sam deploy --stack-name "$stack_name" \
    --no-confirm-changeset \
    --resolve-s3 \
    --region eu-west-2 \
-   --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
+   --capabilities CAPABILITY_IAM \
    --parameter-overrides \
    CodeSigningEnabled=false \
    Environment=dev \
