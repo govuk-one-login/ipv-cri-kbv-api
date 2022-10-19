@@ -853,44 +853,40 @@ Resources:
               ArnLike:
                 "kms:EncryptionContext:aws:logs:arn": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
 
-  AlarmLambdaErrors:
+  KBVLambdaErrors:
     Type: AWS::CloudWatch::Alarm
-    Condition: IsNotDevEnvironment
     Properties:
-      AlarmName: !Sub "${Environment}-${AWS::StackName}-lambda"
-      AlarmDescription: !Sub "${Environment} lambda errors"
+      AlarmDescription: !Sub KBV ${Environment} lambda errors
       ActionsEnabled: true
-      OKActions:
-        - !Ref AlarmTopic
       AlarmActions:
-        - !Ref AlarmTopic
+        - !ImportValue core-infrastructure-AlarmTopic
+      OKActions:
+        - !ImportValue core-infrastructure-AlarmTopic
       InsufficientDataActions: []
       MetricName: Errors
       Namespace: AWS/Lambda
       Statistic: Sum
       Dimensions: []
-      Period: 60
-      EvaluationPeriods: 2
-      DatapointsToAlarm: 2
+      Period: 300
+      DatapointsToAlarm: 3
+      EvaluationPeriods: 3
       Threshold: 1
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
 
-  AlarmAPIGW5XXErrors:
+  KBVAPIGW5XXErrors:
     Type: AWS::CloudWatch::Alarm
-    Condition: IsNotDevEnvironment
     Properties:
-      AlarmName: !Sub "${Environment}-${AWS::StackName}-APIGW5XX"
-      AlarmDescription: !Sub "${Environment} API Gateway 5XX errors"
+      AlarmDescription: !Sub KBV ${Environment} API Gateway 5XX errors
       ActionsEnabled: true
-      OKActions:
-        - !Ref AlarmTopic
       AlarmActions:
-        - !Ref AlarmTopic
+        - !ImportValue core-infrastructure-AlarmTopic
+      OKActions:
+        - !ImportValue core-infrastructure-AlarmTopic
       InsufficientDataActions: []
       Dimensions: []
-      EvaluationPeriods: 2
-      DatapointsToAlarm: 2
+      DatapointsToAlarm: 3
+      EvaluationPeriods: 3
       Threshold: 1
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
@@ -908,24 +904,22 @@ Resources:
               Dimensions:
                 - Name: Stage
                   Value: !Ref Environment
-            Period: 60
+            Period: 300
             Stat: Sum
 
-  AlarmAPIGW4XXErrors:
+  KBVAPIGW4XXErrors:
     Type: AWS::CloudWatch::Alarm
-    Condition: IsNotDevEnvironment
     Properties:
-      AlarmName: !Sub "${Environment}-${AWS::StackName}-APIGW4XX"
-      AlarmDescription: !Sub "${Environment} API Gateway 4XX errors"
+      AlarmDescription: !Sub KBV ${Environment} API Gateway 4XX errors
       ActionsEnabled: true
-      OKActions:
-        - !Ref AlarmTopic
       AlarmActions:
-        - !Ref AlarmTopic
+        - !ImportValue core-infrastructure-AlarmTopic
+      OKActions:
+        - !ImportValue core-infrastructure-AlarmTopic
       InsufficientDataActions: []
       Dimensions: []
-      EvaluationPeriods: 2
-      DatapointsToAlarm: 2
+      DatapointsToAlarm: 3
+      EvaluationPeriods: 3
       Threshold: 2
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
@@ -943,35 +937,8 @@ Resources:
               Dimensions:
                 - Name: Stage
                   Value: !Ref Environment
-            Period: 60
+            Period: 300
             Stat: Sum
-
-  AlarmTopic:
-    Type: AWS::SNS::Topic
-    Condition: IsNotDevEnvironment
-    Properties:
-      Subscription:
-        - Protocol: email
-          Endpoint: !Sub "{{resolve:ssm:/alerting/email-address}}"
-
-  AlarmToPublishTopicPolicy:
-    Type: AWS::SNS::TopicPolicy
-    Condition: IsNotDevEnvironment
-    Properties:
-      Topics:
-        - !Ref AlarmTopic
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Action: sns:Publish
-            Resource: !Ref AlarmTopic
-            Principal:
-              Service: 'cloudwatch.amazonaws.com'
-            Condition:
-              ArnLike:
-                AWS:SourceArn: !Sub 'arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:*'
-
 Outputs:
 
   StackName:
