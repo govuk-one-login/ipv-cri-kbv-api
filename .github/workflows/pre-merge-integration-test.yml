@@ -9,6 +9,7 @@ on:
 
 jobs:
   deploy:
+    if: ${{ github.actor != 'dependabot[bot]' }}
     name: pre-merge-integration-tests
     runs-on: ubuntu-latest
     environment: di-ipv-cri-dev
