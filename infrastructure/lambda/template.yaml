@@ -310,14 +310,6 @@ Resources:
       LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PublicKBVApi}-public-AccessLogs
       RetentionInDays: 365
 
-  PublicKBVApiAccessLogGroupSubscriptionFilter:
-    Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
-    Properties:
-      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
-      FilterPattern: ""
-      LogGroupName: !Ref PublicKBVApiAccessLogGroup
-
   PublicKBVApiAccessLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
@@ -340,13 +332,6 @@ Resources:
       LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${DevOnlyKBVApi}-private-AccessLogs
       RetentionInDays: 30
 
-  PrivateKBVApiAccessLogGroupSubscriptionFilter:
-    Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
-    Properties:
-      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
-      FilterPattern: ""
-      LogGroupName: !Ref PrivateKBVApiAccessLogGroup
   PrivateKBVApiAccessLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
@@ -426,14 +411,6 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${KBVQuestionFunction}"
       RetentionInDays: 30
 
-  KBVQuestionFunctionLogGroupSubscriptionFilter:
-    Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
-    Properties:
-      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
-      FilterPattern: ""
-      LogGroupName: !Ref KBVQuestionFunctionLogGroup
-
   KBVQuestionFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
@@ -509,14 +486,6 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${KBVAnswerFunction}"
       RetentionInDays: 30
 
-  KBVAnswerFunctionLogGroupSubscriptionFilter:
-    Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
-    Properties:
-      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
-      FilterPattern: ""
-      LogGroupName: !Ref KBVAnswerFunctionLogGroup
-
   KBVAnswerFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
@@ -557,14 +526,6 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${KBVAbandonFunction}"
       RetentionInDays: 30
-
-  KBVAbandonFunctionLogGroupSubscriptionFilter:
-    Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
-    Properties:
-      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
-      FilterPattern: ""
-      LogGroupName: !Ref KBVAbandonFunctionLogGroup
 
   KBVAbandonFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
@@ -623,14 +584,6 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/${IssueCredentialFunction}"
       RetentionInDays: 30
-
-  IssueCredentialFunctionLogGroupSubscriptionFilter:
-    Type: AWS::Logs::SubscriptionFilter
-    Condition: IsNotDevEnvironment
-    Properties:
-      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prod"
-      FilterPattern: ""
-      LogGroupName: !Ref IssueCredentialFunctionLogGroup
 
   IssueCredentialFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
