@@ -40,6 +40,7 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.apache.logging.log4j.Level.ERROR;
@@ -180,12 +181,12 @@ public class QuestionHandler
             Map<String, String> requestHeaders)
             throws IOException, SqsException {
 
-        KbvQuestion question;
-        if ((question = getQuestionFromDbStore(questionState)) != null) {
-            return question;
+        Optional<KbvQuestion> questionOptional = getQuestionFromDbStore(questionState);
+        if (questionOptional.isPresent()) {
+            return questionOptional.get();
         }
         var questionsResponse = getQuestionAnswerResponse(kbvItem, sessionItem, requestHeaders);
-        question = getQuestionFromResponse(questionsResponse, questionState);
+        KbvQuestion question = getQuestionFromResponse(questionsResponse, questionState);
         saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
         kbvAnswerStorageService.save(questionsResponse);
         if (question != null) {
@@ -196,10 +197,9 @@ public class QuestionHandler
         throw new QuestionNotFoundException("No questions available");
     }
 
-    private KbvQuestion getQuestionFromDbStore(QuestionState questionState) {
+    private Optional<KbvQuestion> getQuestionFromDbStore(QuestionState questionState) {
         Objects.requireNonNull(questionState, "questionState cannot be null");
-        // TODO Handle scenario when no questions are available
-        return questionState.getNextQuestion().orElse(null);
+        return questionState.getNextQuestion();
     }
 
     private KbvQuestion getQuestionFromResponse(
