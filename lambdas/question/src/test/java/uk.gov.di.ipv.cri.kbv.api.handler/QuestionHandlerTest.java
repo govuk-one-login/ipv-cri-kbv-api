@@ -87,7 +87,6 @@ class QuestionHandlerTest {
     @Mock private SessionService sessionService;
     @Captor private ArgumentCaptor<Map<String, Object>> auditEventMap;
     @Captor private ArgumentCaptor<AuditEventContext> auditEventContextArgCaptor;
-
     private KBVService spyKBVService;
 
     @BeforeEach

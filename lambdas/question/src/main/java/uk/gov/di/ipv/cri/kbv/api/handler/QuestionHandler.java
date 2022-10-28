@@ -181,16 +181,17 @@ public class QuestionHandler
             Map<String, String> requestHeaders)
             throws IOException, SqsException {
 
-        Optional<KbvQuestion> questionOptional = getQuestionFromDbStore(questionState);
+        Optional<KbvQuestion> questionOptional;
+        questionOptional = getQuestionFromDbStore(questionState);
         if (questionOptional.isPresent()) {
             return questionOptional.get();
         }
         var questionsResponse = getQuestionAnswerResponse(kbvItem, sessionItem, requestHeaders);
-        KbvQuestion question = getQuestionFromResponse(questionsResponse, questionState);
+        questionOptional = getQuestionFromResponse(questionsResponse, questionState);
         saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
         kbvAnswerStorageService.save(questionsResponse);
-        if (question != null) {
-            return question;
+        if (questionOptional.isPresent()) {
+            return questionOptional.get();
         }
         sessionService.createAuthorizationCode(sessionItem);
         sendNoQuestionAuditEvent(questionsResponse, sessionItem, requestHeaders);
@@ -202,15 +203,15 @@ public class QuestionHandler
         return questionState.getNextQuestion();
     }
 
-    private KbvQuestion getQuestionFromResponse(
+    private Optional<KbvQuestion> getQuestionFromResponse(
             QuestionsResponse questionsResponse, QuestionState questionState) {
 
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
-            return questionState.getNextQuestion().orElse(null);
+            return questionState.getNextQuestion();
         }
         // Alternate flow when first request does not return questions
-        return null;
+        return Optional.empty();
     }
 
     private void saveQuestionStateToKbvItem(
