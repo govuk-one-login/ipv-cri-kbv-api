@@ -454,6 +454,7 @@ class QuestionHandlerTest {
             String expectedOutcome = "Insufficient Questions (Unable to Authenticate)";
             UUID sessionId = UUID.randomUUID();
             KBVItem kbvItem = mock(KBVItem.class);
+            QuestionState questionState = mock(QuestionState.class);
             SessionItem sessionItem = mock(SessionItem.class);
             Map<String, String> requestHeaders = new HashMap<>();
 
@@ -467,11 +468,12 @@ class QuestionHandlerTest {
                     .thenReturn(questionsResponse);
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
+
             assertThrows(
                     QuestionNotFoundException.class,
                     () ->
                             questionHandler.processQuestionRequest(
-                                    new QuestionState(), kbvItem, sessionItem, requestHeaders),
+                                    questionState, kbvItem, sessionItem, requestHeaders),
                     "Question not Found");
             verify(sessionService).createAuthorizationCode(sessionItem);
             verify(mockAuditService)
