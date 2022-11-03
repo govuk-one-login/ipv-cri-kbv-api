@@ -40,6 +40,7 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.apache.logging.log4j.Level.ERROR;
@@ -179,37 +180,37 @@ public class QuestionHandler
             Map<String, String> requestHeaders)
             throws IOException, SqsException {
 
-        KbvQuestion question;
-        if ((question = getQuestionFromDbStore(questionState)) != null) {
-            return question;
+        Optional<KbvQuestion> questionOptional;
+        questionOptional = getQuestionFromDbStore(questionState);
+        if (questionOptional.isPresent()) {
+            return questionOptional.get();
         }
         var questionsResponse = getQuestionAnswerResponse(kbvItem, sessionItem, requestHeaders);
-        question = getQuestionFromResponse(questionsResponse, questionState);
+        questionOptional = getQuestionFromResponse(questionsResponse, questionState);
         saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
         kbvAnswerStorageService.save(questionsResponse);
-        if (question != null) {
-            return question;
+        if (questionOptional.isPresent()) {
+            return questionOptional.get();
         }
         sessionService.createAuthorizationCode(sessionItem);
         sendNoQuestionAuditEvent(questionsResponse, sessionItem, requestHeaders);
         throw new QuestionNotFoundException("No questions available");
     }
 
-    private KbvQuestion getQuestionFromDbStore(QuestionState questionState) {
+    private Optional<KbvQuestion> getQuestionFromDbStore(QuestionState questionState) {
         Objects.requireNonNull(questionState, "questionState cannot be null");
-        // TODO Handle scenario when no questions are available
-        return questionState.getNextQuestion().orElse(null);
+        return questionState.getNextQuestion();
     }
 
-    private KbvQuestion getQuestionFromResponse(
+    private Optional<KbvQuestion> getQuestionFromResponse(
             QuestionsResponse questionsResponse, QuestionState questionState) {
 
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
-            return questionState.getNextQuestion().orElse(null);
+            return questionState.getNextQuestion();
         }
         // Alternate flow when first request does not return questions
-        return null;
+        return Optional.empty();
     }
 
     private void saveQuestionStateToKbvItem(
