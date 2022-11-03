@@ -80,7 +80,6 @@ public class QuestionHandler
         this.eventProbe = new EventProbe();
     }
 
-    @java.lang.SuppressWarnings("java:S107")
     public QuestionHandler(
             ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
