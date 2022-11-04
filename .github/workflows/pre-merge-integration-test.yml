@@ -74,7 +74,8 @@ jobs:
           export API_GATEWAY_ID_PRIVATE=$API_GATEWAY_ID_PRIVATE
           export API_GATEWAY_ID_PUBLIC=$API_GATEWAY_ID_PUBLIC
 
-          gradle cucumber -P tags=@pre_merge_happy
+          gradle integration-tests:cucumber
+
       - name: Delete integration test stack
         if: success()
         run: |
