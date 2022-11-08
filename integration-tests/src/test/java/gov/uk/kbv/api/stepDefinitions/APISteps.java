@@ -26,13 +26,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class KbvApiHappyPathSteps {
+public class APISteps {
 
     public final String KBV_CRI_DEV = "kbv-cri-dev";
     public final String ENVIRONMENT = "/dev"; // dev, build, staging, integration
     public final String SESSION = ENVIRONMENT + "/session";
     public final String QUESTION = ENVIRONMENT + "/question";
     public final String ANSWER = ENVIRONMENT + "/answer";
+    public final String ABANDON = ENVIRONMENT + "/abandon";
     public final String AUTHORIZATION = ENVIRONMENT + "/authorization";
     public final String TOKEN = ENVIRONMENT + "/token";
     public final String CREDENTIAL_ISSUE = ENVIRONMENT + "/credential/issue";
@@ -377,6 +378,20 @@ public class KbvApiHappyPathSteps {
                         .setHeader("session-id", sessionId)
                         .POST(HttpRequest.BodyPublishers.ofString(POST_REQUEST_BODY))
                         .build();
+        response = sendHttpRequest(request);
+    }
+
+    @When("user chooses to abandon the question")
+    public void userChoosesToAbandonTheQuestion()
+            throws URISyntaxException, IOException, InterruptedException {
+        var request =
+                HttpRequest.newBuilder()
+                        .uri(new URIBuilder(getPrivateAPIEndpoint()).setPath(ABANDON).build())
+                        .setHeader("Accept", "application/json")
+                        .setHeader("session-id", sessionId)
+                        .POST(HttpRequest.BodyPublishers.noBody())
+                        .build();
+
         response = sendHttpRequest(request);
     }
 }
