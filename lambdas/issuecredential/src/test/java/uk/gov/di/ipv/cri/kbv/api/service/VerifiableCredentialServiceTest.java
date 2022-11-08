@@ -1,7 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -11,7 +9,6 @@ import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,6 +25,7 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDeta
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
+import uk.gov.di.ipv.cri.common.library.util.VerifiableCredentialClaimsSetBuilder;
 import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionAnswerSummary;
@@ -36,204 +34,81 @@ import uk.gov.di.ipv.cri.kbv.api.service.fixtures.TestFixtures;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.text.ParseException;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.jupiter.api.Assertions.assertAll;
+import static com.nimbusds.jwt.JWTClaimNames.ISSUER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.KBV_CREDENTIAL_TYPE;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_ADDRESS_KEY;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_BIRTHDATE_KEY;
-import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_CLAIM;
-import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_CREDENTIAL_SUBJECT;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_EVIDENCE_KEY;
-import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE;
-import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_PASS_EVIDENCE_SCORE;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_NAME_KEY;
 
 @ExtendWith(MockitoExtension.class)
 class VerifiableCredentialServiceTest implements TestFixtures {
     private static final String SUBJECT = "subject";
+    private static final JWTClaimsSet TEST_CLAIMS_SET =
+            new JWTClaimsSet.Builder().subject("test").issuer("test").build();
+    private final ObjectMapper objectMapper =
+            new ObjectMapper()
+                    .registerModule(new Jdk8Module())
+                    .registerModule(new JavaTimeModule());
 
     @Mock private ConfigurationService mockConfigurationService;
+    @Mock private VerifiableCredentialClaimsSetBuilder mockVcClaimSetBuilder;
     @Mock private EventProbe mockEventProbe;
-    @Captor private ArgumentCaptor<JWTClaimsSet> jwtClaimsSetCaptor;
+    @Captor private ArgumentCaptor<Map<String, Object>[]> mapArrayArgumentCaptor;
+    @Captor private ArgumentCaptor<Map<String, Object>> mapArgumentCaptor;
+    private VerifiableCredentialService verifiableCredentialService;
 
-    @BeforeEach
-    void setUp() {
-        when(mockConfigurationService.getVerifiableCredentialIssuer())
-                .thenReturn("https://kbv-cri.account.gov.uk.TBC");
-    }
-
-    @ParameterizedTest(
-            name =
-                    "{index} => authenticationResult={0}, totalQuestionsAsked={1}, answeredCorrectly={2}, answeredInCorrectly={3}")
-    @CsvSource({"authenticated, 3, 3, 0", "authenticated, 4, 3, 1"})
-    void shouldReturnAVerifiedCredentialWithSuccessScoreOnAuthorised(
-            String authenticationResult,
-            int totalQuestionsAsked,
-            int answeredCorrectly,
-            int answeredInCorrectly)
-            throws JOSEException, ParseException, JsonProcessingException, InvalidKeySpecException,
-                    NoSuchAlgorithmException {
-
-        SignedJWTFactory signedJwtFactory = new SignedJWTFactory(new ECDSASigner(getPrivateKey()));
-        var verifiableCredentialService =
-                new VerifiableCredentialService(
-                        signedJwtFactory,
-                        mockConfigurationService,
-                        getObjectMapper(),
-                        mockEventProbe);
-
-        KBVItem kbvItem = new KBVItem();
-        kbvItem.setSessionId(UUID.randomUUID());
-        kbvItem.setAuthRefNo(UUID.randomUUID().toString());
-        kbvItem.setStatus(authenticationResult);
-        kbvItem.setQuestionAnswerResultSummary(
-                getKbvQuestionAnswerSummary(
-                        totalQuestionsAsked, answeredCorrectly, answeredInCorrectly));
-
-        PersonIdentityDetailed personIdentity = createPersonIdentity();
-
-        SignedJWT signedJWT =
-                verifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                        SUBJECT, personIdentity, kbvItem);
-        JWTClaimsSet generatedClaims = signedJWT.getJWTClaimsSet();
-        assertTrue(signedJWT.verify(new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1))));
-
-        JsonNode claimsSet = new ObjectMapper().readTree(generatedClaims.toString());
-
-        assertEquals(5, claimsSet.size());
-
-        assertAll(
-                () -> {
-                    assertEquals(
-                            personIdentity
-                                    .getBirthDates()
-                                    .get(0)
-                                    .getValue()
-                                    .format(DateTimeFormatter.ISO_DATE),
-                            claimsSet
-                                    .get(VC_CLAIM)
-                                    .get(VC_CREDENTIAL_SUBJECT)
-                                    .get(VC_BIRTHDATE_KEY)
-                                    .get(0)
-                                    .get("value")
-                                    .asText());
-
-                    assertEquals(
-                            VC_PASS_EVIDENCE_SCORE,
-                            claimsSet
-                                    .get(VC_CLAIM)
-                                    .get(VC_EVIDENCE_KEY)
-                                    .get(0)
-                                    .get("verificationScore")
-                                    .asInt());
-                });
-        ECDSAVerifier ecVerifier = new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1));
-        assertTrue(signedJWT.verify(ecVerifier));
-    }
-
-    @ParameterizedTest(
-            name =
-                    "{index} => authenticationResult={0}, totalQuestionsAsked={1}, answeredCorrectly={2}, answeredInCorrectly={3}")
-    @CsvSource({"Unable to Authenticate, 3, 1, 2", "Unable to Authenticate, 2, 0, 2"})
-    void shouldReturnAVerifiedCredentialWithAFailedScoreOnly(
-            String authenticationResult,
-            int totalQuestionsAsked,
-            int answeredCorrectly,
-            int answeredInCorrectly)
-            throws JOSEException, InvalidKeySpecException, NoSuchAlgorithmException, ParseException,
-                    JsonProcessingException {
-        SignedJWTFactory signedJwtFactory = new SignedJWTFactory(new ECDSASigner(getPrivateKey()));
-
-        VerifiableCredentialService verifiableCredentialService =
-                new VerifiableCredentialService(
-                        signedJwtFactory,
-                        mockConfigurationService,
-                        getObjectMapper(),
-                        mockEventProbe);
-
-        KBVItem kbvItem = new KBVItem();
-        kbvItem.setSessionId(UUID.randomUUID());
-        kbvItem.setAuthRefNo(UUID.randomUUID().toString());
-        kbvItem.setStatus(authenticationResult);
-        kbvItem.setQuestionAnswerResultSummary(
-                getKbvQuestionAnswerSummary(
-                        totalQuestionsAsked, answeredCorrectly, answeredInCorrectly));
-
-        PersonIdentityDetailed personIdentity = createPersonIdentity();
-
-        SignedJWT signedJWT =
-                verifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                        SUBJECT, personIdentity, kbvItem);
-        JWTClaimsSet generatedClaims = signedJWT.getJWTClaimsSet();
-        assertTrue(signedJWT.verify(new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1))));
-
-        JsonNode claimsSet = new ObjectMapper().readTree(generatedClaims.toString());
-
-        assertEquals(5, claimsSet.size());
-
-        assertAll(
-                () -> {
-                    assertEquals(
-                            personIdentity
-                                    .getBirthDates()
-                                    .get(0)
-                                    .getValue()
-                                    .format(DateTimeFormatter.ISO_DATE),
-                            claimsSet
-                                    .get(VC_CLAIM)
-                                    .get(VC_CREDENTIAL_SUBJECT)
-                                    .get(VC_BIRTHDATE_KEY)
-                                    .get(0)
-                                    .get("value")
-                                    .asText());
-
-                    assertEquals(
-                            VC_FAIL_EVIDENCE_SCORE,
-                            claimsSet
-                                    .get(VC_CLAIM)
-                                    .get(VC_EVIDENCE_KEY)
-                                    .get(0)
-                                    .get("verificationScore")
-                                    .asInt());
-                });
-        ECDSAVerifier ecVerifier = new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1));
-        assertTrue(signedJWT.verify(ecVerifier));
-    }
-
-    @ParameterizedTest(
-            name =
-                    "{index} => authenticationResult={0}, totalQuestionsAsked={3}, answeredCorrectly={1}, answeredInCorrectly={2}")
+    @ParameterizedTest
     @CsvSource({
-        "Not Authenticated, 4, 2, 2",
-        "Not Authenticated, 4, 1, 3",
-        "Not Authenticated, 2, 0, 2"
+        "Not Authenticated,4,2,2,0,V03",
+        "Not Authenticated,4,1,3,0,V03",
+        "Not Authenticated,2,0,2,0,V03",
+        "Unable to Authenticate,3,1,2,0,",
+        "Unable to Authenticate,2,0,2,0,",
+        "authenticated,3,3,0,2,",
+        "authenticated,4,3,1,2,"
     })
-    void shouldReturnAVCWithFailScoreOf0havingACIV03OnNotAuthorisedWhenMoreOneQuestionWasIncorrect(
+    void shouldReturnASignedVerifiableCredentialJwt(
             String authenticationResult,
             int totalQuestionsAsked,
             int answeredCorrectly,
-            int answeredInCorrectly)
-            throws JOSEException, InvalidKeySpecException, NoSuchAlgorithmException, ParseException,
-                    JsonProcessingException {
+            int answeredInCorrectly,
+            int expectedVerificationScore,
+            ContraIndicator expectedContraIndicator)
+            throws JOSEException, InvalidKeySpecException, NoSuchAlgorithmException,
+                    ParseException {
+        initMockConfigurationService();
         SignedJWTFactory signedJwtFactory = new SignedJWTFactory(new ECDSASigner(getPrivateKey()));
-        VerifiableCredentialService verifiableCredentialService =
+        this.verifiableCredentialService =
                 new VerifiableCredentialService(
                         signedJwtFactory,
                         mockConfigurationService,
-                        getObjectMapper(),
-                        mockEventProbe);
+                        objectMapper,
+                        mockEventProbe,
+                        mockVcClaimSetBuilder);
+
+        initMockVCClaimSetBuilder();
 
         KBVItem kbvItem = new KBVItem();
-        kbvItem.setSessionId(UUID.randomUUID());
         kbvItem.setAuthRefNo(UUID.randomUUID().toString());
         kbvItem.setStatus(authenticationResult);
         kbvItem.setQuestionAnswerResultSummary(
@@ -242,122 +117,80 @@ class VerifiableCredentialServiceTest implements TestFixtures {
 
         PersonIdentityDetailed personIdentity = createPersonIdentity();
 
+        when(mockVcClaimSetBuilder.build()).thenReturn(TEST_CLAIMS_SET);
+
         SignedJWT signedJWT =
                 verifiableCredentialService.generateSignedVerifiableCredentialJwt(
                         SUBJECT, personIdentity, kbvItem);
-        JWTClaimsSet generatedClaims = signedJWT.getJWTClaimsSet();
+
         assertTrue(signedJWT.verify(new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1))));
+        verify(mockConfigurationService).getParameterValue("JwtTtlUnit");
+        verify(mockConfigurationService).getMaxJwtTtl();
+        verify(mockVcClaimSetBuilder).subject(SUBJECT);
+        verify(mockVcClaimSetBuilder).verifiableCredentialType(KBV_CREDENTIAL_TYPE);
 
-        JsonNode claimsSet = new ObjectMapper().readTree(generatedClaims.toString());
+        makeEvidenceClaimsAssertions(
+                expectedVerificationScore, expectedContraIndicator, kbvItem.getAuthRefNo());
 
-        assertEquals(5, claimsSet.size());
-
-        assertAll(
-                () -> {
-                    assertEquals(
-                            personIdentity
-                                    .getBirthDates()
-                                    .get(0)
-                                    .getValue()
-                                    .format(DateTimeFormatter.ISO_DATE),
-                            claimsSet
-                                    .get(VC_CLAIM)
-                                    .get(VC_CREDENTIAL_SUBJECT)
-                                    .get(VC_BIRTHDATE_KEY)
-                                    .get(0)
-                                    .get("value")
-                                    .asText());
-
-                    assertEquals(
-                            VC_FAIL_EVIDENCE_SCORE,
-                            claimsSet
-                                    .get(VC_CLAIM)
-                                    .get(VC_EVIDENCE_KEY)
-                                    .get(0)
-                                    .get("verificationScore")
-                                    .asInt());
-
-                    assertEquals(
-                            ContraIndicator.V03,
-                            ContraIndicator.valueOf(
-                                    claimsSet
-                                            .get(VC_CLAIM)
-                                            .get(VC_EVIDENCE_KEY)
-                                            .get(0)
-                                            .get("ci")
-                                            .get(0)
-                                            .asText()));
-                });
-        ECDSAVerifier ecVerifier = new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1));
-        assertTrue(signedJWT.verify(ecVerifier));
+        makeVerifiableCredentialSubjectClaimsAssertions(personIdentity);
     }
 
-    @Test
-    void shouldCreateValidSignedJWTWithVcZeroWhenKbvStatusAnyOtherValue() throws JOSEException {
-
+    @ParameterizedTest
+    @CsvSource({"some-other-experian-status,an auth ref no,0", ",an auth ref no,0"})
+    void shouldCreateValidSignedJWTWithVcZeroWhenKbvStatusNullOrAnyOtherValue(
+            String status, String authRefNo, int expectedVerificationScore) throws JOSEException {
         SignedJWTFactory signedJWTFactory = mock(SignedJWTFactory.class);
-        var verifiableCredentialService =
+        initMockVCClaimSetBuilder();
+        initMockConfigurationService();
+
+        this.verifiableCredentialService =
                 new VerifiableCredentialService(
                         signedJWTFactory,
                         mockConfigurationService,
-                        new ObjectMapper(),
-                        mockEventProbe);
-
-        when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("kbv-cri-issue");
-        when(mockConfigurationService.getMaxJwtTtl()).thenReturn(342L);
+                        objectMapper,
+                        mockEventProbe,
+                        mockVcClaimSetBuilder);
 
         KBVItem kbvItem = new KBVItem();
-        kbvItem.setSessionId(UUID.randomUUID());
-        kbvItem.setExpiryDate(Instant.now().plusSeconds(342).getEpochSecond());
-        kbvItem.setStatus("some-other-experian-status");
-        kbvItem.setAuthRefNo("an auth ref no");
+        kbvItem.setStatus(status);
+        kbvItem.setAuthRefNo(authRefNo);
 
-        PersonIdentityDetailed personIdentity = createPersonIdentity();
+        when(mockVcClaimSetBuilder.build()).thenReturn(TEST_CLAIMS_SET);
 
         verifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                SUBJECT, personIdentity, kbvItem);
+                SUBJECT, createPersonIdentity(), kbvItem);
 
-        verify(signedJWTFactory).createSignedJwt(jwtClaimsSetCaptor.capture());
-        assertThat(
-                jwtClaimsSetCaptor.getValue().toString(),
-                containsString("\"txn\":\"an auth ref no\""));
-        assertThat(
-                jwtClaimsSetCaptor.getValue().toString(),
-                containsString("\"verificationScore\":0"));
+        verify(mockVcClaimSetBuilder)
+                .verifiableCredentialEvidence(mapArrayArgumentCaptor.capture());
+        verify(signedJWTFactory).createSignedJwt(TEST_CLAIMS_SET);
+        Map<String, Object> evidenceItems = mapArrayArgumentCaptor.getValue()[0];
+        assertEquals(kbvItem.getAuthRefNo(), evidenceItems.get("txn"));
+        assertEquals(expectedVerificationScore, evidenceItems.get("verificationScore"));
     }
 
     @Test
-    void shouldSetAVCVerificationScoreOf0WhenKBVStatusIsNull() throws JOSEException {
-
+    void shouldGetAuditEventExtensions() {
         SignedJWTFactory signedJWTFactory = mock(SignedJWTFactory.class);
-        var verifiableCredentialService =
+        this.verifiableCredentialService =
                 new VerifiableCredentialService(
                         signedJWTFactory,
                         mockConfigurationService,
-                        new ObjectMapper(),
-                        mockEventProbe);
-
-        when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("kbv-cri-issue");
-        when(mockConfigurationService.getMaxJwtTtl()).thenReturn(342L);
+                        objectMapper,
+                        mockEventProbe,
+                        mockVcClaimSetBuilder);
 
         KBVItem kbvItem = new KBVItem();
-        kbvItem.setSessionId(UUID.randomUUID());
-        kbvItem.setExpiryDate(Instant.now().plusSeconds(342).getEpochSecond());
-        kbvItem.setStatus(null);
-        kbvItem.setAuthRefNo("an auth ref no");
+        kbvItem.setAuthRefNo(UUID.randomUUID().toString());
+        kbvItem.setStatus("Not Authenticated");
+        kbvItem.setQuestionAnswerResultSummary(getKbvQuestionAnswerSummary(2, 0, 2));
+        String issuer = "test-issuer";
+        when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn(issuer);
 
-        PersonIdentityDetailed personIdentity = createPersonIdentity();
+        Map<String, Object> auditEventExtensions =
+                verifiableCredentialService.getAuditEventExtensions(kbvItem);
 
-        verifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                SUBJECT, personIdentity, kbvItem);
-
-        verify(signedJWTFactory).createSignedJwt(jwtClaimsSetCaptor.capture());
-        assertThat(
-                jwtClaimsSetCaptor.getValue().toString(),
-                containsString("\"verificationScore\":0"));
-        assertThat(
-                jwtClaimsSetCaptor.getValue().toString(),
-                containsString("\"txn\":\"an auth ref no\""));
+        assertEquals(auditEventExtensions.get(ISSUER), issuer);
+        assertNotNull(auditEventExtensions.get(VC_EVIDENCE_KEY));
     }
 
     private PersonIdentityDetailed createPersonIdentity() {
@@ -390,9 +223,60 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         return kbvQuestionAnswerSummary;
     }
 
-    private ObjectMapper getObjectMapper() {
-        return new ObjectMapper()
-                .registerModule(new Jdk8Module())
-                .registerModule(new JavaTimeModule());
+    private void initMockVCClaimSetBuilder() {
+        when(mockVcClaimSetBuilder.subject(anyString())).thenReturn(mockVcClaimSetBuilder);
+        when(mockVcClaimSetBuilder.timeToLive(anyLong(), any(ChronoUnit.class)))
+                .thenReturn(mockVcClaimSetBuilder);
+        when(mockVcClaimSetBuilder.verifiableCredentialEvidence(any()))
+                .thenReturn(mockVcClaimSetBuilder);
+        when(mockVcClaimSetBuilder.verifiableCredentialSubject(any()))
+                .thenReturn(mockVcClaimSetBuilder);
+        when(mockVcClaimSetBuilder.verifiableCredentialType(KBV_CREDENTIAL_TYPE))
+                .thenReturn(mockVcClaimSetBuilder);
+    }
+
+    private void initMockConfigurationService() {
+        when(mockConfigurationService.getMaxJwtTtl()).thenReturn(6L);
+        when(mockConfigurationService.getParameterValue("JwtTtlUnit")).thenReturn("MONTHS");
+    }
+
+    private void makeEvidenceClaimsAssertions(
+            int expectedVerificationScore,
+            ContraIndicator expectedContraIndicator,
+            String expectedAuthRefNo) {
+        verify(mockVcClaimSetBuilder)
+                .verifiableCredentialEvidence(mapArrayArgumentCaptor.capture());
+        Map<String, Object> evidenceClaims = mapArrayArgumentCaptor.getValue()[0];
+        assertEquals(expectedVerificationScore, evidenceClaims.get("verificationScore"));
+        if (Objects.nonNull(expectedContraIndicator)) {
+            assertEquals(
+                    expectedContraIndicator.toString(),
+                    ((List<?>) evidenceClaims.get("ci")).get(0));
+        } else {
+            assertNull(evidenceClaims.get("ci"));
+        }
+        assertEquals(expectedAuthRefNo, evidenceClaims.get("txn"));
+    }
+
+    private void makeVerifiableCredentialSubjectClaimsAssertions(
+            PersonIdentityDetailed personIdentity) {
+        verify(mockVcClaimSetBuilder).verifiableCredentialSubject(mapArgumentCaptor.capture());
+        Map<String, Object> vcSubjectClaims = mapArgumentCaptor.getValue();
+        assertEquals(personIdentity.getNames(), vcSubjectClaims.get(VC_NAME_KEY));
+
+        Object birthDateMap = ((Object[]) vcSubjectClaims.get(VC_BIRTHDATE_KEY))[0];
+        assertEquals(
+                personIdentity.getBirthDates().get(0).getValue().format(DateTimeFormatter.ISO_DATE),
+                ((Map<?, ?>) birthDateMap).get("value"));
+
+        Map<?, ?> vcSubjectAddressMap =
+                (Map<?, ?>) ((Object[]) vcSubjectClaims.get(VC_ADDRESS_KEY))[0];
+        Address personIdentityAddress = personIdentity.getAddresses().get(0);
+        assertEquals(personIdentityAddress.getStreetName(), vcSubjectAddressMap.get("streetName"));
+        assertEquals(personIdentityAddress.getPostalCode(), vcSubjectAddressMap.get("postalCode"));
+        assertEquals(
+                personIdentityAddress.getBuildingNumber(),
+                vcSubjectAddressMap.get("buildingNumber"));
+        assertFalse(vcSubjectAddressMap.containsKey("addressType"));
     }
 }
