@@ -394,4 +394,13 @@ public class APISteps {
 
         response = sendHttpRequest(request);
     }
+
+    @Then("JWT lives for two hours")
+    public void jwt_lives_for_two_hours() throws ParseException, IOException {
+        SignedJWT decodedJWT = SignedJWT.parse(response.body());
+        var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
+        assertNotNull(payload.get("nbf"));
+        assertNotNull(payload.get("exp"));
+        assertEquals(7200, payload.get("exp").asLong() - payload.get("nbf").asLong());
+    }
 }
