@@ -22,9 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class APISteps {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private String sessionRequestBody;
     private String sessionId;
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private String questionId;
     private String authorizationCode;
     private String accessToken;
@@ -34,13 +34,9 @@ public class APISteps {
     @Given("user has the user identity in the form of a signed JWT string")
     public void userHasTheUserIdentityInTheFormOfASignedJWTString()
             throws URISyntaxException, IOException, InterruptedException {
-        int experianRowNumber = 681;
-        userIdentityJson =
-                IpvCoreStubUtil.getClaimsForUser(
-                        IpvCoreStubUtil.getIPVCoreStubURL(), experianRowNumber);
-        sessionRequestBody =
-                IpvCoreStubUtil.createRequest(
-                        IpvCoreStubUtil.getIPVCoreStubURL(), userIdentityJson);
+        int testUserDataSheetRowNumber = 681;
+        userIdentityJson = IpvCoreStubUtil.getClaimsForUser(testUserDataSheetRowNumber);
+        sessionRequestBody = IpvCoreStubUtil.createSessionRequest(userIdentityJson);
     }
 
     @When("user sends a POST request to session end point")
@@ -131,10 +127,10 @@ public class APISteps {
     @And("a valid JWT is returned in the response")
     public void aValidJWTIsReturnedInTheResponse() throws ParseException, IOException {
         assertNotNull(response.body());
-        makeAssertions(SignedJWT.parse(response.body()));
+        makeVerifiableCredentialJwtAssertions(SignedJWT.parse(response.body()));
     }
 
-    private void makeAssertions(SignedJWT decodedJWT) throws IOException {
+    private void makeVerifiableCredentialJwtAssertions(SignedJWT decodedJWT) throws IOException {
         var header = decodedJWT.getHeader().toString();
         var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
         JsonNode identityJSON = objectMapper.readTree(userIdentityJson);
@@ -144,7 +140,6 @@ public class APISteps {
         assertEquals(2, payload.get("vc").get("evidence").get(0).get("verificationScore").asInt());
         assertNotNull(payload.get("nbf"));
         assertNotNull(payload.get("exp"));
-        assertEquals(7200L, payload.get("exp").asLong() - payload.get("nbf").asLong());
         assertEquals(
                 "IdentityCheck", payload.get("vc").get("evidence").get(0).get("type").asText());
         assertNotNull(payload.get("vc").get("evidence").get(0).get("txn").asText());
@@ -183,12 +178,11 @@ public class APISteps {
         response = IpvCoreStubUtil.sendAbandonRequest(sessionId);
     }
 
-    @Then("JWT lives for two hours")
-    public void jwt_lives_for_two_hours() throws ParseException, IOException {
+    @And("JWT time-to-live is {long} hours")
+    public void jwt_lives_for_appropriate_time(long hours) throws ParseException, IOException {
         SignedJWT decodedJWT = SignedJWT.parse(response.body());
         var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
-        assertNotNull(payload.get("nbf"));
-        assertNotNull(payload.get("exp"));
-        assertEquals(7200, payload.get("exp").asLong() - payload.get("nbf").asLong());
+        long ttl = hours * 60 * 60;
+        assertEquals(ttl, payload.get("exp").asLong() - payload.get("nbf").asLong());
     }
 }
