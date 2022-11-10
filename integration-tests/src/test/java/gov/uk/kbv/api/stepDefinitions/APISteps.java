@@ -185,4 +185,13 @@ public class APISteps {
         long ttl = hours * 60 * 60;
         assertEquals(ttl, payload.get("exp").asLong() - payload.get("nbf").asLong());
     }
+
+    @Then("user selects Insufficient additional questions")
+    public void user_selects_insufficient_additional_questions() throws IOException, URISyntaxException, InterruptedException {
+        response = IpvCoreStubUtil.sendInsufficientAdditionalQuestionRequest(questionId, sessionId);
+        System.out.println("response = " + response.toString());
+
+    }
+
+
 }

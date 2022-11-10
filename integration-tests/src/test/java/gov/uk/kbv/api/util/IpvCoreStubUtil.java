@@ -263,4 +263,29 @@ public class IpvCoreStubUtil {
 
         return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
+
+    public static HttpResponse<String> sendInsufficientAdditionalQuestionRequest(String question, String sessionId)
+            throws IOException, InterruptedException, URISyntaxException {
+        String answer =
+                Map.of(
+                                "Q00001", "Correct 1",
+                                "Q00002", "Insufficient additional questions")
+                        .get(question.toUpperCase());
+
+        String POST_REQUEST_BODY =
+                "{\"questionId\":\"" + question + "\",\"answer\":\"" + answer + "\"}";
+
+        HttpRequest request =
+                HttpRequest.newBuilder()
+                        .uri(
+                                new URIBuilder(getPrivateAPIEndpoint())
+                                        .setPath(createUriPath("answer"))
+                                        .build())
+                        .header(HttpHeaders.ACCEPT, JSON_MIME_MEDIA_TYPE)
+                        .header(HttpHeaders.CONTENT_TYPE, JSON_MIME_MEDIA_TYPE)
+                        .header(HttpHeaders.SESSION_ID, sessionId)
+                        .POST(HttpRequest.BodyPublishers.ofString(POST_REQUEST_BODY))
+                        .build();
+        return sendHttpRequest(request);
+    }
 }
