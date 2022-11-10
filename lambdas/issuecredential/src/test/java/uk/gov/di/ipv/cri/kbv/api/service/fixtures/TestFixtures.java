@@ -1,5 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.service.fixtures;
 
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionAnswerSummary;
+
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.ECPrivateKey;
@@ -21,5 +23,14 @@ public interface TestFixtures {
                         .generatePrivate(
                                 new PKCS8EncodedKeySpec(
                                         Base64.getDecoder().decode(EC_PRIVATE_KEY_1)));
+    }
+
+    default KbvQuestionAnswerSummary getKbvQuestionAnswerSummary(
+            int asked, int answeredCorrect, int answeredIncorrect) {
+        KbvQuestionAnswerSummary kbvQuestionAnswerSummary = new KbvQuestionAnswerSummary();
+        kbvQuestionAnswerSummary.setAnsweredCorrect(answeredCorrect);
+        kbvQuestionAnswerSummary.setAnsweredIncorrect(answeredIncorrect);
+        kbvQuestionAnswerSummary.setQuestionsAsked(asked);
+        return kbvQuestionAnswerSummary;
     }
 }
