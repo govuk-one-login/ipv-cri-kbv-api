@@ -49,8 +49,7 @@ public class VerifiableCredentialService {
                 new ObjectMapper()
                         .registerModule(new Jdk8Module())
                         .registerModule(new JavaTimeModule());
-        this.evidenceFactory =
-                new EvidenceFactory(this.objectMapper, new EventProbe());
+        this.evidenceFactory = new EvidenceFactory(this.objectMapper, new EventProbe());
         this.vcClaimsSetBuilder =
                 new VerifiableCredentialClaimsSetBuilder(
                         this.configurationService, Clock.systemUTC());
@@ -89,8 +88,7 @@ public class VerifiableCredentialService {
                                         personIdentity.getNames(),
                                         VC_BIRTHDATE_KEY,
                                         convertBirthDates(personIdentity.getBirthDates())))
-                        .verifiableCredentialEvidence(
-                                evidenceFactory.create(kbvItem))
+                        .verifiableCredentialEvidence(evidenceFactory.create(kbvItem))
                         .build();
 
         return signedJwtFactory.createSignedJwt(claimsSet);

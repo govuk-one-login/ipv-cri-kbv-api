@@ -7,12 +7,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
+import uk.gov.di.ipv.cri.kbv.api.domain.CheckDetail;
 import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
 import uk.gov.di.ipv.cri.kbv.api.domain.Evidence;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuality;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.UnaryOperator;
 
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_PASS_EVIDENCE_SCORE;
@@ -45,9 +49,22 @@ public class EvidenceFactory {
         if (hasMultipleIncorrectAnswers(kbvItem)) {
             evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
             evidence.setCi(new ContraIndicator[] {ContraIndicator.V03});
+            evidence.setFailedCheckDetails(
+                    getCheckDetails(
+                            kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect(),
+                            fraudCheckDetail -> fraudCheckDetail));
             logVcScore("fail");
         } else if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
             evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
+            evidence.setCheckDetails(
+                    getCheckDetails(
+                            kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect(),
+                            checkDetail -> {
+                                // defaulting to low until we start using in
+                                // https://govukverify.atlassian.net/browse/OJ-1042
+                                checkDetail.setKbvQuality(KbvQuality.LOW.getValue());
+                                return checkDetail;
+                            }));
             logVcScore("pass");
         } else {
             evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
@@ -55,6 +72,12 @@ public class EvidenceFactory {
         }
 
         return new Map[] {objectMapper.convertValue(evidence, Map.class)};
+    }
+
+    private CheckDetail[] getCheckDetails(int size, UnaryOperator<CheckDetail> getCheckDetail) {
+        return Arrays.stream(new CheckDetail[size])
+                .map(item -> getCheckDetail.apply(new CheckDetail()))
+                .toArray(CheckDetail[]::new);
     }
 
     private boolean hasMultipleIncorrectAnswers(KBVItem kbvItem) {

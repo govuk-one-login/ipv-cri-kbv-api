@@ -6,6 +6,8 @@ public class Evidence {
     private String txn;
     private Integer verificationScore;
     private ContraIndicator[] ci;
+    private CheckDetail[] checkDetails;
+    private CheckDetail[] failedCheckDetails;
 
     public String getTxn() {
         return txn;
@@ -34,5 +36,21 @@ public class Evidence {
 
     public ContraIndicator[] getCi() {
         return ci;
+    }
+
+    public CheckDetail[] getCheckDetails() {
+        return checkDetails;
+    }
+
+    public void setCheckDetails(CheckDetail[] checkDetails) {
+        this.checkDetails = checkDetails;
+    }
+
+    public CheckDetail[] getFailedCheckDetails() {
+        return failedCheckDetails;
+    }
+
+    public void setFailedCheckDetails(CheckDetail[] failedCheckDetails) {
+        this.failedCheckDetails = failedCheckDetails;
     }
 }
