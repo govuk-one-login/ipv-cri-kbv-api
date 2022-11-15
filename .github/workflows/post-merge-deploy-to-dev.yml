@@ -44,9 +44,6 @@ jobs:
           template: ./infrastructure/lambda/template.yaml
           profile: ${{ secrets.DEV_SIGNING_PROFILE_NAME }}
 
-      - name: Gradle build
-        run: ./gradlew build
-
       - name: SAM build
         run: sam build -t infrastructure/lambda/template.yaml
 
