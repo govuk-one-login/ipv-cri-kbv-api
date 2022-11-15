@@ -1,83 +1,156 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.CheckDetail;
 import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
 import uk.gov.di.ipv.cri.kbv.api.domain.Evidence;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuality;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 
-import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.UnaryOperator;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import static java.util.Comparator.comparingInt;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_PASS_EVIDENCE_SCORE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_PASS;
 
 public class EvidenceFactory {
-    public static final String METRIC_DIMENSION_KBV_VERIFICATION = "kbv_verification";
-    private final EventProbe eventProbe;
     private static final Logger LOGGER = LogManager.getLogger();
+    private static final String METRIC_DIMENSION_KBV_VERIFICATION = "kbv_verification";
+    private static final int UNSUITABLE_QUESTION_QUALITY = 0;
+    private final EventProbe eventProbe;
     private final ObjectMapper objectMapper;
+    private final Map<String, Integer> kbvQualityMapping;
 
-    @ExcludeFromGeneratedCoverageReport
-    public EvidenceFactory() {
-        this.objectMapper =
-                new ObjectMapper()
-                        .registerModule(new Jdk8Module())
-                        .registerModule(new JavaTimeModule());
-        this.eventProbe = new EventProbe();
-    }
-
-    public EvidenceFactory(ObjectMapper objectMapper, EventProbe eventProbe) {
+    public EvidenceFactory(
+            ObjectMapper objectMapper,
+            EventProbe eventProbe,
+            Map<String, Integer> kbvQualityMapping) {
         this.objectMapper = objectMapper;
         this.eventProbe = eventProbe;
+        this.kbvQualityMapping = kbvQualityMapping;
     }
 
-    public Object[] create(KBVItem kbvItem) {
+    public Object[] create(KBVItem kbvItem) throws JsonProcessingException {
         Evidence evidence = new Evidence();
         evidence.setTxn(kbvItem.getAuthRefNo());
-        if (hasMultipleIncorrectAnswers(kbvItem)) {
-            evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
-            evidence.setCi(new ContraIndicator[] {ContraIndicator.V03});
-            evidence.setFailedCheckDetails(
-                    getCheckDetails(
-                            kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect(),
-                            fraudCheckDetail -> fraudCheckDetail));
-            logVcScore("fail");
-        } else if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
+        if (hasQuestionsAsked(kbvItem)) {
+            evidence.setCheckDetails(createKbvQualityEvidence(kbvItem));
+            evidence.setFailedCheckDetails(getFailedCheckDetails(kbvItem));
+        }
+        if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
             evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
-            evidence.setCheckDetails(
-                    getCheckDetails(
-                            kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect(),
-                            checkDetail -> {
-                                // defaulting to low until we start using in
-                                // https://govukverify.atlassian.net/browse/OJ-1042
-                                checkDetail.setKbvQuality(KbvQuality.LOW.getValue());
-                                return checkDetail;
-                            }));
             logVcScore("pass");
         } else {
             evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
             logVcScore("fail");
+            if (hasMultipleIncorrectAnswers(kbvItem)) {
+                evidence.setCi(new ContraIndicator[] {ContraIndicator.V03});
+            }
         }
 
         return new Map[] {objectMapper.convertValue(evidence, Map.class)};
     }
 
-    private CheckDetail[] getCheckDetails(int size, UnaryOperator<CheckDetail> getCheckDetail) {
-        return Arrays.stream(new CheckDetail[size])
-                .map(item -> getCheckDetail.apply(new CheckDetail()))
+    private boolean hasQuestionsAsked(KBVItem kbvItem) {
+        return Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
+                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() > 0;
+    }
+
+    private CheckDetail[] createKbvQualityEvidence(KBVItem kbvItem) throws JsonProcessingException {
+        var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
+
+        if (is3OutOf4QuestionsCorrect(kbvItem)) {
+            if (hasItemsOfSize2(questionState.getAllQaPairs())) {
+                return mapKbvQualityToCheckDetail(questionState.getAllQaPairs())
+                        .get()
+                        .sorted(comparingInt(CheckDetail::getKbvQuality))
+                        .limit(kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect())
+                        .collect(Collectors.toList())
+                        .toArray(CheckDetail[]::new);
+            }
+            return getCorrectlyAnsweredQAPairs(questionState.getAllQaPairs())
+                    .flatMap(Collection::stream)
+                    .map(QuestionAnswerPair::getQuestion)
+                    .map(KbvQuestion::getQuestionId)
+                    .map(this::createCheckDetail)
+                    .toArray(CheckDetail[]::new);
+        }
+        return mapKbvQualityToCheckDetail(questionState.getAllQaPairs())
+                .get()
+                .limit(kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect())
                 .toArray(CheckDetail[]::new);
+    }
+
+    private Supplier<Stream<CheckDetail>> mapKbvQualityToCheckDetail(
+            List<List<QuestionAnswerPair>> allQaPairs) {
+        return () ->
+                allQaPairs.stream()
+                        .map(Collection::stream)
+                        .flatMap(q -> q.map(QuestionAnswerPair::getQuestion))
+                        .map(KbvQuestion::getQuestionId)
+                        .map(this::createCheckDetail);
+    }
+
+    private boolean hasItemsOfSize2(List<List<QuestionAnswerPair>> allQaPairs) {
+        return allQaPairs.stream().allMatch(x -> x.stream().count() == 2);
+    }
+
+    private Stream<List<QuestionAnswerPair>> getCorrectlyAnsweredQAPairs(
+            List<List<QuestionAnswerPair>> allQaPairs) {
+        return allQaPairs.stream().filter(Predicate.not(q -> allQaPairs.indexOf(q) == 1));
+    }
+
+    private CheckDetail[] getFailedCheckDetails(KBVItem kbvItem) {
+        return IntStream.range(0, kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect())
+                .mapToObj(i -> new CheckDetail())
+                .limit(kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect())
+                .toArray(CheckDetail[]::new);
+    }
+
+    private CheckDetail createCheckDetail(String questionId) {
+        CheckDetail checkDetail = new CheckDetail();
+        checkDetail.setKbvQuality(getKbvQuality(questionId));
+        return checkDetail;
+    }
+
+    private boolean is3OutOf4QuestionsCorrect(KBVItem kbvItem) {
+        return kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() == 4
+                && kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect() == 3;
+    }
+
+    private int getKbvQuality(String questionId) {
+        return kbvQualityMapping.entrySet().stream()
+                .filter(item -> questionId.equals(item.getKey()))
+                .map(Map.Entry::getValue)
+                .map(this::mapKbvQuality)
+                .findFirst()
+                .orElseThrow(
+                        () ->
+                                new IllegalStateException(
+                                        String.format(
+                                                "QuestionId: %s may not be present in Mapping",
+                                                questionId)));
+    }
+
+    private int mapKbvQuality(int quality) {
+        return quality == UNSUITABLE_QUESTION_QUALITY ? KbvQuality.LOW.getValue() : quality;
     }
 
     private boolean hasMultipleIncorrectAnswers(KBVItem kbvItem) {

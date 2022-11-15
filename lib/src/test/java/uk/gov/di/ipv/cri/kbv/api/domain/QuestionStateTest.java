@@ -12,6 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator.getExperianQuestionResponse;
+import static uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator.getQuestionOne;
+import static uk.gov.di.ipv.cri.kbv.api.util.TestDataCreator.getQuestionTwo;
 
 @ExtendWith(MockitoExtension.class)
 class QuestionStateTest {
@@ -76,5 +79,63 @@ class QuestionStateTest {
         String result = sample.stream().reduce("", String::concat);
 
         assertEquals("END", result);
+    }
+
+    @Test
+    void questionStateShouldRetainOldQuestionsWhenNewQuestionsAreSetInBatchesOf2And2() {
+        var questionOne = getQuestionOne();
+        var questionTwo = getQuestionTwo();
+        var questionThree = getQuestionOne();
+        var questionFour = getQuestionTwo();
+        QuestionsResponse questionsResponse1 =
+                getExperianQuestionResponse(new KbvQuestion[] {questionOne, questionTwo});
+        QuestionsResponse questionsResponse2 =
+                getExperianQuestionResponse(new KbvQuestion[] {questionThree, questionFour});
+
+        questionState.setQAPairs(questionsResponse1.getQuestions());
+        questionState.setQAPairs(questionsResponse2.getQuestions());
+
+        assertTrue(questionState.isQaPairsASizeOf2());
+        assertEquals(4, questionState.getQuestionIdsFromQAPairs().count());
+    }
+
+    @Test
+    void questionStateShouldRetainOldQuestionsWhenNewQuestionsAreSetInBatchOf2by1by1() {
+        var questionOne = getQuestionOne();
+        var questionTwo = getQuestionTwo();
+        var questionThree = getQuestionOne();
+        var questionFour = getQuestionTwo();
+        QuestionsResponse questionsResponse12 =
+                getExperianQuestionResponse(new KbvQuestion[] {questionOne, questionTwo});
+        QuestionsResponse questionsResponse3 =
+                getExperianQuestionResponse(new KbvQuestion[] {questionThree});
+        QuestionsResponse questionsResponse4 =
+                getExperianQuestionResponse(new KbvQuestion[] {questionFour});
+        questionState.setQAPairs(questionsResponse12.getQuestions());
+        questionState.setQAPairs(questionsResponse3.getQuestions());
+        questionState.setQAPairs(questionsResponse4.getQuestions());
+
+        assertFalse(questionState.isQaPairsASizeOf2());
+        assertEquals(4, questionState.getQuestionIdsFromQAPairs().count());
+    }
+
+    @Test
+    void questionStateShouldfilterOutQAPairAtIndexOne() {
+        var questionOne = getQuestionOne();
+        var questionTwo = getQuestionTwo();
+        var questionThree = getQuestionOne();
+        var questionFour = getQuestionTwo();
+        QuestionsResponse questionsResponse12 =
+                getExperianQuestionResponse(new KbvQuestion[] {questionOne, questionTwo});
+        QuestionsResponse questionsResponse3 =
+                getExperianQuestionResponse(new KbvQuestion[] {questionThree});
+        QuestionsResponse questionsResponse4 =
+                getExperianQuestionResponse(new KbvQuestion[] {questionFour});
+        questionState.setQAPairs(questionsResponse12.getQuestions());
+        questionState.setQAPairs(questionsResponse3.getQuestions());
+        questionState.setQAPairs(questionsResponse4.getQuestions());
+
+        assertFalse(questionState.isQaPairsASizeOf2());
+        assertEquals(2, questionState.skipQaPairAtIndexOne().count());
     }
 }
