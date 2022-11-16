@@ -1,5 +1,6 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -39,7 +40,7 @@ public class VerifiableCredentialService {
     private final EvidenceFactory evidenceFactory;
 
     @ExcludeFromGeneratedCoverageReport
-    public VerifiableCredentialService() {
+    public VerifiableCredentialService() throws JsonProcessingException {
         this.configurationService = new ConfigurationService();
         this.signedJwtFactory =
                 new SignedJWTFactory(
@@ -49,7 +50,13 @@ public class VerifiableCredentialService {
                 new ObjectMapper()
                         .registerModule(new Jdk8Module())
                         .registerModule(new JavaTimeModule());
-        this.evidenceFactory = new EvidenceFactory(this.objectMapper, new EventProbe());
+        var kbvQualitySecretValue =
+                configurationService.getParameterValueByAbsoluteName(
+                        "/kbv-cri-api-v1/quality/mappings");
+        final Map<String, Integer> kbvQualityMapping =
+                objectMapper.readValue(kbvQualitySecretValue, Map.class);
+        this.evidenceFactory =
+                new EvidenceFactory(this.objectMapper, new EventProbe(), kbvQualityMapping);
         this.vcClaimsSetBuilder =
                 new VerifiableCredentialClaimsSetBuilder(
                         this.configurationService, Clock.systemUTC());
@@ -71,7 +78,7 @@ public class VerifiableCredentialService {
     @Tracing
     public SignedJWT generateSignedVerifiableCredentialJwt(
             String subject, PersonIdentityDetailed personIdentity, KBVItem kbvItem)
-            throws JOSEException {
+            throws JOSEException, JsonProcessingException {
         long jwtTtl = this.configurationService.getMaxJwtTtl();
         ChronoUnit jwtTtlUnit =
                 ChronoUnit.valueOf(this.configurationService.getParameterValue("JwtTtlUnit"));
@@ -94,7 +101,8 @@ public class VerifiableCredentialService {
         return signedJwtFactory.createSignedJwt(claimsSet);
     }
 
-    public Map<String, Object> getAuditEventExtensions(KBVItem kbvItem) {
+    public Map<String, Object> getAuditEventExtensions(KBVItem kbvItem)
+            throws JsonProcessingException {
         return Map.of(
                 ISSUER,
                 configurationService.getVerifiableCredentialIssuer(),

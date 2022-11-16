@@ -1,5 +1,6 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -16,7 +17,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
@@ -24,6 +24,7 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.Name;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.NamePart;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
 import uk.gov.di.ipv.cri.common.library.util.VerifiableCredentialClaimsSetBuilder;
 import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
@@ -51,6 +52,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.KBV_CREDENTIAL_TYPE;
@@ -71,20 +73,21 @@ class VerifiableCredentialServiceTest implements TestFixtures {
 
     @Mock private ConfigurationService mockConfigurationService;
     @Mock private VerifiableCredentialClaimsSetBuilder mockVcClaimSetBuilder;
-    @Spy private EvidenceFactory spyEvidenceFactory;
+    @Mock private EventProbe mockEventProbe;
+    private EvidenceFactory spyEvidenceFactory;
     @Captor private ArgumentCaptor<Map<String, Object>[]> mapArrayArgumentCaptor;
     @Captor private ArgumentCaptor<Map<String, Object>> mapArgumentCaptor;
     private VerifiableCredentialService verifiableCredentialService;
 
     @ParameterizedTest
     @CsvSource({
+        "authenticated,3,3,0,2,",
+        "authenticated,4,3,1,2,",
         "Not Authenticated,4,2,2,0,V03",
         "Not Authenticated,4,1,3,0,V03",
         "Not Authenticated,2,0,2,0,V03",
         "Unable to Authenticate,3,1,2,0,",
         "Unable to Authenticate,2,0,2,0,",
-        "authenticated,3,3,0,2,",
-        "authenticated,4,3,1,2,"
     })
     void shouldReturnASignedVerifiableCredentialJwt(
             String authenticationResult,
@@ -93,11 +96,16 @@ class VerifiableCredentialServiceTest implements TestFixtures {
             int answeredInCorrectly,
             int expectedVerificationScore,
             ContraIndicator expectedContraIndicator)
-            throws JOSEException, InvalidKeySpecException, NoSuchAlgorithmException,
-                    ParseException {
+            throws JOSEException, InvalidKeySpecException, NoSuchAlgorithmException, ParseException,
+                    JsonProcessingException {
         initMockConfigurationService();
         SignedJWTFactory signedJwtFactory = new SignedJWTFactory(new ECDSASigner(getPrivateKey()));
-
+        spyEvidenceFactory =
+                spy(
+                        new EvidenceFactory(
+                                objectMapper,
+                                mockEventProbe,
+                                KBV_QUESTION_QUALITY_MAPPING_SERIALIZED));
         this.verifiableCredentialService =
                 new VerifiableCredentialService(
                         signedJwtFactory,
@@ -108,13 +116,12 @@ class VerifiableCredentialServiceTest implements TestFixtures {
 
         initMockVCClaimSetBuilder();
 
-        KBVItem kbvItem = new KBVItem();
-        kbvItem.setAuthRefNo(UUID.randomUUID().toString());
+        KBVItem kbvItem = getKbvItem();
         kbvItem.setStatus(authenticationResult);
         kbvItem.setQuestionAnswerResultSummary(
                 getKbvQuestionAnswerSummary(
                         totalQuestionsAsked, answeredCorrectly, answeredInCorrectly));
-
+        setKbvItemQuestionState(kbvItem);
         PersonIdentityDetailed personIdentity = createPersonIdentity();
 
         when(mockVcClaimSetBuilder.build()).thenReturn(TEST_CLAIMS_SET);
@@ -139,11 +146,18 @@ class VerifiableCredentialServiceTest implements TestFixtures {
     @ParameterizedTest
     @CsvSource({"some-other-experian-status,an auth ref no,0", ",an auth ref no,0"})
     void shouldCreateValidSignedJWTWithVcZeroWhenKbvStatusNullOrAnyOtherValue(
-            String status, String authRefNo, int expectedVerificationScore) throws JOSEException {
+            String status, String authRefNo, int expectedVerificationScore)
+            throws JOSEException, JsonProcessingException {
         SignedJWTFactory signedJWTFactory = mock(SignedJWTFactory.class);
         initMockVCClaimSetBuilder();
         initMockConfigurationService();
 
+        spyEvidenceFactory =
+                spy(
+                        new EvidenceFactory(
+                                objectMapper,
+                                mockEventProbe,
+                                KBV_QUESTION_QUALITY_MAPPING_SERIALIZED));
         this.verifiableCredentialService =
                 new VerifiableCredentialService(
                         signedJWTFactory,
@@ -171,8 +185,15 @@ class VerifiableCredentialServiceTest implements TestFixtures {
     }
 
     @Test
-    void shouldGetAuditEventExtensions() {
+    void shouldGetAuditEventExtensions() throws JsonProcessingException {
         SignedJWTFactory signedJWTFactory = mock(SignedJWTFactory.class);
+
+        spyEvidenceFactory =
+                spy(
+                        new EvidenceFactory(
+                                objectMapper,
+                                mockEventProbe,
+                                KBV_QUESTION_QUALITY_MAPPING_SERIALIZED));
         this.verifiableCredentialService =
                 new VerifiableCredentialService(
                         signedJWTFactory,
@@ -185,6 +206,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         kbvItem.setAuthRefNo(UUID.randomUUID().toString());
         kbvItem.setStatus("Not Authenticated");
         kbvItem.setQuestionAnswerResultSummary(getKbvQuestionAnswerSummary(2, 0, 2));
+        setKbvItemQuestionState(kbvItem);
         String issuer = "test-issuer";
         when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn(issuer);
 

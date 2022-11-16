@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.SignedJWT;
@@ -47,6 +48,9 @@ public class IssueCredentialHandler
     private static final Logger LOGGER = LogManager.getLogger();
     public static final String AUTHORIZATION_HEADER_KEY = "Authorization";
     public static final String KBV_CREDENTIAL_ISSUER = "kbv_credentials_issued";
+    private static final String CREDENTIAL_NOT_ISSUED = "credential not issued";
+    private static final String CREDENTIAL_ISSUED = "credential issued";
+    private static final String VC_MESSAGE_FORMAT = "{}: {}";
     private final VerifiableCredentialService verifiableCredentialService;
     private final KBVStorageService kbvStorageService;
     private final SessionService sessionService;
@@ -70,7 +74,7 @@ public class IssueCredentialHandler
     }
 
     @ExcludeFromGeneratedCoverageReport
-    public IssueCredentialHandler() {
+    public IssueCredentialHandler() throws JsonProcessingException {
         this.verifiableCredentialService = new VerifiableCredentialService();
         ConfigurationService configurationService = new ConfigurationService();
         this.kbvStorageService = new KBVStorageService(configurationService);
@@ -113,22 +117,22 @@ public class IssueCredentialHandler
             eventProbe.counterMetric(KBV_CREDENTIAL_ISSUER);
             auditService.sendAuditEvent(
                     AuditEventType.END, new AuditEventContext(input.getHeaders(), sessionItem));
-            LOGGER.info("credential issued");
+            LOGGER.info(CREDENTIAL_ISSUED);
             return ApiGatewayResponseGenerator.proxyJwtResponse(
                     HttpStatusCode.OK, signedJWT.serialize());
         } catch (AwsServiceException ex) {
             eventProbe.log(ERROR, ex).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
-            LOGGER.info("credential not issued: " + ex.getMessage());
+            LOGGER.info(VC_MESSAGE_FORMAT, CREDENTIAL_NOT_ISSUED, ex.getMessage());
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     HttpStatusCode.INTERNAL_SERVER_ERROR, ex.awsErrorDetails().errorMessage());
         } catch (CredentialRequestException | ParseException | JOSEException e) {
             eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
-            LOGGER.info("credential not issued: " + e.getMessage());
+            LOGGER.info(VC_MESSAGE_FORMAT, CREDENTIAL_NOT_ISSUED, e.getMessage());
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     HttpStatusCode.BAD_REQUEST, ErrorResponse.VERIFIABLE_CREDENTIAL_ERROR);
         } catch (Exception e) {
             eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
-            LOGGER.info("credential not issued: " + e.getMessage());
+            LOGGER.info(VC_MESSAGE_FORMAT, CREDENTIAL_NOT_ISSUED, e.getMessage());
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     HttpStatusCode.INTERNAL_SERVER_ERROR, e.getMessage());
         }

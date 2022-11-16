@@ -582,6 +582,7 @@ Resources:
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kbv-cri-api-v1/quality/mappings"
         - Statement:
             Effect: Allow
             Action:

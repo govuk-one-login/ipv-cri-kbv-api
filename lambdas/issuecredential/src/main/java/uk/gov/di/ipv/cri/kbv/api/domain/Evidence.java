@@ -1,7 +1,9 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class Evidence {
     private String txn;
     private Integer verificationScore;

@@ -15,10 +15,8 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -77,44 +75,43 @@ public class EvidenceFactory {
         var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
 
         if (is3OutOf4QuestionsCorrect(kbvItem)) {
-            if (hasItemsOfSize2(questionState.getAllQaPairs())) {
-                return mapKbvQualityToCheckDetail(questionState.getAllQaPairs())
-                        .get()
-                        .sorted(comparingInt(CheckDetail::getKbvQuality))
-                        .limit(kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect())
-                        .collect(Collectors.toList())
-                        .toArray(CheckDetail[]::new);
+            if (questionState.isQaPairsASizeOf2()) {
+                return checkDetailsBySortingOnKbvQuality(kbvItem, questionState);
             }
-            return getCorrectlyAnsweredQAPairs(questionState.getAllQaPairs())
-                    .flatMap(Collection::stream)
-                    .map(QuestionAnswerPair::getQuestion)
-                    .map(KbvQuestion::getQuestionId)
-                    .map(this::createCheckDetail)
-                    .toArray(CheckDetail[]::new);
+            return checkDetailsBySkipping3rdInCorrectQa(questionState);
         }
-        return mapKbvQualityToCheckDetail(questionState.getAllQaPairs())
+        return checkDetails(kbvItem, questionState);
+    }
+
+    private CheckDetail[] checkDetails(KBVItem kbvItem, QuestionState questionState) {
+        return mapKbvQualityToCheckDetail(questionState)
                 .get()
                 .limit(kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect())
                 .toArray(CheckDetail[]::new);
     }
 
-    private Supplier<Stream<CheckDetail>> mapKbvQualityToCheckDetail(
-            List<List<QuestionAnswerPair>> allQaPairs) {
-        return () ->
-                allQaPairs.stream()
-                        .map(Collection::stream)
-                        .flatMap(q -> q.map(QuestionAnswerPair::getQuestion))
-                        .map(KbvQuestion::getQuestionId)
-                        .map(this::createCheckDetail);
+    private CheckDetail[] checkDetailsBySkipping3rdInCorrectQa(QuestionState questionState) {
+        return questionState
+                .skipQaPairAtIndexOne()
+                .flatMap(Collection::stream)
+                .map(QuestionAnswerPair::getQuestion)
+                .map(KbvQuestion::getQuestionId)
+                .map(this::createCheckDetail)
+                .toArray(CheckDetail[]::new);
     }
 
-    private boolean hasItemsOfSize2(List<List<QuestionAnswerPair>> allQaPairs) {
-        return allQaPairs.stream().allMatch(x -> x.stream().count() == 2);
+    private CheckDetail[] checkDetailsBySortingOnKbvQuality(
+            KBVItem kbvItem, QuestionState questionState) {
+        return mapKbvQualityToCheckDetail(questionState)
+                .get()
+                .sorted(comparingInt(CheckDetail::getKbvQuality))
+                .limit(kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect())
+                .collect(Collectors.toList())
+                .toArray(CheckDetail[]::new);
     }
 
-    private Stream<List<QuestionAnswerPair>> getCorrectlyAnsweredQAPairs(
-            List<List<QuestionAnswerPair>> allQaPairs) {
-        return allQaPairs.stream().filter(Predicate.not(q -> allQaPairs.indexOf(q) == 1));
+    private Supplier<Stream<CheckDetail>> mapKbvQualityToCheckDetail(QuestionState questionState) {
+        return () -> questionState.getQuestionIdsFromQAPairs().map(this::createCheckDetail);
     }
 
     private CheckDetail[] getFailedCheckDetails(KBVItem kbvItem) {

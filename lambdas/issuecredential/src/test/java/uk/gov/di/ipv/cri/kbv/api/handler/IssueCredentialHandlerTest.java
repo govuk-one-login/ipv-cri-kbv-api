@@ -80,7 +80,8 @@ class IssueCredentialHandlerTest {
     @InjectMocks private IssueCredentialHandler handler;
 
     @Test
-    void shouldReturn200OkWhenIssueCredentialRequestIsValid() throws JOSEException, SqsException {
+    void shouldReturn200OkWhenIssueCredentialRequestIsValid()
+            throws JOSEException, SqsException, JsonProcessingException {
         ArgumentCaptor<AuditEventContext> auditEventContextArgCaptor =
                 ArgumentCaptor.forClass(AuditEventContext.class);
         APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
