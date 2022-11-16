@@ -38,4 +38,3 @@ Feature: 3 out of 4 strategy. User has 2 KBV questions. Tests are run against th
     When user sends a POST request to Credential Issue end point with a valid access token
     Then user gets status code 200
     And a valid JWT is returned in the response
-    And JWT time-to-live is 2 hours

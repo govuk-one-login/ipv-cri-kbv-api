@@ -12,8 +12,11 @@ public class ClientConfigurationService {
     private final String ipvCoreStubUsername;
     private final String ipvCoreStubPassword;
 
-    public ClientConfigurationService(String environment) {
-        this.environment = environment;
+    public ClientConfigurationService() {
+        this.environment =
+                Objects.requireNonNull(
+                        System.getenv("ENVIRONMENT"),
+                        "Environment variable ENVIRONMENT is not set");
         this.privateApiEndpoint =
                 getApiEndpoint(
                         "API_GATEWAY_ID_PRIVATE",
