@@ -1,9 +1,10 @@
 package gov.uk.kbv.api.client;
 
-import org.apache.http.client.utils.URIBuilder;
+import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
+import uk.gov.di.ipv.cri.common.library.client.HttpHeaders;
+import uk.gov.di.ipv.cri.common.library.util.URIBuilder;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -21,7 +22,7 @@ public class KbvApiClient {
     private static final String JSON_MIME_MEDIA_TYPE = "application/json";
 
     public HttpResponse<String> sendAbandonRequest(String sessionId)
-            throws IOException, InterruptedException, URISyntaxException {
+            throws IOException, InterruptedException {
         var request =
                 HttpRequest.newBuilder()
                         .uri(
@@ -40,7 +41,7 @@ public class KbvApiClient {
     }
 
     public HttpResponse<String> sendIssueCredentialRequest(String accessToken)
-            throws URISyntaxException, IOException, InterruptedException {
+            throws IOException, InterruptedException {
         HttpRequest request =
                 HttpRequest.newBuilder()
                         .uri(
@@ -61,7 +62,7 @@ public class KbvApiClient {
     }
 
     public HttpResponse<String> sendQuestionRequest(String sessionId)
-            throws URISyntaxException, IOException, InterruptedException {
+            throws IOException, InterruptedException {
         var request =
                 HttpRequest.newBuilder()
                         .uri(
@@ -80,7 +81,7 @@ public class KbvApiClient {
     }
 
     public void submitCorrectAnswers(String question, String sessionId)
-            throws IOException, InterruptedException, URISyntaxException {
+            throws IOException, InterruptedException {
         String answer =
                 Map.of(
                                 "Q00001", "Correct 1",

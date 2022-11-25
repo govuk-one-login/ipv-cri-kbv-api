@@ -3,7 +3,7 @@ Feature: 3 out of 4 strategy. User has 2 KBV questions. Tests are run against th
 
   @pre_merge_happy
   Scenario: User answers 2 questions correctly
-    Given user has the user identity in the form of a signed JWT string
+    Given user has the test-identity 168 in the form of a signed JWT string
 
     #Session
     When user sends a POST request to session end point
