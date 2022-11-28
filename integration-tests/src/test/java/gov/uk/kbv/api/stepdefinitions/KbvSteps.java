@@ -1,16 +1,16 @@
-package gov.uk.kbv.api.stepDefinitions;
+package gov.uk.kbv.api.stepdefinitions;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
-import gov.uk.kbv.api.client.ClientConfigurationService;
 import gov.uk.kbv.api.client.KbvApiClient;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.When;
+import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
+import uk.gov.di.ipv.cri.common.library.stepdefinitions.CriTestContext;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.util.Map;
 
@@ -33,9 +33,9 @@ public class KbvSteps {
 
     @When("user sends a GET request to question end point")
     public void user_sends_a_get_request_to_question_end_point()
-            throws IOException, URISyntaxException, InterruptedException {
+            throws IOException, InterruptedException {
         this.testContext.setResponse(
-                this.kbvApiClient.sendQuestionRequest(testContext.getSessionId()));
+                this.kbvApiClient.sendQuestionRequest(this.testContext.getSessionId()));
         Map<String, String> deserializeGetResponse =
                 objectMapper.readValue(
                         this.testContext.getResponse().body(), new TypeReference<>() {});
@@ -44,28 +44,26 @@ public class KbvSteps {
 
     @When("user sends a GET request to question end point when there are no questions left")
     public void userSendsAGETRequestToQuestionEndPointWhenThereAreNoQuestionsLeft()
-            throws IOException, InterruptedException, URISyntaxException {
+            throws IOException, InterruptedException {
         testContext.setResponse(
                 this.kbvApiClient.sendQuestionRequest(this.testContext.getSessionId()));
     }
 
     @When("user sends a POST request to Credential Issue end point with a valid access token")
     public void user_sends_a_post_request_to_credential_issue_end_point_with_a_valid_access_token()
-            throws IOException, InterruptedException, URISyntaxException {
+            throws IOException, InterruptedException {
         this.testContext.setResponse(
                 this.kbvApiClient.sendIssueCredentialRequest(this.testContext.getAccessToken()));
     }
 
     @When("user chooses to abandon the question")
-    public void userChoosesToAbandonTheQuestion()
-            throws URISyntaxException, IOException, InterruptedException {
+    public void userChoosesToAbandonTheQuestion() throws IOException, InterruptedException {
         this.testContext.setResponse(
                 this.kbvApiClient.sendAbandonRequest(this.testContext.getSessionId()));
     }
 
     @And("user answers the question correctly")
-    public void userAnswersTheQuestionCorrectly()
-            throws IOException, URISyntaxException, InterruptedException {
+    public void userAnswersTheQuestionCorrectly() throws IOException, InterruptedException {
         this.kbvApiClient.submitCorrectAnswers(questionId, this.testContext.getSessionId());
     }
 
