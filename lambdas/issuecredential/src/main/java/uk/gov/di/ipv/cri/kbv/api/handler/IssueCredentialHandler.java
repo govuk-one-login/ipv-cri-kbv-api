@@ -111,6 +111,8 @@ public class IssueCredentialHandler
                     new AuditEventContext(input.getHeaders(), sessionItem),
                     verifiableCredentialService.getAuditEventExtensions(kbvItem));
             eventProbe.counterMetric(KBV_CREDENTIAL_ISSUER);
+            auditService.sendAuditEvent(
+                    AuditEventType.END, new AuditEventContext(input.getHeaders(), sessionItem));
             LOGGER.info("credential issued");
             return ApiGatewayResponseGenerator.proxyJwtResponse(
                     HttpStatusCode.OK, signedJWT.serialize());
