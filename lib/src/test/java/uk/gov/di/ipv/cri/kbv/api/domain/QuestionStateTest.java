@@ -95,7 +95,7 @@ class QuestionStateTest {
         questionState.setQAPairs(questionsResponse1.getQuestions());
         questionState.setQAPairs(questionsResponse2.getQuestions());
 
-        assertTrue(questionState.isQaPairsASizeOf2());
+        assertTrue(questionState.allQuestionBatchSizesMatch(2));
         assertEquals(4, questionState.getQuestionIdsFromQAPairs().count());
     }
 
@@ -115,7 +115,7 @@ class QuestionStateTest {
         questionState.setQAPairs(questionsResponse3.getQuestions());
         questionState.setQAPairs(questionsResponse4.getQuestions());
 
-        assertFalse(questionState.isQaPairsASizeOf2());
+        assertFalse(questionState.allQuestionBatchSizesMatch(2));
         assertEquals(4, questionState.getQuestionIdsFromQAPairs().count());
     }
 
@@ -135,7 +135,7 @@ class QuestionStateTest {
         questionState.setQAPairs(questionsResponse3.getQuestions());
         questionState.setQAPairs(questionsResponse4.getQuestions());
 
-        assertFalse(questionState.isQaPairsASizeOf2());
+        assertFalse(questionState.allQuestionBatchSizesMatch(2));
         assertEquals(2, questionState.skipQaPairAtIndexOne().count());
     }
 }

@@ -49,8 +49,8 @@ public class EvidenceFactory {
         Evidence evidence = new Evidence();
         evidence.setTxn(kbvItem.getAuthRefNo());
         if (hasQuestionsAsked(kbvItem)) {
-            evidence.setCheckDetails(createKbvQualityEvidence(kbvItem));
-            evidence.setFailedCheckDetails(getFailedCheckDetails(kbvItem));
+            evidence.setCheckDetails(createCheckDetailsWithKbvQuality(kbvItem));
+            evidence.setFailedCheckDetails(createFailedCheckDetails(kbvItem));
         }
         if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
             evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
@@ -66,41 +66,37 @@ public class EvidenceFactory {
         return new Map[] {objectMapper.convertValue(evidence, Map.class)};
     }
 
-    private boolean hasQuestionsAsked(KBVItem kbvItem) {
-        return Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
-                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() > 0;
-    }
-
-    private CheckDetail[] createKbvQualityEvidence(KBVItem kbvItem) throws JsonProcessingException {
+    private CheckDetail[] createCheckDetailsWithKbvQuality(KBVItem kbvItem)
+            throws JsonProcessingException {
         var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
 
-        if (is3OutOf4QuestionsCorrect(kbvItem)) {
-            if (questionState.isQaPairsASizeOf2()) {
-                return checkDetailsBySortingOnKbvQuality(kbvItem, questionState);
+        if (hasPassedWithOneIncorrectAnswer(kbvItem)) {
+            if (questionState.allQuestionBatchSizesMatch(2)) {
+                return createCheckDetailsBySortingOnKbvQuality(kbvItem, questionState);
             }
-            return checkDetailsBySkipping3rdInCorrectQa(questionState);
+            return createCheckDetailsBySkipping3rdIncorrectQa(questionState);
         }
-        return checkDetails(kbvItem, questionState);
+        return createCheckDetails(kbvItem, questionState);
     }
 
-    private CheckDetail[] checkDetails(KBVItem kbvItem, QuestionState questionState) {
+    private CheckDetail[] createCheckDetails(KBVItem kbvItem, QuestionState questionState) {
         return mapKbvQualityToCheckDetail(questionState)
                 .get()
                 .limit(kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect())
                 .toArray(CheckDetail[]::new);
     }
 
-    private CheckDetail[] checkDetailsBySkipping3rdInCorrectQa(QuestionState questionState) {
+    private CheckDetail[] createCheckDetailsBySkipping3rdIncorrectQa(QuestionState questionState) {
         return questionState
                 .skipQaPairAtIndexOne()
                 .flatMap(Collection::stream)
                 .map(QuestionAnswerPair::getQuestion)
                 .map(KbvQuestion::getQuestionId)
-                .map(this::createCheckDetail)
+                .map(this::createCheckDetailWithQuality)
                 .toArray(CheckDetail[]::new);
     }
 
-    private CheckDetail[] checkDetailsBySortingOnKbvQuality(
+    private CheckDetail[] createCheckDetailsBySortingOnKbvQuality(
             KBVItem kbvItem, QuestionState questionState) {
         return mapKbvQualityToCheckDetail(questionState)
                 .get()
@@ -110,26 +106,17 @@ public class EvidenceFactory {
                 .toArray(CheckDetail[]::new);
     }
 
-    private Supplier<Stream<CheckDetail>> mapKbvQualityToCheckDetail(QuestionState questionState) {
-        return () -> questionState.getQuestionIdsFromQAPairs().map(this::createCheckDetail);
-    }
-
-    private CheckDetail[] getFailedCheckDetails(KBVItem kbvItem) {
+    private CheckDetail[] createFailedCheckDetails(KBVItem kbvItem) {
         return IntStream.range(0, kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect())
                 .mapToObj(i -> new CheckDetail())
                 .limit(kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect())
                 .toArray(CheckDetail[]::new);
     }
 
-    private CheckDetail createCheckDetail(String questionId) {
+    private CheckDetail createCheckDetailWithQuality(String questionId) {
         CheckDetail checkDetail = new CheckDetail();
         checkDetail.setKbvQuality(getKbvQuality(questionId));
         return checkDetail;
-    }
-
-    private boolean is3OutOf4QuestionsCorrect(KBVItem kbvItem) {
-        return kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() == 4
-                && kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect() == 3;
     }
 
     private int getKbvQuality(String questionId) {
@@ -148,6 +135,22 @@ public class EvidenceFactory {
 
     private int mapKbvQuality(int quality) {
         return quality == UNSUITABLE_QUESTION_QUALITY ? KbvQuality.LOW.getValue() : quality;
+    }
+
+    private Supplier<Stream<CheckDetail>> mapKbvQualityToCheckDetail(QuestionState questionState) {
+        return () ->
+                questionState.getQuestionIdsFromQAPairs().map(this::createCheckDetailWithQuality);
+    }
+
+    private boolean hasQuestionsAsked(KBVItem kbvItem) {
+        return Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
+                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() > 0;
+    }
+
+    private boolean hasPassedWithOneIncorrectAnswer(KBVItem kbvItem) {
+        return Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
+                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() == 4
+                && kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect() == 3;
     }
 
     private boolean hasMultipleIncorrectAnswers(KBVItem kbvItem) {

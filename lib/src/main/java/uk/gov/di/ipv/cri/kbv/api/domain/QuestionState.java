@@ -17,8 +17,8 @@ public class QuestionState {
     private List<List<QuestionAnswerPair>> allQaPairs = new ArrayList<>();
 
     @JsonIgnore
-    public boolean isQaPairsASizeOf2() {
-        return allQaPairs.stream().allMatch(x -> x.stream().count() == 2);
+    public boolean allQuestionBatchSizesMatch(int expectedBatchSize) {
+        return allQaPairs.stream().allMatch(x -> x.size() == expectedBatchSize);
     }
 
     @JsonIgnore
@@ -98,7 +98,7 @@ public class QuestionState {
         return qaPairs.stream().allMatch(qa -> Objects.nonNull(qa.getAnswer()));
     }
 
-    public boolean hasAtLeastOneUnAnswered() {
+    public boolean hasAtLeastOneUnanswered() {
         return qaPairs.stream().anyMatch(qa -> Objects.isNull(qa.getAnswer()));
     }
 }

@@ -200,7 +200,7 @@ public class QuestionAnswerHandler
         kbvItem.setQuestionState(objectMapper.writeValueAsString(questionState));
         kbvStorageService.update(kbvItem);
 
-        return questionState.hasAtLeastOneUnAnswered();
+        return questionState.hasAtLeastOneUnanswered();
     }
 
     private APIGatewayProxyResponseEvent handleException(
