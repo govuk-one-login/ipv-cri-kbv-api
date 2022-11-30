@@ -372,8 +372,6 @@ Resources:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - DynamoDBReadPolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
-        - DynamoDBWritePolicy:
-            TableName: !Ref KBVAnswerTable
         - SQSSendMessagePolicy:
             QueueName: !ImportValue AuditEventQueueName
         - KMSDecryptPolicy:
@@ -388,7 +386,6 @@ Resources:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVAnswerTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQDatabaseMode"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQStrategy"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQOperatorId"
@@ -445,8 +442,6 @@ Resources:
             TableName: !Ref KBVTable
         - DynamoDBWritePolicy:
             TableName: !Ref KBVTable
-        - DynamoDBWritePolicy:
-            TableName: !Ref KBVAnswerTable
         - DynamoDBReadPolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - DynamoDBWritePolicy:
@@ -465,7 +460,6 @@ Resources:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVAnswerTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQDatabaseMode"
         - Statement:
             - Sid: ReadSecretsPolicy
@@ -620,21 +614,6 @@ Resources:
         AttributeName: expiryDate
         Enabled: true
 
-  KBVAnswerTable:
-    Type: "AWS::DynamoDB::Table"
-    Properties:
-      TableName: !Sub "kbv-answer-${AWS::StackName}"
-      BillingMode: "PAY_PER_REQUEST"
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
-      AttributeDefinitions:
-        - AttributeName: "id"
-          AttributeType: "S"
-      KeySchema:
-        - AttributeName: "id"
-          KeyType: "HASH"
-
-
   PublicApiUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
     Condition: IsNotDevEnvironment
@@ -690,14 +669,6 @@ Resources:
       Value: !Sub kbv-${AWS::StackName}
       Type: String
       Description: kbv item dynamodb table name
-
-  ParameterKBVAnswerTableName:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/KBVAnswerTableName"
-      Value: !Sub kbv-answer-${AWS::StackName}
-      Type: String
-      Description: kbv answer dynamodb table name
 
   MaxJwtTtlParameter:
     Type: AWS::SSM::Parameter
