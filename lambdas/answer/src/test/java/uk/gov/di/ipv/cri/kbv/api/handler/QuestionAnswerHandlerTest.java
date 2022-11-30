@@ -110,7 +110,7 @@ class QuestionAnswerHandlerTest {
                 .thenReturn(questionStateMock);
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
         doNothing().when(mockKBVStorageService).update(kbvItemMock);
-        when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(true);
+        when(questionStateMock.hasAtLeastOneUnanswered()).thenReturn(true);
 
         APIGatewayProxyResponseEvent result =
                 questionAnswerHandler.handleRequest(input, contextMock);
@@ -148,7 +148,7 @@ class QuestionAnswerHandlerTest {
                 .thenReturn(questionStateMock);
         when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
                 .thenReturn(questionAnswerMock);
-        when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
+        when(questionStateMock.hasAtLeastOneUnanswered()).thenReturn(false);
         when(resultsMock.getAnswerSummary()).thenReturn(mockAnswerSummary);
         when(questionsResponseMock.getResults()).thenReturn(resultsMock);
         when(mockAnswerSummary.getQuestionsAsked()).thenReturn(totalQuestionsAsked);
@@ -174,9 +174,8 @@ class QuestionAnswerHandlerTest {
         assertEquals(mockSessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
         assertEquals(
                 createRequestHeaders(), auditEventContextArgCaptor.getValue().getRequestHeaders());
-        Map<String, Object> auditEventExtensionEntries =
-                (Map<String, Object>)
-                        auditEventExtensionsArgCaptor.getValue().get("experianIiqResponse");
+        Map<?, ?> auditEventExtensionEntries =
+                (Map<?, ?>) auditEventExtensionsArgCaptor.getValue().get("experianIiqResponse");
         assertNotNull(auditEventExtensionEntries);
         assertEquals(responseStatus, auditEventExtensionEntries.get("outcome"));
         assertEquals(totalQuestionsAsked, auditEventExtensionEntries.get("totalQuestionsAsked"));
@@ -209,7 +208,7 @@ class QuestionAnswerHandlerTest {
         when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
                 .thenReturn(questionAnswerMock);
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
-        when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
+        when(questionStateMock.hasAtLeastOneUnanswered()).thenReturn(false);
         when(mockKBVGateway.submitAnswers(any())).thenReturn(questionsResponseMock);
         when(questionsResponseMock.hasQuestions()).thenReturn(true);
         doNothing().when(questionStateMock).setQAPairs(any());
@@ -244,7 +243,7 @@ class QuestionAnswerHandlerTest {
         when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
                 .thenReturn(questionAnswerMock);
         when(mockObjectMapper.writeValueAsString(questionStateMock)).thenReturn("question-state");
-        when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
+        when(questionStateMock.hasAtLeastOneUnanswered()).thenReturn(false);
         when(mockKBVGateway.submitAnswers(any())).thenReturn(questionsResponseMock);
         when(questionsResponseMock.hasQuestions()).thenReturn(true);
 
@@ -375,7 +374,7 @@ class QuestionAnswerHandlerTest {
                 .thenReturn(questionStateMock);
         when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
                 .thenReturn(questionAnswerMock);
-        when(questionStateMock.hasAtLeastOneUnAnswered()).thenReturn(false);
+        when(questionStateMock.hasAtLeastOneUnanswered()).thenReturn(false);
         when(mockKBVGateway.submitAnswers(any())).thenReturn(questionsResponseMock);
         when(mockObjectMapper.writeValueAsString(any())).thenReturn("question-response");
         when(questionsResponseMock.getResults()).thenReturn(null);
@@ -535,16 +534,11 @@ class QuestionAnswerHandlerTest {
     private QuestionsResponse getQuestionResponseWithResults(
             String authenticationResult, KbvQuestionAnswerSummary kbvQuestionAnswerSummary) {
         QuestionsResponse questionsResponse = new QuestionsResponse();
-        KbvResult kbvResult = getKbvResult("END");
+        KbvResult kbvResult = new KbvResult();
+        kbvResult.setNextTransId(new String[] {"END"});
         kbvResult.setAuthenticationResult(authenticationResult);
         kbvResult.setAnswerSummary(kbvQuestionAnswerSummary);
         questionsResponse.setResults(kbvResult);
         return questionsResponse;
-    }
-
-    private KbvResult getKbvResult(String transactionValue) {
-        KbvResult kbvResult = new KbvResult();
-        kbvResult.setNextTransId(new String[] {transactionValue});
-        return kbvResult;
     }
 }

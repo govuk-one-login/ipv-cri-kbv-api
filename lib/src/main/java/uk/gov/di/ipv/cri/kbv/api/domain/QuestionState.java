@@ -4,13 +4,35 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class QuestionState {
     private List<QuestionAnswerPair> qaPairs = new ArrayList<>();
+    private List<List<QuestionAnswerPair>> allQaPairs = new ArrayList<>();
+
+    @JsonIgnore
+    public boolean allQuestionBatchSizesMatch(int expectedBatchSize) {
+        return allQaPairs.stream().allMatch(x -> x.size() == expectedBatchSize);
+    }
+
+    @JsonIgnore
+    public Stream<String> getQuestionIdsFromQAPairs() {
+        return allQaPairs.stream()
+                .map(Collection::stream)
+                .flatMap(q -> q.map(QuestionAnswerPair::getQuestion))
+                .map(KbvQuestion::getQuestionId);
+    }
+
+    @JsonIgnore
+    public Stream<List<QuestionAnswerPair>> skipQaPairAtIndexOne() {
+        return allQaPairs.stream().filter(Predicate.not(q -> allQaPairs.indexOf(q) == 1));
+    }
 
     public void setAnswer(QuestionAnswer questionAnswer) {
         this.getQaPairs().stream()
@@ -36,9 +58,15 @@ public class QuestionState {
         return hasQuestions;
     }
 
+    public List<List<QuestionAnswerPair>> getAllQaPairs() {
+        return allQaPairs;
+    }
+
     public void setQAPairs(KbvQuestion[] questions) {
         this.qaPairs =
                 Arrays.stream(questions).map(QuestionAnswerPair::new).collect(Collectors.toList());
+        this.allQaPairs.add(
+                Arrays.stream(questions).map(QuestionAnswerPair::new).collect(Collectors.toList()));
     }
 
     public List<QuestionAnswerPair> getQaPairs() {
@@ -70,7 +98,7 @@ public class QuestionState {
         return qaPairs.stream().allMatch(qa -> Objects.nonNull(qa.getAnswer()));
     }
 
-    public boolean hasAtLeastOneUnAnswered() {
+    public boolean hasAtLeastOneUnanswered() {
         return qaPairs.stream().anyMatch(qa -> Objects.isNull(qa.getAnswer()));
     }
 }

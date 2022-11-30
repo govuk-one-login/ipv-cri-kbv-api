@@ -1,12 +1,11 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.SignedJWT;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
@@ -17,8 +16,6 @@ import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.common.library.util.KMSSigner;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
 import uk.gov.di.ipv.cri.common.library.util.VerifiableCredentialClaimsSetBuilder;
-import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
-import uk.gov.di.ipv.cri.kbv.api.domain.Evidence;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 
 import java.time.Clock;
@@ -27,31 +24,23 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static com.nimbusds.jwt.JWTClaimNames.ISSUER;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.KBV_CREDENTIAL_TYPE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_ADDRESS_KEY;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_BIRTHDATE_KEY;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_EVIDENCE_KEY;
-import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_NAME_KEY;
-import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_PASS_EVIDENCE_SCORE;
-import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED;
-import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_PASS;
 
 public class VerifiableCredentialService {
-    private static final Logger LOGGER = LogManager.getLogger();
-    public static final String METRIC_DIMENSION_KBV_VERIFICATION = "kbv_verification";
-
     private final VerifiableCredentialClaimsSetBuilder vcClaimsSetBuilder;
     private final SignedJWTFactory signedJwtFactory;
     private final ConfigurationService configurationService;
     private final ObjectMapper objectMapper;
-    private final EventProbe eventProbe;
+    private final EvidenceFactory evidenceFactory;
 
     @ExcludeFromGeneratedCoverageReport
-    public VerifiableCredentialService() {
+    public VerifiableCredentialService() throws JsonProcessingException {
         this.configurationService = new ConfigurationService();
         this.signedJwtFactory =
                 new SignedJWTFactory(
@@ -61,7 +50,13 @@ public class VerifiableCredentialService {
                 new ObjectMapper()
                         .registerModule(new Jdk8Module())
                         .registerModule(new JavaTimeModule());
-        this.eventProbe = new EventProbe();
+        var kbvQualitySecretValue =
+                configurationService.getParameterValueByAbsoluteName(
+                        "/kbv-cri-api-v1/quality/mappings");
+        final Map<String, Integer> kbvQualityMapping =
+                objectMapper.readValue(kbvQualitySecretValue, Map.class);
+        this.evidenceFactory =
+                new EvidenceFactory(this.objectMapper, new EventProbe(), kbvQualityMapping);
         this.vcClaimsSetBuilder =
                 new VerifiableCredentialClaimsSetBuilder(
                         this.configurationService, Clock.systemUTC());
@@ -71,19 +66,19 @@ public class VerifiableCredentialService {
             SignedJWTFactory signedClaimSetJwt,
             ConfigurationService configurationService,
             ObjectMapper objectMapper,
-            EventProbe eventProbe,
-            VerifiableCredentialClaimsSetBuilder vcClaimsSetBuilder) {
+            VerifiableCredentialClaimsSetBuilder vcClaimsSetBuilder,
+            EvidenceFactory evidenceFactory) {
         this.signedJwtFactory = signedClaimSetJwt;
         this.configurationService = configurationService;
         this.objectMapper = objectMapper;
-        this.eventProbe = eventProbe;
+        this.evidenceFactory = evidenceFactory;
         this.vcClaimsSetBuilder = vcClaimsSetBuilder;
     }
 
     @Tracing
     public SignedJWT generateSignedVerifiableCredentialJwt(
             String subject, PersonIdentityDetailed personIdentity, KBVItem kbvItem)
-            throws JOSEException {
+            throws JOSEException, JsonProcessingException {
         long jwtTtl = this.configurationService.getMaxJwtTtl();
         ChronoUnit jwtTtlUnit =
                 ChronoUnit.valueOf(this.configurationService.getParameterValue("JwtTtlUnit"));
@@ -100,18 +95,19 @@ public class VerifiableCredentialService {
                                         personIdentity.getNames(),
                                         VC_BIRTHDATE_KEY,
                                         convertBirthDates(personIdentity.getBirthDates())))
-                        .verifiableCredentialEvidence(calculateEvidence(kbvItem))
+                        .verifiableCredentialEvidence(evidenceFactory.create(kbvItem))
                         .build();
 
         return signedJwtFactory.createSignedJwt(claimsSet);
     }
 
-    public Map<String, Object> getAuditEventExtensions(KBVItem kbvItem) {
+    public Map<String, Object> getAuditEventExtensions(KBVItem kbvItem)
+            throws JsonProcessingException {
         return Map.of(
                 ISSUER,
                 configurationService.getVerifiableCredentialIssuer(),
                 VC_EVIDENCE_KEY,
-                calculateEvidence(kbvItem));
+                evidenceFactory.create(kbvItem));
     }
 
     @SuppressWarnings("unchecked")
@@ -146,34 +142,5 @@ public class VerifiableCredentialService {
                                                 .getValue()
                                                 .format(DateTimeFormatter.ISO_LOCAL_DATE)))
                 .toArray();
-    }
-
-    private Object[] calculateEvidence(KBVItem kbvItem) {
-        Evidence evidence = new Evidence();
-        evidence.setTxn(kbvItem.getAuthRefNo());
-        if (hasMultipleIncorrectAnswers(kbvItem)) {
-            evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
-            evidence.setCi(new ContraIndicator[] {ContraIndicator.V03});
-            logVcScore("fail");
-        } else if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
-            evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
-            logVcScore("pass");
-        } else {
-            evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
-            logVcScore("fail");
-        }
-
-        return new Map[] {objectMapper.convertValue(evidence, Map.class)};
-    }
-
-    private boolean hasMultipleIncorrectAnswers(KBVItem kbvItem) {
-        return VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED.equalsIgnoreCase(kbvItem.getStatus())
-                && Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
-                && kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() > 1;
-    }
-
-    private void logVcScore(String result) {
-        eventProbe.addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, result));
-        LOGGER.info("kbv {}", result);
     }
 }
