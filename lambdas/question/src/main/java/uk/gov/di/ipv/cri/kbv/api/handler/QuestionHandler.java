@@ -33,7 +33,6 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
-import uk.gov.di.ipv.cri.kbv.api.service.KBVAnswerStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
@@ -64,7 +63,6 @@ public class QuestionHandler
     private final AuditService auditService;
     private final ConfigurationService configurationService;
     private final SessionService sessionService;
-    private final KBVAnswerStorageService kbvAnswerStorageService;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
@@ -73,7 +71,6 @@ public class QuestionHandler
         this.configurationService = new ConfigurationService();
         this.kbvService = new KBVService(new KBVGatewayFactory().create(this.configurationService));
         this.kbvStorageService = new KBVStorageService(this.configurationService);
-        this.kbvAnswerStorageService = new KBVAnswerStorageService(this.configurationService);
         this.auditService = new AuditService(this.configurationService);
         this.sessionService = new SessionService(this.configurationService);
 
@@ -83,7 +80,6 @@ public class QuestionHandler
     public QuestionHandler(
             ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
-            KBVAnswerStorageService kbvAnswerStorageService,
             PersonIdentityService personIdentityService,
             KBVService kbvService,
             ConfigurationService configurationService,
@@ -92,7 +88,6 @@ public class QuestionHandler
             SessionService sessionService) {
         this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
-        this.kbvAnswerStorageService = kbvAnswerStorageService;
         this.personIdentityService = personIdentityService;
         this.eventProbe = eventProbe;
         this.auditService = auditService;
@@ -188,7 +183,6 @@ public class QuestionHandler
         var questionsResponse = getQuestionAnswerResponse(kbvItem, sessionItem, requestHeaders);
         questionOptional = getQuestionFromResponse(questionsResponse, questionState);
         saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
-        kbvAnswerStorageService.save(questionsResponse);
         if (questionOptional.isPresent()) {
             return questionOptional.get();
         }
