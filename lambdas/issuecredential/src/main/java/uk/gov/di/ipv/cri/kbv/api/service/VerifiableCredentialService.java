@@ -52,7 +52,7 @@ public class VerifiableCredentialService {
                         .registerModule(new JavaTimeModule());
         var kbvQualitySecretValue =
                 configurationService.getParameterValueByAbsoluteName(
-                        "/kbv-cri-api-v1/quality/mappings");
+                        "/experian/kbv/quality/mappings");
         final Map<String, Integer> kbvQualityMapping =
                 objectMapper.readValue(kbvQualitySecretValue, Map.class);
         this.evidenceFactory =
