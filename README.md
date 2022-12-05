@@ -22,7 +22,12 @@ Copy `infrastructure/lambda/samconfig.toml.example` to `infrastructure/lambda/sa
 
 Deploy to the dev environment with:
 
-`gds aws di-ipv-cri-dev -- ./deploy.sh`
+`gds aws di-ipv-cri-dev -- ./deploy.sh your-stack-name`
+
+Supply a required stack name in place of `your-stack-name` above, the `CommonStackName` and `SecretPrefix`
+overridden i.e.
+
+`gds aws di-ipv-cri-dev -- ./deploy.sh your-stack-name your-common-stack-name your-secret-prefix`
 
 
 ## Deploy to AWS lambda
