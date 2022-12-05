@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import gov.uk.kbv.api.client.KbvApiClient;
 import io.cucumber.java.en.And;
+import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
 import uk.gov.di.ipv.cri.common.library.stepdefinitions.CriTestContext;
@@ -66,6 +67,12 @@ public class KbvSteps {
     public void userAnswersTheQuestionCorrectly() throws IOException, InterruptedException {
         this.kbvApiClient.submitCorrectAnswers(questionId, this.testContext.getSessionId());
     }
+
+    @Then("user answers the question incorrectly")
+    public void user_answers_the_question_incorrectly() throws IOException, URISyntaxException, InterruptedException {
+        this.kbvApiClient.submitIncorrectAnswers(questionId, this.testContext.getSessionId());
+    }
+
 
     @And("a valid JWT is returned in the response")
     public void aValidJWTIsReturnedInTheResponse() throws ParseException, IOException {
