@@ -48,6 +48,10 @@ public class EvidenceFactory {
     public Object[] create(KBVItem kbvItem) throws JsonProcessingException {
         Evidence evidence = new Evidence();
         evidence.setTxn(kbvItem.getAuthRefNo());
+        if (hasQuestionsAsked(kbvItem)) {
+            evidence.setCheckDetails(createCheckDetailsWithKbvQuality(kbvItem));
+            evidence.setFailedCheckDetails(createFailedCheckDetails(kbvItem));
+        }
         if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
             evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
             logVcScore("pass");
