@@ -24,3 +24,17 @@ Feature: 3 out of 4 strategy. User has 2 KBV questions. Tests are run against th
     When user sends a GET request to question end point when there are no questions left
     Then user gets status code 204
 
+    #Authorization
+    When user sends a GET request to authorization end point
+    Then user gets status code 200
+    And a valid authorization code is returned in the response
+
+    #Access Token
+    When user sends a POST request to token end point
+    Then user gets status code 200
+    And a valid access token code is returned in the response
+
+    #Credential Issue
+    When user sends a POST request to Credential Issue end point with a valid access token
+    Then user gets status code 200
+    And a verification score of 0 is returned in the response

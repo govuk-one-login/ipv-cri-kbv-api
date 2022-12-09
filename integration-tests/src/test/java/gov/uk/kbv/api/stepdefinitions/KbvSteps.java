@@ -96,7 +96,6 @@ public class KbvSteps {
 
         assertEquals("{\"typ\":\"JWT\",\"alg\":\"ES256\"}", header);
         assertNotNull(payload);
-        assertEquals(2, payload.get("vc").get("evidence").get(0).get("verificationScore").asInt());
         assertNotNull(payload.get("nbf"));
         assertNotNull(payload.get("exp"));
         long expectedJwtTtl = 2L * 60L * 60L;
@@ -131,5 +130,13 @@ public class KbvSteps {
                         .get(0)
                         .get("value")
                         .asText());
+    }
+
+    @And("a verification score of {int} is returned in the response")
+    public void aVerificationScoreIsReturnedInTheResponse(int score) throws ParseException, IOException {
+        String responseBody = this.testContext.getResponse().body();
+        SignedJWT decodedJWT = SignedJWT.parse(responseBody);
+        var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
+        assertEquals(score, payload.get("vc").get("evidence").get(0).get("verificationScore").asInt());
     }
 }
