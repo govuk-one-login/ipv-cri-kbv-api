@@ -124,8 +124,8 @@ public class KbvApiClient {
                 HttpRequest.newBuilder()
                         .uri(
                                 new URIBuilder(
-                                        this.clientConfigurationService
-                                                .getPrivateApiEndpoint())
+                                                this.clientConfigurationService
+                                                        .getPrivateApiEndpoint())
                                         .setPath(
                                                 this.clientConfigurationService.createUriPath(
                                                         "answer"))
