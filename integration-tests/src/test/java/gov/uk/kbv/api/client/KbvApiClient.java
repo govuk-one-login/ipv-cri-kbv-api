@@ -110,7 +110,7 @@ public class KbvApiClient {
     }
 
     public void submitIncorrectAnswers(String question, String sessionId)
-            throws IOException, InterruptedException, URISyntaxException {
+            throws IOException, InterruptedException {
         String answer =
                 Map.of(
                                 "Q00001", "Incorrect 1",

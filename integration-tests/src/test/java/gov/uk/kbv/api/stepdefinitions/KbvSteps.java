@@ -69,8 +69,7 @@ public class KbvSteps {
     }
 
     @Then("user answers the question incorrectly")
-    public void user_answers_the_question_incorrectly()
-            throws IOException, URISyntaxException, InterruptedException {
+    public void user_answers_the_question_incorrectly() throws IOException, InterruptedException {
         this.kbvApiClient.submitIncorrectAnswers(questionId, this.testContext.getSessionId());
     }
 
