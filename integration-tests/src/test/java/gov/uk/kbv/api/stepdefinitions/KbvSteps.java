@@ -1,6 +1,5 @@
 package gov.uk.kbv.api.stepdefinitions;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
@@ -10,10 +9,10 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
 import uk.gov.di.ipv.cri.common.library.stepdefinitions.CriTestContext;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -37,9 +36,8 @@ public class KbvSteps {
             throws IOException, InterruptedException {
         this.testContext.setResponse(
                 this.kbvApiClient.sendQuestionRequest(this.testContext.getSessionId()));
-        Map<String, String> deserializeGetResponse =
-                objectMapper.readValue(
-                        this.testContext.getResponse().body(), new TypeReference<>() {});
+        var deserializeGetResponse =
+                objectMapper.readValue(this.testContext.getResponse().body(), KbvQuestion.class);
         makeQuestionAssertions(deserializeGetResponse);
     }
 
@@ -80,11 +78,11 @@ public class KbvSteps {
         makeVerifiableCredentialJwtAssertions(SignedJWT.parse(responseBody));
     }
 
-    private void makeQuestionAssertions(Map<String, String> deserialisedGETResponse) {
-        if (!deserialisedGETResponse.isEmpty()) {
-            assertNotNull(deserialisedGETResponse.get("text"));
-            assertNotNull(deserialisedGETResponse.get("questionID"));
-            questionId = deserialisedGETResponse.get("questionID");
+    private void makeQuestionAssertions(KbvQuestion kbvQuestion) {
+        if (kbvQuestion != null) {
+            assertNotNull(kbvQuestion.getText());
+            assertNotNull(kbvQuestion.getQuestionId());
+            questionId = kbvQuestion.getQuestionId();
         }
     }
 
