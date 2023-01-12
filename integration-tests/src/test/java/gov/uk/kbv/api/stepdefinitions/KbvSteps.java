@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import gov.uk.kbv.api.client.KbvApiClient;
 import io.cucumber.java.en.And;
+import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
 import uk.gov.di.ipv.cri.common.library.stepdefinitions.CriTestContext;
@@ -67,6 +68,11 @@ public class KbvSteps {
         this.kbvApiClient.submitCorrectAnswers(questionId, this.testContext.getSessionId());
     }
 
+    @Then("user answers the question incorrectly")
+    public void user_answers_the_question_incorrectly() throws IOException, InterruptedException {
+        this.kbvApiClient.submitIncorrectAnswers(questionId, this.testContext.getSessionId());
+    }
+
     @And("a valid JWT is returned in the response")
     public void aValidJWTIsReturnedInTheResponse() throws ParseException, IOException {
         String responseBody = this.testContext.getResponse().body();
@@ -89,7 +95,6 @@ public class KbvSteps {
 
         assertEquals("{\"typ\":\"JWT\",\"alg\":\"ES256\"}", header);
         assertNotNull(payload);
-        assertEquals(2, payload.get("vc").get("evidence").get(0).get("verificationScore").asInt());
         assertNotNull(payload.get("nbf"));
         assertNotNull(payload.get("exp"));
         long expectedJwtTtl = 2L * 60L * 60L;
@@ -124,5 +129,15 @@ public class KbvSteps {
                         .get(0)
                         .get("value")
                         .asText());
+    }
+
+    @And("a verification score of {int} is returned in the response")
+    public void aVerificationScoreIsReturnedInTheResponse(int score)
+            throws ParseException, IOException {
+        String responseBody = this.testContext.getResponse().body();
+        SignedJWT decodedJWT = SignedJWT.parse(responseBody);
+        var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
+        assertEquals(
+                score, payload.get("vc").get("evidence").get(0).get("verificationScore").asInt());
     }
 }

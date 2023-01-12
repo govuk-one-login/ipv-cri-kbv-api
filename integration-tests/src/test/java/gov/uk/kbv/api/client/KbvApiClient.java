@@ -109,6 +109,35 @@ public class KbvApiClient {
         sendHttpRequest(request);
     }
 
+    public void submitIncorrectAnswers(String question, String sessionId)
+            throws IOException, InterruptedException {
+        String answer =
+                Map.of(
+                                "Q00001", "Incorrect 1",
+                                "Q00002", "Incorrect 2")
+                        .get(question.toUpperCase());
+
+        String POST_REQUEST_BODY =
+                "{\"questionId\":\"" + question + "\",\"answer\":\"" + answer + "\"}";
+
+        HttpRequest request =
+                HttpRequest.newBuilder()
+                        .uri(
+                                new URIBuilder(
+                                                this.clientConfigurationService
+                                                        .getPrivateApiEndpoint())
+                                        .setPath(
+                                                this.clientConfigurationService.createUriPath(
+                                                        "answer"))
+                                        .build())
+                        .header(HttpHeaders.ACCEPT, JSON_MIME_MEDIA_TYPE)
+                        .header(HttpHeaders.CONTENT_TYPE, JSON_MIME_MEDIA_TYPE)
+                        .header(HttpHeaders.SESSION_ID, sessionId)
+                        .POST(HttpRequest.BodyPublishers.ofString(POST_REQUEST_BODY))
+                        .build();
+        sendHttpRequest(request);
+    }
+
     private HttpResponse<String> sendHttpRequest(HttpRequest request)
             throws IOException, InterruptedException {
         return this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
