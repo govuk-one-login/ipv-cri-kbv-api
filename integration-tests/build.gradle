@@ -1,25 +1,57 @@
 plugins {
 	id 'java'
 	id 'java-test-fixtures'
+	id "io.qameta.allure" version "2.10.0"
+}
+
+repositories {
+	mavenLocal()
+	maven {
+		url = uri('https://repo.maven.apache.org/maven2/')
+	}
+	mavenCentral()
 }
 
 ext {
-	apache_common_lang_version = '3.12.0'
-	jackson_databind_version = '2.9.5'
+	cucumberVersion = '7.9.0'
+	junitJupiterapi = '5.9.0'
+	jacksonDatabind = '2.9.5'
+	apacheHttpClient = '4.5.13'
+	apacheCommonLang = '3.12.0'
+	allureMaven = '2.11.2'
+	allureCucumber = '2.18.1'
+	allureEnvironment = '1.0.0'
 }
 
 dependencies {
-	testImplementation configurations.nimbus
-	testImplementation "org.apache.commons:commons-lang3:${apache_common_lang_version}"
-	testImplementation "org.junit.jupiter:junit-jupiter-api:${dependencyVersions.junit}"
-	testImplementation "com.fasterxml.jackson.core:jackson-databind:${jackson_databind_version}"
+
+	implementation project(":lib")
+	implementation "io.qameta.allure:allure-maven:$allureMaven"
+	implementation "io.qameta.allure:allure-cucumber7-jvm:$allureCucumber"
+	implementation "com.github.automatedowl:allure-environment-writer:$allureEnvironment"
+
 	testImplementation(testFixtures("uk.gov.account:cri-common-lib:${dependencyVersions.cri_common_lib}"))
+	testImplementation "io.cucumber:cucumber-java:$cucumberVersion"
+	testImplementation "io.cucumber:cucumber-junit:$cucumberVersion"
+	testImplementation "io.cucumber:cucumber-picocontainer:$cucumberVersion"
+	testImplementation "org.apache.httpcomponents:httpclient:$apacheHttpClient"
+	testImplementation "org.apache.commons:commons-lang3:$apacheCommonLang"
+	testImplementation "org.junit.jupiter:junit-jupiter-api:$junitJupiterapi"
+	testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonDatabind"
+	testImplementation configurations.nimbus
 }
 
 configurations {
 	cucumberRuntime {
 		extendsFrom testImplementation
 	}
+}
+
+def tags = findProperty('tags') == null ? 'not @Ignore' : "${findProperty('tags')} and not @Ignore"
+test {
+	systemProperty "cucumber.filter.tags", System.getProperty("cucumber.filter.tags")
+	systemProperty "cucumber.options", System.properties.getProperty("cucumber.options")
+	useJUnitPlatform()
 }
 
 task cucumber() {
@@ -29,6 +61,10 @@ task cucumber() {
 			main = "io.cucumber.core.cli.Main"
 			classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
 			args = [
+				'--plugin',
+				'io.qameta.allure.cucumber7jvm.AllureCucumber7Jvm',
+				'--plugin',
+				'pretty',
 				'--tags',
 				(findProperty('tags') == null ? "not @Ignore" : "${tags} and not @Ignore")
 			]
