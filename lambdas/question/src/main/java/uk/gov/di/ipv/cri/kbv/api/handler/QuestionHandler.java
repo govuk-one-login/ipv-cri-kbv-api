@@ -237,7 +237,8 @@ public class QuestionHandler
             eventProbe.addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, strategy));
             auditService.sendAuditEvent(
                     AuditEventType.REQUEST_SENT,
-                    new AuditEventContext(personIdentity, requestHeaders, sessionItem));
+                    new AuditEventContext(personIdentity, requestHeaders, sessionItem),
+                    Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
             return this.kbvService.getQuestions(questionRequest);
         }
         var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);

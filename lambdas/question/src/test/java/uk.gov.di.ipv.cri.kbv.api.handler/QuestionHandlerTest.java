@@ -131,6 +131,10 @@ class QuestionHandlerTest {
             when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
+            String expectedComponentId = "kbv-component-id";
+            when(mockConfigurationService.getVerifiableCredentialIssuer())
+                    .thenReturn(expectedComponentId);
+
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, mock(Context.class));
 
@@ -140,7 +144,9 @@ class QuestionHandlerTest {
             verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
             verify(mockAuditService)
                     .sendAuditEvent(
-                            eq(AuditEventType.REQUEST_SENT), auditEventContextArgCaptor.capture());
+                            eq(AuditEventType.REQUEST_SENT),
+                            auditEventContextArgCaptor.capture(),
+                            auditEventMap.capture());
             verify(mockKBVStorageService).save(any());
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
@@ -151,6 +157,7 @@ class QuestionHandlerTest {
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_QUESTION_ID, "Q00015"));
             verifyNoMoreInteractions(mockEventProbe);
 
+            assertThat(auditEventMap.getValue().get("component_id"), equalTo(expectedComponentId));
             assertEquals(sessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
             assertEquals(requestHeaders, auditEventContextArgCaptor.getValue().getRequestHeaders());
             assertEquals(personIdentity, auditEventContextArgCaptor.getValue().getPersonIdentity());
@@ -226,6 +233,8 @@ class QuestionHandlerTest {
 
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
+            when(mockConfigurationService.getVerifiableCredentialIssuer())
+                    .thenReturn("kbv-component-id");
 
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, contextMock);
@@ -407,6 +416,8 @@ class QuestionHandlerTest {
                     .thenReturn(questionsResponse);
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
+            when(mockConfigurationService.getVerifiableCredentialIssuer())
+                    .thenReturn("kbv-component-id");
 
             assertThrows(
                     QuestionNotFoundException.class,
@@ -500,6 +511,8 @@ class QuestionHandlerTest {
             doReturn(getExperianQuestionResponse()).when(spyKBVService).getQuestions(any());
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
+            when(mockConfigurationService.getVerifiableCredentialIssuer())
+                    .thenReturn("kbv-component-id");
             KbvQuestion nextQuestionFromExperian =
                     questionHandler.processQuestionRequest(
                             questionState, kbvItem, mock(SessionItem.class), new HashMap<>());
