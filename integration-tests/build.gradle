@@ -1,7 +1,6 @@
 plugins {
 	id 'java'
 	id 'java-test-fixtures'
-	id "io.qameta.allure" version "2.10.0"
 }
 
 repositories {
@@ -18,17 +17,11 @@ ext {
 	jacksonDatabind = '2.9.5'
 	apacheHttpClient = '4.5.13'
 	apacheCommonLang = '3.12.0'
-	allureMaven = '2.11.2'
-	allureCucumber = '2.18.1'
-	allureEnvironment = '1.0.0'
 }
 
 dependencies {
 
 	implementation project(":lib")
-	implementation "io.qameta.allure:allure-maven:$allureMaven"
-	implementation "io.qameta.allure:allure-cucumber7-jvm:$allureCucumber"
-	implementation "com.github.automatedowl:allure-environment-writer:$allureEnvironment"
 
 	testImplementation(testFixtures("uk.gov.account:cri-common-lib:${dependencyVersions.cri_common_lib}"))
 	testImplementation "io.cucumber:cucumber-java:$cucumberVersion"
@@ -61,8 +54,6 @@ task cucumber() {
 			main = "io.cucumber.core.cli.Main"
 			classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
 			args = [
-				'--plugin',
-				'io.qameta.allure.cucumber7jvm.AllureCucumber7Jvm',
 				'--plugin',
 				'pretty',
 				'--tags',
