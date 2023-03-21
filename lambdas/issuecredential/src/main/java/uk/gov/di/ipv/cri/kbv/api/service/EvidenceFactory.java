@@ -157,8 +157,8 @@ public class EvidenceFactory {
         return VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED.equalsIgnoreCase(kbvItem.getStatus())
                 && Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
                 && (kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() > 1 
-                || (kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() == 1 
-                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() == 3));
+                    || (kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() == 1 
+                        && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() == 3));
     }
 
     private void logVcScore(String result) {
