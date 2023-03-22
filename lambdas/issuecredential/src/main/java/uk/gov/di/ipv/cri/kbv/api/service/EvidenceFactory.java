@@ -159,7 +159,7 @@ public class EvidenceFactory {
                 && (kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() > 1
                         || (kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() > 0
                                 && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked()
-                                        <= 3));
+                                        == 3));
     }
 
     private void logVcScore(String result) {
