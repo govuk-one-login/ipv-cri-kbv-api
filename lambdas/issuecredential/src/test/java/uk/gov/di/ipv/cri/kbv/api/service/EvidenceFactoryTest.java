@@ -99,7 +99,7 @@ class EvidenceFactoryTest implements TestFixtures {
         void shouldFailAndReturnContraIndicatorWhenEnoughAnswersAreIncorrect()
                 throws JsonProcessingException {
             KBVItem kbvItem = getKbvItem();
-            kbvItem.setStatus("not Authenticated");
+            kbvItem.setStatus("unable to authenticate");
             kbvItem.setQuestionAnswerResultSummary(getKbvQuestionAnswerSummary(3, 2, 1));
             setKbvItemQuestionState(kbvItem, "First", "Second", "Third");
 
