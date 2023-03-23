@@ -58,7 +58,7 @@ public class EvidenceFactory {
         } else {
             evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
             logVcScore("fail");
-            if (hasMultipleIncorrectAnswers(kbvItem)) {
+            if (hasTooManyIncorrectAnswers(kbvItem)) {
                 evidence.setCi(new ContraIndicator[] {ContraIndicator.V03});
             }
         }
@@ -153,10 +153,13 @@ public class EvidenceFactory {
                 && kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect() == 3;
     }
 
-    private boolean hasMultipleIncorrectAnswers(KBVItem kbvItem) {
+    private boolean hasTooManyIncorrectAnswers(KBVItem kbvItem) {
         return VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED.equalsIgnoreCase(kbvItem.getStatus())
                 && Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
-                && kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() > 1;
+                && (kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() > 1
+                        || (kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() > 0
+                                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked()
+                                        == 3));
     }
 
     private void logVcScore(String result) {

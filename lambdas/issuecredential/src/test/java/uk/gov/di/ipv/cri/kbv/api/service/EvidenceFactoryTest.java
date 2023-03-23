@@ -96,6 +96,29 @@ class EvidenceFactoryTest implements TestFixtures {
         }
 
         @Test
+        void shouldFailAndReturnContraIndicatorWhenEnoughAnswersAreIncorrect()
+                throws JsonProcessingException {
+            KBVItem kbvItem = getKbvItem();
+            kbvItem.setStatus("not Authenticated");
+            kbvItem.setQuestionAnswerResultSummary(getKbvQuestionAnswerSummary(3, 2, 1));
+            setKbvItemQuestionState(kbvItem, "First", "Second", "Third");
+
+            doNothing()
+                    .when(mockEventProbe)
+                    .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
+
+            var result = evidenceFactory.create(kbvItem);
+
+            verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
+            assertEquals(
+                    VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE,
+                    getEvidenceAsMap(result).get("verificationScore"));
+            assertEquals(
+                    ContraIndicator.V03.toString(),
+                    ((List) getEvidenceAsMap(result).get("ci")).get(0));
+        }
+
+        @Test
         void shouldFailWhenKbvItemStatusIsAnyOtherValue() throws JsonProcessingException {
             KBVItem kbvItem = getKbvItem();
             kbvItem.setStatus("some unknown value");
