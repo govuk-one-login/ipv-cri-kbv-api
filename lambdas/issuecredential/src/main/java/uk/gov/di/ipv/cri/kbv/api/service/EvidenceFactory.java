@@ -27,6 +27,7 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_PASS_EVIDENCE_SCORE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_PASS;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_UNABLE_TO_AUTHENTICATE;
 
 public class EvidenceFactory {
     private static final Logger LOGGER = LogManager.getLogger();
@@ -154,12 +155,14 @@ public class EvidenceFactory {
     }
 
     private boolean hasTooManyIncorrectAnswers(KBVItem kbvItem) {
-        return VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED.equalsIgnoreCase(kbvItem.getStatus())
-                && Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
-                && (kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() > 1
-                        || (kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() > 0
-                                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked()
-                                        == 3));
+        var status = kbvItem.getStatus();
+        var summary = kbvItem.getQuestionAnswerResultSummary();
+        return Objects.nonNull(summary)
+                && ((VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED.equalsIgnoreCase(status)
+                                && summary.getAnsweredIncorrect() > 1)
+                        || (VC_THIRD_PARTY_KBV_CHECK_UNABLE_TO_AUTHENTICATE.equalsIgnoreCase(status)
+                                && summary.getAnsweredIncorrect() > 0
+                                && summary.getQuestionsAsked() == 3));
     }
 
     private void logVcScore(String result) {
