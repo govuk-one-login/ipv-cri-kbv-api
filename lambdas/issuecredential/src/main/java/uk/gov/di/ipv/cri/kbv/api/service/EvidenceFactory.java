@@ -154,11 +154,13 @@ public class EvidenceFactory {
     }
 
     private boolean hasTooManyIncorrectAnswers(KBVItem kbvItem) {
-        return VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED.equalsIgnoreCase(kbvItem.getStatus())
-                && Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
-                && (kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() > 1
-                        || (kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect() > 0
-                                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked()
+        var status = kbvItem.getStatus();
+        var summary = kbvItem.getQuestionAnswerResultSummary();
+        return Objects.nonNull(summary)
+                && ((VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED.equalsIgnoreCase(status)
+                        && summary.getAnsweredIncorrect() > 1)
+                        || (VC_THIRD_PARTY_KBV_CHECK_UNABLE_TO_AUTHENTICATE.equalsIgnoreCase(status)
+                                && summary.getAnsweredIncorrect() > 0 && summary.getQuestionsAsked()
                                         == 3));
     }
 
