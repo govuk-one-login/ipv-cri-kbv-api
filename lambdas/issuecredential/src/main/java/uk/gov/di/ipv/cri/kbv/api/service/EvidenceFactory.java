@@ -145,7 +145,7 @@ public class EvidenceFactory {
 
     private boolean hasQuestionsAsked(KBVItem kbvItem) {
         return Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
-                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() > 0;
+                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() > 2;
     }
 
     private boolean hasPassedWithOneIncorrectAnswer(KBVItem kbvItem) {
