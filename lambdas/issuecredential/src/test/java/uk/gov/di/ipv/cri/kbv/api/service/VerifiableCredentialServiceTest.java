@@ -88,6 +88,7 @@ class VerifiableCredentialServiceTest implements TestFixtures {
         "Not Authenticated,2,0,2,0,V03",
         "Unable to Authenticate,3,2,1,0,V03",
         "Unable to Authenticate,2,0,2,0,V03",
+        "Unable to Authenticate,2,1,1,0,V03",
     })
     void shouldReturnASignedVerifiableCredentialJwt(
             String authenticationResult,
