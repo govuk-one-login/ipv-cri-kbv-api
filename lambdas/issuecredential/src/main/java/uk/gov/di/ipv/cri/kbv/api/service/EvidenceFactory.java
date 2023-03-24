@@ -162,7 +162,7 @@ public class EvidenceFactory {
                                 && summary.getAnsweredIncorrect() > 1)
                         || (VC_THIRD_PARTY_KBV_CHECK_UNABLE_TO_AUTHENTICATE.equalsIgnoreCase(status)
                                 && summary.getAnsweredIncorrect() > 0
-                                && summary.getQuestionsAsked() == 3));
+                                && summary.getQuestionsAsked() <= 3));
     }
 
     private void logVcScore(String result) {
