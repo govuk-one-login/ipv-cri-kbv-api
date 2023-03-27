@@ -32,8 +32,7 @@ paths:
       x-amazon-apigateway-integration:
         type: "aws_proxy"
         httpMethod: "POST"
-        uri:
-          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${CommonStackName}-AuthorizationFunctionTS/invocations
+        uri: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${stageVariables.AuthorizationFunctionName}/invocations
         passthroughBehavior: "when_no_match"
 
   /session:
@@ -74,8 +73,7 @@ paths:
       x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
-        uri:
-          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${CommonStackName}-SessionFunctionTS/invocations
+        uri: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${stageVariables.SessionFunctionName}/invocations
         responses:
           default:
             statusCode: "200"

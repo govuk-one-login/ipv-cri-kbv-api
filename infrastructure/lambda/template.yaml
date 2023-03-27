@@ -205,6 +205,8 @@ Resources:
       OpenApiVersion: 3.0.1
       EndpointConfiguration:
         Type: REGIONAL
+      Variables:
+        AccessTokenFunctionName: !Sub "${CommonStackName}-AccessTokenFunctionTS"
 
   PrivateKBVApi:
     Type: AWS::Serverless::Api
@@ -269,6 +271,9 @@ Resources:
                     - IsDevEnvironment
                     - vpce-082cab7c78139eb54
                     - !ImportValue cri-vpc-ApiGatewayVpcEndpointId
+      Variables:
+        SessionFunctionName: !Sub "${CommonStackName}-SessionFunctionTS"
+        AuthorizationFunctionName: !Sub "${CommonStackName}-AuthorizationFunctionTS"
 
   DevOnlyKBVApi:
     Type: AWS::Serverless::Api
@@ -313,6 +318,9 @@ Resources:
       OpenApiVersion: 3.0.1
       EndpointConfiguration:
         Type: REGIONAL
+      Variables:
+        SessionFunctionName: !Sub "${CommonStackName}-SessionFunctionTS"
+        AuthorizationFunctionName: !Sub "${CommonStackName}-AuthorizationFunctionTS"
 
   PublicKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
