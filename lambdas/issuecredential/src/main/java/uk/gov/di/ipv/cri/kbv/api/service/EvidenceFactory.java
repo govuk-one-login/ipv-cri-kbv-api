@@ -145,7 +145,7 @@ public class EvidenceFactory {
 
     private boolean hasQuestionsAsked(KBVItem kbvItem) {
         return Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
-                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() > 2;
+                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() > 0;
     }
 
     private boolean hasPassedWithOneIncorrectAnswer(KBVItem kbvItem) {
@@ -158,7 +158,6 @@ public class EvidenceFactory {
         var status = kbvItem.getStatus();
         var summary = kbvItem.getQuestionAnswerResultSummary();
         return Objects.nonNull(summary)
-                && this.hasQuestionsAsked(kbvItem)
                 && ((VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED.equalsIgnoreCase(status)
                                 && summary.getAnsweredIncorrect() > 1
                                 && summary.getQuestionsAsked() == 4)
