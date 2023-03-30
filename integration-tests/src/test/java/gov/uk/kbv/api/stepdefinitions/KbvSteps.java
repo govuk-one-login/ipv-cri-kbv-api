@@ -94,9 +94,11 @@ public class KbvSteps {
         assertEquals("{\"typ\":\"JWT\",\"alg\":\"ES256\"}", header);
         assertNotNull(payload);
         assertNotNull(payload.get("nbf"));
-        assertNotNull(payload.get("exp"));
-        long expectedJwtTtl = 2L * 60L * 60L;
-        assertEquals(expectedJwtTtl, payload.get("exp").asLong() - payload.get("nbf").asLong());
+
+        // assertNotNull(payload.get("exp"));
+        // long expectedJwtTtl = 2L * 60L * 60L;
+        // assertEquals(expectedJwtTtl, payload.get("exp").asLong() - payload.get("nbf").asLong());
+
         assertEquals(
                 "IdentityCheck", payload.get("vc").get("evidence").get(0).get("type").asText());
         assertNotNull(payload.get("vc").get("evidence").get(0).get("txn").asText());

@@ -577,6 +577,7 @@ Resources:
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kbv-cri-api-v1/quality/mappings"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/release-flags/vc-expiry-removed"
         - Statement:
             Effect: Allow
             Action:
