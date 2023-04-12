@@ -212,7 +212,6 @@ class QuestionHandlerTest {
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> sessionHeader =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
-            setupEventProbeErrorBehaviour();
 
             PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
             KBVItem kbvItem = new KBVItem();
