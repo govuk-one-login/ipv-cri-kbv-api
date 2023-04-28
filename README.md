@@ -77,5 +77,10 @@ To run all tests:
 
 To run a particular test tag:
 
+Below runs using the default stub client on PAAS i.e. `ipv-core-stub`
+
 `STACK_NAME=xxxx API_GATEWAY_ID_PRIVATE=xxxx API_GATEWAY_ID_PUBLIC=xxxx IPV_CORE_STUB_BASIC_AUTH_USER=xxxx IPV_CORE_STUB_BASIC_AUTH_PASSWORD=xxxx IPV_CORE_STUB_URL="https://di-ipv-core-stub.london.cloudapps.digital" APIGW_API_KEY=xxxx gradle cucumber -P tags=@tag name`
 
+Below runs by overriding the stub client to one on `https://cri.core.build.stubs.account.gov.uk` in AWS with stub a client_id `ipv-core-stub-aws-stub`
+
+`ENVIRONMENT=xxxx STACK_NAME=xxxx IPV_CORE_STUB_CRI_ID=kbv-cri-dev  API_GATEWAY_ID_PRIVATE=xxxx API_GATEWAY_ID_PUBLIC=xxxx IPV_CORE_STUB_BASIC_AUTH_USER=xxxx IPV_CORE_STUB_BASIC_AUTH_PASSWORD=xxxx IPV_CORE_STUB_URL="https://cri.core.build.stubs.account.gov.uk" DEFAULT_CLIENT_ID=ipv-core-stub-aws-build APIGW_API_KEY=xxxx gradle integration-tests:cucumber`
