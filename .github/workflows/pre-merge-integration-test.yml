@@ -78,7 +78,7 @@ jobs:
           ENVIRONMENT: dev
           APIGW_API_KEY: ${{ secrets.API_KEY_CRI_DEV }}
           DEFAULT_CLIENT_ID: ipv-core-stub-aws-build
-          IPV_CORE_STUB_URL: https://cri.core.build.stubs.account.gov.uk
+          IPV_CORE_STUB_URL: https://cri.core.build.stubs.account.gov.uk #
           IPV_CORE_STUB_BASIC_AUTH_USER: ${{ secrets.IPV_CORE_STUB_BASIC_AUTH_USER }}
           IPV_CORE_STUB_BASIC_AUTH_PASSWORD: ${{ secrets.IPV_CORE_STUB_BASIC_AUTH_PASSWORD }}
           IPV_CORE_STUB_CRI_ID: kbv-cri-dev
