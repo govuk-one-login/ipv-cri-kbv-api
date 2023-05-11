@@ -161,6 +161,14 @@ Mappings:
       integration: MONTHS
       production: MONTHS
 
+  VcContainsUniqueIdMapping:
+    Environment:
+      dev: "true"
+      build: "false"
+      staging: "false"
+      integration: "false"
+      production: "false"
+
 Resources:
   PublicKBVApi:
     Type: AWS::Serverless::Api
@@ -578,6 +586,7 @@ Resources:
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kbv-cri-api-v1/quality/mappings"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/release-flags/vc-expiry-removed"
+              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/release-flags/vc-contains-unique-id"
         - Statement:
             Effect: Allow
             Action:
@@ -742,6 +751,14 @@ Resources:
       Type: String
       Value: !Sub "https://${PublicKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
       Description: "Base url of the public KBV CRI API"
+
+  ReleaseFlagsVcContainsUniqueIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/release-flags/vc-contains-unique-id"
+      Type: String
+      Value: !FindInMap [ VcContainsUniqueIdMapping, Environment, !Ref Environment ]
+      Description: Verifiable Credential Contains UniqueId Mapping
 
   KBVQuestionFunctionPermission:
     Type: AWS::Lambda::Permission
