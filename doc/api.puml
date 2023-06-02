@@ -90,7 +90,7 @@ destroy experian
 wrapper -> api: { AuthenticationResult }
 api -> api : << store >>\n AuthenticationResult
 
-api -> fe: [201] No content
+api -> fe: [204] No content
 
 == Oauth return ==
 core <[#blue]- fe: /oauth2/authorize
