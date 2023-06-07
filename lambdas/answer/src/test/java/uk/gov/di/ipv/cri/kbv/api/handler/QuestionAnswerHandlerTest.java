@@ -392,6 +392,12 @@ class QuestionAnswerHandlerTest {
                         any(AuditEventContext.class),
                         any(Object.class));
 
+        verify(mockAuditService)
+                .sendAuditEvent(
+                        eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED),
+                        any(AuditEventContext.class),
+                        any(Object.class));
+
         assertAll(
                 () -> assertNotNull(kbvItem.getQuestionAnswerResultSummary()),
                 () -> assertEquals(authenticationResult, kbvItem.getStatus()),
