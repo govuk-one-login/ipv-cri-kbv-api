@@ -427,7 +427,7 @@ class QuestionHandlerTest {
             verify(sessionService).createAuthorizationCode(sessionItem);
             verify(mockAuditService)
                     .sendAuditEvent(
-                            eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED),
+                            eq(AuditEventType.RESPONSE_RECEIVED),
                             auditEventContextArgCaptor.capture(),
                             auditEventMap.capture());
             verify(mockKBVStorageService).save(kbvItem);

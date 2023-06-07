@@ -162,7 +162,7 @@ class QuestionAnswerHandlerTest {
         verify(mockSessionService).createAuthorizationCode(mockSessionItem);
         verify(mockAuditService)
                 .sendAuditEvent(
-                        eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED),
+                        eq(AuditEventType.RESPONSE_RECEIVED),
                         auditEventContextArgCaptor.capture(),
                         auditEventExtensionsArgCaptor.capture());
         assertEquals(mockSessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
@@ -388,7 +388,7 @@ class QuestionAnswerHandlerTest {
         verify(mockSessionService).createAuthorizationCode(mockSessionItem);
         verify(mockAuditService)
                 .sendAuditEvent(
-                        eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED),
+                        eq(AuditEventType.RESPONSE_RECEIVED),
                         any(AuditEventContext.class),
                         any(Object.class));
 

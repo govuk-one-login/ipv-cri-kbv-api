@@ -163,7 +163,7 @@ public class QuestionHandler
             Map<String, String> requestHeaders)
             throws SqsException {
         auditService.sendAuditEvent(
-                AuditEventType.THIRD_PARTY_REQUEST_ENDED,
+                AuditEventType.RESPONSE_RECEIVED,
                 new AuditEventContext(requestHeaders, sessionItem),
                 this.kbvService.createAuditEventExtensions(questionsResponse));
     }
