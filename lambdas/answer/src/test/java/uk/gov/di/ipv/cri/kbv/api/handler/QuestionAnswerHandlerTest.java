@@ -162,6 +162,11 @@ class QuestionAnswerHandlerTest {
         verify(mockSessionService).createAuthorizationCode(mockSessionItem);
         verify(mockAuditService)
                 .sendAuditEvent(
+                        eq(AuditEventType.RESPONSE_RECEIVED),
+                        auditEventContextArgCaptor.capture(),
+                        auditEventExtensionsArgCaptor.capture());
+        verify(mockAuditService)
+                .sendAuditEvent(
                         eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED),
                         auditEventContextArgCaptor.capture(),
                         auditEventExtensionsArgCaptor.capture());
@@ -386,6 +391,12 @@ class QuestionAnswerHandlerTest {
         verify(mockKBVStorageService, times(2)).update(kbvItem);
         verify(mockSessionService).validateSessionId(SESSION_ID_AS_STRING);
         verify(mockSessionService).createAuthorizationCode(mockSessionItem);
+        verify(mockAuditService)
+                .sendAuditEvent(
+                        eq(AuditEventType.RESPONSE_RECEIVED),
+                        any(AuditEventContext.class),
+                        any(Object.class));
+
         verify(mockAuditService)
                 .sendAuditEvent(
                         eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED),
