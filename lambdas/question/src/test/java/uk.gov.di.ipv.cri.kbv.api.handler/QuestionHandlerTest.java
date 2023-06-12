@@ -430,13 +430,6 @@ class QuestionHandlerTest {
                             eq(AuditEventType.RESPONSE_RECEIVED),
                             auditEventContextArgCaptor.capture(),
                             auditEventMap.capture());
-
-            verify(mockAuditService)
-                    .sendAuditEvent(
-                            eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED),
-                            auditEventContextArgCaptor.capture(),
-                            auditEventMap.capture());
-
             verify(mockKBVStorageService).save(kbvItem);
             verify(mockEventProbe)
                     .addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4"));

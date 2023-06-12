@@ -171,11 +171,6 @@ public class QuestionAnswerHandler
             sessionService.createAuthorizationCode(sessionItem);
 
             auditService.sendAuditEvent(
-                    AuditEventType.THIRD_PARTY_REQUEST_ENDED,
-                    new AuditEventContext(requestHeaders, sessionItem),
-                    this.kbvService.createAuditEventExtensions(questionsResponse));
-
-            auditService.sendAuditEvent(
                     AuditEventType.RESPONSE_RECEIVED,
                     new AuditEventContext(requestHeaders, sessionItem),
                     this.kbvService.createAuditEventExtensions(questionsResponse));
