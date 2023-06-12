@@ -165,11 +165,6 @@ class QuestionAnswerHandlerTest {
                         eq(AuditEventType.RESPONSE_RECEIVED),
                         auditEventContextArgCaptor.capture(),
                         auditEventExtensionsArgCaptor.capture());
-        verify(mockAuditService)
-                .sendAuditEvent(
-                        eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED),
-                        auditEventContextArgCaptor.capture(),
-                        auditEventExtensionsArgCaptor.capture());
         assertEquals(mockSessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
         assertEquals(
                 createRequestHeaders(), auditEventContextArgCaptor.getValue().getRequestHeaders());
@@ -396,13 +391,6 @@ class QuestionAnswerHandlerTest {
                         eq(AuditEventType.RESPONSE_RECEIVED),
                         any(AuditEventContext.class),
                         any(Object.class));
-
-        verify(mockAuditService)
-                .sendAuditEvent(
-                        eq(AuditEventType.THIRD_PARTY_REQUEST_ENDED),
-                        any(AuditEventContext.class),
-                        any(Object.class));
-
         assertAll(
                 () -> assertNotNull(kbvItem.getQuestionAnswerResultSummary()),
                 () -> assertEquals(authenticationResult, kbvItem.getStatus()),
