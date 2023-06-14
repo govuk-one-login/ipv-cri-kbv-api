@@ -109,11 +109,16 @@ class QuestionHandlerTest {
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> requestHeaders =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
+            ArgumentCaptor<AuditEventContext> argumentCaptorForReceived =
+                    ArgumentCaptor.forClass(AuditEventContext.class);
+            ArgumentCaptor<Map<String, Object>> auditEventMapForReceived =
+                    ArgumentCaptor.forClass(Map.class);
 
             KBVItem kbvItem = new KBVItem();
             kbvItem.setSessionId(UUID.fromString(requestHeaders.get(HEADER_SESSION_ID)));
             PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
             SessionItem sessionItem = mock(SessionItem.class);
+            Map<String, String> outcome = Map.of("outcome", "Authentication successful");
 
             when(input.getHeaders()).thenReturn(requestHeaders);
             when(sessionService.validateSessionId(requestHeaders.get(HEADER_SESSION_ID)))
@@ -127,14 +132,18 @@ class QuestionHandlerTest {
             QuestionsResponse experianQuestionResponse =
                     getExperianQuestionResponse(
                             new KbvQuestion[] {getQuestionOne(), getQuestionTwo()});
+
             doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
+            doReturn(Map.of("experianIiqResponse", outcome))
+                    .when(spyKBVService)
+                    .createAuditEventExtensions(experianQuestionResponse);
+
             when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
             String expectedComponentId = "kbv-component-id";
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn(expectedComponentId);
-
             APIGatewayProxyResponseEvent response =
                     questionHandler.handleRequest(input, mock(Context.class));
 
@@ -147,9 +156,15 @@ class QuestionHandlerTest {
                             eq(AuditEventType.REQUEST_SENT),
                             auditEventContextArgCaptor.capture(),
                             auditEventMap.capture());
+            verify(mockAuditService)
+                    .sendAuditEvent(
+                            eq(AuditEventType.RESPONSE_RECEIVED),
+                            argumentCaptorForReceived.capture(),
+                            auditEventMapForReceived.capture());
             verify(mockKBVStorageService).save(any());
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
+            verify(mockConfigurationService).getVerifiableCredentialIssuer();
             verify(mockObjectMapper).writeValueAsString(any());
             verify(mockEventProbe).counterMetric(LAMBDA_NAME);
             verify(mockEventProbe)
@@ -161,6 +176,12 @@ class QuestionHandlerTest {
             assertEquals(sessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
             assertEquals(requestHeaders, auditEventContextArgCaptor.getValue().getRequestHeaders());
             assertEquals(personIdentity, auditEventContextArgCaptor.getValue().getPersonIdentity());
+
+            assertThat(
+                    auditEventMapForReceived.getValue().get("experianIiqResponse"),
+                    equalTo(outcome));
+            assertEquals(sessionItem, argumentCaptorForReceived.getValue().getSessionItem());
+            assertEquals(requestHeaders, argumentCaptorForReceived.getValue().getRequestHeaders());
         }
 
         @Test
@@ -500,6 +521,7 @@ class QuestionHandlerTest {
                 throws IOException, SqsException {
             QuestionState questionState = new QuestionState();
             PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
+            Map<String, String> outcome = Map.of("outcome", "Authentication successful");
 
             KBVItem kbvItem = new KBVItem();
             UUID sessionId = UUID.randomUUID();
@@ -507,7 +529,12 @@ class QuestionHandlerTest {
 
             when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
                     .thenReturn(personIdentity);
-            doReturn(getExperianQuestionResponse()).when(spyKBVService).getQuestions(any());
+            QuestionsResponse experianQuestionResponse = getExperianQuestionResponse();
+            doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
+            doReturn(Map.of("experianIiqResponse", outcome))
+                    .when(spyKBVService)
+                    .createAuditEventExtensions(experianQuestionResponse);
+
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
             when(mockConfigurationService.getVerifiableCredentialIssuer())
@@ -518,7 +545,7 @@ class QuestionHandlerTest {
 
             assertEquals(
                     nextQuestionFromExperian.getQuestionId(),
-                    getExperianQuestionResponse().getQuestions()[0].getQuestionId());
+                    experianQuestionResponse.getQuestions()[0].getQuestionId());
         }
     }
 

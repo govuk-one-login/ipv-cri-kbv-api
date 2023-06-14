@@ -157,7 +157,7 @@ public class QuestionHandler
         }
     }
 
-    private void sendNoQuestionAuditEvent(
+    private void sendQuestionReceivedAuditEvent(
             QuestionsResponse questionsResponse,
             SessionItem sessionItem,
             Map<String, String> requestHeaders)
@@ -185,10 +185,11 @@ public class QuestionHandler
         questionOptional = getQuestionFromResponse(questionsResponse, questionState);
         saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
         if (questionOptional.isPresent()) {
+            sendQuestionReceivedAuditEvent(questionsResponse, sessionItem, requestHeaders);
             return questionOptional.get();
         }
         sessionService.createAuthorizationCode(sessionItem);
-        sendNoQuestionAuditEvent(questionsResponse, sessionItem, requestHeaders);
+        sendQuestionReceivedAuditEvent(questionsResponse, sessionItem, requestHeaders);
         throw new QuestionNotFoundException("No questions available");
     }
 
