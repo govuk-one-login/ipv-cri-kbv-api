@@ -183,13 +183,12 @@ public class QuestionHandler
         }
         var questionsResponse = getQuestionAnswerResponse(kbvItem, sessionItem, requestHeaders);
         questionOptional = getQuestionFromResponse(questionsResponse, questionState);
+        sendQuestionReceivedAuditEvent(questionsResponse, sessionItem, requestHeaders);
         saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
         if (questionOptional.isPresent()) {
-            sendQuestionReceivedAuditEvent(questionsResponse, sessionItem, requestHeaders);
             return questionOptional.get();
         }
         sessionService.createAuthorizationCode(sessionItem);
-        sendQuestionReceivedAuditEvent(questionsResponse, sessionItem, requestHeaders);
         throw new QuestionNotFoundException("No questions available");
     }
 
