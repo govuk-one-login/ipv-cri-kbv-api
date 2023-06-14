@@ -154,6 +154,10 @@ public class QuestionAnswerHandler
         questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
 
         var questionsResponse = kbvService.submitAnswers(questionAnswerRequest);
+        auditService.sendAuditEvent(
+                AuditEventType.RESPONSE_RECEIVED,
+                new AuditEventContext(requestHeaders, sessionItem),
+                this.kbvService.createAuditEventExtensions(questionsResponse));
         if (questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
@@ -169,11 +173,6 @@ public class QuestionAnswerHandler
             kbvStorageService.update(kbvItem);
 
             sessionService.createAuthorizationCode(sessionItem);
-
-            auditService.sendAuditEvent(
-                    AuditEventType.RESPONSE_RECEIVED,
-                    new AuditEventContext(requestHeaders, sessionItem),
-                    this.kbvService.createAuditEventExtensions(questionsResponse));
         } else if (questionsResponse.hasError()) {
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);
