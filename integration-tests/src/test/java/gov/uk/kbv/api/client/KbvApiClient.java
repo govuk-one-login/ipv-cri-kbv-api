@@ -1,5 +1,6 @@
 package gov.uk.kbv.api.client;
 
+import gov.uk.kbv.api.util.AnswerResource;
 import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
 import uk.gov.di.ipv.cri.common.library.client.HttpHeaders;
 import uk.gov.di.ipv.cri.common.library.util.URIBuilder;
@@ -8,7 +9,6 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Map;
 
 public class KbvApiClient {
     private final HttpClient httpClient;
@@ -82,14 +82,13 @@ public class KbvApiClient {
 
     public void submitCorrectAnswers(String question, String sessionId)
             throws IOException, InterruptedException {
-        String answer =
-                Map.of(
-                                "Q00001", "Correct 1",
-                                "Q00002", "Correct 2")
-                        .get(question.toUpperCase());
 
         String POST_REQUEST_BODY =
-                "{\"questionId\":\"" + question + "\",\"answer\":\"" + answer + "\"}";
+                "{\"questionId\":\""
+                        + question
+                        + "\",\"answer\":\""
+                        + AnswerResource.getCorrect(question)
+                        + "\"}";
 
         HttpRequest request =
                 HttpRequest.newBuilder()
@@ -111,14 +110,13 @@ public class KbvApiClient {
 
     public void submitIncorrectAnswers(String question, String sessionId)
             throws IOException, InterruptedException {
-        String answer =
-                Map.of(
-                                "Q00001", "Incorrect 1",
-                                "Q00002", "Incorrect 2")
-                        .get(question.toUpperCase());
 
         String POST_REQUEST_BODY =
-                "{\"questionId\":\"" + question + "\",\"answer\":\"" + answer + "\"}";
+                "{\"questionId\":\""
+                        + question
+                        + "\",\"answer\":\""
+                        + AnswerResource.getInCorrect(question)
+                        + "\"}";
 
         HttpRequest request =
                 HttpRequest.newBuilder()
