@@ -8,18 +8,19 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Map;
+
+import static gov.uk.kbv.api.util.AnswerResource.getCorrect;
+import static gov.uk.kbv.api.util.AnswerResource.getInCorrect;
 
 public class KbvApiClient {
     private final HttpClient httpClient;
     private final ClientConfigurationService clientConfigurationService;
+    private static final String JSON_MIME_MEDIA_TYPE = "application/json";
 
     public KbvApiClient(ClientConfigurationService clientConfigurationService) {
         this.clientConfigurationService = clientConfigurationService;
         this.httpClient = HttpClient.newBuilder().build();
     }
-
-    private static final String JSON_MIME_MEDIA_TYPE = "application/json";
 
     public HttpResponse<String> sendAbandonRequest(String sessionId)
             throws IOException, InterruptedException {
@@ -82,15 +83,9 @@ public class KbvApiClient {
 
     public void submitCorrectAnswers(String question, String sessionId)
             throws IOException, InterruptedException {
-        String answer =
-                Map.of(
-                                "Q00001", "Correct 1",
-                                "Q00002", "Correct 2")
-                        .get(question.toUpperCase());
 
         String POST_REQUEST_BODY =
-                "{\"questionId\":\"" + question + "\",\"answer\":\"" + answer + "\"}";
-
+                "{\"questionId\":\"" + question + "\",\"answer\":\"" + getCorrect(question) + "\"}";
         HttpRequest request =
                 HttpRequest.newBuilder()
                         .uri(
@@ -111,15 +106,13 @@ public class KbvApiClient {
 
     public void submitIncorrectAnswers(String question, String sessionId)
             throws IOException, InterruptedException {
-        String answer =
-                Map.of(
-                                "Q00001", "Incorrect 1",
-                                "Q00002", "Incorrect 2")
-                        .get(question.toUpperCase());
 
         String POST_REQUEST_BODY =
-                "{\"questionId\":\"" + question + "\",\"answer\":\"" + answer + "\"}";
-
+                "{\"questionId\":\""
+                        + question
+                        + "\",\"answer\":\""
+                        + getInCorrect(question)
+                        + "\"}";
         HttpRequest request =
                 HttpRequest.newBuilder()
                         .uri(
