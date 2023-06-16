@@ -21,6 +21,12 @@ Feature: 3 out of 4 strategy. User has 2 KBV questions. Tests are run against th
     And user answers the question correctly
     Then user gets status code 200
 
+    #Third Question
+    When user sends a GET request to question end point
+    Then user gets status code 200
+    And user answers the question correctly
+    Then user gets status code 200
+
     When user sends a GET request to question end point when there are no questions left
     Then user gets status code 204
 

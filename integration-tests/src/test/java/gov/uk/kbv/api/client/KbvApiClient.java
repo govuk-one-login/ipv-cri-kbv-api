@@ -1,6 +1,5 @@
 package gov.uk.kbv.api.client;
 
-import gov.uk.kbv.api.util.AnswerResource;
 import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
 import uk.gov.di.ipv.cri.common.library.client.HttpHeaders;
 import uk.gov.di.ipv.cri.common.library.util.URIBuilder;
@@ -10,16 +9,18 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
+import static gov.uk.kbv.api.util.AnswerResource.getCorrect;
+import static gov.uk.kbv.api.util.AnswerResource.getInCorrect;
+
 public class KbvApiClient {
     private final HttpClient httpClient;
     private final ClientConfigurationService clientConfigurationService;
+    private static final String JSON_MIME_MEDIA_TYPE = "application/json";
 
     public KbvApiClient(ClientConfigurationService clientConfigurationService) {
         this.clientConfigurationService = clientConfigurationService;
         this.httpClient = HttpClient.newBuilder().build();
     }
-
-    private static final String JSON_MIME_MEDIA_TYPE = "application/json";
 
     public HttpResponse<String> sendAbandonRequest(String sessionId)
             throws IOException, InterruptedException {
@@ -84,12 +85,7 @@ public class KbvApiClient {
             throws IOException, InterruptedException {
 
         String POST_REQUEST_BODY =
-                "{\"questionId\":\""
-                        + question
-                        + "\",\"answer\":\""
-                        + AnswerResource.getCorrect(question)
-                        + "\"}";
-
+                "{\"questionId\":\"" + question + "\",\"answer\":\"" + getCorrect(question) + "\"}";
         HttpRequest request =
                 HttpRequest.newBuilder()
                         .uri(
@@ -115,9 +111,8 @@ public class KbvApiClient {
                 "{\"questionId\":\""
                         + question
                         + "\",\"answer\":\""
-                        + AnswerResource.getInCorrect(question)
+                        + getInCorrect(question)
                         + "\"}";
-
         HttpRequest request =
                 HttpRequest.newBuilder()
                         .uri(
