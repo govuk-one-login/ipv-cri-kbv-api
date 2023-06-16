@@ -23,6 +23,7 @@ import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
@@ -73,6 +74,7 @@ class QuestionAnswerHandlerTest {
     @Mock private Context contextMock;
     @Mock private EventProbe mockEventProbe;
     @Mock private SessionService mockSessionService;
+    @Mock private ConfigurationService mockConfigurationService;
     @Mock private AuditService mockAuditService;
     @Mock private KBVGateway mockKBVGateway;
     @Captor private ArgumentCaptor<Map<String, Object>> auditEventExtensionsArgCaptor;
@@ -86,6 +88,7 @@ class QuestionAnswerHandlerTest {
                         Mockito.spy(new KBVService(mockKBVGateway)),
                         mockEventProbe,
                         mockSessionService,
+                        mockConfigurationService,
                         mockAuditService);
     }
 
@@ -132,6 +135,7 @@ class QuestionAnswerHandlerTest {
         int totalCorrectAnswers = 3;
         int totalIncorrectAnswers = 1;
 
+        when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("test-issuer");
         when(input.getHeaders()).thenReturn(createRequestHeaders());
         when(input.getBody()).thenReturn(REQUEST_PAYLOAD);
         when(mockSessionItem.getSessionId()).thenReturn(SESSION_ID);
@@ -191,6 +195,7 @@ class QuestionAnswerHandlerTest {
         QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
 
+        when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("test-issuer");
         when(input.getHeaders()).thenReturn(createRequestHeaders());
         when(input.getBody()).thenReturn(REQUEST_PAYLOAD);
         when(mockSessionItem.getSessionId()).thenReturn(SESSION_ID);
@@ -277,6 +282,7 @@ class QuestionAnswerHandlerTest {
         QuestionState questionStateMock = mock(QuestionState.class);
         QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
 
+        when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("test-issuer");
         when(input.getHeaders()).thenReturn(createRequestHeaders());
         when(input.getBody()).thenReturn(REQUEST_PAYLOAD);
         when(mockSessionItem.getSessionId()).thenReturn(SESSION_ID);
@@ -306,6 +312,7 @@ class QuestionAnswerHandlerTest {
         QuestionAnswer questionAnswerMock = mock(QuestionAnswer.class);
         QuestionsResponse questionsResponseMock = mock(QuestionsResponse.class);
 
+        when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("test-issuer");
         when(input.getHeaders()).thenReturn(createRequestHeaders());
         when(input.getBody()).thenReturn(REQUEST_PAYLOAD);
         when(mockSessionItem.getSessionId()).thenReturn(SESSION_ID);
@@ -361,6 +368,8 @@ class QuestionAnswerHandlerTest {
 
         String questionAnswerTwoAsString = new ObjectMapper().writeValueAsString(questionAnswerTwo);
         SessionItem mockSessionItem = mock(SessionItem.class);
+
+        when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn("test-issuer");
         when(input.getHeaders()).thenReturn(createRequestHeaders());
         when(input.getBody()).thenReturn(questionAnswerTwoAsString);
         when(mockSessionItem.getSessionId()).thenReturn(SESSION_ID);

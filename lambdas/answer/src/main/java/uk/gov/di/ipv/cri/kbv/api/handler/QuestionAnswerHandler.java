@@ -51,11 +51,12 @@ public class QuestionAnswerHandler
     private final SessionService sessionService;
     private final EventProbe eventProbe;
     private final AuditService auditService;
+    private ConfigurationService configurationService;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        var configurationService = new ConfigurationService();
+        this.configurationService = new ConfigurationService();
         this.kbvStorageService = new KBVStorageService(configurationService);
         this.kbvService = new KBVService(new KBVGatewayFactory().create(configurationService));
         this.sessionService = new SessionService(configurationService);
@@ -70,12 +71,14 @@ public class QuestionAnswerHandler
             KBVService kbvService,
             EventProbe eventProbe,
             SessionService sessionService,
+            ConfigurationService configurationService,
             AuditService auditService) {
         this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
         this.sessionService = sessionService;
         this.auditService = auditService;
         this.kbvService = kbvService;
+        this.configurationService = configurationService;
 
         this.eventProbe = eventProbe;
     }
@@ -152,7 +155,10 @@ public class QuestionAnswerHandler
         questionAnswerRequest.setUrn(kbvItem.getUrn());
         questionAnswerRequest.setAuthRefNo(kbvItem.getAuthRefNo());
         questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
-
+        auditService.sendAuditEvent(
+                AuditEventType.REQUEST_SENT,
+                new AuditEventContext(requestHeaders, sessionItem),
+                Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
         var questionsResponse = kbvService.submitAnswers(questionAnswerRequest);
         auditService.sendAuditEvent(
                 AuditEventType.RESPONSE_RECEIVED,
