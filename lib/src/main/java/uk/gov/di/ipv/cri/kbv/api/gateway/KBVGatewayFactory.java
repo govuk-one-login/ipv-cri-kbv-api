@@ -4,7 +4,6 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQ
 import com.experian.uk.wasp.TokenService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
-import uk.gov.di.ipv.cri.kbv.api.security.Base64TokenCacheLoader;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandler;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandlerResolver;
 import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
@@ -32,7 +31,6 @@ public class KBVGatewayFactory {
 
     private HeaderHandler getHeaderHandler(ConfigurationService configurationService) {
         return new HeaderHandler(
-                new Base64TokenCacheLoader(
-                        new SoapToken("GDS DI", true, new TokenService(), configurationService)));
+                new SoapToken("GDS DI", true, new TokenService(), configurationService));
     }
 }
