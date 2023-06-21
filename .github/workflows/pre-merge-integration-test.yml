@@ -25,6 +25,7 @@ jobs:
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
+
       - name: Set up JDK 11
         uses: actions/setup-java@v3
         with:
@@ -49,8 +50,7 @@ jobs:
       - name: Assume temporary AWS role
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          role-session-name: ${{ secrets.AWS_ROLE_SESSION }}
+          role-to-assume: ${{ secrets.GH_ACTIONS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: SAM build
@@ -68,7 +68,7 @@ jobs:
             --no-confirm-changeset \
             --parameter-overrides "Environment=${{ env.ENVIRONMENT }} SecretPrefix=${{ env.SECRET_PREFIX }} CodeSigningEnabled=false AuditEventNamePrefix=/common-cri-parameters/KbvAuditEventNamePrefix CriIdentifier=/common-cri-parameters/KbvCriIdentifier CommonStackName=kbv-common-cri-api" \
             --stack-name $STACK_NAME \
-            --s3-bucket ${{ secrets.AWS_CONFIG_BUCKET }} \
+            --s3-bucket ${{ secrets.ARTIFACT_SOURCE_BUCKET_NAME }} \
             --s3-prefix $STACK_NAME \
             --region ${{ env.AWS_REGION }} \
             --capabilities CAPABILITY_IAM
@@ -76,9 +76,9 @@ jobs:
       - name: Run API integration tests
         env:
           ENVIRONMENT: dev
-          APIGW_API_KEY: ${{ secrets.API_KEY_CRI_DEV }}
           DEFAULT_CLIENT_ID: ipv-core-stub-aws-build
           IPV_CORE_STUB_URL: https://cri.core.build.stubs.account.gov.uk
+          APIGW_API_KEY: ${{ secrets.API_KEY_CRI_DEV }}
           IPV_CORE_STUB_BASIC_AUTH_USER: ${{ secrets.IPV_CORE_STUB_BASIC_AUTH_USER }}
           IPV_CORE_STUB_BASIC_AUTH_PASSWORD: ${{ secrets.IPV_CORE_STUB_BASIC_AUTH_PASSWORD }}
           IPV_CORE_STUB_CRI_ID: kbv-cri-dev
@@ -86,7 +86,6 @@ jobs:
           STACK_NAME=${{ env.STACK_NAME_PREFIX }}-${{ steps.vars.outputs.sha_short }}
           API_GATEWAY_ID_PRIVATE=$(aws cloudformation describe-stacks --stack-name $STACK_NAME | jq -r '.Stacks[].Outputs[] | select(.OutputKey == "PrivateKBVApiGatewayId").OutputValue')
           API_GATEWAY_ID_PUBLIC=$(aws cloudformation describe-stacks --stack-name $STACK_NAME | jq -r '.Stacks[].Outputs[] | select(.OutputKey == "PublicKBVApiGatewayId").OutputValue')
-
           export API_GATEWAY_ID_PRIVATE=$API_GATEWAY_ID_PRIVATE
           export API_GATEWAY_ID_PUBLIC=$API_GATEWAY_ID_PUBLIC
 
@@ -123,3 +122,4 @@ jobs:
           publish_branch: gh-pages
           publish_dir: results-history
           keep_files: true
+
