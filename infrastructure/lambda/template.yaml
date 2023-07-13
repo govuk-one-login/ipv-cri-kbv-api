@@ -480,7 +480,7 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - ssm:GetParametersByPath
+                - ssm:GetParametersByPath #test
               Resource:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
         - Statement:
