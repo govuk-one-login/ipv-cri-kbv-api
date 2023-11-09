@@ -1,5 +1,6 @@
 package gov.uk.kbv.api.stepdefinitions;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
@@ -27,6 +28,8 @@ public class KbvSteps {
     public KbvSteps(
             ClientConfigurationService clientConfigurationService, CriTestContext testContext) {
         this.objectMapper = new ObjectMapper();
+        this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
         this.kbvApiClient = new KbvApiClient(clientConfigurationService);
         this.testContext = testContext;
     }
