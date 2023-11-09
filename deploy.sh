@@ -14,6 +14,7 @@ fi
 ./gradlew clean
 sam validate -t infrastructure/lambda/template.yaml
 sam build -t infrastructure/lambda/template.yaml
+
 sam deploy --stack-name "$stack_name" \
    --no-fail-on-empty-changeset \
    --no-confirm-changeset \
