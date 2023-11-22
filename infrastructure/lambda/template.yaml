@@ -880,49 +880,6 @@ Resources:
             Period: 300
             Stat: Sum
 
-  KBVAPIGW4XXErrors:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub KBV ${Environment} API Gateway 4XX errors
-      ActionsEnabled: true
-      AlarmActions:
-        - !ImportValue core-infrastructure-AlarmTopic
-      OKActions:
-        - !ImportValue core-infrastructure-AlarmTopic
-      InsufficientDataActions: []
-      Dimensions: []
-      DatapointsToAlarm: 3
-      EvaluationPeriods: 3
-      Threshold: 2
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      Metrics:
-        - Id: e1
-          Label: Expression1
-          ReturnData: true
-          Expression: SUM(METRICS())
-        - Id: m1
-          ReturnData: false
-          MetricStat:
-            Metric:
-              Namespace: AWS/ApiGateway
-              MetricName: 4XXError
-              Dimensions:
-                - Name: ApiName
-                  Value: !Sub "kbv-cri-${AWS::StackName}"
-            Period: 300
-            Stat: Sum
-        - Id: m2
-          ReturnData: false
-          MetricStat:
-            Metric:
-              Namespace: AWS/ApiGateway
-              MetricName: 4XXError
-              Dimensions:
-                - Name: ApiName
-                  Value: !Sub "kbv-cri-private-${AWS::StackName}"
-            Period: 300
-            Stat: Sum
 Outputs:
 
   StackName:
