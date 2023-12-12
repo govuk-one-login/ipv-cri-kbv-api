@@ -659,7 +659,7 @@ Resources:
         Period: DAY
       Throttle:
         BurstLimit: 200 # requests the API can handle concurrently
-        RateLimit: 100 # allowed requests per second
+        RateLimit: 400 # allowed requests per second
 
   PrivateApiUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
@@ -675,7 +675,7 @@ Resources:
         Period: DAY
       Throttle:
         BurstLimit: 200 # requests the API can handle concurrently
-        RateLimit: 100 # allowed requests per second
+        RateLimit: 400 # allowed requests per second
 
   LinkUsagePlanApiKey1:
     Condition: IsNotDevEnvironment
