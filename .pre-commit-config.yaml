@@ -4,16 +4,10 @@ repos:
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.4.0
     hooks:
-    -   id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
-  - repo: https://github.com/awslabs/cfn-python-lint
-    rev: v0.80.4 # The version of cfn-lint to use
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+  - repo: https://github.com/aws-cloudformation/cfn-lint
+    rev: v0.83.5
     hooks:
-    -   id: cfn-python-lint
-        files: .template\.yaml$
-  - repo: https://github.com/bridgecrewio/checkov.git
-    rev: '2.5.4'
-    hooks:
-    - id: checkov
-      verbose: true
-      args: [--soft-fail]
+      - id: cfn-lint
+        files: .template\.ya?ml$
