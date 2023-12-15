@@ -139,7 +139,7 @@ subprojects {
 	}
 }
 
-sonarqube {
+sonar {
 	properties {
 		property "sonar.projectKey", "ipv-cri-kbv-api"
 		property "sonar.organization", "govuk-one-login"
