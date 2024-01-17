@@ -15,6 +15,7 @@ import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SessionExpiredException;
 import uk.gov.di.ipv.cri.common.library.exception.SessionNotFoundException;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
@@ -226,19 +227,39 @@ public class QuestionHandler
 
         var personIdentity =
                 personIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId());
+        var questionRequest = createQuestionRequest(personIdentity);
+
+        eventProbe.addDimensions(
+                Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, questionRequest.getStrategy()));
+
+        sendQuestionRequestAuditEvent(sessionItem, personIdentity, requestHeaders);
+        var questionResponse = this.kbvService.getQuestions(questionRequest);
+
+        return questionResponse;
+    }
+
+    private void sendQuestionRequestAuditEvent(
+            SessionItem sessionItem,
+            PersonIdentityDetailed personIdentity,
+            Map<String, String> requestHeaders)
+            throws SqsException {
+        auditService.sendAuditEvent(
+                AuditEventType.REQUEST_SENT,
+                new AuditEventContext(personIdentity, requestHeaders, sessionItem),
+                Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
+    }
+
+    private QuestionRequest createQuestionRequest(PersonIdentityDetailed personIdentity) {
         var questionRequest = new QuestionRequest();
         var strategy = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
+
         questionRequest.setStrategy(strategy);
         questionRequest.setIiqOperatorId(
                 this.configurationService.getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME));
         questionRequest.setPersonIdentity(
                 personIdentityService.convertToPersonIdentitySummary(personIdentity));
-        eventProbe.addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, strategy));
-        auditService.sendAuditEvent(
-                AuditEventType.REQUEST_SENT,
-                new AuditEventContext(personIdentity, requestHeaders, sessionItem),
-                Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
-        return this.kbvService.getQuestions(questionRequest);
+
+        return questionRequest;
     }
 
     private APIGatewayProxyResponseEvent handleException(
