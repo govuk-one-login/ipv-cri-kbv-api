@@ -158,13 +158,18 @@ class QuestionHandlerTest {
                             auditEventMap.capture());
             verify(mockAuditService)
                     .sendAuditEvent(
+                            eq(AuditEventType.BILLING),
+                            auditEventContextArgCaptor.capture(),
+                            auditEventMap.capture());
+            verify(mockAuditService)
+                    .sendAuditEvent(
                             eq(AuditEventType.RESPONSE_RECEIVED),
                             argumentCaptorForReceived.capture(),
                             auditEventMapForReceived.capture());
             verify(mockKBVStorageService).save(any());
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
-            verify(mockConfigurationService).getVerifiableCredentialIssuer();
+            verify(mockConfigurationService, times(2)).getVerifiableCredentialIssuer();
             verify(mockObjectMapper).writeValueAsString(any());
             verify(mockEventProbe).counterMetric(LAMBDA_NAME);
             verify(mockEventProbe)

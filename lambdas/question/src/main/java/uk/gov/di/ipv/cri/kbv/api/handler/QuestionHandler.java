@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import static org.apache.logging.log4j.Level.ERROR;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_EXPIRED;
@@ -157,17 +158,6 @@ public class QuestionHandler
         }
     }
 
-    private void sendQuestionReceivedAuditEvent(
-            QuestionsResponse questionsResponse,
-            SessionItem sessionItem,
-            Map<String, String> requestHeaders)
-            throws SqsException {
-        auditService.sendAuditEvent(
-                AuditEventType.RESPONSE_RECEIVED,
-                new AuditEventContext(requestHeaders, sessionItem),
-                this.kbvService.createAuditEventExtensions(questionsResponse));
-    }
-
     @Tracing
     KbvQuestion processQuestionRequest(
             QuestionState questionState,
@@ -176,8 +166,7 @@ public class QuestionHandler
             Map<String, String> requestHeaders)
             throws IOException, SqsException {
 
-        Optional<KbvQuestion> questionOptional;
-        questionOptional = getQuestionFromDbStore(questionState);
+        var questionOptional = getQuestionFromDbStore(questionState);
         if (questionOptional.isPresent()) {
             return questionOptional.get();
         }
@@ -232,21 +221,23 @@ public class QuestionHandler
         eventProbe.addDimensions(
                 Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, questionRequest.getStrategy()));
 
-        sendQuestionRequestAuditEvent(sessionItem, personIdentity, requestHeaders);
+        sendQuestionRequestSentAuditEvent(sessionItem, personIdentity, requestHeaders);
         var questionResponse = this.kbvService.getQuestions(questionRequest);
-
+        sendQuestionRequestBillingAuditEvent(sessionItem, personIdentity, requestHeaders);
         return questionResponse;
     }
 
-    private void sendQuestionRequestAuditEvent(
+    private void sendQuestionRequestBillingAuditEvent(
             SessionItem sessionItem,
             PersonIdentityDetailed personIdentity,
             Map<String, String> requestHeaders)
             throws SqsException {
-        auditService.sendAuditEvent(
-                AuditEventType.REQUEST_SENT,
-                new AuditEventContext(personIdentity, requestHeaders, sessionItem),
-                Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
+        sendAuditEvent(
+                AuditEventType.BILLING,
+                sessionItem,
+                personIdentity,
+                requestHeaders,
+                () -> Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
     }
 
     private QuestionRequest createQuestionRequest(PersonIdentityDetailed personIdentity) {
@@ -273,5 +264,44 @@ public class QuestionHandler
 
     private APIGatewayProxyResponseEvent createNoContentResponse() {
         return new APIGatewayProxyResponseEvent().withStatusCode(HttpStatusCode.NO_CONTENT);
+    }
+
+    private void sendQuestionRequestSentAuditEvent(
+            SessionItem sessionItem,
+            PersonIdentityDetailed personIdentity,
+            Map<String, String> requestHeaders)
+            throws SqsException {
+        sendAuditEvent(
+                AuditEventType.REQUEST_SENT,
+                sessionItem,
+                personIdentity,
+                requestHeaders,
+                () -> Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
+    }
+
+    private void sendQuestionReceivedAuditEvent(
+            QuestionsResponse questionsResponse,
+            SessionItem sessionItem,
+            Map<String, String> requestHeaders)
+            throws SqsException {
+        sendAuditEvent(
+                AuditEventType.RESPONSE_RECEIVED,
+                sessionItem,
+                null,
+                requestHeaders,
+                () -> this.kbvService.createAuditEventExtensions(questionsResponse));
+    }
+
+    private <T> void sendAuditEvent(
+            AuditEventType auditEventType,
+            SessionItem sessionItem,
+            PersonIdentityDetailed personIdentity,
+            Map<String, String> requestHeaders,
+            Supplier<T> extensionSupplier)
+            throws SqsException {
+        auditService.sendAuditEvent(
+                auditEventType,
+                new AuditEventContext(personIdentity, requestHeaders, sessionItem),
+                extensionSupplier.get());
     }
 }
