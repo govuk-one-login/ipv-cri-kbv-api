@@ -41,11 +41,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Supplier;
 
 import static org.apache.logging.log4j.Level.ERROR;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_EXPIRED;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_NOT_FOUND;
+import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.EXPERIAN_IIQ_STARTED;
 
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -222,22 +222,8 @@ public class QuestionHandler
                 Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, questionRequest.getStrategy()));
 
         sendQuestionRequestSentAuditEvent(sessionItem, personIdentity, requestHeaders);
-        var questionResponse = this.kbvService.getQuestions(questionRequest);
-        sendQuestionRequestBillingAuditEvent(sessionItem, personIdentity, requestHeaders);
-        return questionResponse;
-    }
-
-    private void sendQuestionRequestBillingAuditEvent(
-            SessionItem sessionItem,
-            PersonIdentityDetailed personIdentity,
-            Map<String, String> requestHeaders)
-            throws SqsException {
-        sendAuditEvent(
-                AuditEventType.BILLING,
-                sessionItem,
-                personIdentity,
-                requestHeaders,
-                () -> Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
+        sendExperianIIQStartedAuditEvent(sessionItem, requestHeaders);
+        return this.kbvService.getQuestions(questionRequest);
     }
 
     private QuestionRequest createQuestionRequest(PersonIdentityDetailed personIdentity) {
@@ -266,17 +252,23 @@ public class QuestionHandler
         return new APIGatewayProxyResponseEvent().withStatusCode(HttpStatusCode.NO_CONTENT);
     }
 
+    private void sendExperianIIQStartedAuditEvent(
+            SessionItem sessionItem, Map<String, String> requestHeaders) throws SqsException {
+        auditService.sendAuditEvent(
+                EXPERIAN_IIQ_STARTED.toString(),
+                new AuditEventContext(requestHeaders, sessionItem),
+                getComponentId());
+    }
+
     private void sendQuestionRequestSentAuditEvent(
             SessionItem sessionItem,
             PersonIdentityDetailed personIdentity,
             Map<String, String> requestHeaders)
             throws SqsException {
-        sendAuditEvent(
+        auditService.sendAuditEvent(
                 AuditEventType.REQUEST_SENT,
-                sessionItem,
-                personIdentity,
-                requestHeaders,
-                () -> Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
+                new AuditEventContext(personIdentity, requestHeaders, sessionItem),
+                getComponentId());
     }
 
     private void sendQuestionReceivedAuditEvent(
@@ -284,24 +276,13 @@ public class QuestionHandler
             SessionItem sessionItem,
             Map<String, String> requestHeaders)
             throws SqsException {
-        sendAuditEvent(
+        auditService.sendAuditEvent(
                 AuditEventType.RESPONSE_RECEIVED,
-                sessionItem,
-                null,
-                requestHeaders,
-                () -> this.kbvService.createAuditEventExtensions(questionsResponse));
+                new AuditEventContext(requestHeaders, sessionItem),
+                this.kbvService.createAuditEventExtensions(questionsResponse));
     }
 
-    private <T> void sendAuditEvent(
-            AuditEventType auditEventType,
-            SessionItem sessionItem,
-            PersonIdentityDetailed personIdentity,
-            Map<String, String> requestHeaders,
-            Supplier<T> extensionSupplier)
-            throws SqsException {
-        auditService.sendAuditEvent(
-                auditEventType,
-                new AuditEventContext(personIdentity, requestHeaders, sessionItem),
-                extensionSupplier.get());
+    private Map<String, String> getComponentId() {
+        return Map.of("component_id", configurationService.getVerifiableCredentialIssuer());
     }
 }
