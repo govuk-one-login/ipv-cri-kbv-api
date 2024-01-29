@@ -27,6 +27,7 @@ import uk.gov.di.ipv.cri.common.library.util.ApiGatewayResponseGenerator;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
@@ -221,24 +222,32 @@ public class QuestionHandler
 
     private QuestionsResponse getQuestionAnswerResponse(
             KBVItem kbvItem, SessionItem sessionItem, Map<String, String> requestHeaders)
-            throws SqsException {
+            throws JsonProcessingException, SqsException {
         Objects.requireNonNull(kbvItem, "kbvItem cannot be null");
 
-        var personIdentity =
-                personIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId());
-        var questionRequest = new QuestionRequest();
-        var strategy = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
-        questionRequest.setStrategy(strategy);
-        questionRequest.setIiqOperatorId(
-                this.configurationService.getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME));
-        questionRequest.setPersonIdentity(
-                personIdentityService.convertToPersonIdentitySummary(personIdentity));
-        eventProbe.addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, strategy));
-        auditService.sendAuditEvent(
-                AuditEventType.REQUEST_SENT,
-                new AuditEventContext(personIdentity, requestHeaders, sessionItem),
-                Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
-        return this.kbvService.getQuestions(questionRequest);
+        if (kbvItem.getExpiryDate() == 0L) { // first request for questions for a given session
+            var personIdentity =
+                    personIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId());
+            var questionRequest = new QuestionRequest();
+            var strategy = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
+            questionRequest.setStrategy(strategy);
+            questionRequest.setIiqOperatorId(
+                    this.configurationService.getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME));
+            questionRequest.setPersonIdentity(
+                    personIdentityService.convertToPersonIdentitySummary(personIdentity));
+            eventProbe.addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, strategy));
+            auditService.sendAuditEvent(
+                    AuditEventType.REQUEST_SENT,
+                    new AuditEventContext(personIdentity, requestHeaders, sessionItem),
+                    Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
+            return this.kbvService.getQuestions(questionRequest);
+        }
+        var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
+        var questionAnswerRequest = new QuestionAnswerRequest();
+        questionAnswerRequest.setUrn(kbvItem.getUrn());
+        questionAnswerRequest.setAuthRefNo(kbvItem.getAuthRefNo());
+        questionAnswerRequest.setQuestionAnswers(questionState.getAnswers());
+        return this.kbvService.submitAnswers(questionAnswerRequest);
     }
 
     private APIGatewayProxyResponseEvent handleException(
