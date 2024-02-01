@@ -65,6 +65,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.EXPERIAN_IIQ_STARTED;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.HEADER_SESSION_ID;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.IIQ_STRATEGY_PARAM_NAME;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.LAMBDA_NAME;
@@ -111,6 +112,10 @@ class QuestionHandlerTest {
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
             ArgumentCaptor<AuditEventContext> argumentCaptorForReceived =
                     ArgumentCaptor.forClass(AuditEventContext.class);
+            ArgumentCaptor<AuditEventContext> argumentCaptorForExperianIIQStarted =
+                    ArgumentCaptor.forClass(AuditEventContext.class);
+            ArgumentCaptor<Map<String, Object>> auditEventMapForExperianIIQStarted =
+                    ArgumentCaptor.forClass(Map.class);
             ArgumentCaptor<Map<String, Object>> auditEventMapForReceived =
                     ArgumentCaptor.forClass(Map.class);
 
@@ -158,13 +163,18 @@ class QuestionHandlerTest {
                             auditEventMap.capture());
             verify(mockAuditService)
                     .sendAuditEvent(
+                            eq(EXPERIAN_IIQ_STARTED.toString()),
+                            argumentCaptorForExperianIIQStarted.capture(),
+                            auditEventMapForExperianIIQStarted.capture());
+            verify(mockAuditService)
+                    .sendAuditEvent(
                             eq(AuditEventType.RESPONSE_RECEIVED),
                             argumentCaptorForReceived.capture(),
                             auditEventMapForReceived.capture());
             verify(mockKBVStorageService).save(any());
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
-            verify(mockConfigurationService).getVerifiableCredentialIssuer();
+            verify(mockConfigurationService, times(2)).getVerifiableCredentialIssuer();
             verify(mockObjectMapper).writeValueAsString(any());
             verify(mockEventProbe).counterMetric(LAMBDA_NAME);
             verify(mockEventProbe)
@@ -180,6 +190,11 @@ class QuestionHandlerTest {
             assertThat(
                     auditEventMapForReceived.getValue().get("experianIiqResponse"),
                     equalTo(outcome));
+            assertEquals(
+                    sessionItem, argumentCaptorForExperianIIQStarted.getValue().getSessionItem());
+            assertEquals(
+                    requestHeaders,
+                    argumentCaptorForExperianIIQStarted.getValue().getRequestHeaders());
             assertEquals(sessionItem, argumentCaptorForReceived.getValue().getSessionItem());
             assertEquals(requestHeaders, argumentCaptorForReceived.getValue().getRequestHeaders());
         }

@@ -15,6 +15,7 @@ import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SessionExpiredException;
 import uk.gov.di.ipv.cri.common.library.exception.SessionNotFoundException;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
@@ -44,6 +45,7 @@ import java.util.UUID;
 import static org.apache.logging.log4j.Level.ERROR;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_EXPIRED;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_NOT_FOUND;
+import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.EXPERIAN_IIQ_STARTED;
 
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -156,17 +158,6 @@ public class QuestionHandler
         }
     }
 
-    private void sendQuestionReceivedAuditEvent(
-            QuestionsResponse questionsResponse,
-            SessionItem sessionItem,
-            Map<String, String> requestHeaders)
-            throws SqsException {
-        auditService.sendAuditEvent(
-                AuditEventType.RESPONSE_RECEIVED,
-                new AuditEventContext(requestHeaders, sessionItem),
-                this.kbvService.createAuditEventExtensions(questionsResponse));
-    }
-
     @Tracing
     KbvQuestion processQuestionRequest(
             QuestionState questionState,
@@ -175,8 +166,7 @@ public class QuestionHandler
             Map<String, String> requestHeaders)
             throws IOException, SqsException {
 
-        Optional<KbvQuestion> questionOptional;
-        questionOptional = getQuestionFromDbStore(questionState);
+        var questionOptional = getQuestionFromDbStore(questionState);
         if (questionOptional.isPresent()) {
             return questionOptional.get();
         }
@@ -226,19 +216,27 @@ public class QuestionHandler
 
         var personIdentity =
                 personIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId());
+        var questionRequest = createQuestionRequest(personIdentity);
+
+        eventProbe.addDimensions(
+                Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, questionRequest.getStrategy()));
+
+        sendQuestionRequestSentAuditEvent(sessionItem, personIdentity, requestHeaders);
+        sendExperianIIQStartedAuditEvent(sessionItem, requestHeaders);
+        return this.kbvService.getQuestions(questionRequest);
+    }
+
+    private QuestionRequest createQuestionRequest(PersonIdentityDetailed personIdentity) {
         var questionRequest = new QuestionRequest();
         var strategy = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
+
         questionRequest.setStrategy(strategy);
         questionRequest.setIiqOperatorId(
                 this.configurationService.getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME));
         questionRequest.setPersonIdentity(
                 personIdentityService.convertToPersonIdentitySummary(personIdentity));
-        eventProbe.addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, strategy));
-        auditService.sendAuditEvent(
-                AuditEventType.REQUEST_SENT,
-                new AuditEventContext(personIdentity, requestHeaders, sessionItem),
-                Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
-        return this.kbvService.getQuestions(questionRequest);
+
+        return questionRequest;
     }
 
     private APIGatewayProxyResponseEvent handleException(
@@ -252,5 +250,39 @@ public class QuestionHandler
 
     private APIGatewayProxyResponseEvent createNoContentResponse() {
         return new APIGatewayProxyResponseEvent().withStatusCode(HttpStatusCode.NO_CONTENT);
+    }
+
+    private void sendExperianIIQStartedAuditEvent(
+            SessionItem sessionItem, Map<String, String> requestHeaders) throws SqsException {
+        auditService.sendAuditEvent(
+                EXPERIAN_IIQ_STARTED.toString(),
+                new AuditEventContext(requestHeaders, sessionItem),
+                getComponentId());
+    }
+
+    private void sendQuestionRequestSentAuditEvent(
+            SessionItem sessionItem,
+            PersonIdentityDetailed personIdentity,
+            Map<String, String> requestHeaders)
+            throws SqsException {
+        auditService.sendAuditEvent(
+                AuditEventType.REQUEST_SENT,
+                new AuditEventContext(personIdentity, requestHeaders, sessionItem),
+                getComponentId());
+    }
+
+    private void sendQuestionReceivedAuditEvent(
+            QuestionsResponse questionsResponse,
+            SessionItem sessionItem,
+            Map<String, String> requestHeaders)
+            throws SqsException {
+        auditService.sendAuditEvent(
+                AuditEventType.RESPONSE_RECEIVED,
+                new AuditEventContext(requestHeaders, sessionItem),
+                this.kbvService.createAuditEventExtensions(questionsResponse));
+    }
+
+    private Map<String, String> getComponentId() {
+        return Map.of("component_id", configurationService.getVerifiableCredentialIssuer());
     }
 }
