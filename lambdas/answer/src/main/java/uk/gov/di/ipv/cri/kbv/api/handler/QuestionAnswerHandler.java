@@ -35,9 +35,12 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import java.io.IOException;
 import java.util.Map;
 
+import static java.util.Objects.nonNull;
 import static org.apache.logging.log4j.Level.ERROR;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_EXPIRED;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_NOT_FOUND;
+import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
+import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createAuditEventExtensions;
 
 public class QuestionAnswerHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -163,13 +166,13 @@ public class QuestionAnswerHandler
         auditService.sendAuditEvent(
                 AuditEventType.RESPONSE_RECEIVED,
                 new AuditEventContext(requestHeaders, sessionItem),
-                this.kbvService.createAuditEventExtensions(questionsResponse));
+                Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
         if (questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);
             kbvStorageService.update(kbvItem);
-        } else if (questionsResponse.getResults() != null
+        } else if (nonNull(questionsResponse.getResults())
                 && questionsResponse.hasQuestionRequestEnded()) {
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);

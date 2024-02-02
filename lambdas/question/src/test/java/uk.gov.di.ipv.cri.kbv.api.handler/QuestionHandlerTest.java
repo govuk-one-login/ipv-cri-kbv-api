@@ -32,6 +32,7 @@ import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionOptions;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
@@ -139,9 +140,6 @@ class QuestionHandlerTest {
                             new KbvQuestion[] {getQuestionOne(), getQuestionTwo()});
 
             doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
-            doReturn(Map.of("experianIiqResponse", outcome))
-                    .when(spyKBVService)
-                    .createAuditEventExtensions(experianQuestionResponse);
 
             when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
@@ -536,7 +534,6 @@ class QuestionHandlerTest {
                 throws IOException, SqsException {
             QuestionState questionState = new QuestionState();
             PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
-            Map<String, String> outcome = Map.of("outcome", "Authentication successful");
 
             KBVItem kbvItem = new KBVItem();
             UUID sessionId = UUID.randomUUID();
@@ -546,14 +543,12 @@ class QuestionHandlerTest {
                     .thenReturn(personIdentity);
             QuestionsResponse experianQuestionResponse = getExperianQuestionResponse();
             doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
-            doReturn(Map.of("experianIiqResponse", outcome))
-                    .when(spyKBVService)
-                    .createAuditEventExtensions(experianQuestionResponse);
 
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn("3 out of 4");
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
+
             KbvQuestion nextQuestionFromExperian =
                     questionHandler.processQuestionRequest(
                             questionState, kbvItem, mock(SessionItem.class), new HashMap<>());
@@ -614,6 +609,9 @@ class QuestionHandlerTest {
         questionsResponse.setAuthReference("authrefno");
         questionsResponse.setUniqueReference("urn");
         questionsResponse.setQuestions(kbvQuestions);
+        KbvResult kbvResult = new KbvResult();
+        kbvResult.setAuthenticationResult("Authentication successful");
+        questionsResponse.setResults(kbvResult);
 
         return questionsResponse;
     }
