@@ -4,10 +4,13 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.AddressType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionAnswerSummary;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionOptions;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 
 import java.time.LocalDate;
@@ -131,5 +134,31 @@ public class TestDataCreator {
         question.setQuestionOptions(questionOptions);
 
         return question;
+    }
+
+    public static QuestionState getQuestionState(KbvQuestion[] kbvQuestions) {
+        QuestionState questionState = new QuestionState();
+        questionState.setQAPairs(kbvQuestions);
+        return questionState;
+    }
+
+    public static KbvQuestionAnswerSummary getKbvQuestionAnswerSummary(
+            int answeredCorrect, int answeredIncorrect, int totalQuestionsAsked) {
+        KbvQuestionAnswerSummary kbvQuestionAnswerSummary = new KbvQuestionAnswerSummary();
+        kbvQuestionAnswerSummary.setAnsweredCorrect(answeredCorrect);
+        kbvQuestionAnswerSummary.setAnsweredIncorrect(answeredIncorrect);
+        kbvQuestionAnswerSummary.setQuestionsAsked(totalQuestionsAsked);
+        return kbvQuestionAnswerSummary;
+    }
+
+    public static QuestionsResponse getQuestionResponseWithResults(
+            String authenticationResult, KbvQuestionAnswerSummary kbvQuestionAnswerSummary) {
+        QuestionsResponse questionsResponse = new QuestionsResponse();
+        KbvResult kbvResult = new KbvResult();
+        kbvResult.setNextTransId(new String[] {"END"});
+        kbvResult.setAuthenticationResult(authenticationResult);
+        kbvResult.setAnswerSummary(kbvQuestionAnswerSummary);
+        questionsResponse.setResults(kbvResult);
+        return questionsResponse;
     }
 }
