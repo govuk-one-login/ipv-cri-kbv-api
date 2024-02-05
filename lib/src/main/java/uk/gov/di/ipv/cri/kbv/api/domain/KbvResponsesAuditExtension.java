@@ -2,6 +2,7 @@ package uk.gov.di.ipv.cri.kbv.api.domain;
 
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -14,24 +15,32 @@ public class KbvResponsesAuditExtension {
 
     public static Map<String, Object> createAuditEventExtensions(
             QuestionsResponse questionsResponse) {
-        Map<String, Object> contextEntries = new HashMap<>();
 
-        if (Objects.nonNull(questionsResponse) && Objects.nonNull(questionsResponse.getStatus())) {
-            contextEntries.put("outcome", questionsResponse.getStatus());
+        if (Objects.nonNull(questionsResponse)
+                && Objects.nonNull(questionsResponse.getStatus())
+                && Objects.nonNull(questionsResponse.getResults())) {
 
-            if (Objects.nonNull(questionsResponse.getResults())
-                    && Objects.nonNull(questionsResponse.getResults().getAnswerSummary())) {
-                KbvQuestionAnswerSummary answerSummary =
-                        questionsResponse.getResults().getAnswerSummary();
-                addQuestionSummaryData(contextEntries, answerSummary);
-            }
+            return createAuditEventExtensions(
+                    questionsResponse.getStatus(),
+                    questionsResponse.getResults().getAnswerSummary());
         }
-
-        return contextEntries;
+        return Collections.emptyMap();
     }
 
-    private static void addQuestionSummaryData(
-            Map<String, Object> contextEntries, KbvQuestionAnswerSummary questionSummary) {
+    public static Map<String, Object> createAuditEventExtensions(
+            String status, KbvQuestionAnswerSummary questionSummary) {
+
+        return Objects.nonNull((status))
+                ? getKbvResponsesSummaryEntries(status, questionSummary)
+                : Collections.emptyMap();
+    }
+
+    private static Map<String, Object> getKbvResponsesSummaryEntries(
+            String status, KbvQuestionAnswerSummary questionSummary) {
+
+        Map<String, Object> contextEntries = new HashMap<>();
+        contextEntries.put("outcome", status);
+
         if (Objects.nonNull(questionSummary)) {
             contextEntries.put("totalQuestionsAsked", questionSummary.getQuestionsAsked());
             contextEntries.put(
@@ -39,5 +48,6 @@ public class KbvResponsesAuditExtension {
             contextEntries.put(
                     "totalQuestionsAnsweredIncorrect", questionSummary.getAnsweredIncorrect());
         }
+        return contextEntries;
     }
 }

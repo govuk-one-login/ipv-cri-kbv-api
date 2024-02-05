@@ -34,8 +34,8 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 
-import static java.util.Objects.nonNull;
 import static org.apache.logging.log4j.Level.ERROR;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_EXPIRED;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_NOT_FOUND;
@@ -54,7 +54,7 @@ public class QuestionAnswerHandler
     private final SessionService sessionService;
     private final EventProbe eventProbe;
     private final AuditService auditService;
-    private ConfigurationService configurationService;
+    private final ConfigurationService configurationService;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
@@ -172,7 +172,7 @@ public class QuestionAnswerHandler
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);
             kbvStorageService.update(kbvItem);
-        } else if (nonNull(questionsResponse.getResults())
+        } else if (Objects.nonNull(questionsResponse.getResults())
                 && questionsResponse.hasQuestionRequestEnded()) {
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);

@@ -438,12 +438,14 @@ class QuestionHandlerTest {
             QuestionState questionState = mock(QuestionState.class);
             SessionItem sessionItem = mock(SessionItem.class);
             Map<String, String> requestHeaders = new HashMap<>();
-
+            KbvResult kbvResult = mock(KbvResult.class);
             QuestionsResponse questionsResponse = mock(QuestionsResponse.class);
+
             when(kbvItem.getSessionId()).thenReturn(sessionId);
             when(questionsResponse.getStatus()).thenReturn(expectedOutcome);
             when(questionsResponse.getAuthReference()).thenReturn("an auth ref no");
             when(questionsResponse.getUniqueReference()).thenReturn("a urn");
+            when(questionsResponse.getResults()).thenReturn(kbvResult);
 
             when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
@@ -609,8 +611,10 @@ class QuestionHandlerTest {
         questionsResponse.setAuthReference("authrefno");
         questionsResponse.setUniqueReference("urn");
         questionsResponse.setQuestions(kbvQuestions);
+
         KbvResult kbvResult = new KbvResult();
         kbvResult.setAuthenticationResult("Authentication successful");
+
         questionsResponse.setResults(kbvResult);
 
         return questionsResponse;

@@ -56,6 +56,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.KBV_CREDENTIAL_TYPE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_ADDRESS_KEY;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_BIRTHDATE_KEY;
@@ -193,6 +194,7 @@ class VerifiableCredentialServiceTest {
     @Nested
     class KbvAuditEventExtensions implements TestFixtures {
         private final String txn = String.valueOf(UUID.randomUUID());
+
         @Test
         void shouldGetAuditEventExtensions() throws JsonProcessingException {
             SignedJWTFactory signedJWTFactory = mock(SignedJWTFactory.class);
@@ -218,37 +220,27 @@ class VerifiableCredentialServiceTest {
             setKbvItemQuestionState(kbvItem);
             String issuer = "test-issuer";
 
+            var kbvQuestionResponseSummary =
+                    Map.of(
+                            "outcome", "Not Authenticated",
+                            "totalQuestionsAnsweredCorrect", 0,
+                            "totalQuestionsAsked", 2,
+                            "totalQuestionsAnsweredIncorrect", 2);
+
             Object[] evidence = {
                 Map.of(
                         "txn",
                         txn,
                         "verificationScore",
                         2,
-                        "checkDetails",
+                        "failedCheckDetails",
                         List.of(
-                                Map.of(
-                                        "checkMethod",
-                                        "kbv",
-                                        "kbvResponseMode",
-                                        "multiple_choice",
-                                        "kbvQuality",
-                                        3),
-                                Map.of(
-                                        "checkMethod",
-                                        "kbv",
-                                        "kbvResponseMode",
-                                        "multiple_choice",
-                                        "kbvQuality",
-                                        3),
-                                Map.of(
-                                        "checkMethod",
-                                        "kbv",
-                                        "kbvResponseMode",
-                                        "multiple_choice",
-                                        "kbvQuality",
-                                        3)),
+                                Map.of("checkMethod", "kbv", "kbvResponseMode", "multiple_choice"),
+                                Map.of("checkMethod", "kbv", "kbvResponseMode", "multiple_choice")),
                         "type",
-                        "IdentityCheck")
+                        "IdentityCheck",
+                        EXPERIAN_IIQ_RESPONSE,
+                        kbvQuestionResponseSummary)
             };
 
             when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn(issuer);
@@ -257,7 +249,15 @@ class VerifiableCredentialServiceTest {
             var auditEventExtensions = verifiableCredentialService.getAuditEventExtensions(kbvItem);
 
             verify(spyEvidenceFactory).create(kbvItem);
-            assertEquals(auditEventExtensions, Map.of(ISSUER, issuer, VC_EVIDENCE_KEY, evidence));
+            assertEquals(
+                    auditEventExtensions,
+                    Map.of(
+                            ISSUER,
+                            issuer,
+                            VC_EVIDENCE_KEY,
+                            evidence,
+                            EXPERIAN_IIQ_RESPONSE,
+                            kbvQuestionResponseSummary));
         }
     }
 
