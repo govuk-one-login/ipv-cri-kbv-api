@@ -21,11 +21,13 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import java.time.Clock;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static com.nimbusds.jwt.JWTClaimNames.ISSUER;
+import static java.util.stream.Collectors.toMap;
+import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
+import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createAuditEventExtensions;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.KBV_CREDENTIAL_TYPE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_ADDRESS_KEY;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_BIRTHDATE_KEY;
@@ -107,29 +109,26 @@ public class VerifiableCredentialService {
                 ISSUER,
                 configurationService.getVerifiableCredentialIssuer(),
                 VC_EVIDENCE_KEY,
-                evidenceFactory.create(kbvItem));
+                evidenceFactory.create(kbvItem),
+                EXPERIAN_IIQ_RESPONSE,
+                createAuditEventExtensions(
+                        kbvItem.getStatus(), kbvItem.getQuestionAnswerResultSummary()));
     }
 
     @SuppressWarnings("unchecked")
     private Object[] convertAddresses(List<Address> addresses) {
+        // Skip superfluous address type from the map to match RFC
         return addresses.stream()
                 .map(
-                        address -> {
-                            var mappedAddress = objectMapper.convertValue(address, Map.class);
-                            // Skip superfluous address type from the map to match RFC
-                            HashMap<String, Object> addressMap = new HashMap<>();
-                            if (mappedAddress != null) {
-                                mappedAddress.forEach(
-                                        (key, value) -> {
-                                            if (!key.equals("addressType")) {
-                                                addressMap.put(key.toString(), value);
-                                            }
-                                        });
-                            }
-
-                            return addressMap;
-                        })
+                        address ->
+                                convertAddressToMap(address).entrySet().stream()
+                                        .filter((entry -> !entry.getKey().equals("addressType")))
+                                        .collect(toMap(Map.Entry::getKey, Map.Entry::getValue)))
                 .toArray();
+    }
+
+    private Map<String, Object> convertAddressToMap(Address address) {
+        return objectMapper.convertValue(address, Map.class);
     }
 
     private Object[] convertBirthDates(List<BirthDate> birthDates) {

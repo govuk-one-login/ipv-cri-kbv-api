@@ -60,7 +60,7 @@ public class QuestionsResponse {
     }
 
     public String getStatus() {
-        return results.getAuthenticationResult();
+        return Objects.nonNull(results) ? results.getAuthenticationResult() : null;
     }
 
     public void setResults(KbvResult results) {
