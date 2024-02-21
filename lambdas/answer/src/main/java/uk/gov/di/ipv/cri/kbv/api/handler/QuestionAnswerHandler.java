@@ -177,7 +177,8 @@ public class QuestionAnswerHandler
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);
             kbvStorageService.update(kbvItem);
-        } else if (Objects.nonNull(questionsResponse.getResults())
+        } else if (Objects.nonNull(questionsResponse)
+                && Objects.nonNull(questionsResponse.getResults())
                 && questionsResponse.hasQuestionRequestEnded()) {
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);
@@ -187,7 +188,7 @@ public class QuestionAnswerHandler
             kbvStorageService.update(kbvItem);
 
             sessionService.createAuthorizationCode(sessionItem);
-        } else if (questionsResponse.hasError()) {
+        } else if (Objects.nonNull(questionsResponse) && questionsResponse.hasError()) {
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);
             kbvItem.setStatus(questionsResponse.getErrorMessage());

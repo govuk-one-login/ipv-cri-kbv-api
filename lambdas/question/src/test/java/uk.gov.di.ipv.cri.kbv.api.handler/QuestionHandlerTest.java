@@ -3,7 +3,6 @@ package uk.gov.di.ipv.cri.kbv.api.handler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
@@ -435,7 +434,7 @@ class QuestionHandlerTest {
     class ProcessQuestionRequest {
         @Test
         void shouldThrowQuestionNotFoundExceptionWhenQuestionStateAndKbvItemEmptyObjects()
-                throws SqsException, JsonProcessingException {
+                throws SqsException {
             String expectedOutcome = "Insufficient Questions (Unable to Authenticate)";
             UUID sessionId = UUID.randomUUID();
             KBVItem kbvItem = mock(KBVItem.class);
@@ -485,9 +484,6 @@ class QuestionHandlerTest {
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
             assertEquals(sessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
             assertEquals(requestHeaders, auditEventContextArgCaptor.getValue().getRequestHeaders());
-            System.out.println(
-                    "mockObjectMapper = "
-                            + new ObjectMapper().writeValueAsString(auditEventContextArgCaptor));
         }
 
         @Test
@@ -615,7 +611,52 @@ class QuestionHandlerTest {
         }
 
         @Test
-        void shouldNotSendThinFileEncounteredAuditEventGivenResponsesNotAThinFile()
+        void shouldNotSendThinFileEncounteredAuditEventGivenResponsesIsAuthenticatedSuccessfully()
+                throws SqsException, IOException {
+            Map<String, String> requestHeaders =
+                    Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
+            ArgumentCaptor<AuditEventContext> argumentCaptorForThinFile =
+                    ArgumentCaptor.forClass(AuditEventContext.class);
+            ArgumentCaptor<Map<String, Object>> auditEventMapForThinFile =
+                    ArgumentCaptor.forClass(Map.class);
+
+            QuestionState questionState = new QuestionState();
+            KBVItem kbvItem = new KBVItem();
+            UUID sessionId = UUID.randomUUID();
+            SessionItem sessionItem = new SessionItem();
+            sessionItem.setSessionId(sessionId);
+            kbvItem.setSessionId(sessionId);
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
+
+            when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+                    .thenReturn(personIdentity);
+            QuestionsResponse experianQuestionResponse =
+                    getExperianQuestionResponse(
+                            new KbvQuestion[] {getQuestionOne(), getQuestionTwo()});
+            doReturn(experianQuestionResponse)
+                    .when(spyKBVService)
+                    .getQuestions(any(QuestionRequest.class));
+
+            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
+                    .thenReturn("3 out of 4");
+            when(mockConfigurationService.getVerifiableCredentialIssuer())
+                    .thenReturn("kbv-component-id");
+
+            assertNotNull(
+                    questionHandler.processQuestionRequest(
+                            questionState, kbvItem, sessionItem, requestHeaders));
+
+            verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
+
+            verify(mockAuditService, never())
+                    .sendAuditEvent(
+                            eq(THIN_FILE_ENCOUNTERED.toString()),
+                            argumentCaptorForThinFile.capture(),
+                            auditEventMapForThinFile.capture());
+        }
+
+        @Test
+        void shouldNotSendThinFileEncounteredAuditEventGivenResponsesStatusIsNull()
                 throws SqsException, IOException {
             Map<String, String> requestHeaders =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
@@ -711,6 +752,7 @@ class QuestionHandlerTest {
 
         KbvResult kbvResult = new KbvResult();
         kbvResult.setAuthenticationResult("Authentication successful");
+        kbvResult.setNextTransId(new String[] {"RTQ"});
 
         questionsResponse.setResults(kbvResult);
 
