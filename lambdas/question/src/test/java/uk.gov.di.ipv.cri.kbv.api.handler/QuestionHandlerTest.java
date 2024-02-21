@@ -3,6 +3,7 @@ package uk.gov.di.ipv.cri.kbv.api.handler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +52,7 @@ import java.util.UUID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -62,11 +64,13 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.EXPERIAN_IIQ_STARTED;
+import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.THIN_FILE_ENCOUNTERED;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.HEADER_SESSION_ID;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.IIQ_STRATEGY_PARAM_NAME;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.LAMBDA_NAME;
@@ -431,7 +435,7 @@ class QuestionHandlerTest {
     class ProcessQuestionRequest {
         @Test
         void shouldThrowQuestionNotFoundExceptionWhenQuestionStateAndKbvItemEmptyObjects()
-                throws SqsException {
+                throws SqsException, JsonProcessingException {
             String expectedOutcome = "Insufficient Questions (Unable to Authenticate)";
             UUID sessionId = UUID.randomUUID();
             KBVItem kbvItem = mock(KBVItem.class);
@@ -481,6 +485,9 @@ class QuestionHandlerTest {
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
             assertEquals(sessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
             assertEquals(requestHeaders, auditEventContextArgCaptor.getValue().getRequestHeaders());
+            System.out.println(
+                    "mockObjectMapper = "
+                            + new ObjectMapper().writeValueAsString(auditEventContextArgCaptor));
         }
 
         @Test
@@ -561,6 +568,96 @@ class QuestionHandlerTest {
         }
     }
 
+    @Nested
+    class ThinFileAuditEvent {
+        @Test
+        void shouldSendThinFileEncounteredAuditEventGivenResponseOnAThinFile()
+                throws SqsException, IOException {
+            Map<String, String> requestHeaders =
+                    Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
+            ArgumentCaptor<AuditEventContext> argumentCaptorForThinFile =
+                    ArgumentCaptor.forClass(AuditEventContext.class);
+            ArgumentCaptor<Map<String, Object>> auditEventMapForThinFile =
+                    ArgumentCaptor.forClass(Map.class);
+
+            QuestionState questionState = new QuestionState();
+            KBVItem kbvItem = new KBVItem();
+            UUID sessionId = UUID.randomUUID();
+            SessionItem sessionItem = new SessionItem();
+            sessionItem.setSessionId(sessionId);
+            kbvItem.setSessionId(sessionId);
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
+
+            when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+                    .thenReturn(personIdentity);
+            QuestionsResponse experianQuestionResponse = getExperianThinFileResponse();
+            doReturn(experianQuestionResponse)
+                    .when(spyKBVService)
+                    .getQuestions(any(QuestionRequest.class));
+
+            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
+                    .thenReturn("3 out of 4");
+            when(mockConfigurationService.getVerifiableCredentialIssuer())
+                    .thenReturn("kbv-component-id");
+
+            assertNotNull(
+                    questionHandler.processQuestionRequest(
+                            questionState, kbvItem, sessionItem, requestHeaders));
+
+            verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
+            verify(mockAuditService)
+                    .sendAuditEvent(
+                            eq(THIN_FILE_ENCOUNTERED.toString()),
+                            argumentCaptorForThinFile.capture(),
+                            auditEventMapForThinFile.capture());
+            assertEquals(sessionItem, argumentCaptorForThinFile.getValue().getSessionItem());
+            assertEquals(requestHeaders, argumentCaptorForThinFile.getValue().getRequestHeaders());
+        }
+
+        @Test
+        void shouldNotSendThinFileEncounteredAuditEventGivenResponsesNotAThinFile()
+                throws SqsException, IOException {
+            Map<String, String> requestHeaders =
+                    Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
+            ArgumentCaptor<AuditEventContext> argumentCaptorForThinFile =
+                    ArgumentCaptor.forClass(AuditEventContext.class);
+            ArgumentCaptor<Map<String, Object>> auditEventMapForThinFile =
+                    ArgumentCaptor.forClass(Map.class);
+
+            QuestionState questionState = new QuestionState();
+            KBVItem kbvItem = new KBVItem();
+            UUID sessionId = UUID.randomUUID();
+            SessionItem sessionItem = new SessionItem();
+            sessionItem.setSessionId(sessionId);
+            kbvItem.setSessionId(sessionId);
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
+
+            when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+                    .thenReturn(personIdentity);
+            QuestionsResponse experianQuestionResponse = getExperianQuestionResponse();
+            doReturn(experianQuestionResponse)
+                    .when(spyKBVService)
+                    .getQuestions(any(QuestionRequest.class));
+
+            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
+                    .thenReturn("3 out of 4");
+            when(mockConfigurationService.getVerifiableCredentialIssuer())
+                    .thenReturn("kbv-component-id");
+
+            assertNotNull(
+                    questionHandler.processQuestionRequest(
+                            questionState, kbvItem, sessionItem, requestHeaders));
+
+            verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
+
+            verify(mockAuditService, never())
+                    .sendAuditEvent(
+                            eq(THIN_FILE_ENCOUNTERED.toString()),
+                            argumentCaptorForThinFile.capture(),
+                            auditEventMapForThinFile.capture());
+        }
+    }
+
     private void setupEventProbeErrorBehaviour() {
         when(mockEventProbe.counterMetric(anyString(), anyDouble())).thenReturn(mockEventProbe);
         when(mockEventProbe.log(any(Level.class), any(Exception.class))).thenReturn(mockEventProbe);
@@ -614,6 +711,21 @@ class QuestionHandlerTest {
 
         KbvResult kbvResult = new KbvResult();
         kbvResult.setAuthenticationResult("Authentication successful");
+
+        questionsResponse.setResults(kbvResult);
+
+        return questionsResponse;
+    }
+
+    private QuestionsResponse getExperianThinFileResponse() {
+        QuestionsResponse questionsResponse = new QuestionsResponse();
+        questionsResponse.setAuthReference("authrefno");
+        questionsResponse.setUniqueReference("urn");
+        questionsResponse.setQuestions(new KbvQuestion[] {new KbvQuestion()});
+
+        KbvResult kbvResult = new KbvResult();
+        kbvResult.setAuthenticationResult("Unable to Authenticate");
+        kbvResult.setNextTransId(new String[] {"END"});
 
         questionsResponse.setResults(kbvResult);
 

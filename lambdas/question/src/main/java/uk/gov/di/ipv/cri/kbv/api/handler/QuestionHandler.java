@@ -46,6 +46,7 @@ import static org.apache.logging.log4j.Level.ERROR;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_EXPIRED;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_NOT_FOUND;
 import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.EXPERIAN_IIQ_STARTED;
+import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.THIN_FILE_ENCOUNTERED;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createAuditEventExtensions;
 
@@ -175,6 +176,8 @@ public class QuestionHandler
         var questionsResponse = getQuestionAnswerResponse(kbvItem, sessionItem, requestHeaders);
         questionOptional = getQuestionFromResponse(questionsResponse, questionState);
         sendQuestionReceivedAuditEvent(questionsResponse, sessionItem, requestHeaders);
+        sendAuditEventIfThinFileEncountered(questionsResponse, sessionItem, requestHeaders);
+
         saveQuestionStateToKbvItem(kbvItem, questionState, questionsResponse);
         if (questionOptional.isPresent()) {
             return questionOptional.get();
@@ -282,6 +285,19 @@ public class QuestionHandler
                 AuditEventType.RESPONSE_RECEIVED,
                 new AuditEventContext(requestHeaders, sessionItem),
                 Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
+    }
+
+    private void sendAuditEventIfThinFileEncountered(
+            QuestionsResponse questionsResponse,
+            SessionItem sessionItem,
+            Map<String, String> requestHeaders)
+            throws SqsException {
+        if (Objects.nonNull(questionsResponse) && questionsResponse.isThinFile()) {
+            auditService.sendAuditEvent(
+                    THIN_FILE_ENCOUNTERED.toString(),
+                    new AuditEventContext(requestHeaders, sessionItem),
+                    Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
+        }
     }
 
     private Map<String, String> getComponentId() {

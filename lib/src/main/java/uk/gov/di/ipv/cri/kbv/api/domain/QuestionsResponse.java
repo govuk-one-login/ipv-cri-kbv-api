@@ -63,6 +63,12 @@ public class QuestionsResponse {
         return Objects.nonNull(results) ? results.getAuthenticationResult() : null;
     }
 
+    public boolean isThinFile() {
+        return this.hasQuestionRequestEnded() && Objects.nonNull(this.getStatus())
+                ? this.getStatus().equalsIgnoreCase("Unable to Authenticate")
+                : false;
+    }
+
     public void setResults(KbvResult results) {
         this.results = results;
     }
