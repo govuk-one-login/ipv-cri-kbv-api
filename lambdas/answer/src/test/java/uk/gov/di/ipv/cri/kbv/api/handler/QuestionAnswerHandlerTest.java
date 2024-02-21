@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -31,6 +32,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionAnswerSummary;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionOptions;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
@@ -61,6 +63,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.common.library.domain.AuditEventType.REQUEST_SENT;
 import static uk.gov.di.ipv.cri.common.library.domain.AuditEventType.RESPONSE_RECEIVED;
+import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.THIN_FILE_ENCOUNTERED;
+import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
 
 @ExtendWith(MockitoExtension.class)
 class QuestionAnswerHandlerTest {
@@ -459,6 +463,161 @@ class QuestionAnswerHandlerTest {
 
         assertEquals(HttpStatusCode.OK, result.getStatusCode());
         assertNull(result.getBody());
+    }
+
+    @Nested
+    class ThinFileAuditEvent {
+        int totalQuestionsAsked = 2;
+        int answeredCorrectly = 1;
+        int answeredInCorrectly = 1;
+
+        @Test
+        void shouldSendThinFileEncounteredAuditEventWhenUserHasAThinFile()
+                throws SqsException, IOException {
+            ArgumentCaptor<AuditEventContext> auditContextArgumentCaptorForThinFile =
+                    ArgumentCaptor.forClass(AuditEventContext.class);
+            ArgumentCaptor<Map<String, Object>> auditEventMapForThinFile =
+                    ArgumentCaptor.forClass(Map.class);
+
+            String authenticationResult = "Unable to Authenticate";
+            UUID sessionId = UUID.randomUUID();
+            SessionItem sessionItem = getSessionItem(sessionId);
+
+            KbvQuestion[] kbvQuestions = getKbvQuestions();
+            QuestionAnswer questionAnswer = getQuestionAnswer();
+            QuestionState questionState = getQuestionState(kbvQuestions);
+            questionState.setAnswer(questionAnswer);
+
+            KBVItem kbvItem = getKbvItem(questionState, sessionId);
+
+            QuestionsResponse questionResponseForAUserWithAThinFile =
+                    getQuestionResponseWithResults(
+                            authenticationResult,
+                            getKbvQuestionAnswerSummary(
+                                    answeredCorrectly, answeredInCorrectly, totalQuestionsAsked));
+
+            when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
+                    .thenReturn(questionState);
+            when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
+                    .thenReturn(questionAnswer);
+            when(mockConfigurationService.getVerifiableCredentialIssuer())
+                    .thenReturn("test-issuer");
+            when(input.getHeaders()).thenReturn(createRequestHeaders());
+            when(input.getBody()).thenReturn(REQUEST_PAYLOAD);
+            when(mockSessionService.validateSessionId(SESSION_ID_AS_STRING))
+                    .thenReturn(sessionItem);
+            when(mockKBVStorageService.getKBVItem(sessionItem.getSessionId())).thenReturn(kbvItem);
+            when(mockKBVGateway.submitAnswers(any(QuestionAnswerRequest.class)))
+                    .thenReturn(questionResponseForAUserWithAThinFile);
+
+            questionAnswerHandler.handleRequest(input.getBody(), input.getHeaders());
+
+            verify(mockAuditService)
+                    .sendAuditEvent(
+                            eq(THIN_FILE_ENCOUNTERED.toString()),
+                            auditContextArgumentCaptorForThinFile.capture(),
+                            auditEventMapForThinFile.capture());
+
+            assertEquals(
+                    sessionItem, auditContextArgumentCaptorForThinFile.getValue().getSessionItem());
+            assertEquals(
+                    Map.of(
+                            EXPERIAN_IIQ_RESPONSE,
+                            Map.of(
+                                    "totalQuestionsAnsweredCorrect",
+                                    answeredCorrectly,
+                                    "totalQuestionsAsked",
+                                    totalQuestionsAsked,
+                                    "totalQuestionsAnsweredIncorrect",
+                                    answeredInCorrectly,
+                                    "outcome",
+                                    authenticationResult)),
+                    auditEventMapForThinFile.getValue());
+
+            assertEquals(
+                    sessionItem, auditContextArgumentCaptorForThinFile.getValue().getSessionItem());
+            assertEquals(
+                    createRequestHeaders(),
+                    auditContextArgumentCaptorForThinFile.getValue().getRequestHeaders());
+        }
+
+        @Test
+        void shouldNotSendThinFileEncounteredAuditEventWhenUserDoesNotHaveAThinFile()
+                throws SqsException, IOException {
+            ArgumentCaptor<AuditEventContext> argumentCaptorForThinFile =
+                    ArgumentCaptor.forClass(AuditEventContext.class);
+            ArgumentCaptor<Map<String, Object>> auditEventMapForThinFile =
+                    ArgumentCaptor.forClass(Map.class);
+
+            String authenticationResult = "Not Authenticated";
+
+            UUID sessionId = UUID.randomUUID();
+            SessionItem sessionItem = getSessionItem(sessionId);
+
+            KbvQuestion[] kbvQuestions = getKbvQuestions();
+
+            QuestionAnswer questionAnswer = getQuestionAnswer();
+            QuestionState questionState = getQuestionState(kbvQuestions);
+            questionState.setAnswer(questionAnswer);
+
+            KBVItem kbvItem = getKbvItem(questionState, sessionId);
+
+            QuestionsResponse questionResponseForAUserWithoutAThinFile =
+                    getQuestionResponseWithResults(
+                            authenticationResult,
+                            getKbvQuestionAnswerSummary(
+                                    answeredCorrectly, answeredInCorrectly, totalQuestionsAsked));
+
+            when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
+                    .thenReturn(questionState);
+            when(mockObjectMapper.readValue(REQUEST_PAYLOAD, QuestionAnswer.class))
+                    .thenReturn(questionAnswer);
+            when(mockConfigurationService.getVerifiableCredentialIssuer())
+                    .thenReturn("test-issuer");
+            when(input.getHeaders()).thenReturn(createRequestHeaders());
+            when(input.getBody()).thenReturn(REQUEST_PAYLOAD);
+            when(mockSessionService.validateSessionId(SESSION_ID_AS_STRING))
+                    .thenReturn(sessionItem);
+            when(mockKBVStorageService.getKBVItem(sessionItem.getSessionId())).thenReturn(kbvItem);
+            when(mockKBVGateway.submitAnswers(any(QuestionAnswerRequest.class)))
+                    .thenReturn(questionResponseForAUserWithoutAThinFile);
+
+            questionAnswerHandler.handleRequest(input.getBody(), input.getHeaders());
+
+            verify(mockAuditService, never())
+                    .sendAuditEvent(
+                            eq(THIN_FILE_ENCOUNTERED.toString()),
+                            argumentCaptorForThinFile.capture(),
+                            auditEventMapForThinFile.capture());
+        }
+
+        private SessionItem getSessionItem(UUID sessionId) {
+            SessionItem sessionItem = new SessionItem();
+            sessionItem.setSessionId(sessionId);
+            return sessionItem;
+        }
+
+        private QuestionAnswer getQuestionAnswer() {
+            QuestionAnswer questionAnswer = new QuestionAnswer();
+            questionAnswer.setQuestionId("Q0008");
+            questionAnswer.setAnswer("some-answer");
+            return questionAnswer;
+        }
+
+        private KBVItem getKbvItem(QuestionState questionState, UUID sessionId)
+                throws JsonProcessingException {
+            KBVItem kbvItem = new KBVItem();
+            kbvItem.setQuestionState(new ObjectMapper().writeValueAsString(questionState));
+            kbvItem.setSessionId(sessionId);
+            return kbvItem;
+        }
+
+        private KbvQuestion[] getKbvQuestions() {
+            KbvQuestion kbvQuestion = new KbvQuestion();
+            kbvQuestion.setQuestionId("Q0008");
+            KbvQuestion[] kbvQuestions = {kbvQuestion};
+            return kbvQuestions;
+        }
     }
 
     private void setupMockEventProbe() {

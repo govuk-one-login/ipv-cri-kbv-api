@@ -28,6 +28,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
@@ -39,6 +40,7 @@ import java.util.Objects;
 import static org.apache.logging.log4j.Level.ERROR;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_EXPIRED;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_NOT_FOUND;
+import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.THIN_FILE_ENCOUNTERED;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createAuditEventExtensions;
 
@@ -167,7 +169,10 @@ public class QuestionAnswerHandler
                 AuditEventType.RESPONSE_RECEIVED,
                 new AuditEventContext(requestHeaders, sessionItem),
                 Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
-        if (questionsResponse.hasQuestions()) {
+
+        sendAuditEventIfThinFileEncountered(questionsResponse, sessionItem, requestHeaders);
+
+        if (Objects.nonNull(questionsResponse) && questionsResponse.hasQuestions()) {
             questionState.setQAPairs(questionsResponse.getQuestions());
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);
@@ -216,5 +221,20 @@ public class QuestionAnswerHandler
 
     private APIGatewayProxyResponseEvent createNoContentResponse() {
         return new APIGatewayProxyResponseEvent().withStatusCode(HttpStatusCode.NO_CONTENT);
+    }
+
+    private void sendAuditEventIfThinFileEncountered(
+            QuestionsResponse questionsResponse,
+            SessionItem sessionItem,
+            Map<String, String> requestHeaders)
+            throws SqsException {
+        if (Objects.nonNull(questionsResponse)
+                && questionsResponse.hasQuestionRequestEnded()
+                && questionsResponse.isThinFile()) {
+            auditService.sendAuditEvent(
+                    THIN_FILE_ENCOUNTERED.toString(),
+                    new AuditEventContext(requestHeaders, sessionItem),
+                    Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
+        }
     }
 }
