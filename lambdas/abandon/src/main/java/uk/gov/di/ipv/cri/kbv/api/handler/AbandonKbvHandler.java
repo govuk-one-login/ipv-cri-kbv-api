@@ -10,6 +10,10 @@ import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.tracing.Tracing;
+import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
+import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
@@ -19,6 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.apache.logging.log4j.Level.ERROR;
+import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.ABANDONED;
 
 public class AbandonKbvHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -26,23 +31,29 @@ public class AbandonKbvHandler
     private static final String HEADER_SESSION_ID = "session-id";
     private static final String ABANDON_KBV = "abandon_kbv";
     private final EventProbe eventProbe;
+    private final AuditService auditService;
+
     private final KBVStorageService kbvStorageService;
     private final SessionService sessionService;
 
     public AbandonKbvHandler(
             EventProbe eventProbe,
             KBVStorageService kbvStorageService,
-            SessionService sessionService) {
+            SessionService sessionService,
+            AuditService auditService) {
         this.eventProbe = eventProbe;
         this.kbvStorageService = kbvStorageService;
         this.sessionService = sessionService;
+        this.auditService = auditService;
     }
 
+    @ExcludeFromGeneratedCoverageReport
     public AbandonKbvHandler() {
         this(
                 new EventProbe(),
                 new KBVStorageService(new ConfigurationService()),
-                new SessionService());
+                new SessionService(),
+                new AuditService());
     }
 
     @Override
@@ -65,8 +76,13 @@ public class AbandonKbvHandler
 
             response.withStatusCode(HttpStatusCode.OK);
             eventProbe.counterMetric(ABANDON_KBV);
+
+            auditService.sendAuditEvent(
+                    ABANDONED.toString(), new AuditEventContext(input.getHeaders(), sessionItem));
+
             return response;
-        } catch (NullPointerException npe) {
+
+        } catch (NullPointerException | SqsException npe) {
             response.withStatusCode(HttpStatusCode.BAD_REQUEST);
             eventProbe.log(ERROR, npe).counterMetric(ABANDON_KBV, 0d);
         } catch (AwsServiceException e) {

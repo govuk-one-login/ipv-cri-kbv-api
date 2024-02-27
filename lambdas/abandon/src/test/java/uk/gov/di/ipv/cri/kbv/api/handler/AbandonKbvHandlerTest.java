@@ -12,7 +12,10 @@ import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.awssdk.http.SdkHttpResponse;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
+import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
+import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
@@ -25,11 +28,15 @@ import static org.apache.logging.log4j.Level.ERROR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.ABANDONED;
 
 @ExtendWith(MockitoExtension.class)
 class AbandonKbvHandlerTest {
@@ -40,10 +47,14 @@ class AbandonKbvHandlerTest {
     @Mock private APIGatewayProxyRequestEvent input;
     @Mock private KBVStorageService mockKbvStorageService;
     @Mock private SessionService mockSessionService;
+
+    @Mock private AuditService mockAuditService;
     @InjectMocks private AbandonKbvHandler abandonKbvHandler;
 
     @Test
-    void shouldReturn200OkWhenItReceivesAValidRequest() {
+    void shouldReturn200OkWhenItReceivesAValidRequest() throws SqsException {
+        ArgumentCaptor<AuditEventContext> auditEventContextArgCaptor =
+                ArgumentCaptor.forClass(AuditEventContext.class);
         Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
         when(input.getHeaders()).thenReturn(sessionHeader);
 
@@ -55,16 +66,21 @@ class AbandonKbvHandlerTest {
         when(mockSessionService.getSession(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(mockSessionItem);
         doNothing().when(mockSessionService).createAuthorizationCode(mockSessionItem);
+
         var result = abandonKbvHandler.handleRequest(input, mock(Context.class));
 
-        assertEquals(HttpStatusCode.OK, result.getStatusCode());
-        assertEquals(ABANDON_STATUS, kbvItem.getStatus());
-
+        verify(mockAuditService)
+                .sendAuditEvent(eq(ABANDONED.toString()), auditEventContextArgCaptor.capture());
         verify(mockKbvStorageService)
                 .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
         verify(mockKbvStorageService).update(kbvItem);
         verify(mockSessionService).createAuthorizationCode(mockSessionItem);
         verify(mockEventProbe).counterMetric(ABANDON_KBV);
+
+        assertEquals(HttpStatusCode.OK, result.getStatusCode());
+        assertEquals(ABANDON_STATUS, kbvItem.getStatus());
+        assertEquals(mockSessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
+        assertEquals(sessionHeader, auditEventContextArgCaptor.getValue().getRequestHeaders());
     }
 
     @Test
@@ -77,6 +93,37 @@ class AbandonKbvHandlerTest {
 
         assertEquals(HttpStatusCode.BAD_REQUEST, result.getStatusCode());
         verify(mockEventProbe).log(any(ERROR.getClass()), any(NullPointerException.class));
+        verify(mockEventProbe).counterMetric(ABANDON_KBV, 0d);
+    }
+
+    @Test
+    void shouldReturnErrorBadRequestWhenItCannotSendAuditEvent() throws SqsException {
+        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
+        when(input.getHeaders()).thenReturn(sessionHeader);
+
+        KBVItem kbvItem = new KBVItem();
+        when(mockKbvStorageService.getKBVItem(
+                        UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
+                .thenReturn(kbvItem);
+        SessionItem mockSessionItem = mock(SessionItem.class);
+        when(mockSessionService.getSession(sessionHeader.get(HEADER_SESSION_ID)))
+                .thenReturn(mockSessionItem);
+        when(mockEventProbe.log(any(ERROR.getClass()), any(SqsException.class)))
+                .thenReturn(mockEventProbe);
+        when(mockEventProbe.counterMetric(ABANDON_KBV)).thenReturn(mockEventProbe);
+
+        doNothing().when(mockSessionService).createAuthorizationCode(mockSessionItem);
+        doThrow(SqsException.class).when(mockAuditService).sendAuditEvent(anyString(), any());
+
+        var result = abandonKbvHandler.handleRequest(input, mock(Context.class));
+
+        verify(mockKbvStorageService)
+                .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
+        verify(mockKbvStorageService).update(kbvItem);
+        verify(mockSessionService).createAuthorizationCode(mockSessionItem);
+        verify(mockEventProbe).counterMetric(ABANDON_KBV);
+
+        verify(mockEventProbe).log(any(ERROR.getClass()), any(SqsException.class));
         verify(mockEventProbe).counterMetric(ABANDON_KBV, 0d);
     }
 
