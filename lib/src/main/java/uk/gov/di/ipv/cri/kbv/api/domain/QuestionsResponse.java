@@ -7,10 +7,8 @@ import java.util.Objects;
 public class QuestionsResponse {
     private String uniqueReference;
     private String authReference;
-
     private String errorCode;
     private String errorMessage;
-
     private KbvQuestion[] questions;
     private KbvResult results;
 
@@ -47,10 +45,8 @@ public class QuestionsResponse {
     }
 
     public boolean hasQuestionRequestEnded() {
-        if (StringUtils.isNotBlank(this.getQuestionStatus())) {
-            return this.getQuestionStatus().equalsIgnoreCase("END");
-        }
-        return false;
+        return Objects.nonNull(this.getQuestionStatus())
+                && this.getQuestionStatus().equalsIgnoreCase("END");
     }
 
     public String getQuestionStatus() {
@@ -61,6 +57,11 @@ public class QuestionsResponse {
 
     public String getStatus() {
         return Objects.nonNull(results) ? results.getAuthenticationResult() : null;
+    }
+
+    public boolean isThinFile() {
+        return Objects.nonNull(this.getStatus())
+                && this.getStatus().equalsIgnoreCase("Unable to Authenticate");
     }
 
     public void setResults(KbvResult results) {

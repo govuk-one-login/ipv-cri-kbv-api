@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -108,9 +111,18 @@ class QuestionsResponseMapperTest {
         assertEquals(OUTCOME, questionsResponse.getResults().getOutcome());
         assertEquals(AUTH_RESULT, questionsResponse.getResults().getAuthenticationResult());
         assertEquals(CONFIRMATION_CODE, questionsResponse.getResults().getConfirmationCode());
+
+        assertTrue(questionsResponse.hasQuestions());
+        assertFalse(questionsResponse.hasQuestionRequestEnded());
+        assertFalse(questionsResponse.isThinFile());
+        assertTrue(questionsResponse.hasError());
+
         assertEquals(TRANS_ID, questionsResponse.getResults().getNextTransId()[0]);
         KbvQuestionAnswerSummary mappedAnswerSummary =
                 questionsResponse.getResults().getAnswerSummary();
+        questionsResponse.getResults().setAnswerSummary(mappedAnswerSummary);
+
+        assertNotNull(questionsResponse.getQuestionAnswerResultSummary());
         assertEquals(CORRECT_ANSWERS, mappedAnswerSummary.getAnsweredCorrect());
         assertEquals(INCORRECT_ANSWERS, mappedAnswerSummary.getAnsweredIncorrect());
         assertEquals(QUESTIONS_ASKED, mappedAnswerSummary.getQuestionsAsked());
