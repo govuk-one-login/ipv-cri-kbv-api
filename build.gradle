@@ -85,7 +85,7 @@ subprojects {
 
 		lambda_tests "software.amazon.awssdk:aws-lambda-java-tests:1.1.1"
 
-		cache "com.github.ben-manes.caffeine:caffeine:3.0.5"
+		cache "com.github.ben-manes.caffeine:caffeine:3.1.8"
 
 		jackson "com.fasterxml.jackson.core:jackson-core:${dependencyVersions.jackson_version}",
 				"com.fasterxml.jackson.core:jackson-databind:${dependencyVersions.jackson_version}",
