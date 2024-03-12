@@ -115,7 +115,7 @@ subprojects {
 
 		test_runtime "org.junit.jupiter:junit-jupiter-engine:${dependencyVersions.junit}"
 
-		logging_runtime "com.amazonaws:aws-lambda-java-log4j2:1.5.1"
+		logging_runtime "com.amazonaws:aws-lambda-java-log4j2:1.6.0"
 
 		hibernate "org.hibernate.validator:hibernate-validator:7.0.1.Final",
 				"org.hibernate:hibernate-validator-annotation-processor:7.0.1.Final"
