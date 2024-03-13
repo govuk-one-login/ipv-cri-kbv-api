@@ -97,7 +97,7 @@ subprojects {
 				"javax.el:javax.el-api:3.0.0",
 				"org.glassfish:javax.el:3.0.0"
 
-		soap 	"com.sun.xml.messaging.saaj:saaj-impl:1.5.3",
+		soap 	"com.sun.xml.messaging.saaj:saaj-impl:3.0.3",
 				"org.apache.cxf:cxf-rt-frontend-jaxws:3.4.5",
 				"org.apache.cxf:cxf-rt-transports-http:3.4.5"
 
