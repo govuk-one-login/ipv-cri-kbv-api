@@ -16,19 +16,21 @@ This will run "build", "test", "buildZip", and "spotLess" reformatting
 ## Deploy to dev environment
 
 Ensure you have the `sam-cli` and `gds-cli` installed, and that you can assume an admin role on the `di-ipv-cri-dev` AWS account.
-
-
-Copy `infrastructure/lambda/samconfig.toml.example` to `infrastructure/lambda/samconfig.toml`, and change the stack name in the new file.
+Alternatively you can [create a sso profile](https://govukverify.atlassian.net/wiki/spaces/LO/pages/3725591061/Getting+set+up+with+AWS+SSO+in+terminal+CLI+-+quickstart)
 
 Deploy to the dev environment with:
 
-`gds aws di-ipv-cri-dev -- ./deploy.sh your-stack-name`
+`gds aws  di-ipv-cri-kbv-dev -- ./deploy.sh` would create a stack using defaults
 
-Supply a required stack name in place of `your-stack-name` above, the `CommonStackName` and `SecretPrefix`
-overridden i.e.
+or using sso profile for di-ipv-cri-kbv-dev
 
-`gds aws di-ipv-cri-dev -- ./deploy.sh your-stack-name your-common-stack-name your-secret-prefix`
+`AWS_PROFILE=profile-name-you-created di-ipv-cri-kbv-dev -- ./deploy.sh`
 
+Override by supply a preferred stack name in place of `your-stack-name` below, the `CommonStackName` and `SecretPrefix`
+
+`gds aws  di-ipv-cri-kbv-dev -- ./deploy.sh your-stack-name your-common-stack-name your-secret-prefix`
+
+`AWS_PROFILE=profile-name-you-created ./deploy.sh your-stack-name your-common-stack-name your-secret-prefix`
 
 ## Deploy to AWS lambda
 
@@ -71,16 +73,10 @@ Deployment to Build:
 
 ## Run Integration Tests
 
-To run all tests:
+To run:
 
-`STACK_NAME=xxxx IPV_CORE_STUB_CRI_ID=kbv-cri-dev ENVIRONMENT=dev API_GATEWAY_ID_PRIVATE=xxxx API_GATEWAY_ID_PUBLIC=xxxx IPV_CORE_STUB_BASIC_AUTH_USER=xxxx IPV_CORE_STUB_BASIC_AUTH_PASSWORD=xxxx IPV_CORE_STUB_URL="https://di-ipv-core-stub.london.cloudapps.digital" APIGW_API_KEY=xxxx gradle integration-tests:cucumber`
-
-To run a particular test tag:
-
-Below runs using the default stub client on PAAS i.e. `ipv-core-stub`
-
-`STACK_NAME=xxxx API_GATEWAY_ID_PRIVATE=xxxx API_GATEWAY_ID_PUBLIC=xxxx IPV_CORE_STUB_BASIC_AUTH_USER=xxxx IPV_CORE_STUB_BASIC_AUTH_PASSWORD=xxxx IPV_CORE_STUB_URL="https://di-ipv-core-stub.london.cloudapps.digital" APIGW_API_KEY=xxxx gradle cucumber -P tags=@tag name`
-
-Below runs by overriding the stub client to one on `https://cri.core.build.stubs.account.gov.uk` in AWS with stub a client_id `ipv-core-stub-aws-stub`
+Below runs by with stub client using `https://cri.core.build.stubs.account.gov.uk` in AWS with stub a client_id `ipv-core-stub-aws-stub`
 
 `ENVIRONMENT=xxxx STACK_NAME=xxxx IPV_CORE_STUB_CRI_ID=kbv-cri-dev  API_GATEWAY_ID_PRIVATE=xxxx API_GATEWAY_ID_PUBLIC=xxxx IPV_CORE_STUB_BASIC_AUTH_USER=xxxx IPV_CORE_STUB_BASIC_AUTH_PASSWORD=xxxx IPV_CORE_STUB_URL="https://cri.core.build.stubs.account.gov.uk" DEFAULT_CLIENT_ID=ipv-core-stub-aws-build APIGW_API_KEY=xxxx gradle integration-tests:cucumber`
+
+NB: The environment variable with value `kbv-cri-dev` allows the command above to use keys in `ipv-config` pointing to keys in `di-ipv-cri-kbv-dev` for the deployed stack.
