@@ -7,6 +7,8 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
@@ -33,6 +35,7 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
@@ -55,6 +58,7 @@ public class QuestionAnswerHandler
     private final EventProbe eventProbe;
     private final AuditService auditService;
     private final ConfigurationService configurationService;
+    private static final Logger LOGGER = LogManager.getLogger(QuestionAnswerHandler.class);
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
@@ -168,6 +172,8 @@ public class QuestionAnswerHandler
                 new AuditEventContext(requestHeaders, sessionItem),
                 Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
         if (questionsResponse.hasQuestions()) {
+            String questions = Arrays.toString(questionsResponse.getQuestions());
+            LOGGER.info("Setting QAPair (questionsResponse.hasQuestions) {}", questions);
             questionState.setQAPairs(questionsResponse.getQuestions());
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);

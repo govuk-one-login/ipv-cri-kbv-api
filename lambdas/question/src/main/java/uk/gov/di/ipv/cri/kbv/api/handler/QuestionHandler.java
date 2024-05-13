@@ -7,6 +7,8 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
@@ -37,6 +39,7 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -67,6 +70,7 @@ public class QuestionHandler
     private final AuditService auditService;
     private final ConfigurationService configurationService;
     private final SessionService sessionService;
+    private static final Logger LOGGER = LogManager.getLogger(QuestionHandler.class);
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
@@ -195,6 +199,8 @@ public class QuestionHandler
             QuestionsResponse questionsResponse, QuestionState questionState) {
 
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
+            String questionResponseString = Arrays.toString(questionsResponse.getQuestions());
+            LOGGER.info("QUESTION HANDLER: Setting QAPairs in {}", questionResponseString);
             questionState.setQAPairs(questionsResponse.getQuestions());
             return questionState.getNextQuestion();
         }

@@ -1,6 +1,8 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,6 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class QuestionState {
+    private static final Logger LOGGER = LogManager.getLogger(QuestionState.class);
     private List<QuestionAnswerPair> qaPairs = new ArrayList<>();
     private List<List<QuestionAnswerPair>> allQaPairs = new ArrayList<>();
 
@@ -35,6 +38,7 @@ public class QuestionState {
     }
 
     public void setAnswer(QuestionAnswer questionAnswer) {
+        LOGGER.info("QAPair size is: {}", this.getQaPairs().size());
         this.getQaPairs().stream()
                 .filter(
                         pair ->
@@ -53,6 +57,10 @@ public class QuestionState {
     public boolean setQuestionsResponse(QuestionsResponse questionsResponse) {
         boolean hasQuestions = questionsResponse.hasQuestions();
         if (hasQuestions) {
+            int qaPairSize = qaPairs.size();
+            String questions = Arrays.toString(questionsResponse.getQuestions());
+            LOGGER.info("setQuestionsResponse: QAPairs size: {}", qaPairSize);
+            LOGGER.info("KBVQuestion : {}", questions);
             setQAPairs(questionsResponse.getQuestions());
         }
         return hasQuestions;
@@ -65,6 +73,10 @@ public class QuestionState {
     public void setQAPairs(KbvQuestion[] questions) {
         this.qaPairs =
                 Arrays.stream(questions).map(QuestionAnswerPair::new).collect(Collectors.toList());
+        int qaPairsSize = qaPairs.size();
+        int questionLength = questions.length;
+        LOGGER.info("QAPairs size: {}", qaPairsSize);
+        LOGGER.info("KBVQuestion size: {}", questionLength);
         this.allQaPairs.add(
                 Arrays.stream(questions).map(QuestionAnswerPair::new).collect(Collectors.toList()));
     }
