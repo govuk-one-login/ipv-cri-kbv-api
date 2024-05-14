@@ -39,6 +39,8 @@ public class QuestionState {
 
     public void setAnswer(QuestionAnswer questionAnswer) {
         LOGGER.info("QAPair size is: {}", this.getQaPairs().size());
+        LOGGER.info("AllQAPair size is: {}", this.getAllQaPairs().size());
+
         this.getQaPairs().stream()
                 .filter(
                         pair ->
@@ -60,6 +62,8 @@ public class QuestionState {
             int qaPairSize = qaPairs.size();
             String questions = Arrays.toString(questionsResponse.getQuestions());
             LOGGER.info("setQuestionsResponse: QAPairs size: {}", qaPairSize);
+            LOGGER.info("setQuestionsResponse: AllQAPairs size: {}", qaPairSize);
+
             LOGGER.info("KBVQuestion : {}", questions);
             setQAPairs(questionsResponse.getQuestions());
         }
@@ -76,6 +80,8 @@ public class QuestionState {
         int qaPairsSize = qaPairs.size();
         int questionLength = questions.length;
         LOGGER.info("QAPairs size: {}", qaPairsSize);
+        LOGGER.info("AllQAPairs size: {}", qaPairsSize);
+
         LOGGER.info("KBVQuestion size: {}", questionLength);
         this.allQaPairs.add(
                 Arrays.stream(questions).map(QuestionAnswerPair::new).collect(Collectors.toList()));

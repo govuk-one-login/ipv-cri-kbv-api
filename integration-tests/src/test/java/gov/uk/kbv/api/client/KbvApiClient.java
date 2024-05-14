@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 
 import static gov.uk.kbv.api.util.AnswerResource.getCorrect;
 import static gov.uk.kbv.api.util.AnswerResource.getInCorrect;
@@ -74,6 +75,7 @@ public class KbvApiClient {
                                                 this.clientConfigurationService.createUriPath(
                                                         "question"))
                                         .build())
+                        .timeout(Duration.ofSeconds(10))
                         .header(HttpHeaders.ACCEPT, JSON_MIME_MEDIA_TYPE)
                         .header(HttpHeaders.SESSION_ID, sessionId)
                         .GET()
