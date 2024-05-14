@@ -35,7 +35,6 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
@@ -45,6 +44,7 @@ import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_NOT_F
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createAuditEventExtensions;
 
+@ExcludeFromGeneratedCoverageReport
 public class QuestionAnswerHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
@@ -172,13 +172,16 @@ public class QuestionAnswerHandler
                 new AuditEventContext(requestHeaders, sessionItem),
                 Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
         if (questionsResponse.hasQuestions()) {
-            String questions = Arrays.toString(questionsResponse.getQuestions());
-            LOGGER.info("Setting QAPair (questionsResponse.hasQuestions): {}", questions);
+            StringBuilder questionResponseBuilder = new StringBuilder();
+            for (var item : questionsResponse.getQuestions()) {
+                questionResponseBuilder.append(item.getQuestionId()).append(",");
+            }
+            String questionResponseString = questionResponseBuilder.toString();
+            LOGGER.info(
+                    "QUESTION ANSWER HANDLER: questionId from 3rd-party {}",
+                    questionResponseString);
             questionState.setQAPairs(questionsResponse.getQuestions());
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
-            LOGGER.info(
-                    "(questionsResponse.hasQuestions) Show Question State: {}",
-                    serializedQuestionState);
             kbvItem.setQuestionState(serializedQuestionState);
             kbvStorageService.update(kbvItem);
         } else if (Objects.nonNull(questionsResponse.getResults())
