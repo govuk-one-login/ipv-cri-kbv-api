@@ -39,7 +39,6 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -127,7 +126,6 @@ public class QuestionHandler
                 eventProbe.counterMetric(LAMBDA_NAME);
                 return createNoContentResponse();
             }
-            LOGGER.info("ProcessQuestionRequest:, {}", questionState);
             KbvQuestion question =
                     processQuestionRequest(questionState, kbvItem, sessionItem, input.getHeaders());
             eventProbe.addDimensions(
@@ -199,8 +197,12 @@ public class QuestionHandler
             QuestionsResponse questionsResponse, QuestionState questionState) {
 
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
-            String questionResponseString = Arrays.toString(questionsResponse.getQuestions());
-            LOGGER.info("QUESTION HANDLER: Setting QAPairs in {}", questionResponseString);
+            StringBuilder questionResponseBuilder = new StringBuilder();
+            for (var item : questionsResponse.getQuestions()) {
+                questionResponseBuilder.append(item.getQuestionId()).append(",");
+            }
+            String questionResponseString = questionResponseBuilder.toString();
+            LOGGER.info("QUESTION HANDLER: questionId from 3rd-party {}", questionResponseString);
             questionState.setQAPairs(questionsResponse.getQuestions());
             return questionState.getNextQuestion();
         }
