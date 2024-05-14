@@ -127,7 +127,7 @@ public class QuestionHandler
                 eventProbe.counterMetric(LAMBDA_NAME);
                 return createNoContentResponse();
             }
-
+            LOGGER.info("ProcessQuestionRequest:, {}", questionState);
             KbvQuestion question =
                     processQuestionRequest(questionState, kbvItem, sessionItem, input.getHeaders());
             eventProbe.addDimensions(

@@ -146,7 +146,7 @@ public class QuestionAnswerHandler
 
         var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
         var submittedAnswer = objectMapper.readValue(requestBody, QuestionAnswer.class);
-
+        LOGGER.info("respondWithAnswerFromDbStore questionState: {}", questionState);
         if (respondWithAnswerFromDbStore(submittedAnswer, questionState, kbvItem)) return;
         respondWithAnswerFromExperianThenStoreInDb(
                 questionState, kbvItem, sessionItem, requestHeaders);
@@ -173,9 +173,12 @@ public class QuestionAnswerHandler
                 Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
         if (questionsResponse.hasQuestions()) {
             String questions = Arrays.toString(questionsResponse.getQuestions());
-            LOGGER.info("Setting QAPair (questionsResponse.hasQuestions) {}", questions);
+            LOGGER.info("Setting QAPair (questionsResponse.hasQuestions): {}", questions);
             questionState.setQAPairs(questionsResponse.getQuestions());
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
+            LOGGER.info(
+                    "(questionsResponse.hasQuestions) Show Question State: {}",
+                    serializedQuestionState);
             kbvItem.setQuestionState(serializedQuestionState);
             kbvStorageService.update(kbvItem);
         } else if (Objects.nonNull(questionsResponse.getResults())
