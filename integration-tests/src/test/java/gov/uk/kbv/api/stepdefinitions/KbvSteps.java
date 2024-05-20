@@ -1,11 +1,22 @@
 package gov.uk.kbv.api.stepdefinitions;
 
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
+import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
+import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
+import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.PurgeQueueRequest;
+import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
+import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import gov.uk.kbv.api.client.KbvApiClient;
+import gov.uk.kbv.api.util.StackProperties;
 import io.cucumber.java.en.And;
+import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
@@ -14,9 +25,13 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class KbvSteps {
     private final ObjectMapper objectMapper;
@@ -24,6 +39,14 @@ public class KbvSteps {
     private final CriTestContext testContext;
 
     private String questionId;
+
+    private final AmazonSQS sqsClient =
+            AmazonSQSClientBuilder.standard().withRegion(Regions.EU_WEST_2).build();
+
+    private final String txmaQueueUrl =
+            StackProperties.getOutput(
+                    StackProperties.getParameter(System.getenv("STACK_NAME"), "CommonStackName"),
+                    "MockAuditEventQueueUrl");
 
     public KbvSteps(
             ClientConfigurationService clientConfigurationService, CriTestContext testContext) {
@@ -142,5 +165,88 @@ public class KbvSteps {
         var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
         assertEquals(
                 score, payload.get("vc").get("evidence").get(0).get("verificationScore").asInt());
+    }
+
+    @Then("TXMA event is added to the sqs queue containing header value")
+    public void txma_event_is_added_to_the_sqs_queue() {
+        ReceiveMessageRequest receiveMessageRequest =
+                new ReceiveMessageRequest()
+                        .withMaxNumberOfMessages(10)
+                        .withQueueUrl(txmaQueueUrl)
+                        .withWaitTimeSeconds(20)
+                        .withVisibilityTimeout(100);
+
+        final List<Message> startEventMessages =
+                sqsClient.receiveMessage(receiveMessageRequest).getMessages().stream()
+                        .filter(
+                                message ->
+                                        message.getBody()
+                                                .contains("IPV_KBV_CRI_EXPERIAN_IIQ_STARTED"))
+                        .collect(Collectors.toList());
+
+        assertFalse(startEventMessages.isEmpty());
+
+        startEventMessages.forEach(
+                message -> assertTrue(message.getBody().contains("device_information")));
+
+        DeleteMessageBatchRequest batch =
+                new DeleteMessageBatchRequest().withQueueUrl(txmaQueueUrl);
+        List<DeleteMessageBatchRequestEntry> entries = batch.getEntries();
+
+        startEventMessages.forEach(
+                m ->
+                        entries.add(
+                                new DeleteMessageBatchRequestEntry()
+                                        .withId(m.getMessageId())
+                                        .withReceiptHandle(m.getReceiptHandle())));
+        sqsClient.deleteMessageBatch(batch);
+    }
+
+    @Then("TXMA event is added to the sqs queue not containing header value")
+    public void txmaEventIsAddedToTheSqsQueueNotContainingHeaderValue() throws Exception {
+        final ReceiveMessageRequest receiveMessageRequest =
+                new ReceiveMessageRequest()
+                        .withMaxNumberOfMessages(10)
+                        .withQueueUrl(txmaQueueUrl)
+                        .withWaitTimeSeconds(20)
+                        .withVisibilityTimeout(100);
+
+        ReceiveMessageResult receiveMessageResult = sqsClient.receiveMessage(receiveMessageRequest);
+        List<Message> sqsMessageList = null;
+        if (receiveMessageResult != null
+                && receiveMessageResult.getMessages() != null
+                && receiveMessageResult.getMessages().size() > 0) {
+            sqsMessageList = receiveMessageResult.getMessages();
+            int startEventCounter = 0;
+            for (Message sqsMessage : sqsMessageList) {
+                String receivedMessageBody = sqsMessage.getBody();
+                if (receivedMessageBody.contains("IPV_KBV_CRI_EXPERIAN_IIQ_STARTED")) {
+                    assertFalse(receivedMessageBody.contains("device_information"));
+                    startEventCounter++;
+                } else System.out.println("START event not found");
+            }
+            if (startEventCounter == 0) {
+                throw new Exception(
+                        "None of the messages contain IPV_KBV_CRI_EXPERIAN_IIQ_STARTED");
+            }
+        } else throw new Exception("RecieveMessageResult is empty");
+
+        DeleteMessageBatchRequest batch =
+                new DeleteMessageBatchRequest().withQueueUrl(txmaQueueUrl);
+        List<DeleteMessageBatchRequestEntry> entries = batch.getEntries();
+
+        sqsMessageList.forEach(
+                m ->
+                        entries.add(
+                                new DeleteMessageBatchRequestEntry()
+                                        .withId(m.getMessageId())
+                                        .withReceiptHandle(m.getReceiptHandle())));
+        sqsClient.deleteMessageBatch(batch);
+    }
+
+    @Given("the SQS events are purged from the queue")
+    public void the_sqs_events_are_purged_from_the_queue() {
+        PurgeQueueRequest pqRequest = new PurgeQueueRequest(txmaQueueUrl);
+        sqsClient.purgeQueue(pqRequest);
     }
 }

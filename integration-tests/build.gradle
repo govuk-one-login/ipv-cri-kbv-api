@@ -32,6 +32,7 @@ dependencies {
 	testImplementation "org.junit.jupiter:junit-jupiter-api:$junitJupiterapi"
 	testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonDatabind"
 	testImplementation configurations.nimbus
+	testImplementation "com.amazonaws:aws-java-sdk-sqs:1.12.712"
 }
 
 configurations {
@@ -45,6 +46,7 @@ test {
 	systemProperty "cucumber.filter.tags", System.getProperty("cucumber.filter.tags")
 	systemProperty "cucumber.options", System.properties.getProperty("cucumber.options")
 	useJUnitPlatform()
+	maxParallelForks = 1
 }
 
 task cucumber() {
