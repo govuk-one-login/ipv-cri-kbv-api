@@ -19,6 +19,8 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Timeout;
 import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
 import uk.gov.di.ipv.cri.common.library.stepdefinitions.CriTestContext;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
@@ -26,6 +28,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -181,7 +184,7 @@ public class KbvSteps {
                         .filter(
                                 message ->
                                         message.getBody()
-                                                .contains("IPV_KBV_CRI_EXPERIAN_IIQ_STARTED"))
+                                                .contains("IPV_KBV_CRI_START"))
                         .collect(Collectors.toList());
 
         assertFalse(startEventMessages.isEmpty());
@@ -220,14 +223,14 @@ public class KbvSteps {
             int startEventCounter = 0;
             for (Message sqsMessage : sqsMessageList) {
                 String receivedMessageBody = sqsMessage.getBody();
-                if (receivedMessageBody.contains("IPV_KBV_CRI_EXPERIAN_IIQ_STARTED")) {
+                if (receivedMessageBody.contains("IPV_KBV_CRI_START")) {
                     assertFalse(receivedMessageBody.contains("device_information"));
                     startEventCounter++;
                 } else System.out.println("START event not found");
             }
             if (startEventCounter == 0) {
                 throw new Exception(
-                        "None of the messages contain IPV_KBV_CRI_EXPERIAN_IIQ_STARTED");
+                        "None of the messages contain IPV_KBV_CRI_START");
             }
         } else throw new Exception("RecieveMessageResult is empty");
 
@@ -243,10 +246,20 @@ public class KbvSteps {
                                         .withReceiptHandle(m.getReceiptHandle())));
         sqsClient.deleteMessageBatch(batch);
     }
+    @And("the SQS events are purged from the queue without wait")
+    public void the_sqs_events_are_purged_from_the_queue_without_wait() throws InterruptedException {
+        Thread.sleep(30000);
+        PurgeQueueRequest pqRequest = new PurgeQueueRequest(txmaQueueUrl);
+        sqsClient.purgeQueue(pqRequest);
+        Thread.sleep(30000);
+    }
 
-    @Given("the SQS events are purged from the queue")
-    public void the_sqs_events_are_purged_from_the_queue() {
+    @And("the SQS events are purged from the queue")
+    @Timeout(value = 2, unit = TimeUnit.MINUTES)
+    public void the_sqs_events_are_purged_from_the_queue() throws InterruptedException {
+        Thread.sleep(40000);
         PurgeQueueRequest pqRequest = new PurgeQueueRequest(txmaQueueUrl);
         sqsClient.purgeQueue(pqRequest);
     }
+
 }
