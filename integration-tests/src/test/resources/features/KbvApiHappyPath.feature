@@ -48,7 +48,8 @@ Feature: 3 out of 4 strategy. User has 2 KBV questions. Tests are run against th
     Then user gets status code 200
     And a valid JWT is returned in the response
     And a verification score of 2 is returned in the response
-    And the SQS events are purged from the queue without wait
+    And the SQS events are deleted from the queue
+#    And the SQS events are purged from the queue without wait
 
   @pre_merge_happy
   Scenario: User answers 2 questions correctly

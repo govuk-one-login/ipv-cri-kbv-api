@@ -9,17 +9,17 @@ import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.PurgeQueueRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import gov.uk.kbv.api.client.KbvApiClient;
+import gov.uk.kbv.api.util.SQSHelper;
 import gov.uk.kbv.api.util.StackProperties;
 import io.cucumber.java.en.And;
-import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Timeout;
 import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
 import uk.gov.di.ipv.cri.common.library.stepdefinitions.CriTestContext;
@@ -27,14 +27,16 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class KbvSteps {
     private final ObjectMapper objectMapper;
@@ -171,38 +173,39 @@ public class KbvSteps {
     }
 
     @Then("TXMA event is added to the sqs queue containing header value")
-    public void txma_event_is_added_to_the_sqs_queue() {
-        ReceiveMessageRequest receiveMessageRequest =
-                new ReceiveMessageRequest()
-                        .withMaxNumberOfMessages(10)
-                        .withQueueUrl(txmaQueueUrl)
-                        .withWaitTimeSeconds(20)
-                        .withVisibilityTimeout(100);
+    public void txma_event_is_added_to_the_sqs_queue()
+            throws InterruptedException, JsonProcessingException {
+        final Map<String, String> eventProperties = new HashMap<>();
+        eventProperties.put("/event_name", "IPV_KBV_CRI_START");
+        eventProperties.put("/user/session_id", testContext.getSessionId());
 
         final List<Message> startEventMessages =
-                sqsClient.receiveMessage(receiveMessageRequest).getMessages().stream()
-                        .filter(
-                                message ->
-                                        message.getBody()
-                                                .contains("IPV_KBV_CRI_START"))
-                        .collect(Collectors.toList());
+                SQSHelper.receiveMatchingMessages(txmaQueueUrl, 1, eventProperties, false);
 
-        assertFalse(startEventMessages.isEmpty());
+        assertEquals(1, startEventMessages.size());
 
-        startEventMessages.forEach(
-                message -> assertTrue(message.getBody().contains("device_information")));
+        final String deviceInformationHeader =
+                objectMapper
+                        .readTree(startEventMessages.get(0).getBody())
+                        .path("restricted")
+                        .path("device_information")
+                        .path("encoded")
+                        .asText();
 
-        DeleteMessageBatchRequest batch =
-                new DeleteMessageBatchRequest().withQueueUrl(txmaQueueUrl);
-        List<DeleteMessageBatchRequestEntry> entries = batch.getEntries();
+        assertNotNull(deviceInformationHeader);
+        assertNotEquals("", deviceInformationHeader);
 
-        startEventMessages.forEach(
-                m ->
-                        entries.add(
-                                new DeleteMessageBatchRequestEntry()
-                                        .withId(m.getMessageId())
-                                        .withReceiptHandle(m.getReceiptHandle())));
-        sqsClient.deleteMessageBatch(batch);
+        //        DeleteMessageBatchRequest batch =
+        //                new DeleteMessageBatchRequest().withQueueUrl(txmaQueueUrl);
+        //        List<DeleteMessageBatchRequestEntry> entries = batch.getEntries();
+        //
+        //        startEventMessages.forEach(
+        //                m ->
+        //                        entries.add(
+        //                                new DeleteMessageBatchRequestEntry()
+        //                                        .withId(m.getMessageId())
+        //                                        .withReceiptHandle(m.getReceiptHandle())));
+        //        sqsClient.deleteMessageBatch(batch);
     }
 
     @Then("TXMA event is added to the sqs queue not containing header value")
@@ -215,6 +218,7 @@ public class KbvSteps {
                         .withVisibilityTimeout(100);
 
         ReceiveMessageResult receiveMessageResult = sqsClient.receiveMessage(receiveMessageRequest);
+
         List<Message> sqsMessageList = null;
         if (receiveMessageResult != null
                 && receiveMessageResult.getMessages() != null
@@ -229,8 +233,7 @@ public class KbvSteps {
                 } else System.out.println("START event not found");
             }
             if (startEventCounter == 0) {
-                throw new Exception(
-                        "None of the messages contain IPV_KBV_CRI_START");
+                throw new Exception("None of the messages contain IPV_KBV_CRI_START");
             }
         } else throw new Exception("RecieveMessageResult is empty");
 
@@ -246,8 +249,10 @@ public class KbvSteps {
                                         .withReceiptHandle(m.getReceiptHandle())));
         sqsClient.deleteMessageBatch(batch);
     }
+
     @And("the SQS events are purged from the queue without wait")
-    public void the_sqs_events_are_purged_from_the_queue_without_wait() throws InterruptedException {
+    public void the_sqs_events_are_purged_from_the_queue_without_wait()
+            throws InterruptedException {
         Thread.sleep(30000);
         PurgeQueueRequest pqRequest = new PurgeQueueRequest(txmaQueueUrl);
         sqsClient.purgeQueue(pqRequest);
@@ -262,4 +267,12 @@ public class KbvSteps {
         sqsClient.purgeQueue(pqRequest);
     }
 
+    @And("the SQS events are deleted from the queue")
+    @Timeout(value = 2, unit = TimeUnit.MINUTES)
+    public void the_sqs_events_are_deleted_from_the_queue() throws InterruptedException {
+        SQSHelper.deleteMatchingMessages(
+                txmaQueueUrl,
+                9,
+                Collections.singletonMap("/user/session_id", testContext.getSessionId()));
+    }
 }
