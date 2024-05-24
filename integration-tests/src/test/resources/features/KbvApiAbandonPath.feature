@@ -5,35 +5,35 @@ Feature: 3 out of 4 strategy. User has 2 KBV questions. Tests are run against th
   Scenario: User abandons first question
     Given user has the test-identity 197 in the form of a signed JWT string
 
-    #Session
+    # Session
     When user sends a POST request to session end point
     Then user gets a session-id
 
-    #First Question
-    When user sends a GET request to question end point
+    # First question
+    When user sends a GET request to question endpoint
     Then user gets status code 200
 
-    #Abandon
+    # Abandon
     When user chooses to abandon the question
     Then user gets status code 200
 
   Scenario: User abandons second question
     Given user has the test-identity 197 in the form of a signed JWT string
 
-    #Session
+    # Session
     When user sends a POST request to session end point
     Then user gets a session-id
 
-    #First Question
-    When user sends a GET request to question end point
+    # First question
+    When user sends a GET request to question endpoint
     Then user gets status code 200
     And user answers the question correctly
     Then user gets status code 200
 
-    #Second Question
-    When user sends a GET request to question end point
+    # Second question
+    When user sends a GET request to question endpoint
     Then user gets status code 200
 
-    #Abandon
+    # Abandon
     When user chooses to abandon the question
     Then user gets status code 200

@@ -6,7 +6,6 @@ import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
 import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.PurgeQueueRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -28,14 +27,13 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.Map.entry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class KbvSteps {
@@ -62,7 +60,7 @@ public class KbvSteps {
         this.testContext = testContext;
     }
 
-    @When("user sends a GET request to question end point")
+    @When("user sends a GET request to question endpoint")
     public void user_sends_a_get_request_to_question_end_point()
             throws IOException, InterruptedException {
         this.testContext.setResponse(
@@ -72,14 +70,14 @@ public class KbvSteps {
         makeQuestionAssertions(deserializeGetResponse);
     }
 
-    @When("user sends a GET request to question end point when there are no questions left")
+    @When("user sends a GET request to question endpoint when there are no questions left")
     public void userSendsAGETRequestToQuestionEndPointWhenThereAreNoQuestionsLeft()
             throws IOException, InterruptedException {
         testContext.setResponse(
                 this.kbvApiClient.sendQuestionRequest(this.testContext.getSessionId()));
     }
 
-    @When("user sends a POST request to Credential Issue end point with a valid access token")
+    @When("user sends a POST request to credential issue endpoint with a valid access token")
     public void user_sends_a_post_request_to_credential_issue_end_point_with_a_valid_access_token()
             throws IOException, InterruptedException {
         this.testContext.setResponse(
@@ -172,43 +170,29 @@ public class KbvSteps {
                 score, payload.get("vc").get("evidence").get(0).get("verificationScore").asInt());
     }
 
-    @Then("TXMA event is added to the sqs queue containing header value")
+    @Then("TXMA event is added to the SQS queue containing device information header")
     public void txma_event_is_added_to_the_sqs_queue()
             throws InterruptedException, JsonProcessingException {
-        final Map<String, String> eventProperties = new HashMap<>();
-        eventProperties.put("/event_name", "IPV_KBV_CRI_START");
-        eventProperties.put("/user/session_id", testContext.getSessionId());
-
         final List<Message> startEventMessages =
-                SQSHelper.receiveMatchingMessages(txmaQueueUrl, 1, eventProperties, false);
+                SQSHelper.receiveMatchingMessages(
+                        txmaQueueUrl,
+                        1,
+                        Map.ofEntries(
+                                entry("/event_name", "IPV_KBV_CRI_START"),
+                                entry("/user/session_id", testContext.getSessionId())));
 
         assertEquals(1, startEventMessages.size());
 
         final String deviceInformationHeader =
                 objectMapper
                         .readTree(startEventMessages.get(0).getBody())
-                        .path("restricted")
-                        .path("device_information")
-                        .path("encoded")
+                        .at("/restricted/device_information/encoded")
                         .asText();
 
-        assertNotNull(deviceInformationHeader);
-        assertNotEquals("", deviceInformationHeader);
-
-        //        DeleteMessageBatchRequest batch =
-        //                new DeleteMessageBatchRequest().withQueueUrl(txmaQueueUrl);
-        //        List<DeleteMessageBatchRequestEntry> entries = batch.getEntries();
-        //
-        //        startEventMessages.forEach(
-        //                m ->
-        //                        entries.add(
-        //                                new DeleteMessageBatchRequestEntry()
-        //                                        .withId(m.getMessageId())
-        //                                        .withReceiptHandle(m.getReceiptHandle())));
-        //        sqsClient.deleteMessageBatch(batch);
+        assertEquals("deviceInformation", deviceInformationHeader);
     }
 
-    @Then("TXMA event is added to the sqs queue not containing header value")
+    @Then("TXMA event is added to the SQS queue not containing device information header")
     public void txmaEventIsAddedToTheSqsQueueNotContainingHeaderValue() throws Exception {
         final ReceiveMessageRequest receiveMessageRequest =
                 new ReceiveMessageRequest()
@@ -250,29 +234,12 @@ public class KbvSteps {
         sqsClient.deleteMessageBatch(batch);
     }
 
-    @And("the SQS events are purged from the queue without wait")
-    public void the_sqs_events_are_purged_from_the_queue_without_wait()
-            throws InterruptedException {
-        Thread.sleep(30000);
-        PurgeQueueRequest pqRequest = new PurgeQueueRequest(txmaQueueUrl);
-        sqsClient.purgeQueue(pqRequest);
-        Thread.sleep(30000);
-    }
-
-    @And("the SQS events are purged from the queue")
-    @Timeout(value = 2, unit = TimeUnit.MINUTES)
-    public void the_sqs_events_are_purged_from_the_queue() throws InterruptedException {
-        Thread.sleep(40000);
-        PurgeQueueRequest pqRequest = new PurgeQueueRequest(txmaQueueUrl);
-        sqsClient.purgeQueue(pqRequest);
-    }
-
     @And("the SQS events are deleted from the queue")
     @Timeout(value = 2, unit = TimeUnit.MINUTES)
     public void the_sqs_events_are_deleted_from_the_queue() throws InterruptedException {
         SQSHelper.deleteMatchingMessages(
                 txmaQueueUrl,
-                9,
+                10,
                 Collections.singletonMap("/user/session_id", testContext.getSessionId()));
     }
 }

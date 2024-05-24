@@ -14,14 +14,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public final class SQSHelper {
 
-    public static final int SQS_TIMEOUT_SECONDS = 30;
-    public static final int SQS_MESSAGE_VISIBILITY_TIMEOUT = 10;
-
-    private static final int SQS_BATCH_SIZE = 10;
+    public static final int TIMEOUT_SECONDS = 30;
+    public static final int SQS_WAIT_TIME_SECONDS = Math.min(20, TIMEOUT_SECONDS);
+    public static final int SQS_MESSAGE_VISIBILITY_TIMEOUT = TIMEOUT_SECONDS + SQS_WAIT_TIME_SECONDS + 5;
 
     private static final AmazonSQS SQS_CLIENT =
             AmazonSQSClientBuilder.standard().withRegion(System.getenv("AWS_REGION")).build();
@@ -30,67 +30,65 @@ public final class SQSHelper {
 
     public static List<Message> receiveMessages(String queueUrl, int count)
             throws InterruptedException {
-        return receiveMessages(queueUrl, count, null, false, SQS_TIMEOUT_SECONDS);
+        return receiveMatchingMessages(queueUrl, count, null, false);
     }
 
     public static List<Message> receiveMatchingMessages(
-            String queueUrl, int count, Map<String, String> properties, boolean deleteNonMatching)
-            throws InterruptedException {
-        return receiveMessages(queueUrl, count, properties, deleteNonMatching, SQS_TIMEOUT_SECONDS);
+            String queueUrl, int count, Map<String, String> filters) throws InterruptedException {
+        return receiveMatchingMessages(queueUrl, count, filters, false);
     }
 
-    //    public static List<Message> receiveMessages(
-    //            String queueUrl, Map<String, String> properties, int desiredCount)
-    //            throws InterruptedException {
-    //        return receiveMessages(
-    //                queueUrl, properties, desiredCount, false, SQS_TIMEOUT_SECONDS);
-    //    }
-    //
-    //    public static List<Message> receiveMessages(
-    //            String queueUrl,
-    //            Map<String, String> properties,
-    //            int count,
-    //            boolean deleteNonMatching)
-    //            throws InterruptedException {
-    //        return receiveMessages(
-    //                queueUrl, properties, count, deleteNonMatching, SQS_TIMEOUT_SECONDS);
-    //    }
+    public static List<Message> receiveMatchingMessages(
+            String queueUrl, int count, Map<String, String> filters, boolean deleteNonMatching)
+            throws InterruptedException {
+        return receiveMessages(
+                queueUrl, count, filters, deleteNonMatching, false, TIMEOUT_SECONDS);
+    }
+
+    public static void deleteMessages(String queueUrl, List<Message> messages) {
+        deleteMessagesFromList(queueUrl, messages);
+    }
+
+    public static void deleteMessages(String queueUrl, int count) throws InterruptedException {
+        deleteMatchingMessages(queueUrl, count, null);
+    }
+
+    public static void deleteMatchingMessages(
+            String queueUrl, int count, Map<String, String> filters) throws InterruptedException {
+        final List<Message> messages =
+                receiveMessages(queueUrl, count, filters, false, true, TIMEOUT_SECONDS);
+        deleteMessages(queueUrl, messages);
+    }
 
     private static List<Message> receiveMessages(
             String queueUrl,
             int count,
             Map<String, String> filters,
             boolean deleteNonMatching,
-            int timeoutSeconds)
-            throws InterruptedException {
-        List<Message> allMessages = new ArrayList<>();
-        List<Message> targetMessages = new ArrayList<>();
+            boolean hideReceivedMessages,
+            int timeoutSeconds) {
+        final boolean filterMessages = filters != null;
+        final List<Message> allMessages = new ArrayList<>();
+        final List<Message> targetMessages = filterMessages ? new ArrayList<>() : allMessages;
 
         final ReceiveMessageRequest receiveMessageRequest =
                 new ReceiveMessageRequest(queueUrl)
                         .withMaxNumberOfMessages(10)
-                        .withWaitTimeSeconds(20)
+                        .withWaitTimeSeconds(SQS_WAIT_TIME_SECONDS)
                         .withVisibilityTimeout(SQS_MESSAGE_VISIBILITY_TIMEOUT);
 
-        final boolean filterMessages = filters != null;
         final long startTime = System.currentTimeMillis();
 
         while (targetMessages.size() < count) {
             final List<Message> newMessages =
                     SQS_CLIENT.receiveMessage(receiveMessageRequest).getMessages();
+
             allMessages.addAll(newMessages);
 
             if (filterMessages) {
-                targetMessages.addAll(
-                        newMessages.stream()
-                                .filter(message -> messageMatches(message, filters))
-                                .collect(Collectors.toList()));
-            } else {
-                targetMessages = allMessages;
-            }
-
-            if (targetMessages.size() < count) {
-                Thread.sleep(500);
+                newMessages.stream()
+                        .filter(message -> messageMatches(message, filters))
+                        .forEach(targetMessages::add);
             }
 
             if (System.currentTimeMillis() - startTime >= timeoutSeconds * 1000L) {
@@ -101,52 +99,14 @@ public final class SQSHelper {
             }
         }
 
-        final List<Message> matchingMessages = targetMessages;
-
-        final List<Message> nonMatchingMessages =
-                allMessages.stream()
-                        .filter(message -> !matchingMessages.contains(message))
-                        .collect(Collectors.toList());
-
         if (filterMessages && deleteNonMatching) {
-            deleteMessages(queueUrl, nonMatchingMessages);
-            resetMessageVisibilityTimeoutBatch(queueUrl, matchingMessages);
-        } else {
-//            resetMessageVisibilityTimeoutBatch(queueUrl, allMessages);
+            deleteMessages(queueUrl, exclude(allMessages, targetMessages));
+            resetMessageVisibility(queueUrl, targetMessages);
+        } else if (!hideReceivedMessages) {
+            resetMessageVisibility(queueUrl, allMessages);
         }
 
-        return matchingMessages;
-    }
-
-    public static void deleteMatchingMessages(
-            String queueUrl, int count, Map<String, String> properties)
-            throws InterruptedException {
-        final List<Message> messages =
-                receiveMessages(queueUrl, count, properties, false, SQS_TIMEOUT_SECONDS);
-        deleteMessages(queueUrl, messages);
-    }
-
-    public static void deleteMessages(String queueUrl, int count) throws InterruptedException {
-        deleteMessages(queueUrl, count, SQS_TIMEOUT_SECONDS);
-    }
-
-    public static void deleteMessages(String queueUrl, int count, int timeoutSeconds)
-            throws InterruptedException {
-        final List<Message> messages =
-                receiveMessages(queueUrl, count, null, false, timeoutSeconds);
-        deleteMessages(queueUrl, messages);
-    }
-
-    public static void deleteMessages(String queueUrl, List<Message> messages) {
-        SQS_CLIENT.deleteMessageBatch(
-                queueUrl,
-                messages.stream()
-                        .map(
-                                message ->
-                                        new DeleteMessageBatchRequestEntry()
-                                                .withId(message.getMessageId())
-                                                .withReceiptHandle(message.getReceiptHandle()))
-                        .collect(Collectors.toList()));
+        return targetMessages;
     }
 
     private static JsonNode parseJson(String json) {
@@ -163,39 +123,56 @@ public final class SQSHelper {
                 .allMatch(key -> body.at(key).asText().equals(properties.get(key)));
     }
 
-    private static void resetMessageVisibilityTimeoutBatch(
-            String queueUrl, List<Message> messages) {
-        while (!messages.isEmpty()) {
-            final List<Message> messageBatch =
-                    messages.subList(0, Math.min(SQS_BATCH_SIZE, messages.size()));
+    private static void resetMessageVisibility(String queueUrl, List<Message> messages) {
+        split(messages, 10)
+                .forEach(
+                        batch ->
+                                SQS_CLIENT.changeMessageVisibilityBatch(
+                                        queueUrl,
+                                        batch.stream()
+                                                .map(
+                                                        message ->
+                                                                new ChangeMessageVisibilityBatchRequestEntry(
+                                                                        message.getMessageId(),
+                                                                        message.getReceiptHandle()))
+                                                .collect(Collectors.toList())));
+    }
 
-            SQS_CLIENT.changeMessageVisibilityBatch(
-                    queueUrl,
-                    messageBatch.stream()
-                            .map(
-                                    message ->
-                                            new ChangeMessageVisibilityBatchRequestEntry()
-                                                    .withId(message.getMessageId())
-                                                    .withReceiptHandle(message.getReceiptHandle())
-                                                    .withVisibilityTimeout(0))
-                            .collect(Collectors.toList()));
+    private static void deleteMessagesFromList(String queueUrl, List<Message> messages) {
+        SQS_CLIENT.deleteMessageBatch(
+                queueUrl,
+                messages.stream()
+                        .map(
+                                message ->
+                                        new DeleteMessageBatchRequestEntry()
+                                                .withId(message.getMessageId())
+                                                .withReceiptHandle(message.getReceiptHandle()))
+                        .collect(Collectors.toList()));
+    }
 
-            messages.removeAll(messageBatch);
+    // --- Utils ---//
+
+    public static <T> List<List<T>> split(List<T> list, int batchSize) {
+        if (list == null) {
+            throw new IllegalArgumentException("List cannot be null");
         }
 
-        //        for (int idx = 0; idx < messages.size(); idx += SQS_BATCH_SIZE) {
-        //            SQS_CLIENT.changeMessageVisibilityBatch(
-        //                    queueUrl,
-        //                    messages.subList(idx, Math.min(idx + SQS_BATCH_SIZE,
-        // messages.size())).stream()
-        //                            .map(
-        //                                    message ->
-        //                                            new ChangeMessageVisibilityBatchRequestEntry()
-        //                                                    .withId(message.getMessageId())
-        //
-        // .withReceiptHandle(message.getReceiptHandle())
-        //                                                    .withVisibilityTimeout(0))
-        //                            .collect(Collectors.toList()));
-        //        }
+        if (batchSize <= 0) {
+            throw new IllegalArgumentException("Batch size must be greater than 0");
+        }
+
+        List<List<T>> batches = new ArrayList<>();
+
+        for (int idx = 0; idx < list.size(); idx += batchSize) {
+            batches.add(list.subList(idx, Math.min(list.size(), idx + batchSize)));
+        }
+
+        return batches;
+    }
+
+    public static <T> List<T> exclude(List<T> source, List<T> exclude) {
+        return source.stream()
+                .filter(((Predicate<T>) exclude::contains).negate())
+                .collect(Collectors.toList());
     }
 }
