@@ -21,7 +21,8 @@ public final class SQSHelper {
 
     public static final int TIMEOUT_SECONDS = 30;
     public static final int SQS_WAIT_TIME_SECONDS = Math.min(20, TIMEOUT_SECONDS);
-    public static final int SQS_MESSAGE_VISIBILITY_TIMEOUT = TIMEOUT_SECONDS + SQS_WAIT_TIME_SECONDS + 5;
+    public static final int SQS_MESSAGE_VISIBILITY_TIMEOUT =
+            TIMEOUT_SECONDS + SQS_WAIT_TIME_SECONDS + 5;
 
     private static final AmazonSQS SQS_CLIENT =
             AmazonSQSClientBuilder.standard().withRegion(System.getenv("AWS_REGION")).build();
@@ -39,24 +40,27 @@ public final class SQSHelper {
     }
 
     public static List<Message> receiveMatchingMessages(
-            String queueUrl, int count, Map<String, String> filters, boolean deleteNonMatching)
-            throws InterruptedException {
-        return receiveMessages(
-                queueUrl, count, filters, deleteNonMatching, false, TIMEOUT_SECONDS);
+            String queueUrl, int count, Map<String, String> filters, boolean deleteNonMatching) {
+        return receiveMessages(queueUrl, count, filters, deleteNonMatching, false, TIMEOUT_SECONDS);
     }
 
     public static void deleteMessages(String queueUrl, List<Message> messages) {
         deleteMessagesFromList(queueUrl, messages);
     }
 
-    public static void deleteMessages(String queueUrl, int count) throws InterruptedException {
+    public static void deleteMessages(String queueUrl, int count) {
         deleteMatchingMessages(queueUrl, count, null);
     }
 
     public static void deleteMatchingMessages(
-            String queueUrl, int count, Map<String, String> filters) throws InterruptedException {
+            String queueUrl, int count, Map<String, String> filters) {
+        deleteMatchingMessages(queueUrl, count, filters, false);
+    }
+
+    public static void deleteMatchingMessages(
+            String queueUrl, int count, Map<String, String> filters, boolean deleteNonMatching) {
         final List<Message> messages =
-                receiveMessages(queueUrl, count, filters, false, true, TIMEOUT_SECONDS);
+                receiveMessages(queueUrl, count, filters, deleteNonMatching, true, TIMEOUT_SECONDS);
         deleteMessages(queueUrl, messages);
     }
 
