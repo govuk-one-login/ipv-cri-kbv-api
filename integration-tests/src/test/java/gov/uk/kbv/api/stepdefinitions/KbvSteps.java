@@ -51,6 +51,8 @@ public class KbvSteps {
                     StackProperties.getParameter(System.getenv("STACK_NAME"), "CommonStackName"),
                     "MockAuditEventQueueUrl");
 
+    private final SQSHelper SQS_HELPER = new SQSHelper();
+
     public KbvSteps(
             ClientConfigurationService clientConfigurationService, CriTestContext testContext) {
         this.objectMapper = new ObjectMapper();
@@ -174,7 +176,7 @@ public class KbvSteps {
     public void txma_event_is_added_to_the_sqs_queue()
             throws InterruptedException, JsonProcessingException {
         final List<Message> startEventMessages =
-                SQSHelper.receiveMatchingMessages(
+                SQS_HELPER.receiveMatchingMessages(
                         txmaQueueUrl,
                         1,
                         Map.ofEntries(
@@ -237,7 +239,7 @@ public class KbvSteps {
     @And("the SQS events are deleted from the queue")
     @Timeout(value = 2, unit = TimeUnit.MINUTES)
     public void the_sqs_events_are_deleted_from_the_queue() throws InterruptedException {
-        SQSHelper.deleteMatchingMessages(
+        SQS_HELPER.deleteMatchingMessages(
                 txmaQueueUrl,
                 10,
                 Collections.singletonMap("/user/session_id", testContext.getSessionId()));
