@@ -536,7 +536,7 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - SQSSendMessagePolicy:
-            QueueName:!If [CreateMockTxmaResources, !GetAtt MockAuditEventQueue.QueueName, !ImportValue AuditEventQueueName]
+            QueueName: !If [CreateMockTxmaResources, !GetAtt MockAuditEventQueue.QueueName, !ImportValue AuditEventQueueName]
         - KMSDecryptPolicy:
             KeyId: !ImportValue core-infrastructure-CriDecryptionKey1Id
         - Statement:
@@ -605,7 +605,7 @@ Resources:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
         - SQSSendMessagePolicy:
-            QueueName:!If [CreateMockTxmaResources, !GetAtt MockAuditEventQueue.QueueName, !ImportValue AuditEventQueueName]
+            QueueName: !If [CreateMockTxmaResources, !GetAtt MockAuditEventQueue.QueueName, !ImportValue AuditEventQueueName]
         - DynamoDBReadPolicy:
             TableName: !Ref KBVTable
         - DynamoDBWritePolicy:
