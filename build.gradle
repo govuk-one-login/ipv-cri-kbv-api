@@ -15,11 +15,12 @@ ext {
 		mockito					 : "4.3.1",
 		glassfish_version        : "3.0.3",
 		powertools_version       : "1.12.3",
-		cri_common_lib           : "1.6.2",
+		cri_common_lib           : "1.6.2-local",
 	]
 }
 
 repositories {
+	mavenLocal()
 	maven {
 		url 'https://gds.jfrog.io/artifactory/di-allowed-repos'
 	}
@@ -34,6 +35,7 @@ subprojects {
 	}
 
 	repositories {
+		mavenLocal()
 		maven {
 			url 'https://gds.jfrog.io/artifactory/di-allowed-repos'
 		}
@@ -49,6 +51,7 @@ subprojects {
 		logging_runtime
 		lambda
 		sqs
+		sso
 		powertools
 		hibernate
 		nimbus
@@ -69,9 +72,9 @@ subprojects {
 
 	dependencies {
 
-		aws platform('software.amazon.awssdk:bom:2.17.191')
+		aws platform('software.amazon.awssdk:bom:2.25.60')
 
-		implementation ('com.amazonaws:aws-java-sdk-cloudformation:1.12.719')
+		//		implementation ('com.amazonaws:aws-java-sdk-cloudformation:1.12.719')
 
 		dynamodb "software.amazon.awssdk:dynamodb",
 				"software.amazon.awssdk:dynamodb-enhanced"
@@ -80,8 +83,10 @@ subprojects {
 				"com.amazonaws:aws-lambda-java-events:${dependencyVersions.aws_lambda_events_version}"
 		//"org.apache.httpcomponents:httpclient:4.5.13"
 
-
 		sqs "software.amazon.awssdk:sqs"
+
+		sso "software.amazon.awssdk:sso",
+				"software.amazon.awssdk:ssooidc"
 
 		kms "software.amazon.awssdk:kms"
 
@@ -107,7 +112,6 @@ subprojects {
 				"software.amazon.lambda:powertools-metrics:${dependencyVersions.powertools_version}",
 				"software.amazon.lambda:powertools-tracing:${dependencyVersions.powertools_version}",
 				"software.amazon.lambda:powertools-parameters:${dependencyVersions.powertools_version}"
-
 
 		tests "org.junit.jupiter:junit-jupiter-api:${dependencyVersions.junit}",
 				"org.junit.jupiter:junit-jupiter-params:${dependencyVersions.junit}",

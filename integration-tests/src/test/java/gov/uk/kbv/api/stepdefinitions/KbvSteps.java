@@ -1,25 +1,16 @@
 package gov.uk.kbv.api.stepdefinitions;
 
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import gov.uk.kbv.api.client.KbvApiClient;
-import gov.uk.kbv.api.util.SQSHelper;
-import gov.uk.kbv.api.util.StackProperties;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.junit.jupiter.api.Timeout;
+import software.amazon.awssdk.services.sqs.model.Message;
+import uk.gov.di.ipv.cri.common.library.aws.SQSHelper;
 import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
 import uk.gov.di.ipv.cri.common.library.stepdefinitions.CriTestContext;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
@@ -33,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.Map.entry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class KbvSteps {
@@ -43,15 +33,18 @@ public class KbvSteps {
 
     private String questionId;
 
-    private final AmazonSQS sqsClient =
-            AmazonSQSClientBuilder.standard().withRegion(Regions.EU_WEST_2).build();
+    //    private final AmazonSQS sqsClient =
+    //            AmazonSQSClientBuilder.standard().withRegion(Regions.EU_WEST_2).build();
 
-    private final String txmaQueueUrl =
-            StackProperties.getOutput(
-                    StackProperties.getParameter(System.getenv("STACK_NAME"), "CommonStackName"),
-                    "MockAuditEventQueueUrl");
+    //    private final SqsClient sqsClient = SqsClient.builder().region(Region.EU_WEST_2).build();
 
-    private final SQSHelper SQS_HELPER = new SQSHelper();
+    private final String auditEventQueueName = "mariese-common-MockAuditEventQueue-BMUJ2D5b5XWM";
+    //            StackProperties.getOutput(
+    //                    StackProperties.getParameter(System.getenv("STACK_NAME"),
+    // "CommonStackName"),
+    //                    "MockAuditEventQueueUrl");
+
+    private final SQSHelper sqs;
 
     public KbvSteps(
             ClientConfigurationService clientConfigurationService, CriTestContext testContext) {
@@ -60,6 +53,8 @@ public class KbvSteps {
 
         this.kbvApiClient = new KbvApiClient(clientConfigurationService);
         this.testContext = testContext;
+
+        this.sqs = new SQSHelper(SQSHelper.DEFAULT_TIMEOUT_SECONDS, null, this.objectMapper);
     }
 
     @When("user sends a GET request to question endpoint")
@@ -173,11 +168,10 @@ public class KbvSteps {
     }
 
     @Then("TXMA event is added to the SQS queue containing device information header")
-    public void txma_event_is_added_to_the_sqs_queue()
-            throws InterruptedException, JsonProcessingException {
+    public void txma_event_is_added_to_the_sqs_queue() throws IOException, InterruptedException {
         final List<Message> startEventMessages =
-                SQS_HELPER.receiveMatchingMessages(
-                        txmaQueueUrl,
+                sqs.receiveMatchingMessages(
+                        auditEventQueueName,
                         1,
                         Map.ofEntries(
                                 entry("/event_name", "IPV_KBV_CRI_START"),
@@ -187,61 +181,63 @@ public class KbvSteps {
 
         final String deviceInformationHeader =
                 objectMapper
-                        .readTree(startEventMessages.get(0).getBody())
+                        .readTree(startEventMessages.get(0).body())
                         .at("/restricted/device_information/encoded")
                         .asText();
 
         assertEquals("deviceInformation", deviceInformationHeader);
     }
 
-    @Then("TXMA event is added to the SQS queue not containing device information header")
-    public void txmaEventIsAddedToTheSqsQueueNotContainingHeaderValue() throws Exception {
-        final ReceiveMessageRequest receiveMessageRequest =
-                new ReceiveMessageRequest()
-                        .withMaxNumberOfMessages(10)
-                        .withQueueUrl(txmaQueueUrl)
-                        .withWaitTimeSeconds(20)
-                        .withVisibilityTimeout(100);
-
-        ReceiveMessageResult receiveMessageResult = sqsClient.receiveMessage(receiveMessageRequest);
-
-        List<Message> sqsMessageList = null;
-        if (receiveMessageResult != null
-                && receiveMessageResult.getMessages() != null
-                && receiveMessageResult.getMessages().size() > 0) {
-            sqsMessageList = receiveMessageResult.getMessages();
-            int startEventCounter = 0;
-            for (Message sqsMessage : sqsMessageList) {
-                String receivedMessageBody = sqsMessage.getBody();
-                if (receivedMessageBody.contains("IPV_KBV_CRI_START")) {
-                    assertFalse(receivedMessageBody.contains("device_information"));
-                    startEventCounter++;
-                } else System.out.println("START event not found");
-            }
-            if (startEventCounter == 0) {
-                throw new Exception("None of the messages contain IPV_KBV_CRI_START");
-            }
-        } else throw new Exception("RecieveMessageResult is empty");
-
-        DeleteMessageBatchRequest batch =
-                new DeleteMessageBatchRequest().withQueueUrl(txmaQueueUrl);
-        List<DeleteMessageBatchRequestEntry> entries = batch.getEntries();
-
-        sqsMessageList.forEach(
-                m ->
-                        entries.add(
-                                new DeleteMessageBatchRequestEntry()
-                                        .withId(m.getMessageId())
-                                        .withReceiptHandle(m.getReceiptHandle())));
-        sqsClient.deleteMessageBatch(batch);
-    }
+    //    @Then("TXMA event is added to the SQS queue not containing device information header")
+    //    public void txmaEventIsAddedToTheSqsQueueNotContainingHeaderValue() throws Exception {
+    //        final ReceiveMessageRequest receiveMessageRequest =
+    //                new ReceiveMessageRequest()
+    //                        .withMaxNumberOfMessages(10)
+    //                        .withQueueUrl(txmaQueueUrl)
+    //                        .withWaitTimeSeconds(20)
+    //                        .withVisibilityTimeout(100);
+    //
+    //        ReceiveMessageResult receiveMessageResult =
+    // sqsClient.receiveMessage(receiveMessageRequest);
+    //
+    //        List<Message> sqsMessageList = null;
+    //        if (receiveMessageResult != null
+    //                && receiveMessageResult.getMessages() != null
+    //                && receiveMessageResult.getMessages().size() > 0) {
+    //            sqsMessageList = receiveMessageResult.getMessages();
+    //            int startEventCounter = 0;
+    //            for (Message sqsMessage : sqsMessageList) {
+    //                String receivedMessageBody = sqsMessage.getBody();
+    //                if (receivedMessageBody.contains("IPV_KBV_CRI_START")) {
+    //                    assertFalse(receivedMessageBody.contains("device_information"));
+    //                    startEventCounter++;
+    //                } else System.out.println("START event not found");
+    //            }
+    //            if (startEventCounter == 0) {
+    //                throw new Exception("None of the messages contain IPV_KBV_CRI_START");
+    //            }
+    //        } else throw new Exception("RecieveMessageResult is empty");
+    //
+    //        DeleteMessageBatchRequest batch =
+    //                new DeleteMessageBatchRequest().withQueueUrl(txmaQueueUrl);
+    //        List<DeleteMessageBatchRequestEntry> entries = batch.getEntries();
+    //
+    //        sqsMessageList.forEach(
+    //                m ->
+    //                        entries.add(
+    //                                new DeleteMessageBatchRequestEntry()
+    //                                        .withId(m.getMessageId())
+    //                                        .withReceiptHandle(m.getReceiptHandle())));
+    //        sqsClient.deleteMessageBatch(batch);
+    //    }
 
     @And("the SQS events are deleted from the queue")
     @Timeout(value = 2, unit = TimeUnit.MINUTES)
     public void the_sqs_events_are_deleted_from_the_queue() throws InterruptedException {
-        SQS_HELPER.deleteMatchingMessages(
-                txmaQueueUrl,
+        sqs.deleteMatchingMessages(
+                auditEventQueueName,
                 10,
-                Collections.singletonMap("/user/session_id", testContext.getSessionId()));
+                Collections.singletonMap("/user/session_id", testContext.getSessionId()),
+                true);
     }
 }

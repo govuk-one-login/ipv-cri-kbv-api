@@ -9,7 +9,7 @@ Feature: 3 out of 4 strategy. User has 2 KBV questions. Tests are run against th
     When user sends a POST request to session end point with txma header
     Then user gets a session-id
 
-    # Assert on TXMA event
+    # TXMA event
     Then TXMA event is added to the SQS queue containing device information header
 
     # First question
@@ -48,7 +48,7 @@ Feature: 3 out of 4 strategy. User has 2 KBV questions. Tests are run against th
     Then user gets status code 200
     And a valid JWT is returned in the response
     And a verification score of 2 is returned in the response
-#    And the SQS events are deleted from the queue
+    And the SQS events are deleted from the queue
 
   @pre_merge_happy
   Scenario: User answers 2 questions correctly
@@ -58,7 +58,7 @@ Feature: 3 out of 4 strategy. User has 2 KBV questions. Tests are run against th
     When user sends a POST request to session end point
     Then user gets a session-id
 
-    # Assert on TXMA event
+    # TXMA event
     Then TXMA event is added to the SQS queue not containing device information header
 
     # First question

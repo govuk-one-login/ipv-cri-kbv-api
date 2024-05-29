@@ -32,19 +32,21 @@ dependencies {
 	testImplementation "org.junit.jupiter:junit-jupiter-api:$junitJupiterapi"
 	testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonDatabind"
 	testImplementation configurations.nimbus
-	testImplementation "com.amazonaws:aws-java-sdk-sqs:1.12.712"
-	testImplementation "com.amazonaws:aws-java-sdk-sts:1.12.712"
-	testImplementation "com.amazonaws:aws-java-sdk-sso:1.12.712"
-	testImplementation "com.amazonaws:aws-java-sdk-bom:1.12.712"
+	testImplementation configurations.aws
+	testImplementation configurations.sqs
+
+	testRuntimeOnly configurations.sso
 }
 
-configurations {
-	cucumberRuntime {
-		extendsFrom testImplementation
-	}
+configurations.all {
+	exclude group: "com.amazonaws", module: "aws-xray-recorder-sdk-core"
+	exclude group: "com.amazonaws", module: "aws-xray-recorder-sdk-aws-sdk-core"
+	exclude group: "com.amazonaws", module: "aws-xray-recorder-sdk-aws-sdk-v2"
+	exclude group: "com.amazonaws", module: "aws-xray-recorder-sdk-aws-sdk-v2-instrumentor"
 }
 
 def tags = findProperty('tags') == null ? 'not @Ignore' : "${findProperty('tags')} and not @Ignore"
+
 test {
 	systemProperty "cucumber.filter.tags", System.getProperty("cucumber.filter.tags")
 	systemProperty "cucumber.options", System.properties.getProperty("cucumber.options")
