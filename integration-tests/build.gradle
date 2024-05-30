@@ -20,8 +20,7 @@ ext {
 }
 
 dependencies {
-
-	implementation project(":lib")
+	testImplementation project(":lib")
 
 	testImplementation(testFixtures("uk.gov.account:cri-common-lib:${dependencyVersions.cri_common_lib}"))
 	testImplementation "io.cucumber:cucumber-java:$cucumberVersion"
@@ -34,17 +33,20 @@ dependencies {
 	testImplementation configurations.nimbus
 }
 
-configurations {
-	cucumberRuntime {
-		extendsFrom testImplementation
-	}
+configurations.testRuntimeClasspath {
+	exclude group: "com.amazonaws", module: "aws-xray-recorder-sdk-core"
+	exclude group: "com.amazonaws", module: "aws-xray-recorder-sdk-aws-sdk-core"
+	exclude group: "com.amazonaws", module: "aws-xray-recorder-sdk-aws-sdk-v2"
+	exclude group: "com.amazonaws", module: "aws-xray-recorder-sdk-aws-sdk-v2-instrumentor"
 }
 
 def tags = findProperty('tags') == null ? 'not @Ignore' : "${findProperty('tags')} and not @Ignore"
+
 test {
 	systemProperty "cucumber.filter.tags", System.getProperty("cucumber.filter.tags")
 	systemProperty "cucumber.options", System.properties.getProperty("cucumber.options")
 	useJUnitPlatform()
+	maxParallelForks = 1
 }
 
 task cucumber() {

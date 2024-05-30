@@ -38,6 +38,10 @@ Parameters:
     Description: "The name of the stack containing the common CRI lambdas/infra"
     Type: String
     Default: "common-cri-api"
+  TxmaStackName:
+    Description: "The stack containing the TXMA infrastructure"
+    Type: String
+    Default: txma-infrastructure
 
 Conditions:
   UseCodeSigningConfigArn:
@@ -387,7 +391,11 @@ Resources:
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-question"
-          SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
+          SQS_AUDIT_EVENT_QUEUE_URL:
+            Fn::ImportValue:
+              !Sub
+              - ${stackName}-AuditEventQueueUrl
+              - stackName: !If [ IsDevEnvironment, !Ref CommonStackName, !Ref TxmaStackName ]
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
@@ -402,7 +410,11 @@ Resources:
         - DynamoDBReadPolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
         - SQSSendMessagePolicy:
-            QueueName: !ImportValue AuditEventQueueName
+            QueueName:
+              Fn::ImportValue:
+                !Sub
+                - ${stackName}-AuditEventQueueName
+                - stackName: !If [ IsDevEnvironment, !Ref CommonStackName, !Ref TxmaStackName ]
         - KMSDecryptPolicy:
             KeyId: !ImportValue core-infrastructure-CriDecryptionKey1Id
         - Statement:
@@ -439,7 +451,10 @@ Resources:
                 - 'kms:Decrypt'
                 - 'kms:GenerateDataKey'
               Resource:
-                - !ImportValue AuditEventQueueEncryptionKeyArn
+                - Fn::ImportValue:
+                    !Sub
+                    - ${stackName}-AuditEventQueueEncryptionKeyArn
+                    - stackName: !If [IsDevEnvironment, !Ref CommonStackName, !Ref TxmaStackName]
 
   KBVQuestionFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -463,7 +478,11 @@ Resources:
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-answer"
-          SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
+          SQS_AUDIT_EVENT_QUEUE_URL:
+            Fn::ImportValue:
+              !Sub
+              - ${stackName}-AuditEventQueueUrl
+              - stackName: !If [ IsDevEnvironment, !Ref CommonStackName, !Ref TxmaStackName ]
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
@@ -476,7 +495,11 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - SQSSendMessagePolicy:
-            QueueName: !ImportValue AuditEventQueueName
+            QueueName:
+              Fn::ImportValue:
+                !Sub
+                - ${stackName}-AuditEventQueueName
+                - stackName: !If [ IsDevEnvironment, !Ref CommonStackName, !Ref TxmaStackName ]
         - KMSDecryptPolicy:
             KeyId: !ImportValue core-infrastructure-CriDecryptionKey1Id
         - Statement:
@@ -511,7 +534,10 @@ Resources:
                 - 'kms:Decrypt'
                 - 'kms:GenerateDataKey'
               Resource:
-                - !ImportValue AuditEventQueueEncryptionKeyArn
+                - Fn::ImportValue:
+                    !Sub
+                    - ${stackName}-AuditEventQueueEncryptionKeyArn
+                    - stackName: !If [IsDevEnvironment, !Ref CommonStackName, !Ref TxmaStackName]
 
   KBVAnswerFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -535,12 +561,20 @@ Resources:
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-abandon"
-          SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
+          SQS_AUDIT_EVENT_QUEUE_URL:
+            Fn::ImportValue:
+              !Sub
+              - ${stackName}-AuditEventQueueUrl
+              - stackName: !If [ IsDevEnvironment, !Ref CommonStackName, !Ref TxmaStackName ]
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
         - SQSSendMessagePolicy:
-            QueueName: !ImportValue AuditEventQueueName
+            QueueName:
+              Fn::ImportValue:
+                !Sub
+                - ${stackName}-AuditEventQueueName
+                - stackName: !If [ IsDevEnvironment, !Ref CommonStackName, !Ref TxmaStackName ]
         - DynamoDBReadPolicy:
             TableName: !Ref KBVTable
         - DynamoDBWritePolicy:
@@ -564,7 +598,10 @@ Resources:
                 - 'kms:Decrypt'
                 - 'kms:GenerateDataKey'
               Resource:
-                - !ImportValue AuditEventQueueEncryptionKeyArn
+                - Fn::ImportValue:
+                    !Sub
+                    - ${stackName}-AuditEventQueueEncryptionKeyArn
+                    - stackName: !If [IsDevEnvironment, !Ref CommonStackName, !Ref TxmaStackName]
 
   KBVAbandonFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -588,7 +625,11 @@ Resources:
       Environment:
         Variables:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-issuecredential"
-          SQS_AUDIT_EVENT_QUEUE_URL: !ImportValue AuditEventQueueUrl
+          SQS_AUDIT_EVENT_QUEUE_URL:
+            Fn::ImportValue:
+              !Sub
+              - ${stackName}-AuditEventQueueUrl
+              - stackName: !If [ IsDevEnvironment, !Ref CommonStackName, !Ref TxmaStackName ]
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
@@ -604,7 +645,11 @@ Resources:
               - "kms:Sign"
             Resource: !ImportValue core-infrastructure-CriVcSigningKey1Arn
         - SQSSendMessagePolicy:
-            QueueName: !ImportValue AuditEventQueueName
+            QueueName:
+              Fn::ImportValue:
+                !Sub
+                - ${stackName}-AuditEventQueueName
+                - stackName: !If [ IsDevEnvironment, !Ref CommonStackName, !Ref TxmaStackName ]
         - Statement:
             Effect: Allow
             Action:
@@ -626,7 +671,10 @@ Resources:
               - kms:Decrypt
               - kms:GenerateDataKey
             Resource:
-              - !ImportValue AuditEventQueueEncryptionKeyArn
+              - Fn::ImportValue:
+                  !Sub
+                  - ${stackName}-AuditEventQueueEncryptionKeyArn
+                  - stackName: !If [IsDevEnvironment, !Ref CommonStackName, !Ref TxmaStackName]
 
   IssueCredentialFunctionLogGroup:
     Type: AWS::Logs::LogGroup
