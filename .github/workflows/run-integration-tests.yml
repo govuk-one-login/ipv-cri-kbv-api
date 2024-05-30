@@ -24,6 +24,9 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-latest
     environment: di-ipv-cri-dev
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Pull repository
         uses: actions/checkout@v4
@@ -32,6 +35,12 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           gradle-version: 7.4.2
+
+      - name: Assume AWS Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws_role_arn }}
+          aws-region: ${{ inputs.aws-region }}
 
       - name: Run tests
         env:
