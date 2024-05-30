@@ -15,12 +15,11 @@ ext {
 		mockito					 : "4.3.1",
 		glassfish_version        : "3.0.3",
 		powertools_version       : "1.12.3",
-		cri_common_lib           : "1.6.2-local",
+		cri_common_lib           : "1.7.0",
 	]
 }
 
 repositories {
-	mavenLocal()
 	maven {
 		url 'https://gds.jfrog.io/artifactory/di-allowed-repos'
 	}
@@ -35,7 +34,6 @@ subprojects {
 	}
 
 	repositories {
-		mavenLocal()
 		maven {
 			url 'https://gds.jfrog.io/artifactory/di-allowed-repos'
 		}
@@ -51,7 +49,6 @@ subprojects {
 		logging_runtime
 		lambda
 		sqs
-		sso
 		powertools
 		hibernate
 		nimbus
@@ -72,7 +69,7 @@ subprojects {
 
 	dependencies {
 
-		aws platform('software.amazon.awssdk:bom:2.25.60')
+		aws platform('software.amazon.awssdk:bom:2.20.162')
 
 		//		implementation ('com.amazonaws:aws-java-sdk-cloudformation:1.12.719')
 
@@ -84,9 +81,6 @@ subprojects {
 		//"org.apache.httpcomponents:httpclient:4.5.13"
 
 		sqs "software.amazon.awssdk:sqs"
-
-		sso "software.amazon.awssdk:sso",
-				"software.amazon.awssdk:ssooidc"
 
 		kms "software.amazon.awssdk:kms"
 

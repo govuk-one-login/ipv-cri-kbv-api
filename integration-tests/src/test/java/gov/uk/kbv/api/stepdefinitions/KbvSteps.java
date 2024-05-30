@@ -10,6 +10,7 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.junit.jupiter.api.Timeout;
 import software.amazon.awssdk.services.sqs.model.Message;
+import uk.gov.di.ipv.cri.common.library.aws.CloudFormationHelper;
 import uk.gov.di.ipv.cri.common.library.aws.SQSHelper;
 import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
 import uk.gov.di.ipv.cri.common.library.stepdefinitions.CriTestContext;
@@ -38,11 +39,11 @@ public class KbvSteps {
 
     //    private final SqsClient sqsClient = SqsClient.builder().region(Region.EU_WEST_2).build();
 
-    private final String auditEventQueueName = "mariese-common-MockAuditEventQueue-BMUJ2D5b5XWM";
-    //            StackProperties.getOutput(
-    //                    StackProperties.getParameter(System.getenv("STACK_NAME"),
-    // "CommonStackName"),
-    //                    "MockAuditEventQueueUrl");
+    private final String auditEventQueueName =
+            CloudFormationHelper.getOutput(
+                    CloudFormationHelper.getParameter(
+                            System.getenv("STACK_NAME"), "CommonStackName"),
+                    "MockAuditEventQueueUrl");
 
     private final SQSHelper sqs;
 
