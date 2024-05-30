@@ -184,7 +184,8 @@ public class KbvSteps {
     }
 
     @Then("TXMA event is added to the SQS queue not containing device information header")
-    public void txmaEventIsAddedToTheSqsQueueNotContainingHeaderValue() throws IOException, InterruptedException {
+    public void txmaEventIsAddedToTheSqsQueueNotContainingHeaderValue()
+            throws IOException, InterruptedException {
         final List<Message> startEventMessages =
                 sqs.receiveMatchingMessages(
                         auditEventQueueName,
@@ -196,55 +197,10 @@ public class KbvSteps {
         assertEquals(1, startEventMessages.size());
 
         final String deviceInformationHeader =
-                objectMapper
-                        .readTree(startEventMessages.get(0).body())
-                        .asText();
+                objectMapper.readTree(startEventMessages.get(0).body()).asText();
 
         assertNotEquals("deviceInformation", deviceInformationHeader);
     }
-
-    //    @Then("TXMA event is added to the SQS queue not containing device information header")
-    //    public void txmaEventIsAddedToTheSqsQueueNotContainingHeaderValue() throws Exception {
-    //        final ReceiveMessageRequest receiveMessageRequest =
-    //                new ReceiveMessageRequest()
-    //                        .withMaxNumberOfMessages(10)
-    //                        .withQueueUrl(txmaQueueUrl)
-    //                        .withWaitTimeSeconds(20)
-    //                        .withVisibilityTimeout(100);
-    //
-    //        ReceiveMessageResult receiveMessageResult =
-    // sqsClient.receiveMessage(receiveMessageRequest);
-    //
-    //        List<Message> sqsMessageList = null;
-    //        if (receiveMessageResult != null
-    //                && receiveMessageResult.getMessages() != null
-    //                && receiveMessageResult.getMessages().size() > 0) {
-    //            sqsMessageList = receiveMessageResult.getMessages();
-    //            int startEventCounter = 0;
-    //            for (Message sqsMessage : sqsMessageList) {
-    //                String receivedMessageBody = sqsMessage.getBody();
-    //                if (receivedMessageBody.contains("IPV_KBV_CRI_START")) {
-    //                    assertFalse(receivedMessageBody.contains("device_information"));
-    //                    startEventCounter++;
-    //                } else System.out.println("START event not found");
-    //            }
-    //            if (startEventCounter == 0) {
-    //                throw new Exception("None of the messages contain IPV_KBV_CRI_START");
-    //            }
-    //        } else throw new Exception("RecieveMessageResult is empty");
-    //
-    //        DeleteMessageBatchRequest batch =
-    //                new DeleteMessageBatchRequest().withQueueUrl(txmaQueueUrl);
-    //        List<DeleteMessageBatchRequestEntry> entries = batch.getEntries();
-    //
-    //        sqsMessageList.forEach(
-    //                m ->
-    //                        entries.add(
-    //                                new DeleteMessageBatchRequestEntry()
-    //                                        .withId(m.getMessageId())
-    //                                        .withReceiptHandle(m.getReceiptHandle())));
-    //        sqsClient.deleteMessageBatch(batch);
-    //    }
 
     @And("the SQS events are deleted from the queue")
     @Timeout(value = 2, unit = TimeUnit.MINUTES)
