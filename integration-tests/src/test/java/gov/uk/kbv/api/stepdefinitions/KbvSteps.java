@@ -24,8 +24,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Map.entry;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class KbvSteps {
     private final ObjectMapper objectMapper;
@@ -33,11 +32,6 @@ public class KbvSteps {
     private final CriTestContext testContext;
 
     private String questionId;
-
-    //    private final AmazonSQS sqsClient =
-    //            AmazonSQSClientBuilder.standard().withRegion(Regions.EU_WEST_2).build();
-
-    //    private final SqsClient sqsClient = SqsClient.builder().region(Region.EU_WEST_2).build();
 
     private final String auditEventQueueName =
             CloudFormationHelper.getOutput(
@@ -187,6 +181,26 @@ public class KbvSteps {
                         .asText();
 
         assertEquals("deviceInformation", deviceInformationHeader);
+    }
+
+    @Then("TXMA event is added to the SQS queue not containing device information header")
+    public void txmaEventIsAddedToTheSqsQueueNotContainingHeaderValue() throws IOException, InterruptedException {
+        final List<Message> startEventMessages =
+                sqs.receiveMatchingMessages(
+                        auditEventQueueName,
+                        1,
+                        Map.ofEntries(
+                                entry("/event_name", "IPV_KBV_CRI_START"),
+                                entry("/user/session_id", testContext.getSessionId())));
+
+        assertEquals(1, startEventMessages.size());
+
+        final String deviceInformationHeader =
+                objectMapper
+                        .readTree(startEventMessages.get(0).body())
+                        .asText();
+
+        assertNotEquals("deviceInformation", deviceInformationHeader);
     }
 
     //    @Then("TXMA event is added to the SQS queue not containing device information header")
