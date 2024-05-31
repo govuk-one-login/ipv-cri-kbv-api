@@ -4,7 +4,6 @@ plugins {
 }
 
 repositories {
-	mavenLocal()
 	maven {
 		url = uri('https://repo.maven.apache.org/maven2/')
 	}
@@ -20,8 +19,7 @@ ext {
 }
 
 dependencies {
-
-	implementation project(":lib")
+	testImplementation project(":lib")
 
 	testImplementation(testFixtures("uk.gov.account:cri-common-lib:${dependencyVersions.cri_common_lib}"))
 	testImplementation "io.cucumber:cucumber-java:$cucumberVersion"
@@ -41,6 +39,7 @@ configurations {
 }
 
 def tags = findProperty('tags') == null ? 'not @Ignore' : "${findProperty('tags')} and not @Ignore"
+
 test {
 	systemProperty "cucumber.filter.tags", System.getProperty("cucumber.filter.tags")
 	systemProperty "cucumber.options", System.properties.getProperty("cucumber.options")
