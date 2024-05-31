@@ -30,3 +30,6 @@ hs_err_pid*
 .gradle
 /integration-tests/target/
 /integration-tests/bin/
+
+# Environment variables for local test running
+.env
