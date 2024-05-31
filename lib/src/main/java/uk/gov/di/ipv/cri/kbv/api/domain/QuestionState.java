@@ -3,6 +3,7 @@ package uk.gov.di.ipv.cri.kbv.api.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +15,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@ExcludeFromGeneratedCoverageReport
 public class QuestionState {
     private static final Logger LOGGER = LogManager.getLogger(QuestionState.class);
     private List<QuestionAnswerPair> qaPairs = new ArrayList<>();
@@ -38,7 +40,6 @@ public class QuestionState {
     }
 
     public void setAnswer(QuestionAnswer questionAnswer) {
-        LOGGER.info("QAPair size is: {}", this.getQaPairs().size());
         this.getQaPairs().stream()
                 .filter(
                         pair ->
@@ -47,10 +48,35 @@ public class QuestionState {
                                         .equals(questionAnswer.getQuestionId()))
                 .findFirst()
                 .orElseThrow(
-                        () ->
-                                new IllegalStateException(
-                                        "Question not found for questionID: "
-                                                + questionAnswer.getQuestionId()))
+                        () -> {
+                            boolean found = false;
+
+                            for (var item : this.getAllQaPairs()) {
+                                var result =
+                                        item.stream()
+                                                .filter(
+                                                        pair ->
+                                                                pair.getQuestion()
+                                                                        .getQuestionId()
+                                                                        .equals(
+                                                                                questionAnswer
+                                                                                        .getQuestionId()))
+                                                .findAny();
+                                if (result.isPresent()) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (found) {
+                                LOGGER.info("Question existing in allQAPairs but not in QAPairs");
+                            } else {
+                                LOGGER.info(
+                                        "Question does not existing in both allQAPairs and QAPairs");
+                            }
+                            return new IllegalStateException(
+                                    "Question not found for questionID: "
+                                            + questionAnswer.getQuestionId());
+                        })
                 .setAnswer(questionAnswer.getAnswer());
     }
 
@@ -60,6 +86,8 @@ public class QuestionState {
             int qaPairSize = qaPairs.size();
             String questions = Arrays.toString(questionsResponse.getQuestions());
             LOGGER.info("setQuestionsResponse: QAPairs size: {}", qaPairSize);
+            LOGGER.info("setQuestionsResponse: AllQAPairs size: {}", qaPairSize);
+
             LOGGER.info("KBVQuestion : {}", questions);
             setQAPairs(questionsResponse.getQuestions());
         }
@@ -76,6 +104,8 @@ public class QuestionState {
         int qaPairsSize = qaPairs.size();
         int questionLength = questions.length;
         LOGGER.info("QAPairs size: {}", qaPairsSize);
+        LOGGER.info("AllQAPairs size: {}", qaPairsSize);
+
         LOGGER.info("KBVQuestion size: {}", questionLength);
         this.allQaPairs.add(
                 Arrays.stream(questions).map(QuestionAnswerPair::new).collect(Collectors.toList()));
