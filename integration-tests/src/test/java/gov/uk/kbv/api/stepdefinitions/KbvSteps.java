@@ -1,29 +1,41 @@
 package gov.uk.kbv.api.stepdefinitions;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import gov.uk.kbv.api.client.KbvApiClient;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import software.amazon.awssdk.services.sqs.model.Message;
+import uk.gov.di.ipv.cri.common.library.aws.CloudFormationHelper;
+import uk.gov.di.ipv.cri.common.library.aws.SQSHelper;
 import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
 import uk.gov.di.ipv.cri.common.library.stepdefinitions.CriTestContext;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
+import static java.util.Map.entry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class KbvSteps {
     private final ObjectMapper objectMapper;
     private final KbvApiClient kbvApiClient;
     private final CriTestContext testContext;
-
+    private final SQSHelper sqs;
     private String questionId;
+
+    private final String auditEventQueueUrl =
+            CloudFormationHelper.getOutput(
+                    CloudFormationHelper.getParameter(System.getenv("STACK_NAME"), "TxmaStackName"),
+                    "AuditEventQueueUrl");
 
     public KbvSteps(
             ClientConfigurationService clientConfigurationService, CriTestContext testContext) {
@@ -32,27 +44,34 @@ public class KbvSteps {
 
         this.kbvApiClient = new KbvApiClient(clientConfigurationService);
         this.testContext = testContext;
+
+        this.sqs = new SQSHelper(null, this.objectMapper);
     }
 
-    @When("user sends a GET request to question end point")
-    public void user_sends_a_get_request_to_question_end_point()
-            throws IOException, InterruptedException {
+    @When("user sends a GET request to question endpoint")
+    public void userSendsGetRequestToQuestionEndpoint() throws IOException, InterruptedException {
         this.testContext.setResponse(
                 this.kbvApiClient.sendQuestionRequest(this.testContext.getSessionId()));
-        var deserializeGetResponse =
+
+        final var kbvQuestion =
                 objectMapper.readValue(this.testContext.getResponse().body(), KbvQuestion.class);
-        makeQuestionAssertions(deserializeGetResponse);
+
+        assertNotNull(kbvQuestion);
+        assertNotNull(kbvQuestion.getText());
+        assertNotNull(kbvQuestion.getQuestionId());
+
+        this.questionId = kbvQuestion.getQuestionId();
     }
 
-    @When("user sends a GET request to question end point when there are no questions left")
-    public void userSendsAGETRequestToQuestionEndPointWhenThereAreNoQuestionsLeft()
+    @When("user sends a GET request to question endpoint when there are no questions left")
+    public void userSendsGetRequestToQuestionEndpointWhenThereAreNoQuestionsLeft()
             throws IOException, InterruptedException {
         testContext.setResponse(
                 this.kbvApiClient.sendQuestionRequest(this.testContext.getSessionId()));
     }
 
-    @When("user sends a POST request to Credential Issue end point with a valid access token")
-    public void user_sends_a_post_request_to_credential_issue_end_point_with_a_valid_access_token()
+    @When("user sends a POST request to credential issue endpoint with a valid access token")
+    public void userSendsPostRequestToCredentialIssueEndpointWithValidAccessToken()
             throws IOException, InterruptedException {
         this.testContext.setResponse(
                 this.kbvApiClient.sendIssueCredentialRequest(this.testContext.getAccessToken()));
@@ -70,73 +89,90 @@ public class KbvSteps {
     }
 
     @Then("user answers the question incorrectly")
-    public void user_answers_the_question_incorrectly() throws IOException, InterruptedException {
+    public void userAnswersTheQuestionIncorrectly() throws IOException, InterruptedException {
         this.kbvApiClient.submitIncorrectAnswers(questionId, this.testContext.getSessionId());
     }
 
     @And("a valid JWT is returned in the response")
-    public void aValidJWTIsReturnedInTheResponse() throws ParseException, IOException {
-        String responseBody = this.testContext.getResponse().body();
+    public void validJwtIsReturnedInTheResponse() throws ParseException, IOException {
+        final String responseBody = this.testContext.getResponse().body();
+
         assertNotNull(responseBody);
         makeVerifiableCredentialJwtAssertions(SignedJWT.parse(responseBody));
     }
 
-    private void makeQuestionAssertions(KbvQuestion kbvQuestion) {
-        if (kbvQuestion != null) {
-            assertNotNull(kbvQuestion.getText());
-            assertNotNull(kbvQuestion.getQuestionId());
-            questionId = kbvQuestion.getQuestionId();
-        }
+    @And("a verification score of {int} is returned in the response")
+    public void verificationScoreIsReturnedInTheResponse(int score)
+            throws ParseException, IOException {
+        final SignedJWT decodedJWT = SignedJWT.parse(this.testContext.getResponse().body());
+        final var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
+
+        assertEquals(score, payload.at("/vc/evidence/0/verificationScore").asInt());
+    }
+
+    @Then("TXMA event is added to the SQS queue containing device information header")
+    public void txmaEventIsAddedToSqsQueueContainingDeviceInformationHeader()
+            throws IOException, InterruptedException {
+        assertEquals("deviceInformation", getDeviceInformationHeader());
+    }
+
+    @Then("TXMA event is added to the SQS queue not containing device information header")
+    public void txmaEventIsAddedToSqsQueueNotContainingDeviceInformationHeader()
+            throws InterruptedException, IOException {
+        assertEquals("", getDeviceInformationHeader());
+    }
+
+    @And("{int} events are deleted from the audit events SQS queue")
+    public void deleteEventsFromSqsQueue(int messageCount) throws InterruptedException {
+        this.sqs.deleteMatchingMessages(
+                auditEventQueueUrl,
+                messageCount,
+                Collections.singletonMap("/user/session_id", testContext.getSessionId()));
+    }
+
+    private String getDeviceInformationHeader() throws InterruptedException, IOException {
+        final List<Message> startEventMessages =
+                this.sqs.receiveMatchingMessages(
+                        auditEventQueueUrl,
+                        1,
+                        Map.ofEntries(
+                                entry("/event_name", "IPV_KBV_CRI_START"),
+                                entry("/user/session_id", testContext.getSessionId())));
+
+        assertEquals(1, startEventMessages.size());
+
+        return objectMapper
+                .readTree(startEventMessages.get(0).body())
+                .at("/restricted/device_information/encoded")
+                .asText();
     }
 
     private void makeVerifiableCredentialJwtAssertions(SignedJWT decodedJWT) throws IOException {
-        var header = decodedJWT.getHeader().toString();
-        var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
-        JsonNode userIdentity = objectMapper.readTree(this.testContext.getSerialisedUserIdentity());
+        final var header = objectMapper.readTree(decodedJWT.getHeader().toString());
+        final var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
+        final var userIdentity =
+                objectMapper.readTree(this.testContext.getSerialisedUserIdentity());
 
-        assertEquals("{\"typ\":\"JWT\",\"alg\":\"ES256\"}", header);
+        assertEquals("JWT", header.at("/typ").asText());
+        assertEquals("ES256", header.at("/alg").asText());
+
         assertNotNull(payload);
-        assertNotNull(payload.get("nbf"));
+        assertNotNull(payload.at("/nbf"));
+        assertNotNull(payload.at("/vc/evidence/0/txn"));
+
+        assertNotEquals("", payload.at("/nbf").asText());
+        assertNotEquals("", payload.at("/vc/evidence/0/txn").asText());
+
+        assertEquals("IdentityCheck", payload.at("/vc/evidence/0/type").asText());
+        assertEquals("VerifiableCredential", payload.at("/vc/type/0").asText());
+        assertEquals("IdentityCheckCredential", payload.at("/vc/type/1").asText());
 
         assertEquals(
-                "IdentityCheck", payload.get("vc").get("evidence").get(0).get("type").asText());
-        assertNotNull(payload.get("vc").get("evidence").get(0).get("txn").asText());
-        assertEquals("VerifiableCredential", payload.get("vc").get("type").get(0).asText());
-        assertEquals("IdentityCheckCredential", payload.get("vc").get("type").get(1).asText());
-        assertEquals(
-                userIdentity.get("shared_claims").get("birthDate").get(0).get("value").asText(),
-                payload.get("vc")
-                        .get("credentialSubject")
-                        .get("birthDate")
-                        .get(0)
-                        .get("value")
-                        .asText());
-        assertEquals(
-                userIdentity
-                        .get("shared_claims")
-                        .get("name")
-                        .get(0)
-                        .get("nameParts")
-                        .get(0)
-                        .get("value")
-                        .asText(),
-                payload.get("vc")
-                        .get("credentialSubject")
-                        .get("name")
-                        .get(0)
-                        .get("nameParts")
-                        .get(0)
-                        .get("value")
-                        .asText());
-    }
+                userIdentity.at("/shared_claims/birthDate/0/value").asText(),
+                payload.at("/vc/credentialSubject/birthDate/0/value").asText());
 
-    @And("a verification score of {int} is returned in the response")
-    public void aVerificationScoreIsReturnedInTheResponse(int score)
-            throws ParseException, IOException {
-        String responseBody = this.testContext.getResponse().body();
-        SignedJWT decodedJWT = SignedJWT.parse(responseBody);
-        var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
         assertEquals(
-                score, payload.get("vc").get("evidence").get(0).get("verificationScore").asInt());
+                userIdentity.at("/shared_claims/name/0/nameParts/0/value").asText(),
+                payload.at("/vc/credentialSubject/name/0/nameParts/0/value").asText());
     }
 }
