@@ -75,7 +75,7 @@ public class KbvApiClient {
                                                 this.clientConfigurationService.createUriPath(
                                                         "question"))
                                         .build())
-                        .timeout(Duration.ofSeconds(20))
+                        .timeout(Duration.ofSeconds(40))
                         .header(HttpHeaders.ACCEPT, JSON_MIME_MEDIA_TYPE)
                         .header(HttpHeaders.SESSION_ID, sessionId)
                         .GET()
