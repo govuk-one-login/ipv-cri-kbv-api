@@ -27,6 +27,7 @@ import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.ApiGatewayResponseGenerator;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
@@ -35,8 +36,10 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static org.apache.logging.log4j.Level.ERROR;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_EXPIRED;
@@ -146,7 +149,21 @@ public class QuestionAnswerHandler
 
         var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
         var submittedAnswer = objectMapper.readValue(requestBody, QuestionAnswer.class);
-        LOGGER.info("respondWithAnswerFromDbStore questionState: {}", questionState);
+
+        String questionIdsAllQaPairs =
+                questionState.getQuestionIdsFromQAPairs().collect(Collectors.joining(","));
+        String questionIdsQaPairs =
+                questionState.getQaPairs().stream()
+                        .map(item -> item.getQuestion().getQuestionId())
+                        .collect(Collectors.joining(","));
+        LOGGER.info(
+                "respondWithAnswerFromDbStore to questionId: {} questionState: allQaPair questionIds {}",
+                submittedAnswer.getQuestionId(),
+                questionIdsAllQaPairs);
+        LOGGER.info(
+                "respondWithAnswerFromDbStore to questionId: {} questionState: qaPair questionIds {}",
+                submittedAnswer.getQuestionId(),
+                questionIdsQaPairs);
         if (respondWithAnswerFromDbStore(submittedAnswer, questionState, kbvItem)) return;
         respondWithAnswerFromExperianThenStoreInDb(
                 questionState, kbvItem, sessionItem, requestHeaders);
@@ -166,20 +183,26 @@ public class QuestionAnswerHandler
                 AuditEventType.REQUEST_SENT,
                 new AuditEventContext(requestHeaders, sessionItem),
                 Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
+        String questionAnswerIds =
+                questionAnswerRequest.getQuestionAnswers().stream()
+                        .map(QuestionAnswer::getQuestionId)
+                        .collect(Collectors.joining(","));
+        LOGGER.info(
+                "QUESTION ANSWER HANDLER: questionId: {} answered and sent to 3rd-party",
+                questionAnswerIds);
         var questionsResponse = kbvService.submitAnswers(questionAnswerRequest);
         auditService.sendAuditEvent(
                 AuditEventType.RESPONSE_RECEIVED,
                 new AuditEventContext(requestHeaders, sessionItem),
                 Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
         if (questionsResponse.hasQuestions()) {
-            StringBuilder questionResponseBuilder = new StringBuilder();
-            for (var item : questionsResponse.getQuestions()) {
-                questionResponseBuilder.append(item.getQuestionId()).append(",");
-            }
-            String questionResponseString = questionResponseBuilder.toString();
+            String questionIdsInResponse =
+                    Arrays.stream(questionsResponse.getQuestions())
+                            .map(KbvQuestion::getQuestionId)
+                            .collect(Collectors.joining(","));
             LOGGER.info(
-                    "QUESTION ANSWER HANDLER: questionId from 3rd-party {}",
-                    questionResponseString);
+                    "QUESTION ANSWER HANDLER: questionId: {} received from 3rd-party",
+                    questionIdsInResponse);
             questionState.setQAPairs(questionsResponse.getQuestions());
             var serializedQuestionState = objectMapper.writeValueAsString(questionState);
             kbvItem.setQuestionState(serializedQuestionState);

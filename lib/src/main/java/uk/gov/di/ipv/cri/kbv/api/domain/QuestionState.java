@@ -49,30 +49,40 @@ public class QuestionState {
                 .findFirst()
                 .orElseThrow(
                         () -> {
-                            boolean found = false;
+                            boolean foundInAllQaPairs =
+                                    this.getAllQaPairs().stream()
+                                            .flatMap(List::stream)
+                                            .anyMatch(
+                                                    pair ->
+                                                            pair.getQuestion()
+                                                                    .getQuestionId()
+                                                                    .equals(
+                                                                            questionAnswer
+                                                                                    .getQuestionId()));
 
-                            for (var item : this.getAllQaPairs()) {
-                                var result =
-                                        item.stream()
-                                                .filter(
-                                                        pair ->
-                                                                pair.getQuestion()
-                                                                        .getQuestionId()
-                                                                        .equals(
-                                                                                questionAnswer
-                                                                                        .getQuestionId()))
-                                                .findAny();
-                                if (result.isPresent()) {
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (found) {
-                                LOGGER.info("Question existing in allQAPairs but not in QAPairs");
+                            String allQaPairsIds =
+                                    this.getAllQaPairs().stream()
+                                            .flatMap(List::stream)
+                                            .map(pair -> pair.getQuestion().getQuestionId())
+                                            .collect(Collectors.joining(","));
+
+                            String qaPairsIds =
+                                    this.getQaPairs().stream()
+                                            .map(pair -> pair.getQuestion().getQuestionId())
+                                            .collect(Collectors.joining(","));
+
+                            if (foundInAllQaPairs) {
+                                LOGGER.info(
+                                        "QuestionIds existing in allQAPairs: {} but not in QAPairs: {}",
+                                        allQaPairsIds,
+                                        qaPairsIds);
                             } else {
                                 LOGGER.info(
-                                        "Question does not existing in both allQAPairs and QAPairs");
+                                        "QuestionIds do not exist in both allQAPairs: {} and QAPairs: {}",
+                                        allQaPairsIds,
+                                        qaPairsIds);
                             }
+
                             return new IllegalStateException(
                                     "Question not found for questionID: "
                                             + questionAnswer.getQuestionId());
@@ -104,11 +114,11 @@ public class QuestionState {
         int qaPairsSize = qaPairs.size();
         int questionLength = questions.length;
         LOGGER.info("QAPairs size: {}", qaPairsSize);
-        LOGGER.info("AllQAPairs size: {}", qaPairsSize);
 
         LOGGER.info("KBVQuestion size: {}", questionLength);
         this.allQaPairs.add(
                 Arrays.stream(questions).map(QuestionAnswerPair::new).collect(Collectors.toList()));
+        LOGGER.info("AllQAPairs size: {}", this.allQaPairs.size());
     }
 
     public List<QuestionAnswerPair> getQaPairs() {
