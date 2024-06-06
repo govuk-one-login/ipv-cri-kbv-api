@@ -25,7 +25,7 @@ Parameters:
   SecretPrefix:
     Description: Secrets name prefix
     Type: String
-    Default: ""
+    Default: "none"
   AuditEventNamePrefix:
     Description: "The audit event name prefix"
     Type: AWS::SSM::Parameter::Value<String>
@@ -53,7 +53,7 @@ Conditions:
     - !Equals [ !Ref Environment, integration ]
   IsDevEnvironment: !Equals [!Ref Environment, dev]
   IsNotDevEnvironment: !Not [!Condition IsDevEnvironment]
-  UseSecretPrefix: !Not [!Equals [!Ref SecretPrefix, ""]]
+  UseSecretPrefix: !Not [!Equals [!Ref SecretPrefix, "none"]]
 
 Globals:
   Function:
