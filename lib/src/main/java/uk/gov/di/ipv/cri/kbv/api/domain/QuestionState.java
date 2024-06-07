@@ -3,7 +3,6 @@ package uk.gov.di.ipv.cri.kbv.api.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,7 +14,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@ExcludeFromGeneratedCoverageReport
 public class QuestionState {
     private static final Logger LOGGER = LogManager.getLogger(QuestionState.class);
     private List<QuestionAnswerPair> qaPairs = new ArrayList<>();
