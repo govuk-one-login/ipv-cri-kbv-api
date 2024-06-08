@@ -125,15 +125,7 @@ public class QuestionState {
 
     @JsonIgnore
     public List<QuestionAnswer> getAnswers() {
-        return getQaPairs().stream()
-                .map(
-                        pair -> {
-                            QuestionAnswer questionAnswer = new QuestionAnswer();
-                            questionAnswer.setAnswer(pair.getAnswer());
-                            questionAnswer.setQuestionId(pair.getQuestion().getQuestionId());
-                            return questionAnswer;
-                        })
-                .collect(Collectors.toList());
+        return getQaPairs().stream().map(QuestionAnswer::new).collect(Collectors.toList());
     }
 
     @JsonIgnore

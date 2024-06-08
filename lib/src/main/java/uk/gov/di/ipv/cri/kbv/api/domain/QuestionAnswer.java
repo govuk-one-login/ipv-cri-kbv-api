@@ -4,6 +4,15 @@ public class QuestionAnswer {
     private String questionId;
     private String answer;
 
+    public QuestionAnswer() {
+        this(new QuestionAnswerPair());
+    }
+
+    public QuestionAnswer(QuestionAnswerPair questionAnswerPair) {
+        this.questionId = questionAnswerPair.getQuestion().getQuestionId();
+        this.answer = questionAnswerPair.getAnswer();
+    }
+
     public String getQuestionId() {
         return questionId;
     }
