@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -111,7 +112,7 @@ class QuestionAnswerHandlerTest {
 
         QuestionState questionState = new QuestionState();
         questionState.setQAPairs(new KbvQuestion[] {kbvQuestionOne, kbvQuestionTwo});
-        questionState.setAnswer(submitAnswerToFirstQuestion);
+
         SessionItem sessionItem = new SessionItem();
         sessionItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
 
@@ -262,6 +263,63 @@ class QuestionAnswerHandlerTest {
         verify(mockSessionService).validateSessionId(sessionHeader.get(HEADER_SESSION_ID));
         verify(mockKBVStorageService).getKBVItem(SESSION_ID);
         verify(mockKBVStorageService).update(kbvItem);
+    }
+
+    @Test
+    @DisplayName(
+            "it should replicate issue where a resubmission of a previously answered question results in IllegalStateException 'Question not found for questionID'")
+    void shouldThrowIllegalStateExceptionOnResubmissionOfAlreadyAnsweredQuestions()
+            throws JsonProcessingException {
+        KBVItem kbvItem = new KBVItem();
+        SessionItem sessionItem = new SessionItem();
+        Map<String, String> sessionHeader = Map.of(HEADER_SESSION_ID, SESSION_ID.toString());
+        ArgumentCaptor<IllegalStateException> illegalStateExceptionArgumentCaptor =
+                ArgumentCaptor.forClass(IllegalStateException.class);
+        ArgumentCaptor<Level> levelArgumentCaptor = ArgumentCaptor.forClass(Level.class);
+        sessionItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
+        kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
+
+
+        QuestionAnswer existingAnsweredSecondQuestion = new QuestionAnswer();
+        existingAnsweredSecondQuestion.setQuestionId("Q00040");
+        existingAnsweredSecondQuestion.setAnswer("Answer two already answered");
+        QuestionState questionState = new QuestionState();
+        questionState.setQAPairs(new KbvQuestion[] {getQuestion("Q00015"), getQuestion("Q00040")});
+        questionState.setQAPairs(new KbvQuestion[] {getQuestion("Q00045"), getQuestion("Q00067")});
+
+        when(input.getHeaders()).thenReturn(sessionHeader);
+        when(input.getBody())
+                .thenReturn(new ObjectMapper().writeValueAsString(existingAnsweredSecondQuestion));
+
+        when(mockObjectMapper.readValue(input.getBody(), QuestionAnswer.class))
+                .thenReturn(existingAnsweredSecondQuestion);
+        when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
+                .thenReturn(questionState);
+        when(mockSessionService.validateSessionId(sessionHeader.get(HEADER_SESSION_ID)))
+                .thenReturn(sessionItem);
+        when(mockKBVStorageService.getKBVItem(SESSION_ID)).thenReturn(kbvItem);
+        when(mockEventProbe.counterMetric(anyString(), anyDouble())).thenReturn(mockEventProbe);
+        when(mockEventProbe.log(any(Level.class), any(IllegalStateException.class)))
+                .thenReturn(mockEventProbe);
+
+        APIGatewayProxyResponseEvent response =
+                questionAnswerHandler.handleRequest(input, contextMock);
+
+        verify(mockEventProbe)
+                .log(levelArgumentCaptor.capture(), illegalStateExceptionArgumentCaptor.capture());
+        verify(mockEventProbe).counterMetric("post_answer", 0d);
+        verify(mockSessionService).validateSessionId(SESSION_ID_AS_STRING);
+        verify(mockObjectMapper).readValue(input.getBody(), QuestionAnswer.class);
+        verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
+        verify(mockSessionService).validateSessionId(sessionHeader.get(HEADER_SESSION_ID));
+        verify(mockKBVStorageService).getKBVItem(SESSION_ID);
+
+        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals("{\"error\":\"Third Party Server error occurred.\"}", response.getBody());
+        assertEquals(Level.ERROR, levelArgumentCaptor.getValue());
+        assertEquals(
+                "Question not found for questionID: Q00040",
+                illegalStateExceptionArgumentCaptor.getValue().getMessage());
     }
 
     @Test
