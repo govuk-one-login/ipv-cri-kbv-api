@@ -6,7 +6,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,8 +26,8 @@ public class QuestionState {
     @JsonIgnore
     public Stream<String> getQuestionIdsFromQAPairs() {
         return allQaPairs.stream()
-                .map(Collection::stream)
-                .flatMap(q -> q.map(QuestionAnswerPair::getQuestion))
+                .flatMap(List::stream)
+                .map(QuestionAnswerPair::getQuestion)
                 .map(KbvQuestion::getQuestionId);
     }
 
@@ -37,48 +36,31 @@ public class QuestionState {
         return allQaPairs.stream().filter(Predicate.not(q -> allQaPairs.indexOf(q) == 1));
     }
 
+    @JsonIgnore
+    public String getQaPairsIds() {
+        return getQaPairs().stream()
+                .map(pair -> pair.getQuestion().getQuestionId())
+                .collect(Collectors.joining(","));
+    }
+
+    @JsonIgnore
+    public String getAllQaPairsIds() {
+        return getQuestionIdsFromQAPairs().collect(Collectors.joining(","));
+    }
+
     public void setAnswer(QuestionAnswer questionAnswer) {
-        this.getQaPairs().stream()
-                .filter(
-                        pair ->
-                                pair.getQuestion()
-                                        .getQuestionId()
-                                        .equals(questionAnswer.getQuestionId()))
-                .findFirst()
+        getQuestionAnswerPair(questionAnswer)
                 .orElseThrow(
                         () -> {
                             boolean foundInAllQaPairs =
-                                    this.getAllQaPairs().stream()
-                                            .flatMap(List::stream)
-                                            .anyMatch(
-                                                    pair ->
-                                                            pair.getQuestion()
-                                                                    .getQuestionId()
-                                                                    .equals(
-                                                                            questionAnswer
-                                                                                    .getQuestionId()));
-
-                            String allQaPairsIds =
-                                    this.getAllQaPairs().stream()
-                                            .flatMap(List::stream)
-                                            .map(pair -> pair.getQuestion().getQuestionId())
-                                            .collect(Collectors.joining(","));
-
-                            String qaPairsIds =
-                                    this.getQaPairs().stream()
-                                            .map(pair -> pair.getQuestion().getQuestionId())
-                                            .collect(Collectors.joining(","));
+                                    isQuestionAnswerInAllQaPairs(questionAnswer);
 
                             if (foundInAllQaPairs) {
-                                LOGGER.info(
-                                        "QuestionIds existing in allQAPairs: {} but not in QAPairs: {}",
-                                        allQaPairsIds,
-                                        qaPairsIds);
+                                logIdStatus(
+                                        "QuestionIds existing in allQAPairs: {} but not in QAPairs: {}");
                             } else {
-                                LOGGER.info(
-                                        "QuestionIds do not exist in both allQAPairs: {} and QAPairs: {}",
-                                        allQaPairsIds,
-                                        qaPairsIds);
+                                logIdStatus(
+                                        "QuestionIds does not exist in both allQAPairs: {} and QAPairs: {}");
                             }
 
                             return new IllegalStateException(
@@ -91,12 +73,6 @@ public class QuestionState {
     public boolean setQuestionsResponse(QuestionsResponse questionsResponse) {
         boolean hasQuestions = questionsResponse.hasQuestions();
         if (hasQuestions) {
-            int qaPairSize = qaPairs.size();
-            String questions = Arrays.toString(questionsResponse.getQuestions());
-            LOGGER.info("setQuestionsResponse: QAPairs size: {}", qaPairSize);
-            LOGGER.info("setQuestionsResponse: AllQAPairs size: {}", qaPairSize);
-
-            LOGGER.info("KBVQuestion : {}", questions);
             setQAPairs(questionsResponse.getQuestions());
         }
         return hasQuestions;
@@ -109,14 +85,10 @@ public class QuestionState {
     public void setQAPairs(KbvQuestion[] questions) {
         this.qaPairs =
                 Arrays.stream(questions).map(QuestionAnswerPair::new).collect(Collectors.toList());
-        int qaPairsSize = qaPairs.size();
-        int questionLength = questions.length;
-        LOGGER.info("QAPairs size: {}", qaPairsSize);
-
-        LOGGER.info("KBVQuestion size: {}", questionLength);
         this.allQaPairs.add(
                 Arrays.stream(questions).map(QuestionAnswerPair::new).collect(Collectors.toList()));
-        LOGGER.info("AllQAPairs size: {}", this.allQaPairs.size());
+
+        logSizeInfo(questions);
     }
 
     public List<QuestionAnswerPair> getQaPairs() {
@@ -142,5 +114,32 @@ public class QuestionState {
 
     public boolean hasAtLeastOneUnanswered() {
         return qaPairs.stream().anyMatch(qa -> Objects.isNull(qa.getAnswer()));
+    }
+
+    private Optional<QuestionAnswerPair> getQuestionAnswerPair(QuestionAnswer questionAnswer) {
+        return this.getQaPairs().stream()
+                .filter(
+                        pair ->
+                                pair.getQuestion()
+                                        .getQuestionId()
+                                        .equals(questionAnswer.getQuestionId()))
+                .findFirst();
+    }
+
+    private boolean isQuestionAnswerInAllQaPairs(QuestionAnswer questionAnswer) {
+        return this.getQuestionIdsFromQAPairs()
+                .anyMatch(id -> id.equals(questionAnswer.getQuestionId()));
+    }
+
+    private void logSizeInfo(KbvQuestion[] questions) {
+        int allQaPairsSize =
+                this.allQaPairs.stream().flatMap(List::stream).collect(Collectors.toList()).size();
+        LOGGER.info("QAPairs size: {}", qaPairs.size());
+        LOGGER.info("KBVQuestion size: {}", questions.length);
+        LOGGER.info("AllQAPairs size: {}", allQaPairsSize);
+    }
+
+    private void logIdStatus(String message) {
+        LOGGER.info(message, getAllQaPairsIds(), getQaPairsIds());
     }
 }
