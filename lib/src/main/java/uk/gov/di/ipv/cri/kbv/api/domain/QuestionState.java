@@ -50,24 +50,9 @@ public class QuestionState {
 
     public void setAnswer(QuestionAnswer questionAnswer) {
         getQuestionAnswerPair(questionAnswer)
-                .orElseThrow(
-                        () -> {
-                            boolean foundInAllQaPairs =
-                                    isQuestionAnswerInAllQaPairs(questionAnswer);
-
-                            if (foundInAllQaPairs) {
-                                logIdStatus(
-                                        "QuestionIds existing in allQAPairs: {} but not in QAPairs: {}");
-                            } else {
-                                logIdStatus(
-                                        "QuestionIds does not exist in both allQAPairs: {} and QAPairs: {}");
-                            }
-
-                            return new IllegalStateException(
-                                    "Question not found for questionID: "
-                                            + questionAnswer.getQuestionId());
-                        })
-                .setAnswer(questionAnswer.getAnswer());
+                .ifPresentOrElse(
+                        pair -> pair.setAnswer(questionAnswer.getAnswer()),
+                        () -> handleQuestionAnswerResubmission(questionAnswer));
     }
 
     public boolean setQuestionsResponse(QuestionsResponse questionsResponse) {
@@ -131,6 +116,20 @@ public class QuestionState {
                 .anyMatch(id -> id.equals(questionAnswer.getQuestionId()));
     }
 
+    private void handleQuestionAnswerResubmission(QuestionAnswer questionAnswer) {
+        if (isQuestionAnswerInAllQaPairs(questionAnswer)) {
+            logIdStatus(
+                    questionAnswer.getQuestionId(),
+                    "Answered Question: {}, QuestionIds existing in allQAPairs: {} but not in QAPairs: {}");
+        } else {
+            logIdStatus(
+                    questionAnswer.getQuestionId(),
+                    "Answered Question: {}, QuestionIds does not exist in both allQAPairs: {} and QAPairs: {}");
+            throw new IllegalStateException(
+                    "Question not found for questionID: " + questionAnswer.getQuestionId());
+        }
+    }
+
     private void logSizeInfo(KbvQuestion[] questions) {
         int allQaPairsSize =
                 this.allQaPairs.stream().flatMap(List::stream).collect(Collectors.toList()).size();
@@ -139,7 +138,7 @@ public class QuestionState {
         LOGGER.info("AllQAPairs size: {}", allQaPairsSize);
     }
 
-    private void logIdStatus(String message) {
-        LOGGER.info(message, getAllQaPairsIds(), getQaPairsIds());
+    private void logIdStatus(String answer, String message) {
+        LOGGER.info(message, answer, getAllQaPairsIds(), getQaPairsIds());
     }
 }

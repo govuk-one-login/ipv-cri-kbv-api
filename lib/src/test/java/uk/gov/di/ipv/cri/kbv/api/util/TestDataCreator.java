@@ -136,6 +136,18 @@ public class TestDataCreator {
         return question;
     }
 
+    public static KbvQuestion getQuestion(String questionId) {
+        KbvQuestionOptions questionOptions = new KbvQuestionOptions();
+        questionOptions.setIdentifier(questionId);
+        questionOptions.setFieldType("G");
+
+        KbvQuestion question = new KbvQuestion();
+        question.setQuestionId(questionId);
+        question.setQuestionOptions(questionOptions);
+
+        return question;
+    }
+
     public static QuestionState getQuestionState(KbvQuestion[] kbvQuestions) {
         QuestionState questionState = new QuestionState();
         questionState.setQAPairs(kbvQuestions);

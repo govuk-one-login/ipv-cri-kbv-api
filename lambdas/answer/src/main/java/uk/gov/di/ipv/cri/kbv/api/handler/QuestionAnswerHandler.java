@@ -225,13 +225,7 @@ public class QuestionAnswerHandler
     private APIGatewayProxyResponseEvent handleException(
             int httpStatusCode, Throwable throwable, String errorMessage) {
         eventProbe.log(ERROR, throwable).counterMetric(LAMBDA_NAME, 0d);
-        return httpStatusCode == HttpStatusCode.NO_CONTENT
-                ? createNoContentResponse()
-                : ApiGatewayResponseGenerator.proxyJsonResponse(
-                        httpStatusCode, Map.of(ERROR_KEY, errorMessage));
-    }
-
-    private APIGatewayProxyResponseEvent createNoContentResponse() {
-        return new APIGatewayProxyResponseEvent().withStatusCode(HttpStatusCode.NO_CONTENT);
+        return ApiGatewayResponseGenerator.proxyJsonResponse(
+                httpStatusCode, Map.of(ERROR_KEY, errorMessage));
     }
 }
