@@ -139,11 +139,11 @@ Mappings:
 
   IIQAPIStrategyMapping:
     Environment:
-      dev: 3 out of 4 prioritised
-      build: 3 out of 4 prioritised
-      staging: 3 out of 4 prioritised
-      integration: 3 out of 4 prioritised
-      production: 3 out of 4 prioritised
+      dev: "{\"2\": \"3 out of 4 prioritised\"}"
+      build: "{\"2\": \"3 out of 4 prioritised\"}"
+      staging: "{\"2\": \"3 out of 4 prioritised\"}"
+      integration: "{\"2\": \"3 out of 4 prioritised\"}"
+      production: "{\"2\": \"3 out of 4 prioritised\"}"
 
   IIQOperatorIdMapping:
     Environment:
@@ -405,6 +405,7 @@ Resources:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTtl"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/di-ipv-cri-kbv-api/strengthScore"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQDatabaseMode"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQStrategy"

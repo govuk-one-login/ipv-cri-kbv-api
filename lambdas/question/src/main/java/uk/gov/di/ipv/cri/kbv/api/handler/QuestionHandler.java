@@ -5,6 +5,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.logging.log4j.LogManager;
@@ -33,6 +34,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.exception.InvalidStrategyScoreException;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
@@ -57,6 +59,7 @@ public class QuestionHandler
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String LAMBDA_NAME = "get_question";
     public static final String ERROR_KEY = "error";
+    public static final String STRENGTH_SCORE_PARAM_NAME = "di-ipv-cri-kbv-api/strengthScore";
     public static final String IIQ_STRATEGY_PARAM_NAME = "IIQStrategy";
     private static final String IIQ_OPERATOR_ID_PARAM_NAME = "IIQOperatorId";
     public static final String METRIC_DIMENSION_QUESTION_ID = "kbv_question_id";
@@ -154,6 +157,8 @@ public class QuestionHandler
         } catch (QuestionNotFoundException qe) {
             eventProbe.counterMetric(LAMBDA_NAME, 0d);
             return createNoContentResponse();
+        } catch (InvalidStrategyScoreException e) {
+            return handleException(HttpStatusCode.INTERNAL_SERVER_ERROR, e, e.getMessage());
         } catch (IOException e) {
             return handleException(
                     HttpStatusCode.INTERNAL_SERVER_ERROR, e, "Retrieving questions failed.");
@@ -169,7 +174,7 @@ public class QuestionHandler
             KBVItem kbvItem,
             SessionItem sessionItem,
             Map<String, String> requestHeaders)
-            throws IOException, SqsException {
+            throws IOException, SqsException, InvalidStrategyScoreException {
 
         var questionOptional = getQuestionFromDbStore(questionState);
         if (questionOptional.isPresent()) {
@@ -221,7 +226,7 @@ public class QuestionHandler
 
     private QuestionsResponse getQuestionAnswerResponse(
             KBVItem kbvItem, SessionItem sessionItem, Map<String, String> requestHeaders)
-            throws SqsException {
+            throws SqsException, JsonProcessingException, InvalidStrategyScoreException {
         Objects.requireNonNull(kbvItem, "kbvItem cannot be null");
 
         var personIdentity =
@@ -236,11 +241,23 @@ public class QuestionHandler
         return this.kbvService.getQuestions(questionRequest);
     }
 
-    private QuestionRequest createQuestionRequest(PersonIdentityDetailed personIdentity) {
+    private QuestionRequest createQuestionRequest(PersonIdentityDetailed personIdentity)
+            throws JsonProcessingException, InvalidStrategyScoreException {
         var questionRequest = new QuestionRequest();
-        var strategy = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
+        var strengthScoreParam =
+                this.configurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME);
+        var strategyParam = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
 
+        Map<String, String> strategyMap =
+                objectMapper.readValue(strategyParam, new TypeReference<>() {});
+        String strategy = strategyMap.get(strengthScoreParam);
+        LOGGER.info("Using IIQStrategy: {}", strategy);
+        if (strategy == null) {
+            throw new InvalidStrategyScoreException(
+                    "No question strategy found for score provided");
+        }
         questionRequest.setStrategy(strategy);
+
         questionRequest.setIiqOperatorId(
                 this.configurationService.getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME));
         questionRequest.setPersonIdentity(

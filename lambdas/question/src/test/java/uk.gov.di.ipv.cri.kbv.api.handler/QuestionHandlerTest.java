@@ -3,6 +3,8 @@ package uk.gov.di.ipv.cri.kbv.api.handler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,12 +39,14 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.exception.InvalidStrategyScoreException;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,9 +79,15 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.IIQ_STRATEGY_PAR
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.LAMBDA_NAME;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_ID;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_STRATEGY;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.STRENGTH_SCORE_PARAM_NAME;
 
 @ExtendWith(MockitoExtension.class)
 class QuestionHandlerTest {
+    private static final String MOCK_IIQ_STRATEGY_PARAM_VALUE =
+            "\"2\": \"3 out of 4 prioritised\"}";
+    private static final Map<String, String> MOCK_IIQ_STRATEGY_MAPPED_VALUE =
+            Map.of("2", "3 out of 4 prioritised");
+
     private QuestionHandler questionHandler;
     @Mock private ObjectMapper mockObjectMapper;
     @Mock private KBVStorageService mockKBVStorageService;
@@ -145,8 +155,13 @@ class QuestionHandlerTest {
             doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
 
             when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
+            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+                    .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn("3 out of 4");
+                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
+            when(mockObjectMapper.readValue(
+                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
+                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
             String expectedComponentId = "kbv-component-id";
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn(expectedComponentId);
@@ -179,7 +194,8 @@ class QuestionHandlerTest {
             verify(mockObjectMapper).writeValueAsString(any());
             verify(mockEventProbe).counterMetric(LAMBDA_NAME);
             verify(mockEventProbe)
-                    .addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4"));
+                    .addDimensions(
+                            Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4 prioritised"));
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_QUESTION_ID, "Q00015"));
             verifyNoMoreInteractions(mockEventProbe);
 
@@ -267,8 +283,13 @@ class QuestionHandlerTest {
             when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
                     .thenReturn(questionStateMock);
 
+            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+                    .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn("3 out of 4");
+                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
+            when(mockObjectMapper.readValue(
+                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
+                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
 
@@ -287,7 +308,8 @@ class QuestionHandlerTest {
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
             verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
             verify(mockEventProbe)
-                    .addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4"));
+                    .addDimensions(
+                            Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4 prioritised"));
             verifyNoMoreInteractions(mockEventProbe);
         }
 
@@ -434,7 +456,7 @@ class QuestionHandlerTest {
     class ProcessQuestionRequest {
         @Test
         void shouldThrowQuestionNotFoundExceptionWhenQuestionStateAndKbvItemEmptyObjects()
-                throws SqsException {
+                throws SqsException, JsonProcessingException {
             String expectedOutcome = "Insufficient Questions (Unable to Authenticate)";
             UUID sessionId = UUID.randomUUID();
             KBVItem kbvItem = mock(KBVItem.class);
@@ -452,8 +474,13 @@ class QuestionHandlerTest {
 
             when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
+            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+                    .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn("3 out of 4");
+                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
+            when(mockObjectMapper.readValue(
+                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
+                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
 
@@ -471,7 +498,8 @@ class QuestionHandlerTest {
                             auditEventMap.capture());
             verify(mockKBVStorageService).save(kbvItem);
             verify(mockEventProbe)
-                    .addDimensions(Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4"));
+                    .addDimensions(
+                            Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4 prioritised"));
             verifyNoMoreInteractions(mockEventProbe);
             verify(kbvItem).setAuthRefNo("an auth ref no");
             verify(kbvItem).setUrn("a urn");
@@ -549,8 +577,13 @@ class QuestionHandlerTest {
             QuestionsResponse experianQuestionResponse = getExperianQuestionResponse();
             doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
 
+            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+                    .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn("3 out of 4");
+                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
+            when(mockObjectMapper.readValue(
+                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
+                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
 
@@ -561,6 +594,37 @@ class QuestionHandlerTest {
             assertEquals(
                     nextQuestionFromExperian.getQuestionId(),
                     experianQuestionResponse.getQuestions()[0].getQuestionId());
+        }
+
+        @Test
+        void shouldReturnThrowInvalidStrategyScoreExceptionWhenTheScoreIsNotSupported()
+                throws JsonProcessingException {
+            KBVItem kbvItem = mock(KBVItem.class);
+            QuestionState questionState = mock(QuestionState.class);
+            SessionItem sessionItem = mock(SessionItem.class);
+            Map<String, String> requestHeaders = new HashMap<>();
+
+            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+                    .thenReturn("2");
+            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
+                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
+            when(mockObjectMapper.readValue(
+                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
+                    .thenReturn(Collections.emptyMap());
+
+            InvalidStrategyScoreException expectedException =
+                    assertThrows(
+                            InvalidStrategyScoreException.class,
+                            () ->
+                                    questionHandler.processQuestionRequest(
+                                            questionState, kbvItem, sessionItem, requestHeaders),
+                            "No question strategy found for score provided");
+
+            assertEquals(
+                    "No question strategy found for score provided",
+                    expectedException.getMessage());
+
+            verify(mockConfigurationService).getParameterValue("IIQStrategy");
         }
     }
 
@@ -591,8 +655,13 @@ class QuestionHandlerTest {
                     .when(spyKBVService)
                     .getQuestions(any(QuestionRequest.class));
 
+            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+                    .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn("3 out of 4");
+                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
+            when(mockObjectMapper.readValue(
+                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
+                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
 
@@ -637,8 +706,13 @@ class QuestionHandlerTest {
                     .when(spyKBVService)
                     .getQuestions(any(QuestionRequest.class));
 
+            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+                    .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn("3 out of 4");
+                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
+            when(mockObjectMapper.readValue(
+                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
+                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
 
@@ -680,8 +754,13 @@ class QuestionHandlerTest {
                     .when(spyKBVService)
                     .getQuestions(any(QuestionRequest.class));
 
+            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+                    .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn("3 out of 4");
+                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
+            when(mockObjectMapper.readValue(
+                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
+                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
 
