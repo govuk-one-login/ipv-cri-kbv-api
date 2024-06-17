@@ -59,7 +59,7 @@ public class QuestionHandler
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String LAMBDA_NAME = "get_question";
     public static final String ERROR_KEY = "error";
-    public static final String STRENGTH_SCORE_PARAM_NAME = "di-ipv-cri-kbv-api/strengthScore";
+    public static final String VERIFICATION_SCORE_PARAM_NAME = "di-ipv-cri-kbv-api/strengthScore";
     public static final String IIQ_STRATEGY_PARAM_NAME = "IIQStrategy";
     private static final String IIQ_OPERATOR_ID_PARAM_NAME = "IIQOperatorId";
     public static final String METRIC_DIMENSION_QUESTION_ID = "kbv_question_id";
@@ -244,26 +244,30 @@ public class QuestionHandler
     private QuestionRequest createQuestionRequest(PersonIdentityDetailed personIdentity)
             throws JsonProcessingException, InvalidStrategyScoreException {
         var questionRequest = new QuestionRequest();
-        var strengthScoreParam =
-                this.configurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME);
-        var strategyParam = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
-
-        Map<String, String> strategyMap =
-                objectMapper.readValue(strategyParam, new TypeReference<>() {});
-        String strategy = strategyMap.get(strengthScoreParam);
-        LOGGER.info("Using IIQStrategy: {}", strategy);
-        if (strategy == null) {
-            throw new InvalidStrategyScoreException(
-                    "No question strategy found for score provided");
-        }
-        questionRequest.setStrategy(strategy);
-
+        questionRequest.setStrategy(retrieveQuestionStrategy());
         questionRequest.setIiqOperatorId(
                 this.configurationService.getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME));
         questionRequest.setPersonIdentity(
                 personIdentityService.convertToPersonIdentitySummary(personIdentity));
 
         return questionRequest;
+    }
+
+    private String retrieveQuestionStrategy()
+            throws JsonProcessingException, InvalidStrategyScoreException {
+        var verificationScoreParam =
+                this.configurationService.getCommonParameterValue(VERIFICATION_SCORE_PARAM_NAME);
+        var strategyParam = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
+
+        Map<String, String> strategyMap =
+                objectMapper.readValue(strategyParam, new TypeReference<>() {});
+        String strategy = strategyMap.get(verificationScoreParam);
+        LOGGER.info("Using IIQStrategy: {}", strategy);
+        if (strategy == null) {
+            throw new InvalidStrategyScoreException(
+                    "No question strategy found for score provided");
+        }
+        return strategy;
     }
 
     private APIGatewayProxyResponseEvent handleException(

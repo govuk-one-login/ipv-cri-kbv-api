@@ -79,7 +79,7 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.IIQ_STRATEGY_PAR
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.LAMBDA_NAME;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_ID;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_STRATEGY;
-import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.STRENGTH_SCORE_PARAM_NAME;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.VERIFICATION_SCORE_PARAM_NAME;
 
 @ExtendWith(MockitoExtension.class)
 class QuestionHandlerTest {
@@ -155,7 +155,7 @@ class QuestionHandlerTest {
             doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
 
             when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
-            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+            when(mockConfigurationService.getCommonParameterValue(VERIFICATION_SCORE_PARAM_NAME))
                     .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -283,7 +283,7 @@ class QuestionHandlerTest {
             when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
                     .thenReturn(questionStateMock);
 
-            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+            when(mockConfigurationService.getCommonParameterValue(VERIFICATION_SCORE_PARAM_NAME))
                     .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -474,7 +474,7 @@ class QuestionHandlerTest {
 
             when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
-            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+            when(mockConfigurationService.getCommonParameterValue(VERIFICATION_SCORE_PARAM_NAME))
                     .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -577,7 +577,7 @@ class QuestionHandlerTest {
             QuestionsResponse experianQuestionResponse = getExperianQuestionResponse();
             doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
 
-            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+            when(mockConfigurationService.getCommonParameterValue(VERIFICATION_SCORE_PARAM_NAME))
                     .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -604,7 +604,7 @@ class QuestionHandlerTest {
             SessionItem sessionItem = mock(SessionItem.class);
             Map<String, String> requestHeaders = new HashMap<>();
 
-            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+            when(mockConfigurationService.getCommonParameterValue(VERIFICATION_SCORE_PARAM_NAME))
                     .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -655,7 +655,7 @@ class QuestionHandlerTest {
                     .when(spyKBVService)
                     .getQuestions(any(QuestionRequest.class));
 
-            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+            when(mockConfigurationService.getCommonParameterValue(VERIFICATION_SCORE_PARAM_NAME))
                     .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -706,7 +706,7 @@ class QuestionHandlerTest {
                     .when(spyKBVService)
                     .getQuestions(any(QuestionRequest.class));
 
-            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+            when(mockConfigurationService.getCommonParameterValue(VERIFICATION_SCORE_PARAM_NAME))
                     .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -754,7 +754,7 @@ class QuestionHandlerTest {
                     .when(spyKBVService)
                     .getQuestions(any(QuestionRequest.class));
 
-            when(mockConfigurationService.getCommonParameterValue(STRENGTH_SCORE_PARAM_NAME))
+            when(mockConfigurationService.getCommonParameterValue(VERIFICATION_SCORE_PARAM_NAME))
                     .thenReturn("2");
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
