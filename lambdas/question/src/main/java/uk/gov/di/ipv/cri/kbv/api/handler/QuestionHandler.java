@@ -59,11 +59,11 @@ public class QuestionHandler
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String LAMBDA_NAME = "get_question";
     public static final String ERROR_KEY = "error";
-    public static final String VERIFICATION_SCORE_PARAM_NAME = "di-ipv-cri-kbv-api/strengthScore";
     public static final String IIQ_STRATEGY_PARAM_NAME = "IIQStrategy";
     private static final String IIQ_OPERATOR_ID_PARAM_NAME = "IIQOperatorId";
     public static final String METRIC_DIMENSION_QUESTION_ID = "kbv_question_id";
     public static final String METRIC_DIMENSION_QUESTION_STRATEGY = "question_strategy";
+    private static final String SESSION_VERIFICATION_SCORE = "2";
     private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
@@ -255,13 +255,11 @@ public class QuestionHandler
 
     private String retrieveQuestionStrategy()
             throws JsonProcessingException, InvalidStrategyScoreException {
-        var verificationScoreParam =
-                this.configurationService.getCommonParameterValue(VERIFICATION_SCORE_PARAM_NAME);
         var strategyParam = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
 
         Map<String, String> strategyMap =
                 objectMapper.readValue(strategyParam, new TypeReference<>() {});
-        String strategy = strategyMap.get(verificationScoreParam);
+        String strategy = strategyMap.get(SESSION_VERIFICATION_SCORE);
         LOGGER.info("Using IIQStrategy: {}", strategy);
         if (strategy == null) {
             throw new InvalidStrategyScoreException(
