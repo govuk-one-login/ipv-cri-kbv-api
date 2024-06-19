@@ -2,7 +2,9 @@ package uk.gov.di.ipv.cri.kbv.api.domain;
 
 import com.nimbusds.oauth2.sdk.util.StringUtils;
 
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class QuestionsResponse {
     private String uniqueReference;
@@ -30,6 +32,12 @@ public class QuestionsResponse {
 
     public KbvQuestion[] getQuestions() {
         return questions;
+    }
+
+    public String getAllQuestionIds() {
+        return Arrays.stream(this.getQuestions())
+                .map(KbvQuestion::getQuestionId)
+                .collect(Collectors.joining(","));
     }
 
     public void setQuestions(KbvQuestion[] questions) {

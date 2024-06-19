@@ -1,11 +1,14 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class QuestionAnswerRequest {
     @NotBlank(message = "{questionAnswerRequest.urn.required}")
@@ -41,5 +44,12 @@ public class QuestionAnswerRequest {
 
     public List<QuestionAnswer> getQuestionAnswers() {
         return questionAnswers;
+    }
+
+    @JsonIgnore
+    public String getAllQuestionIdAnswered() {
+        return this.getQuestionAnswers().stream()
+                .map(QuestionAnswer::getQuestionId)
+                .collect(Collectors.joining(","));
     }
 }

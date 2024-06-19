@@ -197,12 +197,9 @@ public class QuestionHandler
             QuestionsResponse questionsResponse, QuestionState questionState) {
 
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
-            StringBuilder questionResponseBuilder = new StringBuilder();
-            for (var item : questionsResponse.getQuestions()) {
-                questionResponseBuilder.append(item.getQuestionId()).append(",");
-            }
-            String questionResponseString = questionResponseBuilder.toString();
-            LOGGER.info("QUESTION HANDLER: questionId from 3rd-party {}", questionResponseString);
+            LOGGER.info(
+                    "QUESTION HANDLER: QuestionIds from 3rd-party {}",
+                    questionsResponse.getAllQuestionIds());
             questionState.setQAPairs(questionsResponse.getQuestions());
             return questionState.getNextQuestion();
         }
