@@ -12,6 +12,7 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.common.library.util.KMSSigner;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
@@ -42,7 +43,7 @@ public class VerifiableCredentialService {
     private final EvidenceFactory evidenceFactory;
 
     @ExcludeFromGeneratedCoverageReport
-    public VerifiableCredentialService() throws JsonProcessingException {
+    public VerifiableCredentialService(SessionService sessionService) throws JsonProcessingException {
         this.configurationService = new ConfigurationService();
         this.signedJwtFactory =
                 new SignedJWTFactory(
