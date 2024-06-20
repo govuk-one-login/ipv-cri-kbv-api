@@ -25,6 +25,7 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.Name;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.NamePart;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
 import uk.gov.di.ipv.cri.common.library.util.VerifiableCredentialClaimsSetBuilder;
@@ -81,6 +82,7 @@ class VerifiableCredentialServiceTest {
     @Captor private ArgumentCaptor<Map<String, Object>[]> mapArrayArgumentCaptor;
     @Captor private ArgumentCaptor<Map<String, Object>> mapArgumentCaptor;
     private VerifiableCredentialService verifiableCredentialService;
+    @Mock private SessionService mockSessionService;
 
     @Nested
     class KbvVerifiableCredentialJwt implements TestFixtures {
@@ -110,7 +112,8 @@ class VerifiableCredentialServiceTest {
                             new EvidenceFactory(
                                     objectMapper,
                                     mockEventProbe,
-                                    KBV_QUESTION_QUALITY_MAPPING_SERIALIZED));
+                                    KBV_QUESTION_QUALITY_MAPPING_SERIALIZED,
+                                    mockSessionService));
             verifiableCredentialService =
                     new VerifiableCredentialService(
                             signedJwtFactory,
@@ -163,7 +166,8 @@ class VerifiableCredentialServiceTest {
                             new EvidenceFactory(
                                     objectMapper,
                                     mockEventProbe,
-                                    KBV_QUESTION_QUALITY_MAPPING_SERIALIZED));
+                                    KBV_QUESTION_QUALITY_MAPPING_SERIALIZED,
+                                    mockSessionService));
             verifiableCredentialService =
                     new VerifiableCredentialService(
                             signedJWTFactory,
@@ -204,7 +208,8 @@ class VerifiableCredentialServiceTest {
                             new EvidenceFactory(
                                     objectMapper,
                                     mockEventProbe,
-                                    KBV_QUESTION_QUALITY_MAPPING_SERIALIZED));
+                                    KBV_QUESTION_QUALITY_MAPPING_SERIALIZED,
+                                    mockSessionService));
             verifiableCredentialService =
                     new VerifiableCredentialService(
                             signedJWTFactory,

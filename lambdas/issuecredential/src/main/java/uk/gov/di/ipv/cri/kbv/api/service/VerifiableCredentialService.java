@@ -43,7 +43,8 @@ public class VerifiableCredentialService {
     private final EvidenceFactory evidenceFactory;
 
     @ExcludeFromGeneratedCoverageReport
-    public VerifiableCredentialService(SessionService sessionService) throws JsonProcessingException {
+    public VerifiableCredentialService(SessionService sessionService)
+            throws JsonProcessingException {
         this.configurationService = new ConfigurationService();
         this.signedJwtFactory =
                 new SignedJWTFactory(
@@ -59,7 +60,8 @@ public class VerifiableCredentialService {
         final Map<String, Integer> kbvQualityMapping =
                 objectMapper.readValue(kbvQualitySecretValue, Map.class);
         this.evidenceFactory =
-                new EvidenceFactory(this.objectMapper, new EventProbe(), kbvQualityMapping);
+                new EvidenceFactory(
+                        this.objectMapper, new EventProbe(), kbvQualityMapping, sessionService);
         this.vcClaimsSetBuilder =
                 new VerifiableCredentialClaimsSetBuilder(
                         this.configurationService, Clock.systemUTC());

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.CheckDetail;
 import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
@@ -36,14 +37,17 @@ public class EvidenceFactory {
     private final EventProbe eventProbe;
     private final ObjectMapper objectMapper;
     private final Map<String, Integer> kbvQualityMapping;
+    private final SessionService sessionService;
 
     public EvidenceFactory(
             ObjectMapper objectMapper,
             EventProbe eventProbe,
-            Map<String, Integer> kbvQualityMapping) {
+            Map<String, Integer> kbvQualityMapping,
+            SessionService sessionService) {
         this.objectMapper = objectMapper;
         this.eventProbe = eventProbe;
         this.kbvQualityMapping = kbvQualityMapping;
+        this.sessionService = sessionService;
     }
 
     public Object[] create(KBVItem kbvItem) throws JsonProcessingException {

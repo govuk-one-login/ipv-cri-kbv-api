@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.CheckDetail;
 import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
@@ -42,12 +43,16 @@ class EvidenceFactoryTest implements TestFixtures {
                     .registerModule(new Jdk8Module())
                     .registerModule(new JavaTimeModule());
     @Mock private EventProbe mockEventProbe;
+    @Mock private SessionService mockSessionService;
 
     @BeforeEach
     void setUp() {
         evidenceFactory =
                 new EvidenceFactory(
-                        objectMapper, mockEventProbe, KBV_QUESTION_QUALITY_MAPPING_SERIALIZED);
+                        objectMapper,
+                        mockEventProbe,
+                        KBV_QUESTION_QUALITY_MAPPING_SERIALIZED,
+                        mockSessionService);
     }
 
     @Nested
@@ -212,7 +217,8 @@ class EvidenceFactoryTest implements TestFixtures {
                             mockEventProbe,
                             objectMapper.readValue(
                                     "{\"First\":4,\"Second\": 5, \"Third\": 9, \"Fourth\": 9}",
-                                    Map.class));
+                                    Map.class),
+                            mockSessionService);
 
             var result = evidenceFactory.create(kbvItem);
 
@@ -268,7 +274,8 @@ class EvidenceFactoryTest implements TestFixtures {
                             mockEventProbe,
                             objectMapper.readValue(
                                     "{\"First\":4,\"Second\": 5, \"Third\": 9, \"Fourth\": 8}",
-                                    Map.class));
+                                    Map.class),
+                            mockSessionService);
 
             var result = evidenceFactory.create(kbvItem);
 
