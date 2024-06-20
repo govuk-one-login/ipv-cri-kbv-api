@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.CheckDetail;
@@ -58,7 +59,15 @@ public class EvidenceFactory {
             evidence.setFailedCheckDetails(createFailedCheckDetails(kbvItem));
         }
         if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
-            evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
+            SessionItem sessionItem = sessionService.getSession(kbvItem.getSessionId().toString());
+            int verificationScore = VC_PASS_EVIDENCE_SCORE;
+            if (Objects.nonNull(sessionItem) && Objects.nonNull(sessionItem.getEvidence())) {
+                Integer score = sessionItem.getEvidence().getVerificationScore();
+                if (score > 0) {
+                    verificationScore = score;
+                }
+            }
+            evidence.setVerificationScore(verificationScore);
             logVcScore("pass");
         } else {
             evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
