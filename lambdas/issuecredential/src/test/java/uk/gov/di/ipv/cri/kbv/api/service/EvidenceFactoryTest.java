@@ -6,11 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.CheckDetail;
@@ -25,14 +27,14 @@ import uk.gov.di.ipv.cri.kbv.api.service.fixtures.TestFixtures;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class EvidenceFactoryTest implements TestFixtures {
@@ -144,6 +146,51 @@ class EvidenceFactoryTest implements TestFixtures {
 
     @Nested
     class EvidenceCheckDetails {
+        @Test
+        @DisplayName("should have the verification score from session item if present")
+        void shouldHaveAVerificationScoreOfOne() throws JsonProcessingException {
+            KBVItem kbvItem = getKbvItem();
+            UUID sessionId = UUID.randomUUID();
+            kbvItem.setSessionId(sessionId);
+            kbvItem.setStatus("authenticated");
+            kbvItem.setQuestionAnswerResultSummary(getKbvQuestionAnswerSummary(3, 3, 0));
+            setKbvItemQuestionState(kbvItem, "First", "Second", "Third");
+
+            SessionItem mockSessionItem = new SessionItem();
+            // mockSessionItem.setEvidence(...);
+
+            when(mockSessionService.getSession(sessionId.toString())).thenReturn(mockSessionItem);
+
+            var result = evidenceFactory.create(kbvItem);
+
+            verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
+            assertNotNull(
+                    getEvidenceAsMap(result)
+                            .get("checkDetails")); // TODO: assert that the verification_score ==
+            // mockSessionItem verificationScore
+        }
+
+        @Test
+        @DisplayName(
+                "should have the verification score of 2 when no evidence block in SessionItem present")
+        void shouldHaveAVerificationScoreOfTwo() throws JsonProcessingException {
+            KBVItem kbvItem = getKbvItem();
+            UUID sessionId = UUID.randomUUID();
+            kbvItem.setSessionId(sessionId);
+            kbvItem.setStatus("authenticated");
+            kbvItem.setQuestionAnswerResultSummary(getKbvQuestionAnswerSummary(3, 3, 0));
+            setKbvItemQuestionState(kbvItem, "First", "Second", "Third");
+
+            when(mockSessionService.getSession(sessionId.toString())).thenReturn(new SessionItem());
+
+            var result = evidenceFactory.create(kbvItem);
+
+            verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
+            assertNotNull(
+                    getEvidenceAsMap(result)
+                            .get("checkDetails")); // TODO: assert that the verification_score == 2
+        }
+
         @Test
         void shouldContainCheckDetailsWhenKbvPasses() throws JsonProcessingException {
             KBVItem kbvItem = getKbvItem();
