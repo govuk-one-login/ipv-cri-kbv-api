@@ -24,6 +24,7 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Name;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.NamePart;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
+import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
@@ -81,6 +82,7 @@ class VerifiableCredentialServiceTest {
     @Captor private ArgumentCaptor<Map<String, Object>[]> mapArrayArgumentCaptor;
     @Captor private ArgumentCaptor<Map<String, Object>> mapArgumentCaptor;
     private VerifiableCredentialService verifiableCredentialService;
+    @Mock private SessionItem mockSessionItem;
 
     @Nested
     class KbvVerifiableCredentialJwt implements TestFixtures {
@@ -133,7 +135,7 @@ class VerifiableCredentialServiceTest {
 
             SignedJWT signedJWT =
                     verifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                            SUBJECT, personIdentity, kbvItem);
+                            SUBJECT, personIdentity, kbvItem, mockSessionItem);
 
             assertTrue(
                     signedJWT.verify(new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1))));
@@ -141,7 +143,7 @@ class VerifiableCredentialServiceTest {
             verify(mockConfigurationService).getMaxJwtTtl();
             verify(mockVcClaimSetBuilder).subject(SUBJECT);
             verify(mockVcClaimSetBuilder).verifiableCredentialType(KBV_CREDENTIAL_TYPE);
-            verify(spyEvidenceFactory).create(kbvItem);
+            verify(spyEvidenceFactory).create(kbvItem, mockSessionItem);
 
             makeEvidenceClaimsAssertions(
                     expectedVerificationScore, expectedContraIndicator, kbvItem.getAuthRefNo());
@@ -179,12 +181,12 @@ class VerifiableCredentialServiceTest {
             when(mockVcClaimSetBuilder.build()).thenReturn(TEST_CLAIMS_SET);
 
             verifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                    SUBJECT, createPersonIdentity(), kbvItem);
+                    SUBJECT, createPersonIdentity(), kbvItem, mockSessionItem);
 
             verify(mockVcClaimSetBuilder)
                     .verifiableCredentialEvidence(mapArrayArgumentCaptor.capture());
             verify(signedJWTFactory).createSignedJwt(TEST_CLAIMS_SET);
-            verify(spyEvidenceFactory).create(kbvItem);
+            verify(spyEvidenceFactory).create(kbvItem, mockSessionItem);
             Map<String, Object> evidenceItems = mapArrayArgumentCaptor.getValue()[0];
             assertEquals(kbvItem.getAuthRefNo(), evidenceItems.get("txn"));
             assertEquals(expectedVerificationScore, evidenceItems.get("verificationScore"));
@@ -244,11 +246,12 @@ class VerifiableCredentialServiceTest {
             };
 
             when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn(issuer);
-            doReturn(evidence).when(spyEvidenceFactory).create(kbvItem);
+            doReturn(evidence).when(spyEvidenceFactory).create(kbvItem, mockSessionItem);
 
-            var auditEventExtensions = verifiableCredentialService.getAuditEventExtensions(kbvItem);
+            var auditEventExtensions =
+                    verifiableCredentialService.getAuditEventExtensions(kbvItem, mockSessionItem);
 
-            verify(spyEvidenceFactory).create(kbvItem);
+            verify(spyEvidenceFactory).create(kbvItem, mockSessionItem);
             assertEquals(
                     auditEventExtensions,
                     Map.of(
