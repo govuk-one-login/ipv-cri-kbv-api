@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import uk.gov.di.ipv.cri.common.library.persistence.item.EvidenceRequest;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.CheckDetail;
@@ -56,7 +57,8 @@ public class EvidenceFactory {
             evidence.setFailedCheckDetails(createFailedCheckDetails(kbvItem));
         }
         if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
-            evidence.setVerificationScore(getVerificationScoreFromSession(sessionItem));
+            evidence.setVerificationScore(
+                    getVerificationScoreForPass(sessionItem.getEvidenceRequest()));
             logVcScore("pass");
         } else {
             evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
@@ -69,11 +71,11 @@ public class EvidenceFactory {
         return new Map[] {objectMapper.convertValue(evidence, Map.class)};
     }
 
-    private int getVerificationScoreFromSession(SessionItem sessionItem) {
-        if (Objects.isNull(sessionItem) || Objects.isNull(sessionItem.getEvidenceRequest())) {
+    private int getVerificationScoreForPass(EvidenceRequest evidenceRequest) {
+        if (Objects.isNull(evidenceRequest)) {
             return VC_PASS_EVIDENCE_SCORE;
         }
-        int verificationScore = sessionItem.getEvidenceRequest().getVerificationScore();
+        int verificationScore = evidenceRequest.getVerificationScore();
         return verificationScore > 0 ? verificationScore : VC_PASS_EVIDENCE_SCORE;
     }
 

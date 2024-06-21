@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_PASS_EVIDENCE_SCORE;
 
 @ExtendWith(MockitoExtension.class)
 class EvidenceFactoryTest implements TestFixtures {
@@ -146,6 +147,27 @@ class EvidenceFactoryTest implements TestFixtures {
 
     @Nested
     class EvidenceCheckDetails {
+
+        @Test
+        @DisplayName(
+                "should use the default verification if verification score from session item is 0")
+        void shouldHaveAVerificationScoreOfZero() throws JsonProcessingException {
+            KBVItem kbvItem = getKbvItem();
+            UUID sessionId = UUID.randomUUID();
+            kbvItem.setSessionId(sessionId);
+            kbvItem.setStatus("authenticated");
+            kbvItem.setQuestionAnswerResultSummary(getKbvQuestionAnswerSummary(3, 3, 0));
+            setKbvItemQuestionState(kbvItem, "First", "Second", "Third");
+
+            SessionItem sessionItem = new SessionItem();
+            EvidenceRequest evidenceRequest = new EvidenceRequest();
+            evidenceRequest.setVerificationScore(0);
+            sessionItem.setEvidenceRequest(evidenceRequest);
+
+            var result = evidenceFactory.create(kbvItem, sessionItem);
+            assertEquals(VC_PASS_EVIDENCE_SCORE, getEvidenceAsMap(result).get("verificationScore"));
+        }
+
         @Test
         @DisplayName("should use the verification score from session item if present")
         void shouldHaveAVerificationScoreOfOne() throws JsonProcessingException {
