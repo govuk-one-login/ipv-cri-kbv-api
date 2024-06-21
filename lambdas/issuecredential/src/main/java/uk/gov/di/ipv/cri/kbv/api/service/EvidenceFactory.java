@@ -72,11 +72,25 @@ public class EvidenceFactory {
         var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
 
         if (hasPassedWithOneIncorrectAnswer(kbvItem)) {
+            /**
+             * Scenario: We create the `checkDetails` with the lowest 3 kbvQuality values, so we are
+             * excluding the highest kbvQuality value.
+             *
+             * <p>1 question was wrong in the first batch, therefore 2 questions were given in
+             * second batch, and they were answered correctly. We can sort by quality and remove any
+             * additional question(s)
+             */
             if (questionState.allQuestionBatchSizesMatch(2)) {
                 return createCheckDetailsBySortingOnKbvQuality(kbvItem, questionState);
             }
+            /**
+             * Scenario: 2 questions in first batch were correct, third question in the second batch
+             * was incorrect, and fourth question in the third batch was correct. We can safely
+             * exclude the third question from the `checkDetails`
+             */
             return createCheckDetailsBySkipping3rdIncorrectQa(questionState);
         }
+        /** Scenario: 3 out of 3 correct answers from 2 batches */
         return createCheckDetails(kbvItem, questionState);
     }
 
@@ -102,6 +116,9 @@ public class EvidenceFactory {
         return mapKbvQualityToCheckDetail(questionState)
                 .get()
                 .sorted(comparingInt(CheckDetail::getKbvQuality))
+                // getAnsweredCorrect tells us how many questions were answered correctly
+                // But not which question was incorrect
+                // So we pessimistically remove the highest quality questions
                 .limit(kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect())
                 .collect(Collectors.toList())
                 .toArray(CheckDetail[]::new);
