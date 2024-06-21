@@ -120,6 +120,8 @@ class VerifiableCredentialServiceTest {
                             objectMapper,
                             mockVcClaimSetBuilder,
                             spyEvidenceFactory);
+            mockSessionItem = new SessionItem();
+            mockSessionItem.setSubject(SUBJECT);
 
             initMockVCClaimSetBuilder();
 
@@ -135,7 +137,7 @@ class VerifiableCredentialServiceTest {
 
             SignedJWT signedJWT =
                     verifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                            SUBJECT, personIdentity, kbvItem, mockSessionItem);
+                            mockSessionItem, personIdentity, kbvItem);
 
             assertTrue(
                     signedJWT.verify(new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1))));
@@ -173,6 +175,8 @@ class VerifiableCredentialServiceTest {
                             objectMapper,
                             mockVcClaimSetBuilder,
                             spyEvidenceFactory);
+            mockSessionItem = new SessionItem();
+            mockSessionItem.setSubject(SUBJECT);
 
             KBVItem kbvItem = new KBVItem();
             kbvItem.setStatus(status);
@@ -181,7 +185,7 @@ class VerifiableCredentialServiceTest {
             when(mockVcClaimSetBuilder.build()).thenReturn(TEST_CLAIMS_SET);
 
             verifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                    SUBJECT, createPersonIdentity(), kbvItem, mockSessionItem);
+                    mockSessionItem, createPersonIdentity(), kbvItem);
 
             verify(mockVcClaimSetBuilder)
                     .verifiableCredentialEvidence(mapArrayArgumentCaptor.capture());

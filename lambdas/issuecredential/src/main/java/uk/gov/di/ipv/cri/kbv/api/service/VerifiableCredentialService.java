@@ -80,17 +80,14 @@ public class VerifiableCredentialService {
 
     @Tracing
     public SignedJWT generateSignedVerifiableCredentialJwt(
-            String subject,
-            PersonIdentityDetailed personIdentity,
-            KBVItem kbvItem,
-            SessionItem sessionItem)
+            SessionItem sessionItem, PersonIdentityDetailed personIdentity, KBVItem kbvItem)
             throws JOSEException, JsonProcessingException {
         long jwtTtl = this.configurationService.getMaxJwtTtl();
         ChronoUnit jwtTtlUnit =
                 ChronoUnit.valueOf(this.configurationService.getParameterValue("JwtTtlUnit"));
         var claimsSet =
                 this.vcClaimsSetBuilder
-                        .subject(subject)
+                        .subject(sessionItem.getSubject())
                         .timeToLive(jwtTtl, jwtTtlUnit)
                         .verifiableCredentialType(KBV_CREDENTIAL_TYPE)
                         .verifiableCredentialSubject(

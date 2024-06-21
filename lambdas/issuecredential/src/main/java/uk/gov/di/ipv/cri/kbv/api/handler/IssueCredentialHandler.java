@@ -109,7 +109,7 @@ public class IssueCredentialHandler
 
             SignedJWT signedJWT =
                     verifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                            sessionItem.getSubject(), personIdentity, kbvItem, sessionItem);
+                            sessionItem, personIdentity, kbvItem);
             auditService.sendAuditEvent(
                     AuditEventType.VC_ISSUED,
                     new AuditEventContext(input.getHeaders(), sessionItem),
