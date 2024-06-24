@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Transform: "AWS::Serverless-2016-10-31"
+Transform: [AWS::Serverless-2016-10-31, AWS::LanguageExtensions]
 Description: "Digital Identity IPV CRI KBV API"
 
 Parameters:
@@ -136,14 +136,6 @@ Mappings:
       staging: Static
       integration: Static
       production: Normal
-
-  IIQAPIStrategyMapping:
-    Environment:
-      dev: 3 out of 4 prioritised
-      build: 3 out of 4 prioritised
-      staging: 3 out of 4 prioritised
-      integration: 3 out of 4 prioritised
-      production: 3 out of 4 prioritised
 
   IIQOperatorIdMapping:
     Environment:
@@ -739,7 +731,9 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/IIQStrategy"
       Type: String
-      Value: !FindInMap [ IIQAPIStrategyMapping, Environment, !Ref 'Environment' ]
+      Value:
+        Fn::ToJsonString:
+          "2": "3 out of 4 prioritised"
       Description: Strategy to be used for Experian KBV Questions. Example - 3 of 4
 
   IIQOperatorIdParameter:
