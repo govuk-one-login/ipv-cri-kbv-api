@@ -109,7 +109,8 @@ class IssueCredentialHandlerTest {
         when(mockKBVStorageService.getKBVItem(SESSION_ID)).thenReturn(kbvItem);
         when(mockPersonIdentityService.getPersonIdentityDetailed(SESSION_ID))
                 .thenReturn(personIdentity);
-        when(mockVerifiableCredentialService.getAuditEventExtensions(kbvItem, sessionItem))
+        when(mockVerifiableCredentialService.getAuditEventExtensions(
+                        kbvItem, sessionItem.getEvidenceRequest()))
                 .thenReturn(auditEventExtensions);
         when(mockVerifiableCredentialService.generateSignedVerifiableCredentialJwt(
                         sessionItem, personIdentity, kbvItem))

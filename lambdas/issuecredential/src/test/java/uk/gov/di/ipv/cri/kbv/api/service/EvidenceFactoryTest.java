@@ -14,7 +14,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.di.ipv.cri.common.library.persistence.item.EvidenceRequest;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
-import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.CheckDetail;
 import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
@@ -48,8 +47,7 @@ class EvidenceFactoryTest implements TestFixtures {
                     .registerModule(new Jdk8Module())
                     .registerModule(new JavaTimeModule());
     @Mock private EventProbe mockEventProbe;
-    @Mock private SessionItem mockSessionItem;
-    @Mock private SessionService mockSessionService;
+    @Mock private EvidenceRequest mockEvidenceRequest;
 
     @BeforeEach
     void setUp() {
@@ -71,7 +69,7 @@ class EvidenceFactoryTest implements TestFixtures {
                     .when(mockEventProbe)
                     .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
 
-            var result = evidenceFactory.create(kbvItem, mockSessionItem);
+            var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
 
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
             assertEquals(
@@ -92,7 +90,7 @@ class EvidenceFactoryTest implements TestFixtures {
                     .when(mockEventProbe)
                     .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
-            var result = evidenceFactory.create(kbvItem, mockSessionItem);
+            var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
 
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
             assertEquals(
@@ -115,7 +113,7 @@ class EvidenceFactoryTest implements TestFixtures {
                     .when(mockEventProbe)
                     .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
-            var result = evidenceFactory.create(kbvItem, mockSessionItem);
+            var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
 
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
             assertEquals(
@@ -135,7 +133,7 @@ class EvidenceFactoryTest implements TestFixtures {
                     .when(mockEventProbe)
                     .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
-            var result = evidenceFactory.create(kbvItem, mockSessionItem);
+            var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
             assertEquals(
@@ -164,7 +162,7 @@ class EvidenceFactoryTest implements TestFixtures {
             evidenceRequest.setVerificationScore(0);
             sessionItem.setEvidenceRequest(evidenceRequest);
 
-            var result = evidenceFactory.create(kbvItem, sessionItem);
+            var result = evidenceFactory.create(kbvItem, evidenceRequest);
             assertEquals(VC_PASS_EVIDENCE_SCORE, getEvidenceAsMap(result).get("verificationScore"));
         }
 
@@ -183,7 +181,7 @@ class EvidenceFactoryTest implements TestFixtures {
             evidenceRequest.setVerificationScore(1);
             sessionItem.setEvidenceRequest(evidenceRequest);
 
-            var result = evidenceFactory.create(kbvItem, sessionItem);
+            var result = evidenceFactory.create(kbvItem, evidenceRequest);
 
             assertEquals(
                     evidenceRequest.getVerificationScore(),
@@ -203,7 +201,7 @@ class EvidenceFactoryTest implements TestFixtures {
 
             SessionItem sessionItem = new SessionItem();
 
-            var result = evidenceFactory.create(kbvItem, sessionItem);
+            var result = evidenceFactory.create(kbvItem, sessionItem.getEvidenceRequest());
 
             assertEquals(2, getEvidenceAsMap(result).get("verificationScore"));
         }
@@ -215,7 +213,7 @@ class EvidenceFactoryTest implements TestFixtures {
             kbvItem.setQuestionAnswerResultSummary(getKbvQuestionAnswerSummary(3, 3, 0));
             setKbvItemQuestionState(kbvItem, "First", "Second", "Third");
 
-            var result = evidenceFactory.create(kbvItem, mockSessionItem);
+            var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
 
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
             assertNotNull(getEvidenceAsMap(result).get("checkDetails"));
@@ -228,7 +226,7 @@ class EvidenceFactoryTest implements TestFixtures {
             kbvItem.setStatus("authenticated");
             kbvItem.setQuestionAnswerResultSummary(getKbvQuestionAnswerSummary(3, 3, 0));
             setKbvItemQuestionState(kbvItem, "First", "Second", "Third");
-            var result = evidenceFactory.create(kbvItem, mockSessionItem);
+            var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
 
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
             var checkDetailsResults = getEvidenceAsMap(result).get("checkDetails");
@@ -283,7 +281,7 @@ class EvidenceFactoryTest implements TestFixtures {
                                     "{\"First\":4,\"Second\": 5, \"Third\": 9, \"Fourth\": 9}",
                                     Map.class));
 
-            var result = evidenceFactory.create(kbvItem, mockSessionItem);
+            var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
 
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
             var checkDetailsResults = getEvidenceAsMap(result).get("checkDetails");
@@ -339,7 +337,7 @@ class EvidenceFactoryTest implements TestFixtures {
                                     "{\"First\":4,\"Second\": 5, \"Third\": 9, \"Fourth\": 8}",
                                     Map.class));
 
-            var result = evidenceFactory.create(kbvItem, mockSessionItem);
+            var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
 
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
             var checkDetailsResults = getEvidenceAsMap(result).get("checkDetails");
@@ -368,7 +366,7 @@ class EvidenceFactoryTest implements TestFixtures {
                     .when(mockEventProbe)
                     .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
-            var result = evidenceFactory.create(kbvItem, mockSessionItem);
+            var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
 
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
             var failedCheckDetailsResultsNode = getEvidenceAsMap(result).get("failedCheckDetails");
@@ -409,7 +407,7 @@ class EvidenceFactoryTest implements TestFixtures {
                     .when(mockEventProbe)
                     .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
-            var result = evidenceFactory.create(kbvItem, mockSessionItem);
+            var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
 
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
             var failedCheckDetailsResults = getEvidenceAsMap(result).get("failedCheckDetails");
@@ -431,7 +429,7 @@ class EvidenceFactoryTest implements TestFixtures {
                     .when(mockEventProbe)
                     .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
-            var result = evidenceFactory.create(kbvItem, mockSessionItem);
+            var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
 
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
             var failedCheckDetailsResults = getEvidenceAsMap(result).get("failedCheckDetails");
@@ -451,7 +449,7 @@ class EvidenceFactoryTest implements TestFixtures {
                     .when(mockEventProbe)
                     .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
-            var result = evidenceFactory.create(kbvItem, mockSessionItem);
+            var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
             assertEquals(
@@ -476,7 +474,7 @@ class EvidenceFactoryTest implements TestFixtures {
             IllegalStateException thrown =
                     assertThrows(
                             IllegalStateException.class,
-                            () -> evidenceFactory.create(kbvItem, mockSessionItem));
+                            () -> evidenceFactory.create(kbvItem, mockEvidenceRequest));
 
             assertEquals("QuestionId: NA may not be present in Mapping", thrown.getMessage());
         }

@@ -113,7 +113,8 @@ public class IssueCredentialHandler
             auditService.sendAuditEvent(
                     AuditEventType.VC_ISSUED,
                     new AuditEventContext(input.getHeaders(), sessionItem),
-                    verifiableCredentialService.getAuditEventExtensions(kbvItem, sessionItem));
+                    verifiableCredentialService.getAuditEventExtensions(
+                            kbvItem, sessionItem.getEvidenceRequest()));
             eventProbe.counterMetric(KBV_CREDENTIAL_ISSUER);
             auditService.sendAuditEvent(
                     AuditEventType.END, new AuditEventContext(input.getHeaders(), sessionItem));

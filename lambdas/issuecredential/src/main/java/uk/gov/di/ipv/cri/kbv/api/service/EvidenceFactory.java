@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.common.library.persistence.item.EvidenceRequest;
-import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.CheckDetail;
 import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
@@ -15,6 +14,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuality;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.util.EvidenceUtils;
 
 import java.util.Collection;
 import java.util.Map;
@@ -26,7 +26,6 @@ import java.util.stream.Stream;
 
 import static java.util.Comparator.comparingInt;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE;
-import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_PASS_EVIDENCE_SCORE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_PASS;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_UNABLE_TO_AUTHENTICATE;
@@ -48,7 +47,7 @@ public class EvidenceFactory {
         this.kbvQualityMapping = kbvQualityMapping;
     }
 
-    public Object[] create(KBVItem kbvItem, SessionItem sessionItem)
+    public Object[] create(KBVItem kbvItem, EvidenceRequest evidenceRequest)
             throws JsonProcessingException {
         Evidence evidence = new Evidence();
         evidence.setTxn(kbvItem.getAuthRefNo());
@@ -58,7 +57,7 @@ public class EvidenceFactory {
         }
         if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
             evidence.setVerificationScore(
-                    getVerificationScoreForPass(sessionItem.getEvidenceRequest()));
+                    EvidenceUtils.getVerificationScoreForPass(evidenceRequest));
             logVcScore("pass");
         } else {
             evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);
@@ -69,14 +68,6 @@ public class EvidenceFactory {
         }
 
         return new Map[] {objectMapper.convertValue(evidence, Map.class)};
-    }
-
-    private int getVerificationScoreForPass(EvidenceRequest evidenceRequest) {
-        if (Objects.isNull(evidenceRequest)) {
-            return VC_PASS_EVIDENCE_SCORE;
-        }
-        int verificationScore = evidenceRequest.getVerificationScore();
-        return verificationScore > 0 ? verificationScore : VC_PASS_EVIDENCE_SCORE;
     }
 
     private CheckDetail[] createCheckDetailsWithKbvQuality(KBVItem kbvItem)

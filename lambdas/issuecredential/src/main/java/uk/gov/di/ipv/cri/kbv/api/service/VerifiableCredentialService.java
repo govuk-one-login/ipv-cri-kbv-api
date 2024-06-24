@@ -11,6 +11,7 @@ import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverage
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
+import uk.gov.di.ipv.cri.common.library.persistence.item.EvidenceRequest;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
@@ -98,19 +99,20 @@ public class VerifiableCredentialService {
                                         personIdentity.getNames(),
                                         VC_BIRTHDATE_KEY,
                                         convertBirthDates(personIdentity.getBirthDates())))
-                        .verifiableCredentialEvidence(evidenceFactory.create(kbvItem, sessionItem))
+                        .verifiableCredentialEvidence(
+                                evidenceFactory.create(kbvItem, sessionItem.getEvidenceRequest()))
                         .build();
 
         return signedJwtFactory.createSignedJwt(claimsSet);
     }
 
-    public Map<String, Object> getAuditEventExtensions(KBVItem kbvItem, SessionItem sessionItem)
-            throws JsonProcessingException {
+    public Map<String, Object> getAuditEventExtensions(
+            KBVItem kbvItem, EvidenceRequest evidenceRequest) throws JsonProcessingException {
         return Map.of(
                 ISSUER,
                 configurationService.getVerifiableCredentialIssuer(),
                 VC_EVIDENCE_KEY,
-                evidenceFactory.create(kbvItem, sessionItem),
+                evidenceFactory.create(kbvItem, evidenceRequest),
                 EXPERIAN_IIQ_RESPONSE,
                 createAuditEventExtensions(
                         kbvItem.getStatus(), kbvItem.getQuestionAnswerResultSummary()));
