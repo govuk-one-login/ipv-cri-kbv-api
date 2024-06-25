@@ -14,7 +14,6 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuality;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.util.EvidenceUtils;
 
 import java.util.Collection;
 import java.util.Map;
@@ -56,8 +55,7 @@ public class EvidenceFactory {
             evidence.setFailedCheckDetails(createFailedCheckDetails(kbvItem));
         }
         if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
-            evidence.setVerificationScore(
-                    EvidenceUtils.getVerificationScoreForPass(evidenceRequest));
+            evidence.setVerificationScore(evidenceRequest);
             logVcScore("pass");
         } else {
             evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);

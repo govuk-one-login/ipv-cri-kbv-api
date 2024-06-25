@@ -2,6 +2,8 @@ package uk.gov.di.ipv.cri.kbv.api.domain;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import uk.gov.di.ipv.cri.common.library.persistence.item.EvidenceRequest;
+import uk.gov.di.ipv.cri.kbv.api.util.EvidenceUtils;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class Evidence {
@@ -30,6 +32,10 @@ public class Evidence {
 
     public void setVerificationScore(Integer verificationScore) {
         this.verificationScore = verificationScore;
+    }
+
+    public void setVerificationScore(EvidenceRequest evidenceRequest) {
+        this.verificationScore = EvidenceUtils.getVerificationScoreForPass(evidenceRequest);
     }
 
     public void setCi(ContraIndicator[] ci) {
