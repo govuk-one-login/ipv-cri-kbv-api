@@ -5,7 +5,6 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.logging.log4j.LogManager;
@@ -22,6 +21,7 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDeta
 import uk.gov.di.ipv.cri.common.library.exception.SessionExpiredException;
 import uk.gov.di.ipv.cri.common.library.exception.SessionNotFoundException;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.persistence.item.EvidenceRequest;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
@@ -39,6 +39,7 @@ import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.KbvConfigService;
 
 import java.io.IOException;
 import java.util.Map;
@@ -53,6 +54,7 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.EXPERIAN_IIQ_ST
 import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.THIN_FILE_ENCOUNTERED;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createAuditEventExtensions;
+import static uk.gov.di.ipv.cri.kbv.api.util.EvidenceUtils.getVerificationScoreForPass;
 
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -60,17 +62,16 @@ public class QuestionHandler
     public static final String LAMBDA_NAME = "get_question";
     public static final String ERROR_KEY = "error";
     public static final String IIQ_STRATEGY_PARAM_NAME = "IIQStrategy";
-    private static final String IIQ_OPERATOR_ID_PARAM_NAME = "IIQOperatorId";
+    static final String IIQ_OPERATOR_ID_PARAM_NAME = "IIQOperatorId";
     public static final String METRIC_DIMENSION_QUESTION_ID = "kbv_question_id";
     public static final String METRIC_DIMENSION_QUESTION_STRATEGY = "question_strategy";
-    private static final String SESSION_VERIFICATION_SCORE = "2";
     private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
     private final EventProbe eventProbe;
     private final KBVService kbvService;
     private final AuditService auditService;
-    private final ConfigurationService configurationService;
+    private final KbvConfigService configurationService;
     private final SessionService sessionService;
     private static final Logger LOGGER = LogManager.getLogger(QuestionHandler.class);
 
@@ -78,11 +79,13 @@ public class QuestionHandler
     public QuestionHandler() {
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.personIdentityService = new PersonIdentityService();
-        this.configurationService = new ConfigurationService();
-        this.kbvService = new KBVService(new KBVGatewayFactory().create(this.configurationService));
-        this.kbvStorageService = new KBVStorageService(this.configurationService);
-        this.auditService = new AuditService(this.configurationService);
-        this.sessionService = new SessionService(this.configurationService);
+        this.configurationService = new KbvConfigService(objectMapper, new ConfigurationService());
+        this.kbvService =
+                new KBVService(
+                        new KBVGatewayFactory().create(this.configurationService.configService()));
+        this.kbvStorageService = new KBVStorageService(this.configurationService.configService());
+        this.auditService = new AuditService(this.configurationService.configService());
+        this.sessionService = new SessionService(this.configurationService.configService());
 
         this.eventProbe = new EventProbe();
     }
@@ -92,7 +95,7 @@ public class QuestionHandler
             KBVStorageService kbvStorageService,
             PersonIdentityService personIdentityService,
             KBVService kbvService,
-            ConfigurationService configurationService,
+            KbvConfigService configurationService,
             EventProbe eventProbe,
             AuditService auditService,
             SessionService sessionService) {
@@ -219,7 +222,8 @@ public class QuestionHandler
         kbvItem.setQuestionState(state);
         kbvItem.setAuthRefNo(questionsResponse.getAuthReference());
         kbvItem.setUrn(questionsResponse.getUniqueReference());
-        kbvItem.setExpiryDate(this.configurationService.getSessionExpirationEpoch());
+        kbvItem.setExpiryDate(
+                this.configurationService.configService().getSessionExpirationEpoch());
 
         kbvStorageService.save(kbvItem);
     }
@@ -231,7 +235,8 @@ public class QuestionHandler
 
         var personIdentity =
                 personIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId());
-        var questionRequest = createQuestionRequest(personIdentity);
+        var questionRequest =
+                createQuestionRequest(personIdentity, sessionItem.getEvidenceRequest());
 
         eventProbe.addDimensions(
                 Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, questionRequest.getStrategy()));
@@ -241,31 +246,19 @@ public class QuestionHandler
         return this.kbvService.getQuestions(questionRequest);
     }
 
-    private QuestionRequest createQuestionRequest(PersonIdentityDetailed personIdentity)
-            throws JsonProcessingException, InvalidStrategyScoreException {
+    private QuestionRequest createQuestionRequest(
+            PersonIdentityDetailed personIdentity, EvidenceRequest evidenceRequest)
+            throws JsonProcessingException {
         var questionRequest = new QuestionRequest();
-        questionRequest.setStrategy(retrieveQuestionStrategy());
+        questionRequest.setStrategy(
+                configurationService.getKbvQuestionStrategy(
+                        getVerificationScoreForPass(evidenceRequest)));
         questionRequest.setIiqOperatorId(
-                this.configurationService.getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME));
+                configurationService.configService().getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME));
         questionRequest.setPersonIdentity(
                 personIdentityService.convertToPersonIdentitySummary(personIdentity));
 
         return questionRequest;
-    }
-
-    private String retrieveQuestionStrategy()
-            throws JsonProcessingException, InvalidStrategyScoreException {
-        var strategyParam = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
-
-        Map<String, String> strategyMap =
-                objectMapper.readValue(strategyParam, new TypeReference<>() {});
-        String strategy = strategyMap.get(SESSION_VERIFICATION_SCORE);
-        LOGGER.info("Using IIQStrategy: {}", strategy);
-        if (strategy == null) {
-            throw new InvalidStrategyScoreException(
-                    "No question strategy found for score provided");
-        }
-        return strategy;
     }
 
     private APIGatewayProxyResponseEvent handleException(
@@ -325,6 +318,8 @@ public class QuestionHandler
     }
 
     private Map<String, String> getComponentId() {
-        return Map.of("component_id", configurationService.getVerifiableCredentialIssuer());
+        return Map.of(
+                "component_id",
+                configurationService.configService().getVerifiableCredentialIssuer());
     }
 }

@@ -25,6 +25,7 @@ import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.persistence.item.EvidenceRequest;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
@@ -44,6 +45,7 @@ import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.KbvConfigService;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -68,6 +70,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -75,6 +78,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.EXPERIAN_IIQ_STARTED;
 import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.THIN_FILE_ENCOUNTERED;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.HEADER_SESSION_ID;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.IIQ_OPERATOR_ID_PARAM_NAME;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.IIQ_STRATEGY_PARAM_NAME;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.LAMBDA_NAME;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_ID;
@@ -94,6 +98,7 @@ class QuestionHandlerTest {
     @Mock private EventProbe mockEventProbe;
     @Mock private KBVGateway mockKBVGateway;
     @Mock private ConfigurationService mockConfigurationService;
+    @Mock private KbvConfigService mockKBVConfigService;
     @Mock private AuditService mockAuditService;
     @Mock private SessionService sessionService;
     @Captor private ArgumentCaptor<Map<String, Object>> auditEventMap;
@@ -102,14 +107,14 @@ class QuestionHandlerTest {
 
     @BeforeEach
     void setUp() {
-        spyKBVService = Mockito.spy(new KBVService(mockKBVGateway));
+        spyKBVService = spy(new KBVService(mockKBVGateway));
         questionHandler =
                 new QuestionHandler(
                         mockObjectMapper,
                         mockKBVStorageService,
                         mockPersonIdentityService,
                         spyKBVService,
-                        mockConfigurationService,
+                        mockKBVConfigService,
                         mockEventProbe,
                         mockAuditService,
                         sessionService);
@@ -135,7 +140,7 @@ class QuestionHandlerTest {
             KBVItem kbvItem = new KBVItem();
             kbvItem.setSessionId(UUID.fromString(requestHeaders.get(HEADER_SESSION_ID)));
             PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
-            SessionItem sessionItem = mock(SessionItem.class);
+            SessionItem sessionItem = new SessionItem();
             Map<String, String> outcome = Map.of("outcome", "Authentication successful");
 
             when(input.getHeaders()).thenReturn(requestHeaders);
@@ -144,6 +149,11 @@ class QuestionHandlerTest {
             when(mockPersonIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId()))
                     .thenReturn(personIdentity);
             doNothing().when(mockKBVStorageService).save(any());
+            when(mockKBVConfigService.configService()).thenReturn(mockConfigurationService);
+            when(mockKBVConfigService.getKbvQuestionStrategy(2))
+                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE.get("2"));
+            when(mockConfigurationService.getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME))
+                    .thenReturn("some-value");
 
             String expectedQuestion = new ObjectMapper().writeValueAsString(getQuestionOne());
 
@@ -154,11 +164,6 @@ class QuestionHandlerTest {
             doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
 
             when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
-            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
-            when(mockObjectMapper.readValue(
-                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
-                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
             String expectedComponentId = "kbv-component-id";
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn(expectedComponentId);
@@ -185,14 +190,16 @@ class QuestionHandlerTest {
                             argumentCaptorForReceived.capture(),
                             auditEventMapForReceived.capture());
             verify(mockKBVStorageService).save(any());
-            verify(mockConfigurationService).getParameterValue("IIQStrategy");
-            verify(mockConfigurationService).getParameterValue("IIQOperatorId");
+            verify(mockKBVConfigService).getKbvQuestionStrategy(2);
+            verify(mockConfigurationService).getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME);
             verify(mockConfigurationService, times(2)).getVerifiableCredentialIssuer();
             verify(mockObjectMapper).writeValueAsString(any());
             verify(mockEventProbe).counterMetric(LAMBDA_NAME);
             verify(mockEventProbe)
                     .addDimensions(
-                            Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4 prioritised"));
+                            Map.of(
+                                    METRIC_DIMENSION_QUESTION_STRATEGY,
+                                    MOCK_IIQ_STRATEGY_MAPPED_VALUE.get("2")));
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_QUESTION_ID, "Q00015"));
             verifyNoMoreInteractions(mockEventProbe);
 
@@ -249,9 +256,10 @@ class QuestionHandlerTest {
             assertEquals(expectedQuestion, response.getBody());
             verify(mockKBVStorageService)
                     .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
-            verify(mockConfigurationService, times(0)).getParameterValue("IIQOperatorId");
+            verify(mockConfigurationService, times(0))
+                    .getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME);
             verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
-            verify(mockConfigurationService, times(0)).getParameterValue("IIQStrategy");
+            verify(mockConfigurationService, times(0)).getParameterValue(IIQ_STRATEGY_PARAM_NAME);
             verify(mockEventProbe).counterMetric(LAMBDA_NAME);
         }
 
@@ -267,9 +275,19 @@ class QuestionHandlerTest {
             KBVItem kbvItem = new KBVItem();
             kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
             QuestionState questionStateMock = mock(QuestionState.class);
+            SessionItem mockSessionItem = mock(SessionItem.class);
+            when(mockSessionItem.getEvidenceRequest()).thenReturn(mock(EvidenceRequest.class));
+            when(sessionService.validateSessionId(sessionHeader.get(HEADER_SESSION_ID)))
+                    .thenReturn(mockSessionItem);
+
+            doNothing()
+                    .when(mockEventProbe)
+                    .addDimensions(
+                            Map.of(
+                                    METRIC_DIMENSION_QUESTION_STRATEGY,
+                                    MOCK_IIQ_STRATEGY_MAPPED_VALUE.get("2")));
             when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
-
             when(input.getHeaders()).thenReturn(sessionHeader);
             when(mockKBVStorageService.getKBVItem(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
@@ -280,11 +298,9 @@ class QuestionHandlerTest {
             when(mockObjectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class))
                     .thenReturn(questionStateMock);
 
-            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
-            when(mockObjectMapper.readValue(
-                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
-                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
+            when(mockKBVConfigService.configService()).thenReturn(mockConfigurationService);
+            when(mockKBVConfigService.getKbvQuestionStrategy(2))
+                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE.get("2"));
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
 
@@ -299,12 +315,14 @@ class QuestionHandlerTest {
 
             verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
             verify(mockObjectMapper).readValue(kbvItem.getQuestionState(), QuestionState.class);
-            verify(mockConfigurationService).getParameterValue("IIQStrategy");
-            verify(mockConfigurationService).getParameterValue("IIQOperatorId");
+            verify(mockKBVConfigService).getKbvQuestionStrategy(2);
+            verify(mockConfigurationService).getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME);
             verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
             verify(mockEventProbe)
                     .addDimensions(
-                            Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4 prioritised"));
+                            Map.of(
+                                    METRIC_DIMENSION_QUESTION_STRATEGY,
+                                    MOCK_IIQ_STRATEGY_MAPPED_VALUE.get("2")));
             verifyNoMoreInteractions(mockEventProbe);
         }
 
@@ -442,8 +460,9 @@ class QuestionHandlerTest {
             assertEquals(HttpStatusCode.NO_CONTENT, response.getStatusCode());
             assertNull(response.getBody());
             verify(mockEventProbe).counterMetric(LAMBDA_NAME);
-            verify(mockConfigurationService, times(0)).getParameterValue("IIQStrategy");
-            verify(mockConfigurationService, times(0)).getParameterValue("IIQOperatorId");
+            verify(mockConfigurationService, times(0)).getParameterValue(IIQ_STRATEGY_PARAM_NAME);
+            verify(mockConfigurationService, times(0))
+                    .getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME);
         }
     }
 
@@ -469,11 +488,9 @@ class QuestionHandlerTest {
 
             when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
-            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
-            when(mockObjectMapper.readValue(
-                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
-                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
+            when(mockKBVConfigService.configService()).thenReturn(mockConfigurationService);
+            when(mockKBVConfigService.getKbvQuestionStrategy(2))
+                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE.get("2"));
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
 
@@ -492,7 +509,9 @@ class QuestionHandlerTest {
             verify(mockKBVStorageService).save(kbvItem);
             verify(mockEventProbe)
                     .addDimensions(
-                            Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4 prioritised"));
+                            Map.of(
+                                    METRIC_DIMENSION_QUESTION_STRATEGY,
+                                    MOCK_IIQ_STRATEGY_MAPPED_VALUE.get("2")));
             verifyNoMoreInteractions(mockEventProbe);
             verify(kbvItem).setAuthRefNo("an auth ref no");
             verify(kbvItem).setUrn("a urn");
@@ -501,8 +520,8 @@ class QuestionHandlerTest {
                     (Map<String, Object>) auditEventMap.getValue().get("experianIiqResponse");
             String outcome = (String) response.get("outcome");
             assertThat(outcome, equalTo(expectedOutcome));
-            verify(mockConfigurationService).getParameterValue("IIQStrategy");
-            verify(mockConfigurationService).getParameterValue("IIQOperatorId");
+            verify(mockKBVConfigService).getKbvQuestionStrategy(2);
+            verify(mockConfigurationService).getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME);
             assertEquals(sessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
             assertEquals(requestHeaders, auditEventContextArgCaptor.getValue().getRequestHeaders());
         }
@@ -569,12 +588,9 @@ class QuestionHandlerTest {
                     .thenReturn(personIdentity);
             QuestionsResponse experianQuestionResponse = getExperianQuestionResponse();
             doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
-
-            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
-            when(mockObjectMapper.readValue(
-                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
-                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
+            when(mockKBVConfigService.configService()).thenReturn(mockConfigurationService);
+            when(mockKBVConfigService.getKbvQuestionStrategy(2))
+                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE.get("2"));
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
 
@@ -590,11 +606,25 @@ class QuestionHandlerTest {
         @Test
         void shouldReturnThrowInvalidStrategyScoreExceptionWhenTheScoreIsNotSupported()
                 throws JsonProcessingException {
+
+            mockKBVConfigService =
+                    spy(new KbvConfigService(mockObjectMapper, mockConfigurationService));
+            spyKBVService = spy(new KBVService(mockKBVGateway));
+            questionHandler =
+                    new QuestionHandler(
+                            mockObjectMapper,
+                            mockKBVStorageService,
+                            mockPersonIdentityService,
+                            spyKBVService,
+                            mockKBVConfigService,
+                            mockEventProbe,
+                            mockAuditService,
+                            sessionService);
+
             KBVItem kbvItem = mock(KBVItem.class);
             QuestionState questionState = mock(QuestionState.class);
             SessionItem sessionItem = mock(SessionItem.class);
             Map<String, String> requestHeaders = new HashMap<>();
-
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
             when(mockObjectMapper.readValue(
@@ -644,11 +674,9 @@ class QuestionHandlerTest {
                     .when(spyKBVService)
                     .getQuestions(any(QuestionRequest.class));
 
-            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
-            when(mockObjectMapper.readValue(
-                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
-                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
+            when(mockKBVConfigService.configService()).thenReturn(mockConfigurationService);
+            when(mockKBVConfigService.getKbvQuestionStrategy(2))
+                    .thenReturn("3 out of 4 prioritised");
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
 
@@ -693,11 +721,9 @@ class QuestionHandlerTest {
                     .when(spyKBVService)
                     .getQuestions(any(QuestionRequest.class));
 
-            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
-            when(mockObjectMapper.readValue(
-                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
-                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
+            when(mockKBVConfigService.configService()).thenReturn(mockConfigurationService);
+            when(mockKBVConfigService.getKbvQuestionStrategy(2))
+                    .thenReturn("3 out of 4 prioritised");
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
 
@@ -739,11 +765,9 @@ class QuestionHandlerTest {
                     .when(spyKBVService)
                     .getQuestions(any(QuestionRequest.class));
 
-            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
-            when(mockObjectMapper.readValue(
-                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
-                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
+            when(mockKBVConfigService.configService()).thenReturn(mockConfigurationService);
+            when(mockKBVConfigService.getKbvQuestionStrategy(2))
+                    .thenReturn("3 out of 4 prioritised");
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
 
