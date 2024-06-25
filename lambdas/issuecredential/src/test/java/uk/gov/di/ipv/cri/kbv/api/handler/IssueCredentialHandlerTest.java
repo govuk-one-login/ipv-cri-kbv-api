@@ -109,10 +109,11 @@ class IssueCredentialHandlerTest {
         when(mockKBVStorageService.getKBVItem(SESSION_ID)).thenReturn(kbvItem);
         when(mockPersonIdentityService.getPersonIdentityDetailed(SESSION_ID))
                 .thenReturn(personIdentity);
-        when(mockVerifiableCredentialService.getAuditEventExtensions(kbvItem))
+        when(mockVerifiableCredentialService.getAuditEventExtensions(
+                        kbvItem, sessionItem.getEvidenceRequest()))
                 .thenReturn(auditEventExtensions);
         when(mockVerifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                        SUBJECT, personIdentity, kbvItem))
+                        sessionItem, personIdentity, kbvItem))
                 .thenReturn(mock(SignedJWT.class));
 
         APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
@@ -120,7 +121,7 @@ class IssueCredentialHandlerTest {
         verify(mockSessionService).getSessionByAccessToken(accessToken);
         verify(mockKBVStorageService).getKBVItem(SESSION_ID);
         verify(mockVerifiableCredentialService)
-                .generateSignedVerifiableCredentialJwt(SUBJECT, personIdentity, kbvItem);
+                .generateSignedVerifiableCredentialJwt(sessionItem, personIdentity, kbvItem);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER);
         verify(mockAuditService)
                 .sendAuditEvent(
@@ -166,7 +167,7 @@ class IssueCredentialHandlerTest {
         when(mockPersonIdentityService.getPersonIdentityDetailed(SESSION_ID))
                 .thenReturn(personIdentity);
         when(mockVerifiableCredentialService.generateSignedVerifiableCredentialJwt(
-                        SUBJECT, personIdentity, kbvItem))
+                        sessionItem, personIdentity, kbvItem))
                 .thenThrow(unExpectedJOSEException);
 
         APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
@@ -174,7 +175,7 @@ class IssueCredentialHandlerTest {
         verify(mockSessionService).getSessionByAccessToken(accessToken);
         verify(mockKBVStorageService).getKBVItem(SESSION_ID);
         verify(mockVerifiableCredentialService)
-                .generateSignedVerifiableCredentialJwt(SUBJECT, personIdentity, kbvItem);
+                .generateSignedVerifiableCredentialJwt(sessionItem, personIdentity, kbvItem);
         verify(mockEventProbe).log(Level.ERROR, unExpectedJOSEException);
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
         verifyNoMoreInteractions(mockVerifiableCredentialService);

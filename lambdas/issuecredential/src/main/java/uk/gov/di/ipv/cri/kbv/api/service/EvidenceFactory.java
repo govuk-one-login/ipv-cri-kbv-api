@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import uk.gov.di.ipv.cri.common.library.persistence.item.EvidenceRequest;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.CheckDetail;
 import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
@@ -24,7 +25,6 @@ import java.util.stream.Stream;
 
 import static java.util.Comparator.comparingInt;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE;
-import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_PASS_EVIDENCE_SCORE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_PASS;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_UNABLE_TO_AUTHENTICATE;
@@ -46,7 +46,8 @@ public class EvidenceFactory {
         this.kbvQualityMapping = kbvQualityMapping;
     }
 
-    public Object[] create(KBVItem kbvItem) throws JsonProcessingException {
+    public Object[] create(KBVItem kbvItem, EvidenceRequest evidenceRequest)
+            throws JsonProcessingException {
         Evidence evidence = new Evidence();
         evidence.setTxn(kbvItem.getAuthRefNo());
         if (hasQuestionsAsked(kbvItem)) {
@@ -54,7 +55,7 @@ public class EvidenceFactory {
             evidence.setFailedCheckDetails(createFailedCheckDetails(kbvItem));
         }
         if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
-            evidence.setVerificationScore(VC_PASS_EVIDENCE_SCORE);
+            evidence.setVerificationScore(evidenceRequest);
             logVcScore("pass");
         } else {
             evidence.setVerificationScore(VC_FAIL_EVIDENCE_SCORE);

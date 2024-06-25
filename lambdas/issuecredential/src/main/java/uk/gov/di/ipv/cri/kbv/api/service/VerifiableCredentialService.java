@@ -11,6 +11,8 @@ import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverage
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
+import uk.gov.di.ipv.cri.common.library.persistence.item.EvidenceRequest;
+import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.common.library.util.KMSSigner;
@@ -79,14 +81,14 @@ public class VerifiableCredentialService {
 
     @Tracing
     public SignedJWT generateSignedVerifiableCredentialJwt(
-            String subject, PersonIdentityDetailed personIdentity, KBVItem kbvItem)
+            SessionItem sessionItem, PersonIdentityDetailed personIdentity, KBVItem kbvItem)
             throws JOSEException, JsonProcessingException {
         long jwtTtl = this.configurationService.getMaxJwtTtl();
         ChronoUnit jwtTtlUnit =
                 ChronoUnit.valueOf(this.configurationService.getParameterValue("JwtTtlUnit"));
         var claimsSet =
                 this.vcClaimsSetBuilder
-                        .subject(subject)
+                        .subject(sessionItem.getSubject())
                         .timeToLive(jwtTtl, jwtTtlUnit)
                         .verifiableCredentialType(KBV_CREDENTIAL_TYPE)
                         .verifiableCredentialSubject(
@@ -97,19 +99,20 @@ public class VerifiableCredentialService {
                                         personIdentity.getNames(),
                                         VC_BIRTHDATE_KEY,
                                         convertBirthDates(personIdentity.getBirthDates())))
-                        .verifiableCredentialEvidence(evidenceFactory.create(kbvItem))
+                        .verifiableCredentialEvidence(
+                                evidenceFactory.create(kbvItem, sessionItem.getEvidenceRequest()))
                         .build();
 
         return signedJwtFactory.createSignedJwt(claimsSet);
     }
 
-    public Map<String, Object> getAuditEventExtensions(KBVItem kbvItem)
-            throws JsonProcessingException {
+    public Map<String, Object> getAuditEventExtensions(
+            KBVItem kbvItem, EvidenceRequest evidenceRequest) throws JsonProcessingException {
         return Map.of(
                 ISSUER,
                 configurationService.getVerifiableCredentialIssuer(),
                 VC_EVIDENCE_KEY,
-                evidenceFactory.create(kbvItem),
+                evidenceFactory.create(kbvItem, evidenceRequest),
                 EXPERIAN_IIQ_RESPONSE,
                 createAuditEventExtensions(
                         kbvItem.getStatus(), kbvItem.getQuestionAnswerResultSummary()));
