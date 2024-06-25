@@ -7,6 +7,10 @@ import java.util.Objects;
 public class EvidenceUtils {
     private static final int VC_PASS_EVIDENCE_SCORE = 2;
 
+    private EvidenceUtils() {
+        throw new UnsupportedOperationException("Utility class");
+    }
+
     public static int getVerificationScoreForPass(EvidenceRequest evidenceRequest) {
         if (Objects.isNull(evidenceRequest)) {
             return VC_PASS_EVIDENCE_SCORE;
