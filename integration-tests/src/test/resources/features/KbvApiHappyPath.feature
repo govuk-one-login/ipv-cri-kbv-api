@@ -101,7 +101,7 @@ Feature: 3 out of 4 strategy. User has 2 KBV questions. Tests are run against th
 
   @pre_merge_happy_evidence_requested
   Scenario: User answers 2 questions correctly with evidence requested
-    Given user has the test-identity 197, verificationScore of 1 and strengthScore of 2 in the form of a signed JWT string
+    Given user has the test-identity 197 and verificationScore of 1 in the form of a signed JWT string
 
     # Session
     When user sends a POST request to session end point
