@@ -16,6 +16,11 @@ public class EvidenceUtils {
             return VC_PASS_EVIDENCE_SCORE;
         }
         int verificationScore = evidenceRequest.getVerificationScore();
+        if (verificationScore < 0 || verificationScore > VC_PASS_EVIDENCE_SCORE) {
+            String errorMessage =
+                    String.format("Verification Score %d is not supported", verificationScore);
+            throw new IllegalStateException(errorMessage);
+        }
         return verificationScore > 0 ? verificationScore : VC_PASS_EVIDENCE_SCORE;
     }
 }
