@@ -97,7 +97,7 @@ public class EvidenceFactory {
              * second batch, and they were answered correctly. We can sort by quality and remove any
              * additional question(s)
              */
-            if (questionState.allQuestionBatchSizesMatch(2)) {
+            if (questionState.isQuestionReceivedBatchCountEqualTo(2)) {
                 return createCheckDetailsBySortingOnKbvQuality(kbvItem, questionState);
             }
             /**
