@@ -31,7 +31,7 @@ class QuestionStateTest {
     }
 
     @Test
-    void shouldReturnTrueWhenIthasAtLeastOneUnanswered() {
+    void returnsTrueWhenQuestionStateHasAtLeastOneUnanswered() {
         QuestionsResponse questionsResponse =
                 getExperianQuestionResponse(
                         new KbvQuestion[] {getQuestion("Q00015"), getQuestion("Q00040")});
@@ -42,7 +42,7 @@ class QuestionStateTest {
     }
 
     @Test
-    void shouldReturnFalseWhenIthasAtLeastOneUnansweredIsFalse() {
+    void atLeastOneUnansweredIsReturnFalseWhenQuestionStateContainsUnAnsweredQuestions() {
         QuestionsResponse questionsResponse =
                 getExperianQuestionResponse(
                         new KbvQuestion[] {getQuestion("Q00015"), getQuestion("Q00040")});
@@ -64,7 +64,7 @@ class QuestionStateTest {
     }
 
     @Test
-    void shouldReturnAllQaPairs() {
+    void shouldReturnAllQaPairsWhenQuestateIsPopulated() {
         QuestionsResponse questionsResponse1 =
                 getExperianQuestionResponse(
                         new KbvQuestion[] {getQuestion("Q00015"), getQuestion("Q00040")});
@@ -80,7 +80,7 @@ class QuestionStateTest {
     }
 
     @Test
-    void shouldEvaluateToTrueWhenAllQuestionsHaveAnswers() {
+    void questionsHaveAllBeenAnsweredShouldEvaluateToTrueWhenAllQuestionsHaveAnswers() {
         QuestionAnswerPair questionAnswerPairMock1 = mock(QuestionAnswerPair.class);
         when(questionAnswerPairMock1.getAnswer()).thenReturn("answer-1");
         QuestionAnswerPair questionAnswerPairMock2 = mock(QuestionAnswerPair.class);
@@ -148,7 +148,7 @@ class QuestionStateTest {
         questionState.setQAPairs(questionsResponse1.getQuestions());
         questionState.setQAPairs(questionsResponse2.getQuestions());
 
-        assertTrue(questionState.allQuestionBatchSizesMatch(2));
+        assertTrue(questionState.isQuestionReceivedBatchCountEqualTo(2));
         assertEquals(4, questionState.getQuestionIdsFromQAPairs().count());
     }
 
@@ -164,12 +164,32 @@ class QuestionStateTest {
         questionState.setQAPairs(questionsResponse1.getQuestions());
         questionState.setQAPairs(questionsResponse2.getQuestions());
 
-        assertTrue(questionState.allQuestionBatchSizesMatch(2));
+        assertTrue(questionState.isQuestionReceivedBatchCountEqualTo(2));
 
         assertAll(
                 () -> {
                     assertEquals("Q00015,Q00040,Q00045,Q00067", questionState.getAllQaPairsIds());
                     assertEquals("Q00045,Q00067", questionState.getQaPairsIds());
+                });
+    }
+
+    @Test
+    void shouldReturnAllQaPairsWhenNewQuestionsAreSetInBatchesOf2And1() {
+        QuestionsResponse questionsResponse1 =
+                getExperianQuestionResponse(
+                        new KbvQuestion[] {getQuestion("Q00015"), getQuestion("Q00040")});
+        QuestionsResponse questionsResponse2 =
+                getExperianQuestionResponse(new KbvQuestion[] {getQuestion("Q00045")});
+
+        questionState.setQAPairs(questionsResponse1.getQuestions());
+        questionState.setQAPairs(questionsResponse2.getQuestions());
+
+        assertTrue(questionState.isQuestionReceivedBatchCountEqualTo(2));
+
+        assertAll(
+                () -> {
+                    assertEquals("Q00015,Q00040,Q00045", questionState.getAllQaPairsIds());
+                    assertEquals("Q00045", questionState.getQaPairsIds());
                 });
     }
 
@@ -214,12 +234,12 @@ class QuestionStateTest {
         questionState.setQAPairs(questionsResponse3.getQuestions());
         questionState.setQAPairs(questionsResponse4.getQuestions());
 
-        assertFalse(questionState.allQuestionBatchSizesMatch(2));
+        assertFalse(questionState.isQuestionReceivedBatchCountEqualTo(2));
         assertEquals(4, questionState.getQuestionIdsFromQAPairs().count());
     }
 
     @Test
-    void questionStateShouldfilterOutQAPairAtIndexOne() {
+    void questionStateShouldFilterOutQAPairAtIndexOne() {
         var questionOne = getQuestionOne();
         var questionTwo = getQuestionTwo();
         var questionThree = getQuestionOne();
@@ -234,7 +254,7 @@ class QuestionStateTest {
         questionState.setQAPairs(questionsResponse3.getQuestions());
         questionState.setQAPairs(questionsResponse4.getQuestions());
 
-        assertFalse(questionState.allQuestionBatchSizesMatch(2));
+        assertFalse(questionState.isQuestionReceivedBatchCountEqualTo(2));
         assertEquals(2, questionState.skipQaPairAtIndexOne().count());
     }
 }

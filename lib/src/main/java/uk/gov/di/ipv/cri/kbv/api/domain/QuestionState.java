@@ -19,8 +19,8 @@ public class QuestionState {
     private List<List<QuestionAnswerPair>> allQaPairs = new ArrayList<>();
 
     @JsonIgnore
-    public boolean allQuestionBatchSizesMatch(int expectedBatchSize) {
-        return allQaPairs.stream().allMatch(x -> x.size() == expectedBatchSize);
+    public boolean isQuestionReceivedBatchCountEqualTo(int expectedSize) {
+        return allQaPairs.size() == expectedSize;
     }
 
     @JsonIgnore

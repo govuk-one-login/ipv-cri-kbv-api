@@ -14,6 +14,8 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuality;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.strategy.KbvStrategyParser;
+import uk.gov.di.ipv.cri.kbv.api.strategy.Strategy;
 
 import java.util.Collection;
 import java.util.Map;
@@ -35,7 +37,20 @@ public class EvidenceFactory {
     private static final int UNSUITABLE_QUESTION_QUALITY = 0;
     private final EventProbe eventProbe;
     private final ObjectMapper objectMapper;
+    private String kbvQuestionStrategy;
     private final Map<String, Integer> kbvQualityMapping;
+
+    void setKbvQuestionStrategy(String questionStrategy) {
+        this.kbvQuestionStrategy = questionStrategy;
+    }
+
+    public String getKbvQuestionStrategy() {
+        return this.kbvQuestionStrategy;
+    }
+
+    public Map<String, Integer> getKbvQualityMapping() {
+        return kbvQualityMapping;
+    }
 
     public EvidenceFactory(
             ObjectMapper objectMapper,
@@ -44,6 +59,7 @@ public class EvidenceFactory {
         this.objectMapper = objectMapper;
         this.eventProbe = eventProbe;
         this.kbvQualityMapping = kbvQualityMapping;
+        this.kbvQuestionStrategy = "3 out of 4 Prioritised";
     }
 
     public Object[] create(KBVItem kbvItem, EvidenceRequest evidenceRequest)
@@ -81,7 +97,7 @@ public class EvidenceFactory {
              * second batch, and they were answered correctly. We can sort by quality and remove any
              * additional question(s)
              */
-            if (questionState.allQuestionBatchSizesMatch(2)) {
+            if (questionState.isQuestionReceivedBatchCountEqualTo(2)) {
                 return createCheckDetailsBySortingOnKbvQuality(kbvItem, questionState);
             }
             /**
@@ -139,7 +155,7 @@ public class EvidenceFactory {
     }
 
     private int getKbvQuality(String questionId) {
-        return kbvQualityMapping.entrySet().stream()
+        return this.getKbvQualityMapping().entrySet().stream()
                 .filter(item -> questionId.equals(item.getKey()))
                 .map(Map.Entry::getValue)
                 .map(this::mapKbvQuality)
@@ -167,9 +183,11 @@ public class EvidenceFactory {
     }
 
     private boolean hasPassedWithOneIncorrectAnswer(KBVItem kbvItem) {
+        KbvStrategyParser parser = new KbvStrategyParser(this.getKbvQuestionStrategy());
+        Strategy strategy = parser.parse();
         return Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
-                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() == 4
-                && kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect() == 3;
+                && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() == strategy.max()
+                && kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect() == strategy.min();
     }
 
     private boolean hasTooManyIncorrectAnswers(KBVItem kbvItem) {
