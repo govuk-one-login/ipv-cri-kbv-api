@@ -6,26 +6,20 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.common.library.persistence.item.EvidenceRequest;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
+import uk.gov.di.ipv.cri.kbv.api.builder.CheckDetailsBuilder;
 import uk.gov.di.ipv.cri.kbv.api.domain.CheckDetail;
 import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
 import uk.gov.di.ipv.cri.kbv.api.domain.Evidence;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
-import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuality;
-import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
-import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionAnswerSummary;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.strategy.KbvStrategyParser;
 import uk.gov.di.ipv.cri.kbv.api.strategy.Strategy;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
-import static java.util.Comparator.comparingInt;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_NOT_AUTHENTICATED;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_PASS;
@@ -34,7 +28,6 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_
 public class EvidenceFactory {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final String METRIC_DIMENSION_KBV_VERIFICATION = "kbv_verification";
-    private static final int UNSUITABLE_QUESTION_QUALITY = 0;
     private final EventProbe eventProbe;
     private final ObjectMapper objectMapper;
     private String kbvQuestionStrategy;
@@ -67,8 +60,8 @@ public class EvidenceFactory {
         Evidence evidence = new Evidence();
         evidence.setTxn(kbvItem.getAuthRefNo());
         if (hasQuestionsAsked(kbvItem)) {
-            evidence.setCheckDetails(createCheckDetailsWithKbvQuality(kbvItem));
-            evidence.setFailedCheckDetails(createFailedCheckDetails(kbvItem));
+            evidence.setCheckDetails(withKbvQuality(kbvItem));
+            evidence.setFailedCheckDetails(withoutKbvQuality(kbvItem));
         }
         if (VC_THIRD_PARTY_KBV_CHECK_PASS.equalsIgnoreCase(kbvItem.getStatus())) {
             evidence.setVerificationScore(evidenceRequest);
@@ -84,102 +77,75 @@ public class EvidenceFactory {
         return new Map[] {objectMapper.convertValue(evidence, Map.class)};
     }
 
-    private CheckDetail[] createCheckDetailsWithKbvQuality(KBVItem kbvItem)
-            throws JsonProcessingException {
-        var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
+    private CheckDetail[] withKbvQuality(KBVItem kbvItem) throws JsonProcessingException {
+        QuestionState questionState =
+                objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
+        KbvQuestionAnswerSummary answerSummary = kbvItem.getQuestionAnswerResultSummary();
 
-        if (hasPassedWithOneIncorrectAnswer(kbvItem)) {
-            /**
-             * Scenario: We create the `checkDetails` with the lowest 3 kbvQuality values, so we are
-             * excluding the highest kbvQuality value.
-             *
-             * <p>1 question was wrong in the first batch, therefore 2 questions were given in
-             * second batch, and they were answered correctly. We can sort by quality and remove any
-             * additional question(s)
-             */
-            if (questionState.isQuestionReceivedBatchCountEqualTo(2)) {
-                return createCheckDetailsBySortingOnKbvQuality(kbvItem, questionState);
-            }
+        if (batchNumberOfIncorrectAnswer(kbvItem, questionState) == 3) {
             /**
              * Scenario: 2 questions in first batch were correct, third question in the second batch
              * was incorrect, and fourth question in the third batch was correct. We can safely
              * exclude the third question from the `checkDetails`
              */
-            return createCheckDetailsBySkipping3rdIncorrectQa(questionState);
+            return CheckDetailsBuilder.init(questionState, answerSummary, this.kbvQualityMapping)
+                    .skip1stQuestionOfBatchTwo()
+                    .getFilteredBatchesQuestionIds()
+                    .createCheckDetailsWithKbvQuality()
+                    .toArray();
+        } else if (batchNumberOfIncorrectAnswer(kbvItem, questionState) == 2) {
+            /**
+             * Scenario: We create the `checkDetails` with the lowest 3 kbvQuality values, so we are
+             * excluding the highest kbvQuality value.
+             *
+             * <p>(3 out of 4 prioritised) One question was wrong in the first batch, therefore 2
+             * questions were given in second (2 out of 3 prioritised) One question was wrong in the
+             * first batch, therefore 1 question was given in second batch, and they were answered
+             * correctly. We can sort by quality and remove any additional the one the highest KBV
+             * Quality value
+             */
+            return CheckDetailsBuilder.init(questionState, answerSummary, this.kbvQualityMapping)
+                    .getAllBatchesQuestionIds()
+                    .createCheckDetailsWithKbvQuality()
+                    .sortByKbvQualityFromLowestToHighest()
+                    .filterByNumberOfCorrectQuestions()
+                    .toArray();
+        } else if (twoCorrectInOneBatch(questionState) || threeCorrectInTwoBatches(questionState)) {
+            /**
+             * Scenario: 3 out of 3 correct answers from 2 batches (3 out of 4 prioritised) Or 2 out
+             * of 2 correct answers from 1 batch (2 out of 3 prioritised)
+             */
+            return CheckDetailsBuilder.init(questionState, answerSummary, this.kbvQualityMapping)
+                    .getAllBatchesQuestionIds()
+                    .createCheckDetailsWithKbvQuality()
+                    .filterByNumberOfCorrectQuestions()
+                    .toArray();
         }
-        /** Scenario: 3 out of 3 correct answers from 2 batches */
-        return createCheckDetails(kbvItem, questionState);
+        return new CheckDetail[0];
     }
 
-    private CheckDetail[] createCheckDetails(KBVItem kbvItem, QuestionState questionState) {
-        return mapKbvQualityToCheckDetail(questionState)
-                .get()
-                .limit(kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect())
-                .toArray(CheckDetail[]::new);
-    }
-
-    private CheckDetail[] createCheckDetailsBySkipping3rdIncorrectQa(QuestionState questionState) {
-        return questionState
-                .skipQaPairAtIndexOne()
-                .flatMap(Collection::stream)
-                .map(QuestionAnswerPair::getQuestion)
-                .map(KbvQuestion::getQuestionId)
-                .map(this::createCheckDetailWithQuality)
-                .toArray(CheckDetail[]::new);
-    }
-
-    private CheckDetail[] createCheckDetailsBySortingOnKbvQuality(
-            KBVItem kbvItem, QuestionState questionState) {
-        return mapKbvQualityToCheckDetail(questionState)
-                .get()
-                .sorted(comparingInt(CheckDetail::getKbvQuality))
-                // getAnsweredCorrect tells us how many questions were answered correctly
-                // But not which question was incorrect
-                // So we pessimistically remove the highest quality questions
-                .limit(kbvItem.getQuestionAnswerResultSummary().getAnsweredCorrect())
-                .collect(Collectors.toList())
-                .toArray(CheckDetail[]::new);
-    }
-
-    private CheckDetail[] createFailedCheckDetails(KBVItem kbvItem) {
+    private CheckDetail[] withoutKbvQuality(KBVItem kbvItem) {
         return IntStream.range(0, kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect())
                 .mapToObj(i -> new CheckDetail())
                 .limit(kbvItem.getQuestionAnswerResultSummary().getAnsweredIncorrect())
                 .toArray(CheckDetail[]::new);
     }
 
-    private CheckDetail createCheckDetailWithQuality(String questionId) {
-        CheckDetail checkDetail = new CheckDetail();
-        checkDetail.setKbvQuality(getKbvQuality(questionId));
-        return checkDetail;
-    }
-
-    private int getKbvQuality(String questionId) {
-        return this.getKbvQualityMapping().entrySet().stream()
-                .filter(item -> questionId.equals(item.getKey()))
-                .map(Map.Entry::getValue)
-                .map(this::mapKbvQuality)
-                .findFirst()
-                .orElseThrow(
-                        () ->
-                                new IllegalStateException(
-                                        String.format(
-                                                "QuestionId: %s may not be present in Mapping",
-                                                questionId)));
-    }
-
-    private int mapKbvQuality(int quality) {
-        return quality == UNSUITABLE_QUESTION_QUALITY ? KbvQuality.LOW.getValue() : quality;
-    }
-
-    private Supplier<Stream<CheckDetail>> mapKbvQualityToCheckDetail(QuestionState questionState) {
-        return () ->
-                questionState.getQuestionIdsFromQAPairs().map(this::createCheckDetailWithQuality);
-    }
-
     private boolean hasQuestionsAsked(KBVItem kbvItem) {
         return Objects.nonNull(kbvItem.getQuestionAnswerResultSummary())
                 && kbvItem.getQuestionAnswerResultSummary().getQuestionsAsked() > 0;
+    }
+
+    private boolean twoCorrectInOneBatch(QuestionState questionState) {
+        return questionState.getBatchCount() == 1;
+    }
+
+    private boolean threeCorrectInTwoBatches(QuestionState questionState) {
+        return questionState.getBatchCount() == 2;
+    }
+
+    private int batchNumberOfIncorrectAnswer(KBVItem kbvItem, QuestionState questionState) {
+        return hasPassedWithOneIncorrectAnswer(kbvItem) ? questionState.getBatchCount() : -1;
     }
 
     private boolean hasPassedWithOneIncorrectAnswer(KBVItem kbvItem) {
