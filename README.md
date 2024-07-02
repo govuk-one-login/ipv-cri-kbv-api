@@ -19,7 +19,7 @@ This will run "build", "test", "buildZip", and "spotLess" reformatting
 
 ## Deploy to dev environment
 
-Ensure you have the `sam-cli` and `gds-cli` installed, and that you can assume an admin role on the `di-ipv-cri-dev` AWS account.
+Ensure you have the `sam-cli` and `gds-cli` installed, and that you can assume an admin role on the `di-ipv-cri-kbv-dev` AWS account.
 Alternatively you can [create a sso profile](https://govukverify.atlassian.net/wiki/spaces/LO/pages/3725591061/Getting+set+up+with+AWS+SSO+in+terminal+CLI+-+quickstart)
 
 Deploy to the dev environment with:
