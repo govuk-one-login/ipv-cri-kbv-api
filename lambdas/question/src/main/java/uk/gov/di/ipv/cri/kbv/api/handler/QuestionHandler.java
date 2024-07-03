@@ -63,6 +63,8 @@ public class QuestionHandler
     private static final String IIQ_OPERATOR_ID_PARAM_NAME = "IIQOperatorId";
     public static final String METRIC_DIMENSION_QUESTION_ID = "kbv_question_id";
     public static final String METRIC_DIMENSION_QUESTION_STRATEGY = "question_strategy";
+    public static final String METRIC_KBV_JOURNEY_TYPE = "kbv_journey_type";
+    public static final String METRIC_REQUESTED_VERIFICATION_SCORE = "requested_verification_score";
     private static final String SESSION_VERIFICATION_SCORE = "2";
     private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
@@ -233,9 +235,6 @@ public class QuestionHandler
                 personIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId());
         var questionRequest = createQuestionRequest(personIdentity);
 
-        eventProbe.addDimensions(
-                Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, questionRequest.getStrategy()));
-
         sendQuestionRequestSentAuditEvent(sessionItem, personIdentity, requestHeaders);
         sendExperianIIQStartedAuditEvent(sessionItem, requestHeaders);
         return this.kbvService.getQuestions(questionRequest);
@@ -265,6 +264,13 @@ public class QuestionHandler
             throw new InvalidStrategyScoreException(
                     "No question strategy found for score provided");
         }
+        eventProbe.addDimensions(
+                Map.of(
+                        METRIC_REQUESTED_VERIFICATION_SCORE,
+                        SESSION_VERIFICATION_SCORE,
+                        METRIC_DIMENSION_QUESTION_STRATEGY,
+                        strategy));
+        eventProbe.counterMetric(METRIC_KBV_JOURNEY_TYPE);
         return strategy;
     }
 

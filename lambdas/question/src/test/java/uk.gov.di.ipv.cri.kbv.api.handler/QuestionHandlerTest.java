@@ -79,6 +79,8 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.IIQ_STRATEGY_PAR
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.LAMBDA_NAME;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_ID;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_STRATEGY;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_KBV_JOURNEY_TYPE;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_REQUESTED_VERIFICATION_SCORE;
 
 @ExtendWith(MockitoExtension.class)
 class QuestionHandlerTest {
@@ -86,6 +88,12 @@ class QuestionHandlerTest {
             "{\"2\": \"3 out of 4 prioritised\"}";
     private static final Map<String, String> MOCK_IIQ_STRATEGY_MAPPED_VALUE =
             Map.of("2", "3 out of 4 prioritised");
+    private static final Map<String, String> MOCK_KBV_JOURNEY_METRIC_MAP =
+            Map.of(
+                    METRIC_REQUESTED_VERIFICATION_SCORE,
+                    "2",
+                    METRIC_DIMENSION_QUESTION_STRATEGY,
+                    "3 out of 4 prioritised");
 
     private QuestionHandler questionHandler;
     @Mock private ObjectMapper mockObjectMapper;
@@ -190,9 +198,8 @@ class QuestionHandlerTest {
             verify(mockConfigurationService, times(2)).getVerifiableCredentialIssuer();
             verify(mockObjectMapper).writeValueAsString(any());
             verify(mockEventProbe).counterMetric(LAMBDA_NAME);
-            verify(mockEventProbe)
-                    .addDimensions(
-                            Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4 prioritised"));
+            verify(mockEventProbe).addDimensions(MOCK_KBV_JOURNEY_METRIC_MAP);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE);
             verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_QUESTION_ID, "Q00015"));
             verifyNoMoreInteractions(mockEventProbe);
 
@@ -302,9 +309,8 @@ class QuestionHandlerTest {
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
             verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
-            verify(mockEventProbe)
-                    .addDimensions(
-                            Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4 prioritised"));
+            verify(mockEventProbe).addDimensions(MOCK_KBV_JOURNEY_METRIC_MAP);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE);
             verifyNoMoreInteractions(mockEventProbe);
         }
 
@@ -490,9 +496,8 @@ class QuestionHandlerTest {
                             auditEventContextArgCaptor.capture(),
                             auditEventMap.capture());
             verify(mockKBVStorageService).save(kbvItem);
-            verify(mockEventProbe)
-                    .addDimensions(
-                            Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4 prioritised"));
+            verify(mockEventProbe).addDimensions(MOCK_KBV_JOURNEY_METRIC_MAP);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE);
             verifyNoMoreInteractions(mockEventProbe);
             verify(kbvItem).setAuthRefNo("an auth ref no");
             verify(kbvItem).setUrn("a urn");
