@@ -31,6 +31,7 @@ import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
 import uk.gov.di.ipv.cri.common.library.util.VerifiableCredentialClaimsSetBuilder;
 import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.service.fixtures.TestFixtures;
 
 import java.security.NoSuchAlgorithmException;
@@ -181,6 +182,9 @@ class VerifiableCredentialServiceTest {
             KBVItem kbvItem = new KBVItem();
             kbvItem.setStatus(status);
             kbvItem.setAuthRefNo(authRefNo);
+            QuestionState questionState = new QuestionState();
+            kbvItem.setStatus("some unknown value");
+            kbvItem.setQuestionState(objectMapper.writeValueAsString(questionState));
 
             when(mockVcClaimSetBuilder.build()).thenReturn(TEST_CLAIMS_SET);
 
