@@ -24,6 +24,11 @@ public class QuestionState {
     }
 
     @JsonIgnore
+    public int getBatchCount() {
+        return allQaPairs.size();
+    }
+
+    @JsonIgnore
     public Stream<String> getQuestionIdsFromQAPairs() {
         return allQaPairs.stream()
                 .flatMap(List::stream)

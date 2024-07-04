@@ -187,7 +187,9 @@ class EvidenceFactoryTest implements TestFixtures {
             @DisplayName("KBV fails with an unknown status no contraIndicator is returned")
             void failsWhenKbvItemStatusIsAnyOtherValue() throws JsonProcessingException {
                 KBVItem kbvItem = getKbvItem();
+                QuestionState questionState = new QuestionState();
                 kbvItem.setStatus("some unknown value");
+                kbvItem.setQuestionState(objectMapper.writeValueAsString(questionState));
 
                 doNothing()
                         .when(mockEventProbe)
@@ -340,8 +342,9 @@ class EvidenceFactoryTest implements TestFixtures {
             @DisplayName("KBV fails with an unknown status no contraIndicator is returned")
             void failsWhenKbvItemStatusIsAnyOtherValue() throws JsonProcessingException {
                 KBVItem kbvItem = getKbvItem();
+                QuestionState questionState = new QuestionState();
                 kbvItem.setStatus("some unknown value");
-
+                kbvItem.setQuestionState(objectMapper.writeValueAsString(questionState));
                 doNothing()
                         .when(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
@@ -449,6 +452,8 @@ class EvidenceFactoryTest implements TestFixtures {
             void failsWhenKbvItemStatusIsAnyOtherValue() throws JsonProcessingException {
                 KBVItem kbvItem = getKbvItem();
                 kbvItem.setStatus("some unknown value");
+                QuestionState questionState = new QuestionState();
+                kbvItem.setQuestionState(objectMapper.writeValueAsString(questionState));
 
                 doNothing()
                         .when(mockEventProbe)
@@ -564,6 +569,8 @@ class EvidenceFactoryTest implements TestFixtures {
             void failsWhenKbvItemStatusIsAnyOtherValue() throws JsonProcessingException {
                 KBVItem kbvItem = getKbvItem();
                 kbvItem.setStatus("some unknown value");
+                QuestionState questionState = new QuestionState();
+                kbvItem.setQuestionState(objectMapper.writeValueAsString(questionState));
 
                 doNothing()
                         .when(mockEventProbe)
@@ -934,13 +941,32 @@ class EvidenceFactoryTest implements TestFixtures {
 
             @Test
             @DisplayName(
-                    "should create two check details and one failed check details, check details would have been assigned to lower kbv Quality values")
+                    "should create one check details and two failed check details, check details would have been assigned to lower kbv Quality values")
             void shouldHaveTwoFailedAndOneCheckDetailsOutOfThreeKbvQuestionsAsked()
                     throws JsonProcessingException {
                 KBVItem kbvItem = getKbvItem();
                 kbvItem.setStatus("not Authenticated");
                 kbvItem.setQuestionAnswerResultSummary(getKbvQuestionAnswerSummary(3, 1, 2));
                 setKbvItemQuestionState(kbvItem, "First", "Second", "Third");
+
+                List<KbvQuestion> kbvQuestionsFirstSecond = getKbvQuestions("First", "Second");
+                List<QuestionAnswer> questionFirstSecondAnswers =
+                        getQuestionAnswers("First", "Second");
+                List<KbvQuestion> kbvQuestionsThird = getKbvQuestions("Third");
+                List<QuestionAnswer> questionThirdAnswers = getQuestionAnswers("Third");
+
+                QuestionState questionState = new QuestionState();
+                questionState.setQAPairs(kbvQuestionsFirstSecond.toArray(KbvQuestion[]::new));
+                questionState =
+                        loadKbvQuestionStateWithAnswers(
+                                questionState, kbvQuestionsFirstSecond, questionFirstSecondAnswers);
+
+                questionState.setQAPairs(kbvQuestionsThird.toArray(KbvQuestion[]::new));
+                questionState =
+                        loadKbvQuestionStateWithAnswers(
+                                questionState, kbvQuestionsThird, questionThirdAnswers);
+
+                kbvItem.setQuestionState(new ObjectMapper().writeValueAsString(questionState));
 
                 doNothing()
                         .when(mockEventProbe)
@@ -961,6 +987,7 @@ class EvidenceFactoryTest implements TestFixtures {
                                 failedCheckDetailsResultsNode,
                                 new TypeReference<List<CheckDetail>>() {});
 
+                assertEquals("2 out of 3 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertNotNull(failedCheckDetailsResultsNode);
                 assertEquals(2, failedCheckDetailsResults.size());
                 assertEquals(1, checkDetailsResults.size());
@@ -1026,7 +1053,9 @@ class EvidenceFactoryTest implements TestFixtures {
         void shouldNotHaveAnyOfTheCheckDetailsWhenKbvStatusIsAnyOtherValue()
                 throws JsonProcessingException {
             KBVItem kbvItem = getKbvItem();
+            QuestionState questionState = new QuestionState();
             kbvItem.setStatus("some unknown value");
+            kbvItem.setQuestionState(objectMapper.writeValueAsString(questionState));
 
             doNothing()
                     .when(mockEventProbe)
