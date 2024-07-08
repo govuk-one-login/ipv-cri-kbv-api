@@ -15,8 +15,6 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionAnswerSummary;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerPair;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
-import uk.gov.di.ipv.cri.kbv.api.strategy.KbvStrategyParser;
-import uk.gov.di.ipv.cri.kbv.api.strategy.Strategy;
 
 import java.util.List;
 import java.util.Map;
@@ -33,16 +31,7 @@ public class EvidenceFactory {
     private static final String METRIC_DIMENSION_KBV_VERIFICATION = "kbv_verification";
     private final EventProbe eventProbe;
     private final ObjectMapper objectMapper;
-    private String kbvQuestionStrategy;
     private final Map<String, Integer> kbvQualityMapping;
-
-    void setKbvQuestionStrategy(String questionStrategy) {
-        this.kbvQuestionStrategy = questionStrategy;
-    }
-
-    public String getKbvQuestionStrategy() {
-        return this.kbvQuestionStrategy;
-    }
 
     public Map<String, Integer> getKbvQualityMapping() {
         return kbvQualityMapping;
@@ -55,7 +44,6 @@ public class EvidenceFactory {
         this.objectMapper = objectMapper;
         this.eventProbe = eventProbe;
         this.kbvQualityMapping = kbvQualityMapping;
-        this.kbvQuestionStrategy = "3 out of 4 Prioritised";
     }
 
     public Object[] create(KBVItem kbvItem, EvidenceRequest evidenceRequest)
@@ -160,14 +148,13 @@ public class EvidenceFactory {
     }
 
     private int batchNumberOfIncorrectAnswer(KbvQuestionAnswerSummary summary, int batchCount) {
-        return hasPassedWithOneIncorrectAnswer(summary) ? batchCount : -1;
+        return hasPassedWithOneIncorrectAnswer(summary, batchCount) ? batchCount : -1;
     }
 
-    private boolean hasPassedWithOneIncorrectAnswer(KbvQuestionAnswerSummary summary) {
-        KbvStrategyParser parser = new KbvStrategyParser(this.getKbvQuestionStrategy());
-        Strategy strategy = parser.parse();
-
-        return hasPassed(summary, strategy.min(), strategy.max());
+    private boolean hasPassedWithOneIncorrectAnswer(KbvQuestionAnswerSummary summary, int batch) {
+        return Objects.nonNull(summary)
+                && batch > 1
+                && summary.getQuestionsAsked() - summary.getAnsweredCorrect() == 1;
     }
 
     private boolean hasPassed(KbvQuestionAnswerSummary summary, int min, int max) {
