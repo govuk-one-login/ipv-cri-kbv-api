@@ -157,7 +157,7 @@ public class QuestionHandler
         } catch (NullPointerException npe) {
             return handleException(HttpStatusCode.BAD_REQUEST, npe, npe.toString());
         } catch (QuestionNotFoundException qe) {
-            eventProbe.counterMetric(LAMBDA_NAME, 0d);
+            decrementCounterMetrics();
             return createNoContentResponse();
         } catch (InvalidStrategyScoreException e) {
             return handleException(HttpStatusCode.INTERNAL_SERVER_ERROR, e, e.getMessage());
@@ -244,6 +244,13 @@ public class QuestionHandler
             throws JsonProcessingException, InvalidStrategyScoreException {
         var questionRequest = new QuestionRequest();
         questionRequest.setStrategy(retrieveQuestionStrategy());
+        eventProbe.addDimensions(
+                Map.of(
+                        METRIC_REQUESTED_VERIFICATION_SCORE,
+                        SESSION_VERIFICATION_SCORE,
+                        METRIC_DIMENSION_QUESTION_STRATEGY,
+                        questionRequest.getStrategy()));
+        eventProbe.counterMetric(METRIC_KBV_JOURNEY_TYPE);
         questionRequest.setIiqOperatorId(
                 this.configurationService.getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME));
         questionRequest.setPersonIdentity(
@@ -264,23 +271,22 @@ public class QuestionHandler
             throw new InvalidStrategyScoreException(
                     "No question strategy found for score provided");
         }
-        eventProbe.addDimensions(
-                Map.of(
-                        METRIC_REQUESTED_VERIFICATION_SCORE,
-                        SESSION_VERIFICATION_SCORE,
-                        METRIC_DIMENSION_QUESTION_STRATEGY,
-                        strategy));
-        eventProbe.counterMetric(METRIC_KBV_JOURNEY_TYPE);
         return strategy;
     }
 
     private APIGatewayProxyResponseEvent handleException(
             int httpStatusCode, Throwable throwable, String errorMessage) {
-        eventProbe.log(ERROR, throwable).counterMetric(LAMBDA_NAME, 0d);
+        eventProbe.log(ERROR, throwable);
+        decrementCounterMetrics();
         return httpStatusCode == HttpStatusCode.NO_CONTENT
                 ? createNoContentResponse()
                 : ApiGatewayResponseGenerator.proxyJsonResponse(
                         httpStatusCode, Map.of(ERROR_KEY, errorMessage));
+    }
+
+    private void decrementCounterMetrics(){
+        eventProbe.counterMetric(LAMBDA_NAME, 0d);
+        eventProbe.counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
     }
 
     private APIGatewayProxyResponseEvent createNoContentResponse() {

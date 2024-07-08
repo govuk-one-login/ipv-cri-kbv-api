@@ -309,6 +309,7 @@ class QuestionHandlerTest {
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
             verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
             verify(mockEventProbe).addDimensions(MOCK_KBV_JOURNEY_METRIC_MAP);
             verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE);
             verifyNoMoreInteractions(mockEventProbe);
@@ -326,6 +327,7 @@ class QuestionHandlerTest {
             assertTrue(response.getBody().contains(expectedMessage));
             assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
             verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
         }
 
         @Test
@@ -346,6 +348,7 @@ class QuestionHandlerTest {
             assertEquals("{\"error\":\"AWS Server error occurred.\"}", response.getBody());
             assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
             verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
         }
 
         @Test
@@ -384,6 +387,7 @@ class QuestionHandlerTest {
                     .getPersonIdentityDetailed(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
             verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
         }
 
         @Test
@@ -418,6 +422,7 @@ class QuestionHandlerTest {
 
             assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
             verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
         }
 
         @Test
