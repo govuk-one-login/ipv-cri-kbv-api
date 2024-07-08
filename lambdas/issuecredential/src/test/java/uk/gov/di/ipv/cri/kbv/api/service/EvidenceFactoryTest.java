@@ -89,7 +89,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
 
-                assertEquals("3 out of 4 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         VC_PASS_EVIDENCE_SCORE, getEvidenceAsMap(result).get("verificationScore"));
                 assertNull(getEvidenceAsMap(result).get("ci"));
@@ -121,7 +120,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
 
-                assertEquals("3 out of 4 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         evidenceRequest.getVerificationScore(),
                         getEvidenceAsMap(result).get("verificationScore"));
@@ -148,7 +146,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
 
-                assertEquals("3 out of 4 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         VC_PASS_EVIDENCE_SCORE, getEvidenceAsMap(result).get("verificationScore"));
             }
@@ -177,7 +174,6 @@ class EvidenceFactoryTest implements TestFixtures {
                         assertThrows(IllegalStateException.class, executable);
 
                 verifyNoMoreInteractions(mockEventProbe);
-                assertEquals("3 out of 4 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         String.format("Verification Score %d is not supported", verificationScore),
                         exception.getMessage());
@@ -199,7 +195,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
-                assertEquals("3 out of 4 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE,
                         getEvidenceAsMap(result).get("verificationScore"));
@@ -216,7 +211,6 @@ class EvidenceFactoryTest implements TestFixtures {
                                 objectMapper,
                                 mockEventProbe,
                                 KBV_QUESTION_QUALITY_MAPPING_SERIALIZED);
-                evidenceFactory.setKbvQuestionStrategy("2 out of 3 Prioritised");
             }
 
             @Test
@@ -243,7 +237,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
 
-                assertEquals("2 out of 3 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         VC_PASS_EVIDENCE_SCORE, getEvidenceAsMap(result).get("verificationScore"));
                 assertNull(getEvidenceAsMap(result).get("ci"));
@@ -275,7 +268,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
 
-                assertEquals("2 out of 3 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         evidenceRequest.getVerificationScore(),
                         getEvidenceAsMap(result).get("verificationScore"));
@@ -303,7 +295,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
 
-                assertEquals("2 out of 3 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         VC_PASS_EVIDENCE_SCORE, getEvidenceAsMap(result).get("verificationScore"));
             }
@@ -332,7 +323,6 @@ class EvidenceFactoryTest implements TestFixtures {
                         assertThrows(IllegalStateException.class, executable);
 
                 verifyNoMoreInteractions(mockEventProbe);
-                assertEquals("2 out of 3 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         String.format("Verification Score %d is not supported", verificationScore),
                         exception.getMessage());
@@ -383,7 +373,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
 
-                assertEquals("3 out of 4 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         VerifiableCredentialConstants.VC_PASS_EVIDENCE_SCORE,
                         getEvidenceAsMap(result).get("verificationScore"));
@@ -409,7 +398,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
-                assertEquals("3 out of 4 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE,
                         getEvidenceAsMap(result).get("verificationScore"));
@@ -438,7 +426,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
-                assertEquals("3 out of 4 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE,
                         getEvidenceAsMap(result).get("verificationScore"));
@@ -479,7 +466,6 @@ class EvidenceFactoryTest implements TestFixtures {
                                 objectMapper,
                                 mockEventProbe,
                                 KBV_QUESTION_QUALITY_MAPPING_SERIALIZED);
-                evidenceFactory.setKbvQuestionStrategy("2 out of 3 Prioritised");
             }
 
             @Test
@@ -500,7 +486,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
 
-                assertEquals("2 out of 3 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         VerifiableCredentialConstants.VC_PASS_EVIDENCE_SCORE,
                         getEvidenceAsMap(result).get("verificationScore"));
@@ -526,7 +511,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
-                assertEquals("2 out of 3 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE,
                         getEvidenceAsMap(result).get("verificationScore"));
@@ -555,7 +539,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "fail"));
 
-                assertEquals("2 out of 3 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(
                         VerifiableCredentialConstants.VC_FAIL_EVIDENCE_SCORE,
                         getEvidenceAsMap(result).get("verificationScore"));
@@ -638,8 +621,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 assertEquals(3, results.size());
                 assertNotNull(checkDetailsResults);
                 assertNull(getEvidenceAsMap(result).get("failedCheckDetails"));
-                assertEquals("3 out of 4 Prioritised", evidenceFactory.getKbvQuestionStrategy());
-
                 assertAll(
                         () -> {
                             assertEquals("kbv", results.get(0).getCheckMethod());
@@ -652,7 +633,6 @@ class EvidenceFactoryTest implements TestFixtures {
                             assertEquals(4, results.get(2).getKbvQuality());
                             assertEquals("multiple_choice", results.get(2).getKbvResponseMode());
                         });
-                assertEquals("3 out of 4 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(3, results.size());
                 assertEquals(9, results.get(0).getKbvQuality());
                 assertEquals(5, results.get(1).getKbvQuality());
@@ -706,7 +686,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 assertNotNull(checkDetailsResults);
                 assertNotNull(getEvidenceAsMap(result).get("failedCheckDetails"));
 
-                assertEquals("3 out of 4 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(3, results.size());
                 assertEquals(4, results.get(0).getKbvQuality());
                 assertEquals(5, results.get(1).getKbvQuality());
@@ -767,7 +746,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 assertNotNull(checkDetailsResults);
                 assertNotNull(getEvidenceAsMap(result).get("failedCheckDetails"));
 
-                assertEquals("3 out of 4 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(3, results.size());
                 assertEquals(9, results.get(0).getKbvQuality());
                 assertEquals(5, results.get(1).getKbvQuality());
@@ -829,7 +807,6 @@ class EvidenceFactoryTest implements TestFixtures {
                                 objectMapper,
                                 mockEventProbe,
                                 KBV_QUESTION_QUALITY_MAPPING_SERIALIZED);
-                evidenceFactory.setKbvQuestionStrategy("2 out of 3 Prioritised");
             }
 
             @Test
@@ -858,7 +835,6 @@ class EvidenceFactoryTest implements TestFixtures {
                                 objectMapper,
                                 mockEventProbe,
                                 objectMapper.readValue("{\"First\":9,\"Second\": 5}", Map.class));
-                evidenceFactory.setKbvQuestionStrategy("2 out of 3 Prioritised");
 
                 var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
 
@@ -872,7 +848,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 assertEquals(2, results.size());
                 assertNotNull(checkDetailsResults);
                 assertNull(getEvidenceAsMap(result).get("failedCheckDetails"));
-                assertEquals("2 out of 3 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertAll(
                         () -> {
                             assertEquals("kbv", results.get(0).getCheckMethod());
@@ -919,7 +894,6 @@ class EvidenceFactoryTest implements TestFixtures {
                                 mockEventProbe,
                                 objectMapper.readValue(
                                         "{\"First\":9,\"Second\": 5, \"Third\": 4}", Map.class));
-                evidenceFactory.setKbvQuestionStrategy("2 out of 3 Prioritised");
 
                 var result = evidenceFactory.create(kbvItem, mockEvidenceRequest);
 
@@ -933,7 +907,6 @@ class EvidenceFactoryTest implements TestFixtures {
                 assertNotNull(checkDetailsResults);
                 assertNotNull(getEvidenceAsMap(result).get("failedCheckDetails"));
 
-                assertEquals("2 out of 3 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertEquals(2, results.size());
                 assertEquals(4, results.get(0).getKbvQuality());
                 assertEquals(5, results.get(1).getKbvQuality());
@@ -987,7 +960,6 @@ class EvidenceFactoryTest implements TestFixtures {
                                 failedCheckDetailsResultsNode,
                                 new TypeReference<List<CheckDetail>>() {});
 
-                assertEquals("2 out of 3 Prioritised", evidenceFactory.getKbvQuestionStrategy());
                 assertNotNull(failedCheckDetailsResultsNode);
                 assertEquals(2, failedCheckDetailsResults.size());
                 assertEquals(1, checkDetailsResults.size());
