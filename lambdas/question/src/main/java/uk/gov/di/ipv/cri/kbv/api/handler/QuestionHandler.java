@@ -284,7 +284,7 @@ public class QuestionHandler
                         httpStatusCode, Map.of(ERROR_KEY, errorMessage));
     }
 
-    private void decrementCounterMetrics(){
+    private void decrementCounterMetrics() {
         eventProbe.counterMetric(LAMBDA_NAME, 0d);
         eventProbe.counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
     }
