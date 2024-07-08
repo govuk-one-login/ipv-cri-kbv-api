@@ -122,12 +122,6 @@ Feature: 3 out of 4 strategy. User has 2 KBV questions. Tests are run against th
     And user answers the question correctly
     Then user gets status code 200
 
-    # Third question (will be removed when 2-out-3 strategy is implemented)
-    When user sends a GET request to question endpoint
-    Then user gets status code 200
-    And user answers the question correctly
-    Then user gets status code 200
-
     When user sends a GET request to question endpoint when there are no questions left
     Then user gets status code 204
 
@@ -146,4 +140,4 @@ Feature: 3 out of 4 strategy. User has 2 KBV questions. Tests are run against th
     Then user gets status code 200
     And a valid JWT is returned in the response
     And a verification score of 1 is returned in the response
-    And 10 events are deleted from the audit events SQS queue
+    And 8 events are deleted from the audit events SQS queue

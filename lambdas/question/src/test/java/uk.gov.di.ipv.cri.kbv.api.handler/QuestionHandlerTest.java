@@ -25,6 +25,7 @@ import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.persistence.item.EvidenceRequest;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
@@ -267,6 +268,17 @@ class QuestionHandlerTest {
             KBVItem kbvItem = new KBVItem();
             kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
             QuestionState questionStateMock = mock(QuestionState.class);
+            SessionItem mockSessionItem = mock(SessionItem.class);
+            when(mockSessionItem.getEvidenceRequest()).thenReturn(mock(EvidenceRequest.class));
+            when(sessionService.validateSessionId(sessionHeader.get(HEADER_SESSION_ID)))
+                    .thenReturn(mockSessionItem);
+
+            doNothing()
+                    .when(mockEventProbe)
+                    .addDimensions(
+                            Map.of(
+                                    METRIC_DIMENSION_QUESTION_STRATEGY,
+                                    MOCK_IIQ_STRATEGY_MAPPED_VALUE.get("2")));
             when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
 
