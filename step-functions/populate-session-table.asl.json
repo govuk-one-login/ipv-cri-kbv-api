@@ -1,0 +1,87 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "Create counter",
+  "States": {
+    "Create counter": {
+      "Type": "Pass",
+      "Next": "Count > Amount",
+      "Result": {
+        "counter": 0
+      }
+    },
+    "Count > Amount": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.counter",
+          "NumericGreaterThanEqualsPath": "$$.Execution.Input.amount",
+          "Next": "Finished creating records"
+        }
+      ],
+      "Default": "Insert test entry into session table"
+    },
+    "Finished creating records": {
+      "Type": "Succeed"
+    },
+    "Insert test entry into session table": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:putItem",
+      "Parameters": {
+        "TableName": "${SessionTable}",
+        "Item": {
+          "sessionId": {
+            "S.$": "States.UUID()"
+          },
+          "accessToken": {
+            "S.$": "States.UUID()"
+          },
+          "accessTokenExpiryDate": {
+            "N": "1720446142"
+          },
+          "attemptCount": {
+            "N": "0"
+          },
+          "authorizationCodeExpiryDate": {
+            "N": "1720443141"
+          },
+          "clientId": {
+            "S": "ipv-core-stub-aws-build"
+          },
+          "clientIpAddress": {
+            "S": "51.149.8.109"
+          },
+          "clientSessionId": {
+            "S.$": "States.UUID()"
+          },
+          "createdDate": {
+            "N": "1720442506701"
+          },
+          "expiryDate": {
+            "N": "7200"
+          },
+          "persistentSessionId": {
+            "S.$": "States.UUID()"
+          },
+          "redirectUri": {
+            "S": "http://localhost:8085/callback"
+          },
+          "state": {
+            "S.$": "States.UUID()"
+          },
+          "subject": {
+            "S": "urn:fdc:gov.uk:2022:e0791eb2-4570-4c0a-bd26-00569150f98a"
+          }
+        }
+      },
+      "Next": "Increment counter",
+      "ResultPath": null
+    },
+    "Increment counter": {
+      "Type": "Pass",
+      "Parameters": {
+        "counter.$": "States.MathAdd($.counter, 1)"
+      },
+      "Next": "Count > Amount"
+    }
+  }
+}

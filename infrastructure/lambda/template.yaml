@@ -172,6 +172,37 @@ Mappings:
       production: "false"
 
 Resources:
+  PopulateSessionStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Type: EXPRESS
+      DefinitionUri: ../../step-functions/populate-session-table.asl.json
+      DefinitionSubstitutions:
+        SessionTable: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt PopulateSessionStateMachineLogGroup.Arn
+        IncludeExecutionData: True
+        Level: ALL
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+        - Statement:
+            Effect: Allow
+            Action: logs:*
+            Resource: "*"
+      PermissionsBoundary: !If
+        - UsePermissionsBoundary
+        - !Ref PermissionsBoundary
+        - !Ref AWS::NoValue
+
+  PopulateSessionStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}-PopulateSessionStateMachine-logs
+      RetentionInDays: 30
+
   PublicKBVApi:
     Type: AWS::Serverless::Api
     Properties:
