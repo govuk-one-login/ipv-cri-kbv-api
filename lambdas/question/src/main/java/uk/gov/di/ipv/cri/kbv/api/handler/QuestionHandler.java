@@ -22,6 +22,7 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDeta
 import uk.gov.di.ipv.cri.common.library.exception.SessionExpiredException;
 import uk.gov.di.ipv.cri.common.library.exception.SessionNotFoundException;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
+import uk.gov.di.ipv.cri.common.library.persistence.item.EvidenceRequest;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
@@ -39,6 +40,7 @@ import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.gov.di.ipv.cri.kbv.api.util.EvidenceUtils;
 
 import java.io.IOException;
 import java.util.Map;
@@ -46,6 +48,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+import static java.util.Optional.ofNullable;
 import static org.apache.logging.log4j.Level.ERROR;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_EXPIRED;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_NOT_FOUND;
@@ -63,7 +66,6 @@ public class QuestionHandler
     private static final String IIQ_OPERATOR_ID_PARAM_NAME = "IIQOperatorId";
     public static final String METRIC_DIMENSION_QUESTION_ID = "kbv_question_id";
     public static final String METRIC_DIMENSION_QUESTION_STRATEGY = "question_strategy";
-    private static final String SESSION_VERIFICATION_SCORE = "2";
     private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
@@ -83,7 +85,6 @@ public class QuestionHandler
         this.kbvStorageService = new KBVStorageService(this.configurationService);
         this.auditService = new AuditService(this.configurationService);
         this.sessionService = new SessionService(this.configurationService);
-
         this.eventProbe = new EventProbe();
     }
 
@@ -231,7 +232,8 @@ public class QuestionHandler
 
         var personIdentity =
                 personIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId());
-        var questionRequest = createQuestionRequest(personIdentity);
+        var questionRequest =
+                createQuestionRequest(personIdentity, sessionItem.getEvidenceRequest());
 
         eventProbe.addDimensions(
                 Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, questionRequest.getStrategy()));
@@ -241,30 +243,33 @@ public class QuestionHandler
         return this.kbvService.getQuestions(questionRequest);
     }
 
-    private QuestionRequest createQuestionRequest(PersonIdentityDetailed personIdentity)
+    private QuestionRequest createQuestionRequest(
+            PersonIdentityDetailed personIdentity, EvidenceRequest evidenceRequest)
             throws JsonProcessingException, InvalidStrategyScoreException {
         var questionRequest = new QuestionRequest();
-        questionRequest.setStrategy(retrieveQuestionStrategy());
+        var strategyParam = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
+
+        Map<String, String> strategyMap =
+                objectMapper.readValue(strategyParam, new TypeReference<>() {});
+
+        questionRequest.setStrategy(
+                getKbvQuestionStrategy(
+                        strategyMap, EvidenceUtils.getVerificationScoreForPass(evidenceRequest)));
+
         questionRequest.setIiqOperatorId(
                 this.configurationService.getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME));
+
         questionRequest.setPersonIdentity(
                 personIdentityService.convertToPersonIdentitySummary(personIdentity));
 
         return questionRequest;
     }
 
-    private String retrieveQuestionStrategy()
-            throws JsonProcessingException, InvalidStrategyScoreException {
-        var strategyParam = this.configurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME);
-
-        Map<String, String> strategyMap =
-                objectMapper.readValue(strategyParam, new TypeReference<>() {});
-        String strategy = strategyMap.get(SESSION_VERIFICATION_SCORE);
+    private String getKbvQuestionStrategy(Map<String, String> strategyMap, int verificationScore) {
+        String strategy =
+                ofNullable(strategyMap.get(String.valueOf(verificationScore)))
+                        .orElseThrow(InvalidStrategyScoreException::new);
         LOGGER.info("Using IIQStrategy: {}", strategy);
-        if (strategy == null) {
-            throw new InvalidStrategyScoreException(
-                    "No question strategy found for score provided");
-        }
         return strategy;
     }
 
