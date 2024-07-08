@@ -733,6 +733,7 @@ Resources:
       Type: String
       Value:
         Fn::ToJsonString:
+          "1": "2 out of 3 prioritised"
           "2": "3 out of 4 prioritised"
       Description: Strategy to be used for Experian KBV Questions. Example - 3 of 4
 
