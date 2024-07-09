@@ -24,8 +24,10 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Name;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.NamePart;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
+import uk.gov.di.ipv.cri.common.library.persistence.item.EvidenceRequest;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.common.library.service.PersonIdentityDetailedBuilder;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
 import uk.gov.di.ipv.cri.common.library.util.VerifiableCredentialClaimsSetBuilder;
@@ -89,12 +91,19 @@ class VerifiableCredentialServiceTest {
     class KbvVerifiableCredentialJwt implements TestFixtures {
         @ParameterizedTest
         @CsvSource({
+            // 3 out of 4 prioritised
             "authenticated,3,3,0,2,",
             "authenticated,4,3,1,2,",
             "Not Authenticated,4,2,2,0,V03",
             "Not Authenticated,4,1,3,0,V03",
             "Not Authenticated,2,0,2,0,V03",
             "Unable to Authenticate,3,2,1,0,V03",
+            // 2 out of 3 prioritised
+            "authenticated,2,2,0,1,",
+            "authenticated,3,2,1,1,",
+            "Not Authenticated,3,1,2,0,V03",
+            "Not Authenticated,2,0,2,0,V03",
+            "Unable to Authenticate,2,1,1,0,V03",
         })
         void shouldReturnASignedVerifiableCredentialJwt(
                 String authenticationResult,
@@ -121,8 +130,11 @@ class VerifiableCredentialServiceTest {
                             objectMapper,
                             mockVcClaimSetBuilder,
                             spyEvidenceFactory);
+            EvidenceRequest evidenceRequest = new EvidenceRequest();
+            evidenceRequest.setVerificationScore(expectedVerificationScore);
             mockSessionItem = new SessionItem();
             mockSessionItem.setSubject(SUBJECT);
+            mockSessionItem.setEvidenceRequest(evidenceRequest);
 
             initMockVCClaimSetBuilder();
 
@@ -146,7 +158,7 @@ class VerifiableCredentialServiceTest {
             verify(mockConfigurationService).getMaxJwtTtl();
             verify(mockVcClaimSetBuilder).subject(SUBJECT);
             verify(mockVcClaimSetBuilder).verifiableCredentialType(KBV_CREDENTIAL_TYPE);
-            verify(spyEvidenceFactory).create(kbvItem, null);
+            verify(spyEvidenceFactory).create(kbvItem, mockSessionItem.getEvidenceRequest());
 
             makeEvidenceClaimsAssertions(
                     expectedVerificationScore, expectedContraIndicator, kbvItem.getAuthRefNo());
@@ -290,7 +302,9 @@ class VerifiableCredentialServiceTest {
         BirthDate birthDate = new BirthDate();
         birthDate.setValue(LocalDate.of(1980, 5, 3));
 
-        return new PersonIdentityDetailed(List.of(name), List.of(birthDate), List.of(address));
+        return PersonIdentityDetailedBuilder.builder(List.of(name), List.of(birthDate))
+                .withAddresses(List.of(address))
+                .build();
     }
 
     private void initMockVCClaimSetBuilder() {
