@@ -66,6 +66,8 @@ public class QuestionHandler
     private static final String IIQ_OPERATOR_ID_PARAM_NAME = "IIQOperatorId";
     public static final String METRIC_DIMENSION_QUESTION_ID = "kbv_question_id";
     public static final String METRIC_DIMENSION_QUESTION_STRATEGY = "question_strategy";
+    public static final String METRIC_KBV_JOURNEY_TYPE = "kbv_journey_type";
+    public static final String METRIC_REQUESTED_VERIFICATION_SCORE = "requested_verification_score";
     private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
@@ -156,7 +158,7 @@ public class QuestionHandler
         } catch (NullPointerException npe) {
             return handleException(HttpStatusCode.BAD_REQUEST, npe, npe.toString());
         } catch (QuestionNotFoundException qe) {
-            eventProbe.counterMetric(LAMBDA_NAME, 0d);
+            decrementCounterMetrics();
             return createNoContentResponse();
         } catch (InvalidStrategyScoreException e) {
             return handleException(HttpStatusCode.INTERNAL_SERVER_ERROR, e, e.getMessage());
@@ -235,9 +237,6 @@ public class QuestionHandler
         var questionRequest =
                 createQuestionRequest(personIdentity, sessionItem.getEvidenceRequest());
 
-        eventProbe.addDimensions(
-                Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, questionRequest.getStrategy()));
-
         sendQuestionRequestSentAuditEvent(sessionItem, personIdentity, requestHeaders);
         sendExperianIIQStartedAuditEvent(sessionItem, requestHeaders);
         return this.kbvService.getQuestions(questionRequest);
@@ -252,9 +251,16 @@ public class QuestionHandler
         Map<String, String> strategyMap =
                 objectMapper.readValue(strategyParam, new TypeReference<>() {});
 
+        int requestedVerificationScore = EvidenceUtils.getVerificationScoreForPass(evidenceRequest);
         questionRequest.setStrategy(
-                getKbvQuestionStrategy(
-                        strategyMap, EvidenceUtils.getVerificationScoreForPass(evidenceRequest)));
+                getKbvQuestionStrategy(strategyMap, requestedVerificationScore));
+        eventProbe.addDimensions(
+                Map.of(
+                        METRIC_REQUESTED_VERIFICATION_SCORE,
+                        String.valueOf(requestedVerificationScore),
+                        METRIC_DIMENSION_QUESTION_STRATEGY,
+                        questionRequest.getStrategy()));
+        eventProbe.counterMetric(METRIC_KBV_JOURNEY_TYPE);
 
         questionRequest.setIiqOperatorId(
                 this.configurationService.getParameterValue(IIQ_OPERATOR_ID_PARAM_NAME));
@@ -275,11 +281,17 @@ public class QuestionHandler
 
     private APIGatewayProxyResponseEvent handleException(
             int httpStatusCode, Throwable throwable, String errorMessage) {
-        eventProbe.log(ERROR, throwable).counterMetric(LAMBDA_NAME, 0d);
+        eventProbe.log(ERROR, throwable);
+        decrementCounterMetrics();
         return httpStatusCode == HttpStatusCode.NO_CONTENT
                 ? createNoContentResponse()
                 : ApiGatewayResponseGenerator.proxyJsonResponse(
                         httpStatusCode, Map.of(ERROR_KEY, errorMessage));
+    }
+
+    private void decrementCounterMetrics() {
+        eventProbe.counterMetric(LAMBDA_NAME, 0d);
+        eventProbe.counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
     }
 
     private APIGatewayProxyResponseEvent createNoContentResponse() {

@@ -63,7 +63,7 @@ class AbandonKbvHandlerTest {
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                 .thenReturn(kbvItem);
         SessionItem mockSessionItem = mock(SessionItem.class);
-        when(mockSessionService.getSession(sessionHeader.get(HEADER_SESSION_ID)))
+        when(mockSessionService.validateSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(mockSessionItem);
         doNothing().when(mockSessionService).createAuthorizationCode(mockSessionItem);
 
@@ -106,7 +106,7 @@ class AbandonKbvHandlerTest {
                         UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                 .thenReturn(kbvItem);
         SessionItem mockSessionItem = mock(SessionItem.class);
-        when(mockSessionService.getSession(sessionHeader.get(HEADER_SESSION_ID)))
+        when(mockSessionService.validateSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenReturn(mockSessionItem);
         when(mockEventProbe.log(any(ERROR.getClass()), any(SqsException.class)))
                 .thenReturn(mockEventProbe);
@@ -189,7 +189,7 @@ class AbandonKbvHandlerTest {
                         .errorMessage("AWS Server error occurred.")
                         .build();
 
-        when(mockSessionService.getSession(sessionHeader.get(HEADER_SESSION_ID)))
+        when(mockSessionService.validateSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                 .thenThrow(
                         AwsServiceException.builder()
                                 .statusCode(500)
@@ -204,7 +204,7 @@ class AbandonKbvHandlerTest {
         assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
 
         verify(mockSessionItem, never()).setAuthorizationCode(String.valueOf(authorizationCode));
-        verify(mockSessionService).getSession(sessionHeader.get(HEADER_SESSION_ID));
+        verify(mockSessionService).validateSessionId(sessionHeader.get(HEADER_SESSION_ID));
         verify(mockSessionService, never()).createAuthorizationCode(mockSessionItem);
         verify(mockEventProbe).log(any(ERROR.getClass()), any(AwsServiceException.class));
         verify(mockEventProbe).counterMetric(ABANDON_KBV, 0d);
