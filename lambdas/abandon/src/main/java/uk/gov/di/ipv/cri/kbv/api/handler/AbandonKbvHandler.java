@@ -71,7 +71,7 @@ public class AbandonKbvHandler
             kbvItem.setStatus(ABANDON_STATUS);
             kbvStorageService.update(kbvItem);
 
-            var sessionItem = sessionService.getSession(sessionId.toString());
+            var sessionItem = sessionService.validateSessionId(sessionId.toString());
             sessionService.createAuthorizationCode(sessionItem);
 
             response.withStatusCode(HttpStatusCode.OK);

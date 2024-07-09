@@ -80,6 +80,8 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.IIQ_STRATEGY_PAR
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.LAMBDA_NAME;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_ID;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_STRATEGY;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_KBV_JOURNEY_TYPE;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_REQUESTED_VERIFICATION_SCORE;
 
 @ExtendWith(MockitoExtension.class)
 class QuestionHandlerTest {
@@ -87,6 +89,12 @@ class QuestionHandlerTest {
             "{\"2\": \"3 out of 4 prioritised\"}";
     private static final Map<String, String> MOCK_IIQ_STRATEGY_MAPPED_VALUE =
             Map.of("2", "3 out of 4 prioritised");
+    private static final Map<String, String> MOCK_KBV_JOURNEY_METRIC_MAP =
+            Map.of(
+                    METRIC_REQUESTED_VERIFICATION_SCORE,
+                    "2",
+                    METRIC_DIMENSION_QUESTION_STRATEGY,
+                    "3 out of 4 prioritised");
 
     private QuestionHandler questionHandler;
     @Mock private ObjectMapper mockObjectMapper;
@@ -118,100 +126,127 @@ class QuestionHandlerTest {
 
     @Nested
     class QuestionHandlerCalled {
-        @Test
-        void shouldReturn200OkWhen1stCalledAndReturn1stUnAnsweredQuestionFromExperianEndpoint()
-                throws IOException, SqsException {
-            APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
-            Map<String, String> requestHeaders =
+
+        @Nested
+        class When1stCalledAndReturn1stUnAnsweredQuestionFromExperianEndpoint {
+            private final String expectedComponentId = "kbv-component-id";
+            private final Map<String, String> outcome =
+                    Map.of("outcome", "Authentication successful");
+            private final KBVItem kbvItem = new KBVItem();
+            private final Map<String, String> requestHeaders =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
-            ArgumentCaptor<AuditEventContext> argumentCaptorForReceived =
-                    ArgumentCaptor.forClass(AuditEventContext.class);
-            ArgumentCaptor<AuditEventContext> argumentCaptorForExperianIIQStarted =
-                    ArgumentCaptor.forClass(AuditEventContext.class);
-            ArgumentCaptor<Map<String, Object>> auditEventMapForExperianIIQStarted =
-                    ArgumentCaptor.forClass(Map.class);
-            ArgumentCaptor<Map<String, Object>> auditEventMapForReceived =
-                    ArgumentCaptor.forClass(Map.class);
 
-            KBVItem kbvItem = new KBVItem();
-            kbvItem.setSessionId(UUID.fromString(requestHeaders.get(HEADER_SESSION_ID)));
-            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
-            SessionItem sessionItem = mock(SessionItem.class);
-            Map<String, String> outcome = Map.of("outcome", "Authentication successful");
+            @Mock private APIGatewayProxyRequestEvent input;
+            @Mock private SessionItem sessionItem;
+            @Mock private PersonIdentityDetailed personIdentity;
 
-            when(input.getHeaders()).thenReturn(requestHeaders);
-            when(sessionService.validateSessionId(requestHeaders.get(HEADER_SESSION_ID)))
-                    .thenReturn(sessionItem);
-            when(mockPersonIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId()))
-                    .thenReturn(personIdentity);
-            doNothing().when(mockKBVStorageService).save(any());
+            private String expectedQuestion;
 
-            String expectedQuestion = new ObjectMapper().writeValueAsString(getQuestionOne());
+            @BeforeEach
+            void setUp() throws IOException {
+                kbvItem.setSessionId(UUID.fromString(requestHeaders.get(HEADER_SESSION_ID)));
+                expectedQuestion = new ObjectMapper().writeValueAsString(getQuestionOne());
 
-            QuestionsResponse experianQuestionResponse =
-                    getExperianQuestionResponse(
-                            new KbvQuestion[] {getQuestionOne(), getQuestionTwo()});
+                when(input.getHeaders()).thenReturn(requestHeaders);
+                when(sessionService.validateSessionId(requestHeaders.get(HEADER_SESSION_ID)))
+                        .thenReturn(sessionItem);
+                when(mockPersonIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId()))
+                        .thenReturn(personIdentity);
+                doNothing().when(mockKBVStorageService).save(any());
 
-            doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
+                QuestionsResponse experianQuestionResponse =
+                        getExperianQuestionResponse(
+                                new KbvQuestion[] {getQuestionOne(), getQuestionTwo()});
+                doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
 
-            when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
-            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
-                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
-            when(mockObjectMapper.readValue(
-                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
-                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
-            String expectedComponentId = "kbv-component-id";
-            when(mockConfigurationService.getVerifiableCredentialIssuer())
-                    .thenReturn(expectedComponentId);
-            APIGatewayProxyResponseEvent response =
-                    questionHandler.handleRequest(input, mock(Context.class));
+                when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
+                when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
+                        .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
+                when(mockObjectMapper.readValue(
+                                anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
+                        .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
+                when(mockConfigurationService.getVerifiableCredentialIssuer())
+                        .thenReturn(expectedComponentId);
+            }
 
-            assertEquals(HttpStatusCode.OK, response.getStatusCode());
-            assertEquals(expectedQuestion, response.getBody());
+            @Test
+            void shouldReturn200Ok() throws JsonProcessingException {
+                APIGatewayProxyResponseEvent response =
+                        questionHandler.handleRequest(input, mock(Context.class));
 
-            verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
-            verify(mockAuditService)
-                    .sendAuditEvent(
-                            eq(AuditEventType.REQUEST_SENT),
-                            auditEventContextArgCaptor.capture(),
-                            auditEventMap.capture());
-            verify(mockAuditService)
-                    .sendAuditEvent(
-                            eq(EXPERIAN_IIQ_STARTED.toString()),
-                            argumentCaptorForExperianIIQStarted.capture(),
-                            auditEventMapForExperianIIQStarted.capture());
-            verify(mockAuditService)
-                    .sendAuditEvent(
-                            eq(AuditEventType.RESPONSE_RECEIVED),
-                            argumentCaptorForReceived.capture(),
-                            auditEventMapForReceived.capture());
-            verify(mockKBVStorageService).save(any());
-            verify(mockConfigurationService).getParameterValue("IIQStrategy");
-            verify(mockConfigurationService).getParameterValue("IIQOperatorId");
-            verify(mockConfigurationService, times(2)).getVerifiableCredentialIssuer();
-            verify(mockObjectMapper).writeValueAsString(any());
-            verify(mockEventProbe).counterMetric(LAMBDA_NAME);
-            verify(mockEventProbe)
-                    .addDimensions(
-                            Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4 prioritised"));
-            verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_QUESTION_ID, "Q00015"));
-            verifyNoMoreInteractions(mockEventProbe);
+                assertEquals(HttpStatusCode.OK, response.getStatusCode());
+                assertEquals(expectedQuestion, response.getBody());
 
-            assertThat(auditEventMap.getValue().get("component_id"), equalTo(expectedComponentId));
-            assertEquals(sessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
-            assertEquals(requestHeaders, auditEventContextArgCaptor.getValue().getRequestHeaders());
-            assertEquals(personIdentity, auditEventContextArgCaptor.getValue().getPersonIdentity());
+                verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
+                verify(mockKBVStorageService).save(any());
+                verify(mockConfigurationService).getParameterValue("IIQStrategy");
+                verify(mockConfigurationService).getParameterValue("IIQOperatorId");
+                verify(mockConfigurationService, times(2)).getVerifiableCredentialIssuer();
+                verify(mockObjectMapper).writeValueAsString(any());
+            }
 
-            assertThat(
-                    auditEventMapForReceived.getValue().get("experianIiqResponse"),
-                    equalTo(outcome));
-            assertEquals(
-                    sessionItem, argumentCaptorForExperianIIQStarted.getValue().getSessionItem());
-            assertEquals(
-                    requestHeaders,
-                    argumentCaptorForExperianIIQStarted.getValue().getRequestHeaders());
-            assertEquals(sessionItem, argumentCaptorForReceived.getValue().getSessionItem());
-            assertEquals(requestHeaders, argumentCaptorForReceived.getValue().getRequestHeaders());
+            @Test
+            void shouldSendAuditEvents() throws SqsException {
+                ArgumentCaptor<AuditEventContext> argumentCaptorForReceived =
+                        ArgumentCaptor.forClass(AuditEventContext.class);
+                ArgumentCaptor<AuditEventContext> argumentCaptorForExperianIIQStarted =
+                        ArgumentCaptor.forClass(AuditEventContext.class);
+                ArgumentCaptor<Map<String, Object>> auditEventMapForExperianIIQStarted =
+                        ArgumentCaptor.forClass(Map.class);
+                ArgumentCaptor<Map<String, Object>> auditEventMapForReceived =
+                        ArgumentCaptor.forClass(Map.class);
+
+                questionHandler.handleRequest(input, mock(Context.class));
+
+                verify(mockAuditService)
+                        .sendAuditEvent(
+                                eq(AuditEventType.REQUEST_SENT),
+                                auditEventContextArgCaptor.capture(),
+                                auditEventMap.capture());
+                verify(mockAuditService)
+                        .sendAuditEvent(
+                                eq(EXPERIAN_IIQ_STARTED.toString()),
+                                argumentCaptorForExperianIIQStarted.capture(),
+                                auditEventMapForExperianIIQStarted.capture());
+                verify(mockAuditService)
+                        .sendAuditEvent(
+                                eq(AuditEventType.RESPONSE_RECEIVED),
+                                argumentCaptorForReceived.capture(),
+                                auditEventMapForReceived.capture());
+
+                assertThat(
+                        auditEventMap.getValue().get("component_id"), equalTo(expectedComponentId));
+                assertEquals(sessionItem, auditEventContextArgCaptor.getValue().getSessionItem());
+                assertEquals(
+                        requestHeaders, auditEventContextArgCaptor.getValue().getRequestHeaders());
+                assertEquals(
+                        personIdentity, auditEventContextArgCaptor.getValue().getPersonIdentity());
+
+                assertThat(
+                        auditEventMapForReceived.getValue().get("experianIiqResponse"),
+                        equalTo(outcome));
+                assertEquals(
+                        sessionItem,
+                        argumentCaptorForExperianIIQStarted.getValue().getSessionItem());
+                assertEquals(
+                        requestHeaders,
+                        argumentCaptorForExperianIIQStarted.getValue().getRequestHeaders());
+                assertEquals(sessionItem, argumentCaptorForReceived.getValue().getSessionItem());
+                assertEquals(
+                        requestHeaders, argumentCaptorForReceived.getValue().getRequestHeaders());
+            }
+
+            @Test
+            void shouldAddMetrics() {
+                questionHandler.handleRequest(input, mock(Context.class));
+
+                verify(mockEventProbe).counterMetric(LAMBDA_NAME);
+                verify(mockEventProbe).addDimensions(MOCK_KBV_JOURNEY_METRIC_MAP);
+                verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE);
+                verify(mockEventProbe)
+                        .addDimensions(Map.of(METRIC_DIMENSION_QUESTION_ID, "Q00015"));
+                verifyNoMoreInteractions(mockEventProbe);
+            }
         }
 
         @Test
@@ -273,12 +308,6 @@ class QuestionHandlerTest {
             when(sessionService.validateSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                     .thenReturn(mockSessionItem);
 
-            doNothing()
-                    .when(mockEventProbe)
-                    .addDimensions(
-                            Map.of(
-                                    METRIC_DIMENSION_QUESTION_STRATEGY,
-                                    MOCK_IIQ_STRATEGY_MAPPED_VALUE.get("2")));
             when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
 
@@ -314,9 +343,9 @@ class QuestionHandlerTest {
             verify(mockConfigurationService).getParameterValue("IIQStrategy");
             verify(mockConfigurationService).getParameterValue("IIQOperatorId");
             verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
-            verify(mockEventProbe)
-                    .addDimensions(
-                            Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4 prioritised"));
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
+            verify(mockEventProbe).addDimensions(MOCK_KBV_JOURNEY_METRIC_MAP);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE);
             verifyNoMoreInteractions(mockEventProbe);
         }
 
@@ -332,6 +361,7 @@ class QuestionHandlerTest {
             assertTrue(response.getBody().contains(expectedMessage));
             assertEquals(HttpStatusCode.BAD_REQUEST, response.getStatusCode());
             verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
         }
 
         @Test
@@ -352,6 +382,7 @@ class QuestionHandlerTest {
             assertEquals("{\"error\":\"AWS Server error occurred.\"}", response.getBody());
             assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
             verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
         }
 
         @Test
@@ -390,6 +421,7 @@ class QuestionHandlerTest {
                     .getPersonIdentityDetailed(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
             verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
         }
 
         @Test
@@ -424,6 +456,7 @@ class QuestionHandlerTest {
 
             assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
             verify(mockEventProbe).counterMetric(LAMBDA_NAME, 0d);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
         }
 
         @Test
@@ -502,9 +535,8 @@ class QuestionHandlerTest {
                             auditEventContextArgCaptor.capture(),
                             auditEventMap.capture());
             verify(mockKBVStorageService).save(kbvItem);
-            verify(mockEventProbe)
-                    .addDimensions(
-                            Map.of(METRIC_DIMENSION_QUESTION_STRATEGY, "3 out of 4 prioritised"));
+            verify(mockEventProbe).addDimensions(MOCK_KBV_JOURNEY_METRIC_MAP);
+            verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE);
             verifyNoMoreInteractions(mockEventProbe);
             verify(kbvItem).setAuthRefNo("an auth ref no");
             verify(kbvItem).setUrn("a urn");
