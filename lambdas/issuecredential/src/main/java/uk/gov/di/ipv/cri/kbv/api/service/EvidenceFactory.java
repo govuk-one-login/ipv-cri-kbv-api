@@ -33,10 +33,6 @@ public class EvidenceFactory {
     private final ObjectMapper objectMapper;
     private final Map<String, Integer> kbvQualityMapping;
 
-    public Map<String, Integer> getKbvQualityMapping() {
-        return kbvQualityMapping;
-    }
-
     public EvidenceFactory(
             ObjectMapper objectMapper,
             EventProbe eventProbe,
@@ -131,7 +127,6 @@ public class EvidenceFactory {
     private CheckDetail[] withoutKbvQuality(KbvQuestionAnswerSummary summary) {
         return IntStream.range(0, summary.getAnsweredIncorrect())
                 .mapToObj(i -> new CheckDetail())
-                .limit(summary.getAnsweredIncorrect())
                 .toArray(CheckDetail[]::new);
     }
 
