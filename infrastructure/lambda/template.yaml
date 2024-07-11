@@ -54,6 +54,7 @@ Conditions:
   IsDevEnvironment: !Equals [!Ref Environment, dev]
   IsNotDevEnvironment: !Not [!Condition IsDevEnvironment]
   UseSecretPrefix: !Not [!Equals [!Ref SecretPrefix, "none"]]
+  IsNotProdEnvironment: !Not [!Equals [!Ref Environment, production]]
 
 Globals:
   Function:
@@ -176,13 +177,75 @@ Resources:
   #################
   # START OJ-2638 #
   #################
-  PopulateSessionStateMachine:
+  FixSessionTTLStateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
-      Type: STANDARD
+      Name: !Sub ${AWS::StackName}-FixSessionTTLStateMachine
+      Type: EXPRESS
+      DefinitionUri: ../../step-functions/fix-session-ttl.asl.json
+      DefinitionSubstitutions:
+        TimeFunction: !Ref TimeFunction
+        SessionTable: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
+        StateMachineArn: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${AWS::StackName}-FixSessionTTLStateMachine
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt FixSessionTTLStateMachineLogGroup.Arn
+        IncludeExecutionData: True
+        Level: ALL
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref TimeFunction
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
+        - Statement:
+            Effect: Allow
+            Action:
+              - states:StartExecution
+              - states:StartSyncExecution
+            Resource: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${AWS::StackName}-FixSessionTTLStateMachine
+        - Statement:
+            Effect: Allow
+            Action: logs:*
+            Resource: "*"
+      PermissionsBoundary: !If
+        - UsePermissionsBoundary
+        - !Ref PermissionsBoundary
+        - !Ref AWS::NoValue
+
+  FixSessionTTLStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}-FixSessionTTLStateMachine
+      RetentionInDays: 30
+
+  TimeFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Sourcemap: true
+    Properties:
+      Runtime: nodejs18.x
+      CodeUri: ../../
+      Handler: ts-lambdas/time-function/src/time-function.lambdaHandler
+      LoggingConfig:
+        LogGroup: !Sub /aws/lambda/${AWS::StackName}/TimeFunction
+
+  TimeFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}/TimeFunction
+      RetentionInDays: 30
+
+  PopulateSessionStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Condition: IsNotProdEnvironment
+    Properties:
+      Type: EXPRESS
       DefinitionUri: ../../step-functions/populate-session-table.asl.json
       DefinitionSubstitutions:
-        SessionTable: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+        SessionTable: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
@@ -191,7 +254,7 @@ Resources:
         Level: ALL
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+            TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
         - Statement:
             Effect: Allow
             Action: logs:*
@@ -203,9 +266,107 @@ Resources:
 
   PopulateSessionStateMachineLogGroup:
     Type: AWS::Logs::LogGroup
+    Condition: IsNotProdEnvironment
     Properties:
       LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}-PopulateSessionStateMachine-logs
       RetentionInDays: 30
+
+  #######################
+  # START PII Redaction #
+  ######################
+
+  # PII Redacted Log Groups
+  PIIRedactedFixSessionTTLStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}/FixSessionTTLStateMachine-pii-redacted
+      RetentionInDays: 30
+
+  PIIRedactedPopulateSessionStateMachineLogGroupSubscriptionFilter:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}/PopulateSessionStateMachine-pii-redacted
+      RetentionInDays: 30
+
+  # Lambda
+  InvokeLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      PermissionsBoundary:
+        !If [ UsePermissionsBoundary, !Ref PermissionsBoundary, !Ref AWS::NoValue ]
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSXrayFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+
+  PIIRedactFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Sourcemap: true
+    Properties:
+      Runtime: nodejs18.x
+      CodeUri: ../../
+      Handler: ts-lambdas/pii-redact/src/pii-redact-handler.lambdaHandler
+      LoggingConfig:
+        LogGroup: !Sub /aws/lambda/${AWS::StackName}/PIIRedactFunction
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action: logs:*
+            Resource: "*"
+        - Statement:
+            Effect: Allow
+            Action: lambda:*
+            Resource: "*"
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-PIIRedact"
+
+  PIIRedactFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}/PIIRedactFunction
+      RetentionInDays: 30
+
+  PIIRedactFunctionCloudWatchPermissions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt PIIRedactFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: !Join [ ".", [ "logs", !Ref "AWS::Region", "amazonaws.com" ] ]
+      SourceAccount: !Ref AWS::AccountId
+
+  # SubscriptionFilter on original log groups to Lambda
+  FixSessionTTLStateMachineLogGroupSubscriptionFilter:
+    Type: AWS::Logs::SubscriptionFilter
+    DependsOn: PIIRedactFunctionCloudWatchPermissions
+    Properties:
+      FilterName: "PII Redaction"
+      DestinationArn: !GetAtt PIIRedactFunction.Arn
+      FilterPattern: ""
+      LogGroupName: !Ref FixSessionTTLStateMachineLogGroup
+
+  # SubscriptionFilter on PII Redacted logs to Splunk
+  PIIRedactedFixSessionTTLStateMachineLogGroupSubscriptionFilterCSLS:
+    Type: AWS::Logs::SubscriptionFilter
+    Condition: IsNotDevEnvironment
+    Properties:
+      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
+      FilterPattern: ""
+      LogGroupName: !Ref PIIRedactedFixSessionTTLStateMachineLogGroup
 
   #################
   # END OJ-2638   #
@@ -945,6 +1106,16 @@ Resources:
             Stat: Sum
 
 Outputs:
+  PopulateSessionStateMachineArn:
+    Condition: IsNotProdEnvironment
+    Value: !Ref PopulateSessionStateMachine
+
+  FixSessionTTLStateMachineArn:
+    Value: !Ref FixSessionTTLStateMachine
+
+  PersonIdentityTableName:
+    Value: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
+
   PublicKBVApiGatewayId:
     Description: "API GatewayID of the public KBV CRI API"
     Value: !Sub "${PublicKBVApi}"
