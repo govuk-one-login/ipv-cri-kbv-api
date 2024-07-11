@@ -175,7 +175,7 @@ Resources:
   PopulateSessionStateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
-      Type: EXPRESS
+      Type: STANDARD
       DefinitionUri: ../../step-functions/populate-session-table.asl.json
       DefinitionSubstitutions:
         SessionTable: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
