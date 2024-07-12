@@ -300,14 +300,10 @@ Resources:
   # PII Redacted Log Groups
   PIIRedactedFixSessionTTLStateMachineLogGroup:
     Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}-FixSessionTTLStateMachine-pii-redacted
-      RetentionInDays: 30
-
-  PIIRedactedPopulateSessionStateMachineLogGroupSubscriptionFilter:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}/PopulateSessionStateMachine-pii-redacted
       RetentionInDays: 30
 
   # Lambda
