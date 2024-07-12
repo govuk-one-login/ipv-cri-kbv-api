@@ -111,8 +111,7 @@ public class KbvSteps {
     }
 
     @And("the check details array has {int} objects returned in the response")
-    public void checkDetailsIsReturnedInTheResponse(int object)
-            throws ParseException, IOException {
+    public void checkDetailsIsReturnedInTheResponse(int object) throws ParseException, IOException {
         final SignedJWT decodedJWT = SignedJWT.parse(this.testContext.getResponse().body());
         final var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
 
