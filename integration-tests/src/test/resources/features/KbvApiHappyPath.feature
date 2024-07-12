@@ -49,6 +49,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     Then user gets status code 200
     And a valid JWT is returned in the response
     And a verification score of 2 is returned in the response
+    And the check details array has 3 objects returned in the response
     And 10 events are deleted from the audit events SQS queue
 
   @pre_merge_happy_medium_confidence
@@ -98,6 +99,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     Then user gets status code 200
     And a valid JWT is returned in the response
     And a verification score of 2 is returned in the response
+    And the check details array has 3 objects returned in the response
     And 10 events are deleted from the audit events SQS queue
 
   @pre_merge_happy_low_confidence
@@ -141,6 +143,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     Then user gets status code 200
     And a valid JWT is returned in the response
     And a verification score of 1 is returned in the response
+    And the check details array has 2 objects returned in the response
     And 8 events are deleted from the audit events SQS queue
 
   @pre_merge_happy_low_confidence
@@ -190,4 +193,6 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     Then user gets status code 200
     And a valid JWT is returned in the response
     And a verification score of 1 is returned in the response
+    And the check details array has 2 objects returned in the response
+    And the failed details array has 1 objects returned in the response
     And 10 events are deleted from the audit events SQS queue
