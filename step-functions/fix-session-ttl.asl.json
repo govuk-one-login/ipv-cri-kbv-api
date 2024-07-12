@@ -125,7 +125,28 @@
                 }
               }
             },
-            "End": true
+            "Next": "Record updated",
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "States.ALL"
+                ],
+                "BackoffRate": 2,
+                "IntervalSeconds": 1,
+                "MaxAttempts": 3
+              }
+            ],
+            "ResultPath": null
+          },
+          "Record updated": {
+            "Type": "Pass",
+            "End": true,
+            "Parameters": {
+              "Update Information": "Updated Record Information",
+              "Session ID.$": "$.sessionId.S",
+              "Previous Expiry Date.$": "$.expiryDate.N",
+              "Updated Expiry Date.$": "$.timeFunction.Payload"
+            }
           }
         }
       },
