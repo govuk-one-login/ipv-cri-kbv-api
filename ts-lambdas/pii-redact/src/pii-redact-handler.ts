@@ -56,8 +56,10 @@ export class PiiRedactHandler implements LambdaInterface {
             logGroupName: piiRedactLogGroup,
             logStreamName: logStream,
             logEvents: logEvents.logEvents.map((event) => ({
-              message: event.message,
+              id: event.id,
+              message: JSON.stringify(JSON.parse(event.message),null,2),
               timestamp: event.timestamp,
+              extractedFields: event.extractedFields
             })),
           })
         );

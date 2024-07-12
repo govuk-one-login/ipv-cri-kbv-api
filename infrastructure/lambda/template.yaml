@@ -279,7 +279,7 @@ Resources:
   PIIRedactedFixSessionTTLStateMachineLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}/FixSessionTTLStateMachine-pii-redacted
+      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}-FixSessionTTLStateMachine-pii-redacted
       RetentionInDays: 30
 
   PIIRedactedPopulateSessionStateMachineLogGroupSubscriptionFilter:
