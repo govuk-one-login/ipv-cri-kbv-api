@@ -110,6 +110,24 @@ public class KbvSteps {
         assertEquals(score, payload.at("/vc/evidence/0/verificationScore").asInt());
     }
 
+    @And("the check details array has {int} objects returned in the response")
+    public void checkDetailsIsReturnedInTheResponse(int object)
+            throws ParseException, IOException {
+        final SignedJWT decodedJWT = SignedJWT.parse(this.testContext.getResponse().body());
+        final var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
+
+        assertEquals(object, payload.at("/vc/evidence/0/checkDetails").size());
+    }
+
+    @And("the failed details array has {int} objects returned in the response")
+    public void failedDetailsIsReturnedInTheResponse(int object)
+            throws ParseException, IOException {
+        final SignedJWT decodedJWT = SignedJWT.parse(this.testContext.getResponse().body());
+        final var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
+
+        assertEquals(object, payload.at("/vc/evidence/0/failedCheckDetails").size());
+    }
+
     @Then("TXMA event is added to the SQS queue containing device information header")
     public void txmaEventIsAddedToSqsQueueContainingDeviceInformationHeader()
             throws IOException, InterruptedException {

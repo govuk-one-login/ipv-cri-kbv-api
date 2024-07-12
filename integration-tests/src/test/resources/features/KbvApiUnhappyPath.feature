@@ -39,6 +39,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 2 question
     When user sends a POST request to credential issue endpoint with a valid access token
     Then user gets status code 200
     And a verification score of 0 is returned in the response
+    And the failed details array has 2 objects returned in the response
     And 8 events are deleted from the audit events SQS queue
 
   @pre_merge_unhappy_low_confidence
@@ -78,4 +79,5 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 2 question
     When user sends a POST request to credential issue endpoint with a valid access token
     Then user gets status code 200
     And a verification score of 0 is returned in the response
+    And the failed details array has 2 objects returned in the response
     And 8 events are deleted from the audit events SQS queue
