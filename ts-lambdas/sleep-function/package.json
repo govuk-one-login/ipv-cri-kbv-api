@@ -1,0 +1,14 @@
+{
+  "name": "sleep-function",
+  "description": "",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "unit": "jest --silent",
+    "test": "npm run unit --",
+    "test:coverage": "npm run unit -- --coverage",
+    "deploy": "../../deploy.sh",
+    "compile": "tsc"
+  },
+  "dependencies": {}
+}

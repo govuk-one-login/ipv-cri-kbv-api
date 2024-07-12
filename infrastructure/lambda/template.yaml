@@ -187,6 +187,7 @@ Resources:
         TimeFunction: !Ref TimeFunction
         SessionTable: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
         StateMachineArn: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${AWS::StackName}-FixSessionTTLStateMachine
+        SleepFunction: !Ref SleepFunction
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
@@ -194,6 +195,8 @@ Resources:
         IncludeExecutionData: True
         Level: ALL
       Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref SleepFunction
         - LambdaInvokePolicy:
             FunctionName: !Ref TimeFunction
         - DynamoDBCrudPolicy:
@@ -236,6 +239,25 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${AWS::StackName}/TimeFunction
+      RetentionInDays: 30
+
+  SleepFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Sourcemap: true
+    Properties:
+      Runtime: nodejs18.x
+      CodeUri: ../../
+      Handler: ts-lambdas/sleep-function/src/sleep-function.lambdaHandler
+      LoggingConfig:
+        LogGroup: !Sub /aws/lambda/${AWS::StackName}/SleepFunction
+
+  SleepFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}/SleepFunction
       RetentionInDays: 30
 
   PopulateSessionStateMachine:
