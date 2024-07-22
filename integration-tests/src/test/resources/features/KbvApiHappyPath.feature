@@ -111,7 +111,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     Then user gets a session-id
 
     # TXMA event
-    Then TXMA event is added to the SQS queue not containing device information header
+    Then TXMA event is added to the SQS queue containing evidence requested
 
     # First question
     When user sends a GET request to question endpoint
@@ -155,7 +155,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     Then user gets a session-id
 
     # TXMA event
-    Then TXMA event is added to the SQS queue not containing device information header
+    Then TXMA event is added to the SQS queue containing evidence requested
 
     # First question
     When user sends a GET request to question endpoint

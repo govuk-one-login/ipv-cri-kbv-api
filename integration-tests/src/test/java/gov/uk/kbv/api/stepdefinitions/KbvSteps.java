@@ -133,6 +133,12 @@ public class KbvSteps {
         assertEquals("deviceInformation", getDeviceInformationHeader());
     }
 
+    @Then("TXMA event is added to the SQS queue containing evidence requested")
+    public void txmaEventIsAddedToSqsQueueContainingEvidenceRequested()
+            throws IOException, InterruptedException {
+        assertEquals("1", getEvidenceRequested());
+    }
+
     @Then("TXMA event is added to the SQS queue not containing device information header")
     public void txmaEventIsAddedToSqsQueueNotContainingDeviceInformationHeader()
             throws InterruptedException, IOException {
@@ -161,6 +167,23 @@ public class KbvSteps {
         return objectMapper
                 .readTree(startEventMessages.get(0).body())
                 .at("/restricted/device_information/encoded")
+                .asText();
+    }
+
+    private String getEvidenceRequested() throws InterruptedException, IOException {
+        final List<Message> startEventMessages =
+                this.sqs.receiveMatchingMessages(
+                        auditEventQueueUrl,
+                        1,
+                        Map.ofEntries(
+                                entry("/event_name", "IPV_KBV_CRI_START"),
+                                entry("/user/session_id", testContext.getSessionId())));
+
+        assertEquals(1, startEventMessages.size());
+
+        return objectMapper
+                .readTree(startEventMessages.get(0).body())
+                .at("/extensions/evidence_requested/verificationScore")
                 .asText();
     }
 
