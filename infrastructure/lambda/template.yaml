@@ -907,12 +907,6 @@ Resources:
             Stat: Sum
 
 Outputs:
-  PopulateSessionStateMachineArn:
-    Condition: IsNotProdEnvironment
-    Value: !Ref PopulateSessionStateMachine
-
-  FixSessionTTLStateMachineArn:
-    Value: !Ref FixSessionTTLStateMachine
 
   PersonIdentityTableName:
     Value: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
