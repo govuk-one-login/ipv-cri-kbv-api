@@ -33,6 +33,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 
 import java.io.IOException;
 import java.util.Map;
@@ -61,12 +62,14 @@ public class QuestionAnswerHandler
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
+        ServiceFactory serviceFactory = new ServiceFactory();
+
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        this.configurationService = new ConfigurationService();
+        this.configurationService = serviceFactory.getConfigurationService();
         this.kbvStorageService = new KBVStorageService(configurationService);
         this.kbvService = new KBVService(new KBVGatewayFactory().create(configurationService));
-        this.sessionService = new SessionService(configurationService);
-        this.auditService = new AuditService(configurationService);
+        this.sessionService = serviceFactory.getSessionService();
+        this.auditService = serviceFactory.getAuditService();
 
         this.eventProbe = new EventProbe();
     }
