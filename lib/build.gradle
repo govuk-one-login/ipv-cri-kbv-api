@@ -20,7 +20,8 @@ dependencies {
 			configurations.jackson,
 			configurations.hibernate,
 			configurations.nimbus,
-			configurations.soap
+			configurations.soap,
+			configurations.sqs
 
 	aspect configurations.powertools
 

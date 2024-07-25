@@ -9,7 +9,8 @@ dependencies {
 			configurations.cri_common_lib,
 			configurations.aws,
 			configurations.lambda,
-			configurations.sqs
+			configurations.sqs,
+			configurations.dynamodb
 
 	aspect configurations.powertools
 	testImplementation configurations.tests

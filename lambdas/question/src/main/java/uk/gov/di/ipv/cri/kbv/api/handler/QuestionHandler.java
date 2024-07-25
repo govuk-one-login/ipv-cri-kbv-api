@@ -40,6 +40,7 @@ import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.util.EvidenceUtils;
 
 import java.io.IOException;
@@ -80,13 +81,18 @@ public class QuestionHandler
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
+        ServiceFactory serviceFactory = new ServiceFactory();
+
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        this.personIdentityService = new PersonIdentityService();
-        this.configurationService = new ConfigurationService();
+        this.personIdentityService =
+                new PersonIdentityService(
+                        serviceFactory.getConfigurationService(),
+                        serviceFactory.getDynamoDbEnhancedClient());
+        this.configurationService = serviceFactory.getConfigurationService();
         this.kbvService = new KBVService(new KBVGatewayFactory().create(this.configurationService));
         this.kbvStorageService = new KBVStorageService(this.configurationService);
-        this.auditService = new AuditService(this.configurationService);
-        this.sessionService = new SessionService(this.configurationService);
+        this.auditService = serviceFactory.getAuditService();
+        this.sessionService = serviceFactory.getSessionService();
         this.eventProbe = new EventProbe();
     }
 

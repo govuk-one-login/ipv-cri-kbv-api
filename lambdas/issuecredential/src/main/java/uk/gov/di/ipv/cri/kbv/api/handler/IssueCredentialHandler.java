@@ -35,6 +35,7 @@ import uk.gov.di.ipv.cri.common.library.util.ApiGatewayResponseGenerator;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.exception.CredentialRequestException;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.VerifiableCredentialService;
 
 import java.time.Clock;
@@ -75,10 +76,12 @@ public class IssueCredentialHandler
 
     @ExcludeFromGeneratedCoverageReport
     public IssueCredentialHandler() throws JsonProcessingException {
+        ServiceFactory serviceFactory = new ServiceFactory();
+
         this.verifiableCredentialService = new VerifiableCredentialService();
-        ConfigurationService configurationService = new ConfigurationService();
+        ConfigurationService configurationService = serviceFactory.getConfigurationService();
         this.kbvStorageService = new KBVStorageService(configurationService);
-        this.sessionService = new SessionService();
+        this.sessionService = serviceFactory.getSessionService();
         this.eventProbe = new EventProbe();
         this.auditService =
                 new AuditService(
@@ -90,7 +93,9 @@ public class IssueCredentialHandler
                         configurationService,
                         new ObjectMapper(),
                         new AuditEventFactory(configurationService, Clock.systemUTC()));
-        this.personIdentityService = new PersonIdentityService();
+        this.personIdentityService =
+                new PersonIdentityService(
+                        configurationService, serviceFactory.getDynamoDbEnhancedClient());
     }
 
     @Override
