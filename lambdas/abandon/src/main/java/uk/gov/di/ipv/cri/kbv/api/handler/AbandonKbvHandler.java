@@ -14,10 +14,10 @@ import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverage
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
-import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 
 import java.util.Map;
 import java.util.UUID;
@@ -49,11 +49,11 @@ public class AbandonKbvHandler
 
     @ExcludeFromGeneratedCoverageReport
     public AbandonKbvHandler() {
-        this(
-                new EventProbe(),
-                new KBVStorageService(new ConfigurationService()),
-                new SessionService(),
-                new AuditService());
+        ServiceFactory serviceFactory = new ServiceFactory();
+        this.eventProbe = new EventProbe();
+        this.kbvStorageService = new KBVStorageService(serviceFactory.getConfigurationService());
+        this.sessionService = serviceFactory.getSessionService();
+        this.auditService = serviceFactory.getAuditService();
     }
 
     @Override
