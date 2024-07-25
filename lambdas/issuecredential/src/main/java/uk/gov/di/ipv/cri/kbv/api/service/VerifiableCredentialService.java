@@ -45,7 +45,9 @@ public class VerifiableCredentialService {
 
     @ExcludeFromGeneratedCoverageReport
     public VerifiableCredentialService() throws JsonProcessingException {
-        this.configurationService = new ConfigurationService();
+        ServiceFactory serviceFactory = new ServiceFactory();
+
+        this.configurationService = serviceFactory.getConfigurationService();
         this.signedJwtFactory =
                 new SignedJWTFactory(
                         new KMSSigner(
