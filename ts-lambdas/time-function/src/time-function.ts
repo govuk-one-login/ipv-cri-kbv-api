@@ -2,7 +2,7 @@ import { LambdaInterface } from "@aws-lambda-powertools/commons";
 
 export class TimeFunction implements LambdaInterface {
   public async handler(_event: unknown, _context: unknown): Promise<any> {
-    return Date.now();
+    return Math.floor(Date.now() / 1000);
   }
 }
 

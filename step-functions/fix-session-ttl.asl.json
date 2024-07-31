@@ -17,10 +17,10 @@
       "Type": "Task",
       "Parameters": {
         "TableName": "${SessionTable}",
-        "FilterExpression": "expiryDate = :expiryDate",
+        "FilterExpression": "expiryDate > :expiryDate",
         "ExpressionAttributeValues": {
           ":expiryDate": {
-            "N": "7200"
+            "N": "1753879270"
           }
         },
         "Limit": 100
@@ -41,10 +41,10 @@
       "Type": "Task",
       "Parameters": {
         "TableName": "${SessionTable}",
-        "FilterExpression": "expiryDate = :expiryDate",
+        "FilterExpression": "expiryDate > :expiryDate",
         "ExpressionAttributeValues": {
           ":expiryDate": {
-            "N": "7200"
+            "N": "1753879270"
           }
         },
         "ExclusiveStartKey": {
