@@ -17,6 +17,7 @@ dependencies {
 	aspect configurations.powertools
 
 	testImplementation configurations.tests,
+			configurations.webcompere,
 			configurations.pact_tests
 
 	testRuntimeOnly configurations.test_runtime
