@@ -15,10 +15,9 @@ ext {
 		mockito					 : "4.3.1",
 		glassfish_version        : "3.0.3",
 		powertools_version       : "1.12.3",
-		cri_common_lib           : "3.0.2",
+		cri_common_lib           : "3.0.3",
 		pact_provider_version    : "4.5.11",
 		webcompere_version       : "2.1.6",
-		slf4j                    : "2.0.13", // For contract test debug
 	]
 }
 
@@ -64,7 +63,6 @@ subprojects {
 		cri_common_lib
 		pact_tests
 		webcompere
-		slf4j
 	}
 
 	// The dynamodb enhanced package loads the apache-client as well as the spi-client, so
@@ -82,7 +80,6 @@ subprojects {
 
 		lambda "software.amazon.awssdk:lambda",
 				"com.amazonaws:aws-lambda-java-events:${dependencyVersions.aws_lambda_events_version}"
-		//"org.apache.httpcomponents:httpclient:4.5.13"
 
 		sqs "software.amazon.awssdk:sqs"
 
@@ -136,8 +133,6 @@ subprojects {
 
 		webcompere "uk.org.webcompere:system-stubs-core:${dependencyVersions.webcompere_version}",
 				"uk.org.webcompere:system-stubs-jupiter:${dependencyVersions.webcompere_version}"
-
-		slf4j "org.slf4j:slf4j-api:${dependencyVersions.slf4j}"
 	}
 
 	apply plugin: 'java'
