@@ -17,13 +17,17 @@ dependencies {
 	aspect configurations.powertools
 
 	testImplementation configurations.tests,
-			configurations.webcompere
+			configurations.webcompere,
+			configurations.pact_tests,
+			configurations.slf4j
 
 	testRuntimeOnly configurations.test_runtime
 }
 
 test {
-	useJUnitPlatform()
+	useJUnitPlatform{
+		excludeTags 'Pact'
+	}
 	finalizedBy jacocoTestReport
 }
 

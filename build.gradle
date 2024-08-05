@@ -16,7 +16,8 @@ ext {
 		glassfish_version        : "3.0.3",
 		powertools_version       : "1.12.3",
 		cri_common_lib           : "3.0.4",
-		webcompere_version : "2.1.6",
+		pact_provider_version    : "4.5.11",
+		webcompere_version       : "2.1.6",
 	]
 }
 
@@ -60,6 +61,7 @@ subprojects {
 		lettuce
 		ssm
 		cri_common_lib
+		pact_tests
 		webcompere
 	}
 
@@ -78,7 +80,6 @@ subprojects {
 
 		lambda "software.amazon.awssdk:lambda",
 				"com.amazonaws:aws-lambda-java-events:${dependencyVersions.aws_lambda_events_version}"
-		//"org.apache.httpcomponents:httpclient:4.5.13"
 
 		sqs "software.amazon.awssdk:sqs"
 
@@ -127,6 +128,9 @@ subprojects {
 
 		cri_common_lib "uk.gov.account:cri-common-lib:${dependencyVersions.cri_common_lib}"
 
+		pact_tests "au.com.dius.pact.provider:junit5:${dependencyVersions.pact_provider_version}",
+				"au.com.dius.pact:provider:${dependencyVersions.pact_provider_version}"
+
 		webcompere "uk.org.webcompere:system-stubs-core:${dependencyVersions.webcompere_version}",
 				"uk.org.webcompere:system-stubs-jupiter:${dependencyVersions.webcompere_version}"
 	}
@@ -138,6 +142,13 @@ subprojects {
 		environment "LAMBDA_TASK_ROOT", "handler"
 		filter {
 			excludeTestsMatching "uk.gov.di.ipv.cri.kbv.acceptancetest.journey.*"
+		}
+	}
+
+
+	tasks.register("pactTests", Test) {
+		useJUnitPlatform {
+			includeTags 'Pact'
 		}
 	}
 }
