@@ -19,7 +19,8 @@ dependencies {
 	testImplementation configurations.tests,
 			configurations.webcompere,
 			configurations.pact_tests,
-			configurations.slf4j
+			"org.slf4j:slf4j-log4j12:2.0.13" // For contract test debug
+
 
 	testRuntimeOnly configurations.test_runtime
 }
