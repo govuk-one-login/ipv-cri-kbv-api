@@ -61,11 +61,13 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.DI_CONTEXT;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.KBV_CREDENTIAL_TYPE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_ADDRESS_KEY;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_BIRTHDATE_KEY;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_EVIDENCE_KEY;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_NAME_KEY;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.W3_BASE_CONTEXT;
 import static uk.gov.di.ipv.cri.kbv.api.service.fixtures.TestFixtures.KBV_QUESTION_QUALITY_MAPPING_SERIALIZED;
 
 @ExtendWith(MockitoExtension.class)
@@ -316,6 +318,9 @@ class VerifiableCredentialServiceTest {
         when(mockVcClaimSetBuilder.verifiableCredentialSubject(any()))
                 .thenReturn(mockVcClaimSetBuilder);
         when(mockVcClaimSetBuilder.verifiableCredentialType(KBV_CREDENTIAL_TYPE))
+                .thenReturn(mockVcClaimSetBuilder);
+        when(mockVcClaimSetBuilder.verifiableCredentialContext(
+                        new String[] {W3_BASE_CONTEXT, DI_CONTEXT}))
                 .thenReturn(mockVcClaimSetBuilder);
     }
 
