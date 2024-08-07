@@ -52,9 +52,9 @@
     }, {
       "name": "VC evidence checkDetails kbvQuality are 3"
     }, {
-      "name": "VC evidence failedCheckDetails are multiple_choice, multiple_choice"
+      "name": "VC evidence failedCheckDetails are multiple_choice, multiple_choice multiple_choice"
     }, {
-      "name": "VC ci is A03"
+      "name": "VC ci is V03"
     }],
     "request": {
       "headers": {
@@ -62,7 +62,7 @@
         "x-api-key": "dummyApiKey"
       },
       "method": "POST",
-      "path": "/credential"
+      "path": "/credential/issue"
     },
     "response": {
       "body": "ZXlKaGJHY2lPaUpGVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKa2RXMXRlVVY0Y0dWeWFXRnVTMkoyUTI5dGNHOXVaVzUwU1dRaUxDSnpkV0lpT2lKMFpYTjBMWE4xWW1wbFkzUWlMQ0p1WW1ZaU9qUXdOekE1TURnNE1EQXNJblpqSWpwN0luUjVjR1VpT2xzaVZtVnlhV1pwWVdKc1pVTnlaV1JsYm5ScFlXd2lMQ0pKWkdWdWRHbDBlVU5vWldOclEzSmxaR1Z1ZEdsaGJDSmRMQ0pBWTI5dWRHVjRkQ0k2V3lKb2RIUndjem92TDNkM2R5NTNNeTV2Y21jdk1qQXhPQzlqY21Wa1pXNTBhV0ZzY3k5Mk1TSXNJbWgwZEhCek9pOHZkbTlqWVdJdVlXTmpiM1Z1ZEM1bmIzWXVkV3N2WTI5dWRHVjRkSE12YVdSbGJuUnBkSGt0ZGpFdWFuTnZibXhrSWwwc0ltTnlaV1JsYm5ScFlXeFRkV0pxWldOMElqcDdJbTVoYldVaU9sdDdJbTVoYldWUVlYSjBjeUk2VzNzaWRIbHdaU0k2SWtkcGRtVnVUbUZ0WlNJc0luWmhiSFZsSWpvaVRXRnllU0o5TEhzaWRIbHdaU0k2SWtaaGJXbHNlVTVoYldVaUxDSjJZV3gxWlNJNklsZGhkSE52YmlKOVhYMWRMQ0ppYVhKMGFFUmhkR1VpT2x0N0luWmhiSFZsSWpvaU1Ua3pNaTB3TWkweU5TSjlYU3dpWVdSa2NtVnpjeUk2VzNzaWRYQnliaUk2SWpFd01ESXlPREV5T1RJNUlpd2liM0puWVc1cGMyRjBhVzl1VG1GdFpTSTZJa1pKVGtOSUlFZFNUMVZRSWl3aWMzVmlRblZwYkdScGJtZE9ZVzFsSWpvaVZVNUpWQ0F5UWlJc0ltSjFhV3hrYVc1blRuVnRZbVZ5SWpvaU1UWWlMQ0ppZFdsc1pHbHVaMDVoYldVaU9pSkRUMWtnVUU5T1JDQkNWVk5KVGtWVFV5QlFRVkpMSWl3aVpHVndaVzVrWlc1MFUzUnlaV1YwVG1GdFpTSTZJa3RKVGtkVElGQkJVa3NpTENKemRISmxaWFJPWVcxbElqb2lRa2xISUZOVVVrVkZWQ0lzSW1SdmRXSnNaVVJsY0dWdVpHVnVkRUZrWkhKbGMzTk1iMk5oYkdsMGVTSTZJbE5QVFVVZ1JFbFRWRkpKUTFRaUxDSmtaWEJsYm1SbGJuUkJaR1J5WlhOelRHOWpZV3hwZEhraU9pSk1UMDVISUVWQlZFOU9JaXdpWVdSa2NtVnpjMHh2WTJGc2FYUjVJam9pUjFKRlFWUWdUVWxUVTBWT1JFVk9JaXdpY0c5emRHRnNRMjlrWlNJNklraFFNVFlnTUVGTUlpd2lZV1JrY21WemMwTnZkVzUwY25raU9pSkhRaUo5WFgwc0ltVjJhV1JsYm1ObElqcGJleUowZVhCbElqb2lTV1JsYm5ScGRIbERhR1ZqYXlJc0luUjRiaUk2SW1SMWJXMTVWSGh1SWl3aWRtVnlhV1pwWTJGMGFXOXVVMk52Y21VaU9qQXNJbU5vWldOclJHVjBZV2xzY3lJNlczc2lZMmhsWTJ0TlpYUm9iMlFpT2lKclluWWlMQ0pyWW5aUmRXRnNhWFI1SWpvekxDSnJZblpTWlhOd2IyNXpaVTF2WkdVaU9pSnRkV3gwYVhCc1pWOWphRzlwWTJVaWZWMHNJbVpoYVd4bFpFTm9aV05yUkdWMFlXbHNjeUk2VzNzaWEySjJVbVZ6Y0c5dWMyVk5iMlJsSWpvaWJYVnNkR2x3YkdWZlkyaHZhV05sSWl3aVkyaGxZMnROWlhSb2IyUWlPaUpyWW5ZaWZTeDdJbXRpZGxKbGMzQnZibk5sVFc5a1pTSTZJbTExYkhScGNHeGxYMk5vYjJsalpTSXNJbU5vWldOclRXVjBhRzlrSWpvaWEySjJJbjFkTENKamFTSTZXeUpCTURNaVhYMWRmWDAub2NuZWtGUmZwMWJkLTY1TUR2OVZIM2VNMERrVmxXcG1LbHRUMjlUSUJmVTFmVWNzVzd4M1hOS0dRM0xWRFJsd2w5blBuTFBGMW9TV2t0V05jMzZoQ2c=",
@@ -84,7 +84,7 @@
     }
   }, {
     "_id": "d9c39a95f9bc04eac265bfc7c3c1d444c2b5b435",
-    "description": "Valid credential request for VC",
+    "description": "Valid credential request for VC with a Thin-file",
     "providerStates": [{
       "name": "dummyApiKey is a valid api key"
     }, {
@@ -127,10 +127,6 @@
       "name": "VC address postalCode is HP16 0AL"
     }, {
       "name": "VC address addressCountry is GB"
-    }, {
-      "name": "VC evidence checkDetails are multiple_choice, multiple_choice"
-    }, {
-      "name": "VC evidence checkDetails kbvQuality are 3 and 2"
     }],
     "request": {
       "headers": {
@@ -138,7 +134,7 @@
         "x-api-key": "dummyApiKey"
       },
       "method": "POST",
-      "path": "/credential"
+      "path": "/credential/issue"
     },
     "response": {
       "body": "ZXlKaGJHY2lPaUpGVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKa2RXMXRlVVY0Y0dWeWFXRnVTMkoyUTI5dGNHOXVaVzUwU1dRaUxDSnpkV0lpT2lKMFpYTjBMWE4xWW1wbFkzUWlMQ0p1WW1ZaU9qUXdOekE1TURnNE1EQXNJblpqSWpwN0luUjVjR1VpT2xzaVZtVnlhV1pwWVdKc1pVTnlaV1JsYm5ScFlXd2lMQ0pKWkdWdWRHbDBlVU5vWldOclEzSmxaR1Z1ZEdsaGJDSmRMQ0pBWTI5dWRHVjRkQ0k2V3lKb2RIUndjem92TDNkM2R5NTNNeTV2Y21jdk1qQXhPQzlqY21Wa1pXNTBhV0ZzY3k5Mk1TSXNJbWgwZEhCek9pOHZkbTlqWVdJdVlXTmpiM1Z1ZEM1bmIzWXVkV3N2WTI5dWRHVjRkSE12YVdSbGJuUnBkSGt0ZGpFdWFuTnZibXhrSWwwc0ltTnlaV1JsYm5ScFlXeFRkV0pxWldOMElqcDdJbTVoYldVaU9sdDdJbTVoYldWUVlYSjBjeUk2VzNzaWRIbHdaU0k2SWtkcGRtVnVUbUZ0WlNJc0luWmhiSFZsSWpvaVRXRnllU0o5TEhzaWRIbHdaU0k2SWtaaGJXbHNlVTVoYldVaUxDSjJZV3gxWlNJNklsZGhkSE52YmlKOVhYMWRMQ0ppYVhKMGFFUmhkR1VpT2x0N0luWmhiSFZsSWpvaU1Ua3pNaTB3TWkweU5TSjlYU3dpWVdSa2NtVnpjeUk2VzNzaWRYQnliaUk2SWpFd01ESXlPREV5T1RJNUlpd2liM0puWVc1cGMyRjBhVzl1VG1GdFpTSTZJa1pKVGtOSUlFZFNUMVZRSWl3aWMzVmlRblZwYkdScGJtZE9ZVzFsSWpvaVZVNUpWQ0F5UWlJc0ltSjFhV3hrYVc1blRuVnRZbVZ5SWpvaU1UWWlMQ0ppZFdsc1pHbHVaMDVoYldVaU9pSkRUMWtnVUU5T1JDQkNWVk5KVGtWVFV5QlFRVkpMSWl3aVpHVndaVzVrWlc1MFUzUnlaV1YwVG1GdFpTSTZJa3RKVGtkVElGQkJVa3NpTENKemRISmxaWFJPWVcxbElqb2lRa2xISUZOVVVrVkZWQ0lzSW1SdmRXSnNaVVJsY0dWdVpHVnVkRUZrWkhKbGMzTk1iMk5oYkdsMGVTSTZJbE5QVFVVZ1JFbFRWRkpKUTFRaUxDSmtaWEJsYm1SbGJuUkJaR1J5WlhOelRHOWpZV3hwZEhraU9pSk1UMDVISUVWQlZFOU9JaXdpWVdSa2NtVnpjMHh2WTJGc2FYUjVJam9pUjFKRlFWUWdUVWxUVTBWT1JFVk9JaXdpY0c5emRHRnNRMjlrWlNJNklraFFNVFlnTUVGTUlpd2lZV1JrY21WemMwTnZkVzUwY25raU9pSkhRaUo5WFgwc0ltVjJhV1JsYm1ObElqcGJleUowZVhCbElqb2lTV1JsYm5ScGRIbERhR1ZqYXlJc0luUjRiaUk2SW1SMWJXMTVWSGh1SWl3aWRtVnlhV1pwWTJGMGFXOXVVMk52Y21VaU9qQXNJbU5vWldOclJHVjBZV2xzY3lJNlczc2lZMmhsWTJ0TlpYUm9iMlFpT2lKclluWWlMQ0pyWW5aUmRXRnNhWFI1SWpvekxDSnJZblpTWlhOd2IyNXpaVTF2WkdVaU9pSnRkV3gwYVhCc1pWOWphRzlwWTJVaWZTeDdJbU5vWldOclRXVjBhRzlrSWpvaWEySjJJaXdpYTJKMlVYVmhiR2wwZVNJNk1pd2lhMkoyVW1WemNHOXVjMlZOYjJSbElqb2liWFZzZEdsd2JHVmZZMmh2YVdObEluMWRmVjE5ZlEucVZ5V1NVWEQ4QlAwRmh5YmY0ODh4cVYzN0JyaFJMRlZ5X3NzOHVwQ3E3SExRQm8xUTlKOTh6akRQREdlVUtkSWhzSUhTRDBoSWpvMEZhNTRjQWZvSXc=",
@@ -214,7 +210,7 @@
         "x-api-key": "dummyApiKey"
       },
       "method": "POST",
-      "path": "/credential"
+      "path": "/credential/issue"
     },
     "response": {
       "body": "ZXlKaGJHY2lPaUpGVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKa2RXMXRlVVY0Y0dWeWFXRnVTMkoyUTI5dGNHOXVaVzUwU1dRaUxDSnpkV0lpT2lKMFpYTjBMWE4xWW1wbFkzUWlMQ0p1WW1ZaU9qUXdOekE1TURnNE1EQXNJblpqSWpwN0luUjVjR1VpT2xzaVZtVnlhV1pwWVdKc1pVTnlaV1JsYm5ScFlXd2lMQ0pKWkdWdWRHbDBlVU5vWldOclEzSmxaR1Z1ZEdsaGJDSmRMQ0pBWTI5dWRHVjRkQ0k2V3lKb2RIUndjem92TDNkM2R5NTNNeTV2Y21jdk1qQXhPQzlqY21Wa1pXNTBhV0ZzY3k5Mk1TSXNJbWgwZEhCek9pOHZkbTlqWVdJdVlXTmpiM1Z1ZEM1bmIzWXVkV3N2WTI5dWRHVjRkSE12YVdSbGJuUnBkSGt0ZGpFdWFuTnZibXhrSWwwc0ltTnlaV1JsYm5ScFlXeFRkV0pxWldOMElqcDdJbTVoYldVaU9sdDdJbTVoYldWUVlYSjBjeUk2VzNzaWRIbHdaU0k2SWtkcGRtVnVUbUZ0WlNJc0luWmhiSFZsSWpvaVRXRnllU0o5TEhzaWRIbHdaU0k2SWtaaGJXbHNlVTVoYldVaUxDSjJZV3gxWlNJNklsZGhkSE52YmlKOVhYMWRMQ0ppYVhKMGFFUmhkR1VpT2x0N0luWmhiSFZsSWpvaU1Ua3pNaTB3TWkweU5TSjlYU3dpWVdSa2NtVnpjeUk2VzNzaWRYQnliaUk2SWpFd01ESXlPREV5T1RJNUlpd2liM0puWVc1cGMyRjBhVzl1VG1GdFpTSTZJa1pKVGtOSUlFZFNUMVZRSWl3aWMzVmlRblZwYkdScGJtZE9ZVzFsSWpvaVZVNUpWQ0F5UWlJc0ltSjFhV3hrYVc1blRuVnRZbVZ5SWpvaU1UWWlMQ0ppZFdsc1pHbHVaMDVoYldVaU9pSkRUMWtnVUU5T1JDQkNWVk5KVGtWVFV5QlFRVkpMSWl3aVpHVndaVzVrWlc1MFUzUnlaV1YwVG1GdFpTSTZJa3RKVGtkVElGQkJVa3NpTENKemRISmxaWFJPWVcxbElqb2lRa2xISUZOVVVrVkZWQ0lzSW1SdmRXSnNaVVJsY0dWdVpHVnVkRUZrWkhKbGMzTk1iMk5oYkdsMGVTSTZJbE5QVFVVZ1JFbFRWRkpKUTFRaUxDSmtaWEJsYm1SbGJuUkJaR1J5WlhOelRHOWpZV3hwZEhraU9pSk1UMDVISUVWQlZFOU9JaXdpWVdSa2NtVnpjMHh2WTJGc2FYUjVJam9pUjFKRlFWUWdUVWxUVTBWT1JFVk9JaXdpY0c5emRHRnNRMjlrWlNJNklraFFNVFlnTUVGTUlpd2lZV1JrY21WemMwTnZkVzUwY25raU9pSkhRaUo5WFgwc0ltVjJhV1JsYm1ObElqcGJleUpqYUdWamEwUmxkR0ZwYkhNaU9sdDdJbU5vWldOclRXVjBhRzlrSWpvaWEySjJJaXdpYTJKMlVYVmhiR2wwZVNJNk1pd2lhMkoyVW1WemNHOXVjMlZOYjJSbElqb2liWFZzZEdsd2JHVmZZMmh2YVdObEluMHNleUpqYUdWamEwMWxkR2h2WkNJNkltdGlkaUlzSW10aWRsRjFZV3hwZEhraU9qSXNJbXRpZGxKbGMzQnZibk5sVFc5a1pTSTZJbTExYkhScGNHeGxYMk5vYjJsalpTSjlMSHNpWTJobFkydE5aWFJvYjJRaU9pSnJZbllpTENKclluWlJkV0ZzYVhSNUlqb3hMQ0pyWW5aU1pYTndiMjV6WlUxdlpHVWlPaUp0ZFd4MGFYQnNaVjlqYUc5cFkyVWlmVjBzSW5abGNtbG1hV05oZEdsdmJsTmpiM0psSWpveUxDSjBlRzRpT2lKa2RXMXRlVlI0YmlJc0luUjVjR1VpT2lKSlpHVnVkR2wwZVVOb1pXTnJJbjFkZlgwLmg4RzZJMHJSSVRDWUJtQ0tfWDJQejNrX1AwOTJqajZ5RFhCV0JuSHlRbzl6ai1XOEtMaUlJbVF3VnVDamF6alg2alh1akluNDFJVU5hcE1rUVVXbWtn",
@@ -252,10 +248,10 @@
         "x-api-key": "dummyApiKey"
       },
       "method": "POST",
-      "path": "/credential"
+      "path": "/credential/issue"
     },
     "response": {
-      "status": 401
+      "status": 403
     }
   }],
   "metadata": {
