@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.common.contenttype.ContentType;
 import com.nimbusds.jose.JOSEException;
@@ -16,6 +17,9 @@ import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -33,9 +37,13 @@ import uk.gov.di.ipv.cri.common.library.domain.personidentity.Name;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.NamePart;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentityDetailed;
 import uk.gov.di.ipv.cri.common.library.error.ErrorResponse;
+import uk.gov.di.ipv.cri.common.library.exception.AccessTokenExpiredException;
+import uk.gov.di.ipv.cri.common.library.exception.SessionExpiredException;
+import uk.gov.di.ipv.cri.common.library.exception.SessionNotFoundException;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
+import uk.gov.di.ipv.cri.common.library.service.PersonIdentityDetailedBuilder;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
@@ -48,11 +56,12 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -242,6 +251,43 @@ class IssueCredentialHandlerTest {
         assertEquals(awsErrorDetails.errorMessage(), responseBody);
     }
 
+    @ParameterizedTest
+    @MethodSource("exceptionProvider")
+    void shouldThrowAccessDeniedErrorWhenRetrievingASessionItemNotFoundWithAnAccessToken(
+            Class<? extends Throwable> exceptionClass)
+            throws JsonProcessingException, SqsException {
+        ArgumentCaptor<Throwable> exceptionCaptor = ArgumentCaptor.forClass(Throwable.class);
+
+        APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
+        AccessToken accessToken = new BearerAccessToken();
+        event.withHeaders(
+                Map.of(
+                        IssueCredentialHandler.AUTHORIZATION_HEADER_KEY,
+                        accessToken.toAuthorizationHeader()));
+
+        setRequestBodyAsPlainJWT(event);
+        setupEventProbeErrorBehaviour();
+
+        when(mockSessionService.getSessionByAccessToken(accessToken)).thenThrow(exceptionClass);
+
+        APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
+
+        Map<String, Object> responseBody =
+                new ObjectMapper().readValue(response.getBody(), new TypeReference<>() {});
+
+        verify(mockSessionService).getSessionByAccessToken(accessToken);
+        verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
+        verify(mockEventProbe).log(any(), exceptionCaptor.capture());
+        verify(mockAuditService, never()).sendAuditEvent(any(AuditEventType.class));
+        verifyNoMoreInteractions(mockEventProbe);
+
+        assertEquals(HttpStatusCode.FORBIDDEN, response.getStatusCode());
+        assertThat(
+                responseBody.get("error_description").toString(),
+                containsString("Access denied by resource owner or authorization server"));
+        assertEquals(exceptionClass, exceptionCaptor.getValue().getClass());
+    }
+
     @Test
     void shouldThrowAWSExceptionWhenAServerErrorOccursDuringRetrievingAnAddressItemWithSessionId()
             throws JsonProcessingException, SqsException {
@@ -287,8 +333,8 @@ class IssueCredentialHandlerTest {
     }
 
     private void setupEventProbeErrorBehaviour() {
-        when(mockEventProbe.counterMetric(anyString(), anyDouble())).thenReturn(mockEventProbe);
         when(mockEventProbe.log(any(Level.class), any(Exception.class))).thenReturn(mockEventProbe);
+        when(mockEventProbe.counterMetric(KBV_CREDENTIAL_ISSUER, 0d)).thenReturn(mockEventProbe);
     }
 
     private void setRequestBodyAsPlainJWT(APIGatewayProxyRequestEvent event) {
@@ -312,6 +358,7 @@ class IssueCredentialHandlerTest {
         NamePart firstNamePart = new NamePart();
         firstNamePart.setType("GivenName");
         firstNamePart.setValue("Bloggs");
+
         NamePart surnamePart = new NamePart();
         surnamePart.setType("FamilyName");
         surnamePart.setValue("Bloggs");
@@ -320,6 +367,16 @@ class IssueCredentialHandlerTest {
         BirthDate birthDate = new BirthDate();
         birthDate.setValue(LocalDate.of(1980, 1, 1));
 
-        return new PersonIdentityDetailed(List.of(name), List.of(birthDate), List.of(address));
+        return PersonIdentityDetailedBuilder.builder(List.of(name), List.of(birthDate))
+                .withAddresses(List.of(address))
+                .build();
+    }
+
+    static Stream<Arguments> exceptionProvider() {
+        return Stream.of(
+                Arguments.of(
+                        SessionNotFoundException.class, "no session found with that access token"),
+                Arguments.of(SessionExpiredException.class, "session expired"),
+                Arguments.of(AccessTokenExpiredException.class, "access code expired"));
     }
 }
