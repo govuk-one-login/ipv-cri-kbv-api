@@ -164,11 +164,15 @@ public interface TestFixtures {
         return question;
     }
 
-    default KBVItem getKbvItem() {
+    default KBVItem getKbvItem(UUID sessionId, String authRefNo) {
         KBVItem kbvItem = new KBVItem();
-        kbvItem.setSessionId(UUID.randomUUID());
-        kbvItem.setAuthRefNo(UUID.randomUUID().toString());
+        kbvItem.setSessionId(sessionId);
+        kbvItem.setAuthRefNo(authRefNo);
         return kbvItem;
+    }
+
+    default KBVItem getKbvItem() {
+        return getKbvItem(UUID.randomUUID(), UUID.randomUUID().toString());
     }
 
     default KbvResult getKbvResult(String transactionValue) {
