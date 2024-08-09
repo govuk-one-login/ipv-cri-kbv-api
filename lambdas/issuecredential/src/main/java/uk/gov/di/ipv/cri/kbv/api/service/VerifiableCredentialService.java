@@ -30,11 +30,13 @@ import static com.nimbusds.jwt.JWTClaimNames.ISSUER;
 import static java.util.stream.Collectors.toMap;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createAuditEventExtensions;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.DI_CONTEXT;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.KBV_CREDENTIAL_TYPE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_ADDRESS_KEY;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_BIRTHDATE_KEY;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_EVIDENCE_KEY;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_NAME_KEY;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.W3_BASE_CONTEXT;
 
 public class VerifiableCredentialService {
     private final VerifiableCredentialClaimsSetBuilder vcClaimsSetBuilder;
@@ -93,6 +95,7 @@ public class VerifiableCredentialService {
                         .subject(sessionItem.getSubject())
                         .timeToLive(jwtTtl, jwtTtlUnit)
                         .verifiableCredentialType(KBV_CREDENTIAL_TYPE)
+                        .verifiableCredentialContext(new String[] {W3_BASE_CONTEXT, DI_CONTEXT})
                         .verifiableCredentialSubject(
                                 Map.of(
                                         VC_ADDRESS_KEY,
