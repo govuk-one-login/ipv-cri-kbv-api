@@ -12,7 +12,9 @@ import com.nimbusds.jwt.JWTClaimNames;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.PlainJWT;
 import com.nimbusds.jwt.SignedJWT;
+import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
+import com.nimbusds.oauth2.sdk.token.AccessTokenType;
 import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Test;
@@ -43,16 +45,30 @@ import uk.gov.di.ipv.cri.common.library.exception.SessionNotFoundException;
 import uk.gov.di.ipv.cri.common.library.exception.SqsException;
 import uk.gov.di.ipv.cri.common.library.persistence.item.SessionItem;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityDetailedBuilder;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
+import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
+import uk.gov.di.ipv.cri.common.library.util.VerifiableCredentialClaimsSetBuilder;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
+import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.service.EvidenceFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.VerifiableCredentialService;
+import uk.gov.di.ipv.cri.kbv.api.service.fixtures.TestFixtures;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
+import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -68,12 +84,18 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static uk.gov.di.ipv.cri.common.library.util.VerifiableCredentialClaimsSetBuilder.ENV_VAR_FEATURE_FLAG_VC_CONTAINS_UNIQUE_ID;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.METRIC_DIMENSION_KBV_VERIFICATION;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_PASS;
 import static uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler.KBV_CREDENTIAL_ISSUER;
+import static uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler.NO_SUCH_ALGORITHM_ERROR;
 
 @SuppressWarnings("rawtypes")
 @ExtendWith(MockitoExtension.class)
-class IssueCredentialHandlerTest {
+@ExtendWith(SystemStubsExtension.class)
+class IssueCredentialHandlerTest implements TestFixtures {
+    @SystemStub EnvironmentVariables environmentVariables = new EnvironmentVariables();
+
     private static final String SUBJECT = "subject";
     private static final UUID SESSION_ID = UUID.randomUUID();
     @Mock private Context context;
@@ -90,7 +112,7 @@ class IssueCredentialHandlerTest {
 
     @Test
     void shouldReturn200OkWhenIssueCredentialRequestIsValid()
-            throws JOSEException, SqsException, JsonProcessingException {
+            throws JOSEException, SqsException, JsonProcessingException, NoSuchAlgorithmException {
         ArgumentCaptor<AuditEventContext> auditEventContextArgCaptor =
                 ArgumentCaptor.forClass(AuditEventContext.class);
         APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
@@ -150,7 +172,7 @@ class IssueCredentialHandlerTest {
 
     @Test
     void shouldThrowJOSEExceptionWhenGenerateVerifiableCredentialIsMalformed()
-            throws JsonProcessingException, JOSEException, SqsException {
+            throws JsonProcessingException, JOSEException, SqsException, NoSuchAlgorithmException {
         APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
         AccessToken accessToken = new BearerAccessToken();
         event.withHeaders(
@@ -225,14 +247,7 @@ class IssueCredentialHandlerTest {
         setupEventProbeErrorBehaviour();
 
         AwsErrorDetails awsErrorDetails =
-                AwsErrorDetails.builder()
-                        .errorCode("")
-                        .sdkHttpResponse(
-                                SdkHttpResponse.builder()
-                                        .statusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
-                                        .build())
-                        .errorMessage("AWS DynamoDbException Occurred")
-                        .build();
+                getHttpInternalServerError("AWS DynamoDbException Occurred");
 
         when(mockSessionService.getSessionByAccessToken(accessToken))
                 .thenThrow(
@@ -289,6 +304,106 @@ class IssueCredentialHandlerTest {
     }
 
     @Test
+    void shouldThrowNoSuchAlgorithmErrorWhenTheWrongKeyAlgorithmIsUsed()
+            throws NoSuchAlgorithmException, JOSEException, JsonProcessingException, ParseException,
+                    SqsException {
+        String issuer = "issuer";
+        String kmsSigningKeyId = "kmsSigningId";
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        NoSuchAlgorithmException noSuchAlgorithmException =
+                new NoSuchAlgorithmException(NO_SUCH_ALGORITHM_ERROR);
+        environmentVariables.set(ENV_VAR_FEATURE_FLAG_VC_CONTAINS_UNIQUE_ID, "override");
+        UUID sessionId = UUID.randomUUID();
+
+        AccessToken accessToken =
+                AccessToken.parse("Bearer dummyAccessToken", AccessTokenType.BEARER);
+        SessionItem sessionItem = new SessionItem();
+        sessionItem.setSubject(SUBJECT);
+        sessionItem.setSessionId(sessionId);
+        sessionItem.setAccessToken("Bearer dummyAccessToken");
+
+        KBVItem kbvItem = getKbvItem(sessionId, "dummyTxn");
+        kbvItem.setStatus("authenticated");
+        kbvItem.setQuestionAnswerResultSummary(getKbvQuestionAnswerSummary(3, 3, 0));
+
+        QuestionState questionState = new QuestionState();
+        stateAfterAnsweringBatchWith(questionState, "1st Question", "2nd Question");
+        stateAfterAnsweringBatchWith(questionState, "3rd Question");
+        kbvItem.setQuestionState(objectMapper.writeValueAsString(questionState));
+
+        ArgumentCaptor<Throwable> exceptionCaptor = ArgumentCaptor.forClass(Throwable.class);
+
+        APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
+        event.withHeaders(
+                Map.of(
+                        IssueCredentialHandler.AUTHORIZATION_HEADER_KEY,
+                        accessToken.toAuthorizationHeader()));
+
+        setRequestBodyAsPlainJWT(event);
+        setupEventProbeErrorBehaviour();
+
+        ConfigurationService mockConfigurationService = mock(ConfigurationService.class);
+        when(mockConfigurationService.getMaxJwtTtl()).thenReturn(10L);
+        when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn(issuer);
+        when(mockConfigurationService.getVerifiableCredentialKmsSigningKeyId())
+                .thenReturn(kmsSigningKeyId);
+        when(mockConfigurationService.getParameterValue("JwtTtlUnit")).thenReturn("MINUTES");
+
+        when(mockSessionService.getSessionByAccessToken(accessToken)).thenReturn(sessionItem);
+        when(mockKBVStorageService.getKBVItem(sessionId)).thenReturn(kbvItem);
+        when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+                .thenReturn(createPersonIdentity());
+        SignedJWTFactory mockedSignedClaimSetJwt = mock(SignedJWTFactory.class);
+
+        when(mockedSignedClaimSetJwt.createSignedJwt(
+                        any(JWTClaimsSet.class), eq(issuer), eq(kmsSigningKeyId)))
+                .thenThrow(noSuchAlgorithmException);
+
+        Clock clock = Clock.fixed(Instant.parse("2099-01-01T00:00:00.00Z"), ZoneId.of("UTC"));
+        VerifiableCredentialClaimsSetBuilder claimsSetBuilder =
+                new VerifiableCredentialClaimsSetBuilder(mockConfigurationService, clock);
+        claimsSetBuilder.overrideJti("dummyJti");
+
+        Map<String, Integer> kbvQuestionQualityMapping =
+                Map.of(
+                        "1st Question", 2,
+                        "2nd Question", 2,
+                        "3rd Question", 1);
+
+        EvidenceFactory evidenceFactory =
+                new EvidenceFactory(objectMapper, mockEventProbe, kbvQuestionQualityMapping);
+
+        VerifiableCredentialService verifiableCredentialService =
+                new VerifiableCredentialService(
+                        mockedSignedClaimSetJwt,
+                        mockConfigurationService,
+                        objectMapper,
+                        claimsSetBuilder,
+                        evidenceFactory);
+        handler =
+                new IssueCredentialHandler(
+                        verifiableCredentialService,
+                        mockKBVStorageService,
+                        mockSessionService,
+                        mockEventProbe,
+                        mockAuditService,
+                        mockPersonIdentityService);
+
+        APIGatewayProxyResponseEvent response = handler.handleRequest(event, context);
+
+        verify(mockSessionService).getSessionByAccessToken(accessToken);
+        verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
+        verify(mockEventProbe).log(any(), exceptionCaptor.capture());
+        verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
+        verify(mockAuditService, never()).sendAuditEvent(any(AuditEventType.class));
+        verifyNoMoreInteractions(mockEventProbe);
+
+        assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertThat(response.getBody(), containsString(NO_SUCH_ALGORITHM_ERROR));
+    }
+
+    @Test
     void shouldThrowAWSExceptionWhenAServerErrorOccursDuringRetrievingAnAddressItemWithSessionId()
             throws JsonProcessingException, SqsException {
         APIGatewayProxyRequestEvent event = new APIGatewayProxyRequestEvent();
@@ -302,14 +417,7 @@ class IssueCredentialHandlerTest {
         setupEventProbeErrorBehaviour();
 
         AwsErrorDetails awsErrorDetails =
-                AwsErrorDetails.builder()
-                        .errorCode("")
-                        .sdkHttpResponse(
-                                SdkHttpResponse.builder()
-                                        .statusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
-                                        .build())
-                        .errorMessage("AWS DynamoDbException Occurred")
-                        .build();
+                getHttpInternalServerError("AWS DynamoDbException Occurred");
 
         SessionItem mockSessionItem = mock(SessionItem.class);
         when(mockSessionItem.getSessionId()).thenReturn(SESSION_ID);
@@ -369,6 +477,25 @@ class IssueCredentialHandlerTest {
 
         return PersonIdentityDetailedBuilder.builder(List.of(name), List.of(birthDate))
                 .withAddresses(List.of(address))
+                .build();
+    }
+
+    private void stateAfterAnsweringBatchWith(QuestionState questionState, String... questions) {
+        List<KbvQuestion> kbvQuestions = getKbvQuestions(questions);
+        List<QuestionAnswer> questionAnswers = getQuestionAnswers(questions);
+        questionState.setQAPairs(kbvQuestions.toArray(KbvQuestion[]::new));
+
+        loadKbvQuestionStateWithAnswers(questionState, kbvQuestions, questionAnswers);
+    }
+
+    private AwsErrorDetails getHttpInternalServerError(String message) {
+        return AwsErrorDetails.builder()
+                .errorCode("")
+                .sdkHttpResponse(
+                        SdkHttpResponse.builder()
+                                .statusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
+                                .build())
+                .errorMessage(message)
                 .build();
     }
 
