@@ -8,6 +8,7 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jwt.JWTClaimNames;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.Nested;
@@ -47,7 +48,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-import static com.nimbusds.jwt.JWTClaimNames.ISSUER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -68,7 +68,6 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_EVIDENCE_KEY;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_NAME_KEY;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.W3_BASE_CONTEXT;
-import static uk.gov.di.ipv.cri.kbv.api.service.fixtures.TestFixtures.KBV_QUESTION_QUALITY_MAPPING_SERIALIZED;
 
 @ExtendWith(MockitoExtension.class)
 class VerifiableCredentialServiceTest {
@@ -88,6 +87,8 @@ class VerifiableCredentialServiceTest {
     @Captor private ArgumentCaptor<Map<String, Object>> mapArgumentCaptor;
     private VerifiableCredentialService verifiableCredentialService;
     @Mock private SessionItem mockSessionItem;
+    private static final String ISSUER = "issuer";
+    private static final String KMS_SIGNING_KEY_ID = "kmsSigningKeyId";
 
     @Nested
     class KbvVerifiableCredentialJwt implements TestFixtures {
@@ -172,7 +173,7 @@ class VerifiableCredentialServiceTest {
         @CsvSource({"some-other-experian-status,an auth ref no,0", ",an auth ref no,0"})
         void shouldCreateValidSignedJWTWithVcZeroWhenKbvStatusNullOrAnyOtherValue(
                 String status, String authRefNo, int expectedVerificationScore)
-                throws JOSEException, JsonProcessingException {
+                throws JOSEException, JsonProcessingException, NoSuchAlgorithmException {
             SignedJWTFactory signedJWTFactory = mock(SignedJWTFactory.class);
             initMockVCClaimSetBuilder();
             initMockConfigurationService();
@@ -207,7 +208,7 @@ class VerifiableCredentialServiceTest {
 
             verify(mockVcClaimSetBuilder)
                     .verifiableCredentialEvidence(mapArrayArgumentCaptor.capture());
-            verify(signedJWTFactory).createSignedJwt(TEST_CLAIMS_SET);
+            verify(signedJWTFactory).createSignedJwt(TEST_CLAIMS_SET, ISSUER, KMS_SIGNING_KEY_ID);
             verify(spyEvidenceFactory).create(kbvItem, null);
             Map<String, Object> evidenceItems = mapArrayArgumentCaptor.getValue()[0];
             assertEquals(kbvItem.getAuthRefNo(), evidenceItems.get("txn"));
@@ -242,7 +243,6 @@ class VerifiableCredentialServiceTest {
             kbvItem.setStatus("Not Authenticated");
             kbvItem.setQuestionAnswerResultSummary(getKbvQuestionAnswerSummary(2, 0, 2));
             setKbvItemQuestionState(kbvItem);
-            String issuer = "test-issuer";
 
             var kbvQuestionResponseSummary =
                     Map.of(
@@ -267,7 +267,7 @@ class VerifiableCredentialServiceTest {
                         kbvQuestionResponseSummary)
             };
 
-            when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn(issuer);
+            when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn(ISSUER);
             doReturn(evidence).when(spyEvidenceFactory).create(kbvItem, null);
 
             var auditEventExtensions =
@@ -277,8 +277,8 @@ class VerifiableCredentialServiceTest {
             assertEquals(
                     auditEventExtensions,
                     Map.of(
+                            JWTClaimNames.ISSUER,
                             ISSUER,
-                            issuer,
                             VC_EVIDENCE_KEY,
                             evidence,
                             EXPERIAN_IIQ_RESPONSE,
@@ -327,6 +327,9 @@ class VerifiableCredentialServiceTest {
     private void initMockConfigurationService() {
         when(mockConfigurationService.getMaxJwtTtl()).thenReturn(6L);
         when(mockConfigurationService.getParameterValue("JwtTtlUnit")).thenReturn("MONTHS");
+        when(mockConfigurationService.getVerifiableCredentialKmsSigningKeyId())
+                .thenReturn(KMS_SIGNING_KEY_ID);
+        when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn(ISSUER);
     }
 
     private void makeEvidenceClaimsAssertions(

@@ -42,6 +42,7 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.VerifiableCredentialService;
 
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.util.Map;
 import java.util.Optional;
@@ -54,6 +55,9 @@ import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_NOT_F
 public class IssueCredentialHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     private static final Logger LOGGER = LogManager.getLogger();
+
+    public static final String NO_SUCH_ALGORITHM_ERROR =
+            "The algorithm name provided is incorrect or misspelled, should be ES256.";
     public static final String AUTHORIZATION_HEADER_KEY = "Authorization";
     public static final String KBV_CREDENTIAL_ISSUER = "kbv_credentials_issued";
     private static final String CREDENTIAL_NOT_ISSUED = "credential not issued";
@@ -155,6 +159,11 @@ public class IssueCredentialHandler
             eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
             LOGGER.info(VC_MESSAGE_FORMAT, CREDENTIAL_NOT_ISSUED, e.getMessage());
             return apiGatewayAccessDeniedError(SESSION_NOT_FOUND);
+        } catch (NoSuchAlgorithmException e) {
+            eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
+            LOGGER.info(VC_MESSAGE_FORMAT, CREDENTIAL_NOT_ISSUED, NO_SUCH_ALGORITHM_ERROR);
+            return ApiGatewayResponseGenerator.proxyJsonResponse(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR, NO_SUCH_ALGORITHM_ERROR);
         } catch (Exception e) {
             eventProbe.log(ERROR, e).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
             LOGGER.info(VC_MESSAGE_FORMAT, CREDENTIAL_NOT_ISSUED, e.getMessage());

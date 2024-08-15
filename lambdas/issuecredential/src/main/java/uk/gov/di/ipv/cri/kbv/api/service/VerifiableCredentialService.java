@@ -20,6 +20,7 @@ import uk.gov.di.ipv.cri.common.library.util.SignedJWTFactory;
 import uk.gov.di.ipv.cri.common.library.util.VerifiableCredentialClaimsSetBuilder;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -86,8 +87,10 @@ public class VerifiableCredentialService {
     @Tracing
     public SignedJWT generateSignedVerifiableCredentialJwt(
             SessionItem sessionItem, PersonIdentityDetailed personIdentity, KBVItem kbvItem)
-            throws JOSEException, JsonProcessingException {
+            throws JOSEException, JsonProcessingException, NoSuchAlgorithmException {
         long jwtTtl = this.configurationService.getMaxJwtTtl();
+        String issuer = configurationService.getVerifiableCredentialIssuer();
+        String kmsSigningKeyId = configurationService.getVerifiableCredentialKmsSigningKeyId();
         ChronoUnit jwtTtlUnit =
                 ChronoUnit.valueOf(this.configurationService.getParameterValue("JwtTtlUnit"));
         var claimsSet =
@@ -108,7 +111,7 @@ public class VerifiableCredentialService {
                                 evidenceFactory.create(kbvItem, sessionItem.getEvidenceRequest()))
                         .build();
 
-        return signedJwtFactory.createSignedJwt(claimsSet);
+        return signedJwtFactory.createSignedJwt(claimsSet, issuer, kmsSigningKeyId);
     }
 
     public Map<String, Object> getAuditEventExtensions(

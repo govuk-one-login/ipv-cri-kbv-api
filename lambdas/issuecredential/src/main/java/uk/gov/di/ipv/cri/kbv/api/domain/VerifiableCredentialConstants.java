@@ -5,6 +5,7 @@ public class VerifiableCredentialConstants {
     public static final String DI_CONTEXT =
             "https://vocab.account.gov.uk/contexts/identity-v1.jsonld";
     public static final String KBV_CREDENTIAL_TYPE = "IdentityCheckCredential";
+    public static final String METRIC_DIMENSION_KBV_VERIFICATION = "kbv_verification";
 
     public static final String VC_ADDRESS_KEY = "address";
     public static final String VC_BIRTHDATE_KEY = "birthDate";
