@@ -16,6 +16,7 @@ ext {
 		glassfish_version        : "3.0.3",
 		powertools_version       : "1.12.3",
 		cri_common_lib           : "3.0.4",
+		webcompere_version : "2.1.6",
 	]
 }
 
@@ -59,6 +60,7 @@ subprojects {
 		lettuce
 		ssm
 		cri_common_lib
+		webcompere
 	}
 
 	// The dynamodb enhanced package loads the apache-client as well as the spi-client, so
@@ -124,6 +126,9 @@ subprojects {
 				"com.nimbusds:nimbus-jose-jwt:${dependencyVersions.nimbusds_jwt_version}"
 
 		cri_common_lib "uk.gov.account:cri-common-lib:${dependencyVersions.cri_common_lib}"
+
+		webcompere "uk.org.webcompere:system-stubs-core:${dependencyVersions.webcompere_version}",
+				"uk.org.webcompere:system-stubs-jupiter:${dependencyVersions.webcompere_version}"
 	}
 
 	apply plugin: 'java'
