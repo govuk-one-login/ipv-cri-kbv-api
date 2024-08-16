@@ -15,7 +15,7 @@ public interface EvidenceCIState {
     @State("VC evidence checkDetails kbvQuality are 3")
     default void checkDetailsKbvQualityValue() {}
 
-    @State("VC evidence failedCheckDetails are multiple_choice, multiple_choice multiple_choice")
+    @State("VC evidence failedCheckDetails are multiple_choice, multiple_choice, multiple_choice")
     default void failCheckDetailsMultiChoice() {}
 
     @State("VC ci is V03")
