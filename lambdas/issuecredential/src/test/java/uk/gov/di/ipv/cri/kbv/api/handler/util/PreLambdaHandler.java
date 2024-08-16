@@ -5,12 +5,12 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWT;
-import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
 import com.sun.net.httpserver.Headers;
@@ -173,13 +173,24 @@ public class PreLambdaHandler implements HttpHandler {
         JWSHeader jwsHeader = (JWSHeader) jwt.getHeader();
         String headerString = objectMapper.writeValueAsString(jwsHeader);
         String claimSetString = objectMapper.writeValueAsString(jwt.getJWTClaimsSet());
-        SignedJWT signedJWT = new SignedJWT(jwsHeader, JWTClaimsSet.parse(claimSetString));
+        SignedJWT signedJWT = new SignedJWT(jwsHeader, jwt.getJWTClaimsSet());
         signedJWT.sign(getEcdsaSigner());
 
-        Base64URL header = Base64URL.encode(headerString);
-        Base64URL payload = Base64URL.encode(claimSetString);
+        Base64URL header = Base64URL.encode(minifyJson(headerString));
+        Base64URL payload = Base64URL.encode(minifyJson(claimSetString));
         Base64URL signature = signedJWT.getSignature();
 
-        return new SignedJWT(header, payload, signature).serialize();
+        return header + "." + payload + "." + signature;
+    }
+
+    @SuppressWarnings("java:S112")
+    private String minifyJson(String prettyJson) {
+        JsonNode jsonNode;
+        try {
+            jsonNode = getMapperWithCustomSerializers().readValue(prettyJson, JsonNode.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        return jsonNode.toString();
     }
 }
