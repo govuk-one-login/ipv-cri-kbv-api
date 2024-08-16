@@ -39,11 +39,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.METRIC_DIMENSION_KBV_VERIFICATION;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_PASS_EVIDENCE_SCORE;
 
 @ExtendWith(MockitoExtension.class)
 class EvidenceFactoryTest implements TestFixtures {
-    private static final String METRIC_DIMENSION_KBV_VERIFICATION = "kbv_verification";
     private EvidenceFactory evidenceFactory;
     private final ObjectMapper objectMapper =
             new ObjectMapper()

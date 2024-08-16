@@ -17,13 +17,18 @@ dependencies {
 	aspect configurations.powertools
 
 	testImplementation configurations.tests,
-			configurations.webcompere
+			configurations.webcompere,
+			configurations.pact_tests,
+			"org.slf4j:slf4j-log4j12:2.0.13" // For contract test debug
+
 
 	testRuntimeOnly configurations.test_runtime
 }
 
 test {
-	useJUnitPlatform()
+	useJUnitPlatform{
+		excludeTags 'Pact'
+	}
 	finalizedBy jacocoTestReport
 }
 

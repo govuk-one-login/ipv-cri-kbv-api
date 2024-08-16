@@ -1,0 +1,269 @@
+{
+  "consumer": {
+    "name": "IpvCoreBack"
+  },
+  "interactions": [{
+    "_id": "b5d04f24a25a8a054059b43a90f71f073f437a10",
+    "description": "Valid credential request for VC with CI",
+    "providerStates": [{
+      "name": "dummyApiKey is a valid api key"
+    }, {
+      "name": "dummyAccessToken is a valid access token"
+    }, {
+      "name": "test-subject is a valid subject"
+    }, {
+      "name": "dummyExperianKbvComponentId is a valid issuer"
+    }, {
+      "name": "VC givenName is Mary"
+    }, {
+      "name": "VC familyName is Watson"
+    }, {
+      "name": "VC birthDate is 1932-02-25"
+    }, {
+      "name": "VC evidence verificationScore is 0"
+    }, {
+      "name": "VC evidence txn is dummyTxn"
+    }, {
+      "name": "VC address uprn is 10022812929"
+    }, {
+      "name": "VC address organisationName is FINCH GROUP"
+    }, {
+      "name": "VC address subBuildingName is UNIT 2B"
+    }, {
+      "name": "VC address buildingNumber is 16"
+    }, {
+      "name": "VC address buildingName is COY POND BUSINESS PARK"
+    }, {
+      "name": "VC address dependentStreetName is KINGS PARK"
+    }, {
+      "name": "VC address streetName is BIG STREET"
+    }, {
+      "name": "VC address doubleDependentAddressLocality is SOME DISTRICT"
+    }, {
+      "name": "VC address dependentAddressLocality is LONG EATON"
+    }, {
+      "name": "VC address addressLocality is GREAT MISSENDEN"
+    }, {
+      "name": "VC address postalCode is HP16 0AL"
+    }, {
+      "name": "VC address addressCountry is GB"
+    }, {
+      "name": "VC evidence checkDetails are multiple_choice"
+    }, {
+      "name": "VC evidence checkDetails kbvQuality are 3"
+    }, {
+      "name": "VC evidence failedCheckDetails are multiple_choice, multiple_choice multiple_choice"
+    }, {
+      "name": "VC ci is V03"
+    }],
+    "request": {
+      "headers": {
+        "Authorization": "Bearer dummyAccessToken",
+        "x-api-key": "dummyApiKey"
+      },
+      "method": "POST",
+      "path": "/credential/issue"
+    },
+    "response": {
+      "body": "ZXlKMGVYQWlPaUpLVjFRaUxDSmhiR2NpT2lKRlV6STFOaUlzSW10cFpDSTZJbVJwWkRwM1pXSTZaSFZ0YlhsRmVIQmxjbWxoYmt0aWRrTnZiWEJ2Ym1WdWRFbGtPalV4T0Rjek56Y3lORFZrWm1FM05qaGpPVEU0T0RSa1ltRTVaV1ZoTjJVM1pHSmlaREZqWldWak1XUmtZalJpTVRSaU5qVTRZekJqTkRKaU1EUTBNeklpZlEuZXlKcGMzTWlPaUprZFcxdGVVVjRjR1Z5YVdGdVMySjJRMjl0Y0c5dVpXNTBTV1FpTENKemRXSWlPaUowWlhOMExYTjFZbXBsWTNRaUxDSnVZbVlpT2pRd056QTVNRGc0TURBc0ltVjRjQ0k2TkRBM01Ea3dPVFF3TUN3aWRtTWlPbnNpUUdOdmJuUmxlSFFpT2xzaWFIUjBjSE02THk5M2QzY3Vkek11YjNKbkx6SXdNVGd2WTNKbFpHVnVkR2xoYkhNdmRqRWlMQ0pvZEhSd2N6b3ZMM1p2WTJGaUxtRmpZMjkxYm5RdVoyOTJMblZyTDJOdmJuUmxlSFJ6TDJsa1pXNTBhWFI1TFhZeExtcHpiMjVzWkNKZExDSjBlWEJsSWpwYklsWmxjbWxtYVdGaWJHVkRjbVZrWlc1MGFXRnNJaXdpU1dSbGJuUnBkSGxEYUdWamEwTnlaV1JsYm5ScFlXd2lYU3dpUUdOdmJuUmxlSFFpT2xzaWFIUjBjSE02THk5M2QzY3Vkek11YjNKbkx6SXdNVGd2WTNKbFpHVnVkR2xoYkhNdmRqRWlMQ0pvZEhSd2N6b3ZMM1p2WTJGaUxtRmpZMjkxYm5RdVoyOTJMblZyTDJOdmJuUmxlSFJ6TDJsa1pXNTBhWFI1TFhZeExtcHpiMjVzWkNKZExDSmpjbVZrWlc1MGFXRnNVM1ZpYW1WamRDSTZleUp1WVcxbElqcGJleUp1WVcxbFVHRnlkSE1pT2x0N0luUjVjR1VpT2lKSGFYWmxiazVoYldVaUxDSjJZV3gxWlNJNklrMWhjbmtpZlN4N0luUjVjR1VpT2lKR1lXMXBiSGxPWVcxbElpd2lkbUZzZFdVaU9pSlhZWFJ6YjI0aWZWMTlYU3dpWVdSa2NtVnpjeUk2VzNzaVlXUmtjbVZ6YzBOdmRXNTBjbmtpT2lKSFFpSXNJblZ3Y200aU9qRXdNREl5T0RFeU9USTVMQ0ppZFdsc1pHbHVaMDVoYldVaU9pSlZUa2xVSURKQ0lpd2liM0puWVc1cGMyRjBhVzl1VG1GdFpTSTZJa1pKVGtOSUlFZFNUMVZRSWl3aWMzUnlaV1YwVG1GdFpTSTZJa0pKUnlCVFZGSkZSVlFpTENKa1pYQmxibVJsYm5SVGRISmxaWFJPWVcxbElqb2lTMGxPUjFNZ1VFRlNTeUlzSW5CdmMzUmhiRU52WkdVaU9pSklVREUySURCQlRDSXNJbUoxYVd4a2FXNW5UblZ0WW1WeUlqb2lNVFlpTENKa1pYQmxibVJsYm5SQlpHUnlaWE56VEc5allXeHBkSGtpT2lKTVQwNUhJRVZCVkU5T0lpd2lZV1JrY21WemMweHZZMkZzYVhSNUlqb2lSMUpGUVZRZ1RVbFRVMFZPUkVWT0lpd2laRzkxWW14bFJHVndaVzVrWlc1MFFXUmtjbVZ6YzB4dlkyRnNhWFI1SWpvaVUwOU5SU0JFU1ZOVVVrbERWQ0o5WFN3aVltbHlkR2hFWVhSbElqcGJleUoyWVd4MVpTSTZJakU1TXpJdE1ESXRNalVpZlYxOUxDSmxkbWxrWlc1alpTSTZXM3NpZEhodUlqb2laSFZ0YlhsVWVHNGlMQ0oyWlhKcFptbGpZWFJwYjI1VFkyOXlaU0k2TUN3aVkya2lPbHNpVmpBeklsMHNJbU5vWldOclJHVjBZV2xzY3lJNlczc2lZMmhsWTJ0TlpYUm9iMlFpT2lKclluWWlMQ0pyWW5aU1pYTndiMjV6WlUxdlpHVWlPaUp0ZFd4MGFYQnNaVjlqYUc5cFkyVWlMQ0pyWW5aUmRXRnNhWFI1SWpvemZWMHNJbVpoYVd4bFpFTm9aV05yUkdWMFlXbHNjeUk2VzNzaVkyaGxZMnROWlhSb2IyUWlPaUpyWW5ZaUxDSnJZblpTWlhOd2IyNXpaVTF2WkdVaU9pSnRkV3gwYVhCc1pWOWphRzlwWTJVaWZTeDdJbU5vWldOclRXVjBhRzlrSWpvaWEySjJJaXdpYTJKMlVtVnpjRzl1YzJWTmIyUmxJam9pYlhWc2RHbHdiR1ZmWTJodmFXTmxJbjBzZXlKamFHVmphMDFsZEdodlpDSTZJbXRpZGlJc0ltdGlkbEpsYzNCdmJuTmxUVzlrWlNJNkltMTFiSFJwY0d4bFgyTm9iMmxqWlNKOVhTd2lkSGx3WlNJNklrbGtaVzUwYVhSNVEyaGxZMnNpZlYxOUxDSnFkR2tpT2lKa2RXMXRlVXAwYVNKOS5ZcnBGMjJ0NW90OGJ3SnpUWXNIRzFPUGNseEh6VkpCc3BURDMtS0pmQk16SDlKS1lUbnh6YngzVEZDdjRNUjVHZDgyVUQ5ZHROZ0R1T0E4TjR6NmEtQQ==",
+      "headers": {
+        "Content-Type": "application/jwt"
+      },
+      "matchingRules": {
+        "body": {
+          "$": {
+            "combine": "AND",
+            "matchers": [{
+              "match": "regex",
+              "regex": "^eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6ZHVtbXlFeHBlcmlhbktidkNvbXBvbmVudElkOjUxODczNzcyNDVkZmE3NjhjOTE4ODRkYmE5ZWVhN2U3ZGJiZDFjZWVjMWRkYjRiMTRiNjU4YzBjNDJiMDQ0MzIifQ\\.eyJpc3MiOiJkdW1teUV4cGVyaWFuS2J2Q29tcG9uZW50SWQiLCJzdWIiOiJ0ZXN0LXN1YmplY3QiLCJuYmYiOjQwNzA5MDg4MDAsImV4cCI6NDA3MDkwOTQwMCwidmMiOnsiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3ZvY2FiLmFjY291bnQuZ292LnVrL2NvbnRleHRzL2lkZW50aXR5LXYxLmpzb25sZCJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiSWRlbnRpdHlDaGVja0NyZWRlbnRpYWwiXSwiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3ZvY2FiLmFjY291bnQuZ292LnVrL2NvbnRleHRzL2lkZW50aXR5LXYxLmpzb25sZCJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJuYW1lIjpbeyJuYW1lUGFydHMiOlt7InR5cGUiOiJHaXZlbk5hbWUiLCJ2YWx1ZSI6Ik1hcnkifSx7InR5cGUiOiJGYW1pbHlOYW1lIiwidmFsdWUiOiJXYXRzb24ifV19XSwiYWRkcmVzcyI6W3siYWRkcmVzc0NvdW50cnkiOiJHQiIsInVwcm4iOjEwMDIyODEyOTI5LCJidWlsZGluZ05hbWUiOiJVTklUIDJCIiwib3JnYW5pc2F0aW9uTmFtZSI6IkZJTkNIIEdST1VQIiwic3RyZWV0TmFtZSI6IkJJRyBTVFJFRVQiLCJkZXBlbmRlbnRTdHJlZXROYW1lIjoiS0lOR1MgUEFSSyIsInBvc3RhbENvZGUiOiJIUDE2IDBBTCIsImJ1aWxkaW5nTnVtYmVyIjoiMTYiLCJkZXBlbmRlbnRBZGRyZXNzTG9jYWxpdHkiOiJMT05HIEVBVE9OIiwiYWRkcmVzc0xvY2FsaXR5IjoiR1JFQVQgTUlTU0VOREVOIiwiZG91YmxlRGVwZW5kZW50QWRkcmVzc0xvY2FsaXR5IjoiU09NRSBESVNUUklDVCJ9XSwiYmlydGhEYXRlIjpbeyJ2YWx1ZSI6IjE5MzItMDItMjUifV19LCJldmlkZW5jZSI6W3sidHhuIjoiZHVtbXlUeG4iLCJ2ZXJpZmljYXRpb25TY29yZSI6MCwiY2kiOlsiVjAzIl0sImNoZWNrRGV0YWlscyI6W3siY2hlY2tNZXRob2QiOiJrYnYiLCJrYnZSZXNwb25zZU1vZGUiOiJtdWx0aXBsZV9jaG9pY2UiLCJrYnZRdWFsaXR5IjozfV0sImZhaWxlZENoZWNrRGV0YWlscyI6W3siY2hlY2tNZXRob2QiOiJrYnYiLCJrYnZSZXNwb25zZU1vZGUiOiJtdWx0aXBsZV9jaG9pY2UifSx7ImNoZWNrTWV0aG9kIjoia2J2Iiwia2J2UmVzcG9uc2VNb2RlIjoibXVsdGlwbGVfY2hvaWNlIn0seyJjaGVja01ldGhvZCI6ImtidiIsImtidlJlc3BvbnNlTW9kZSI6Im11bHRpcGxlX2Nob2ljZSJ9XSwidHlwZSI6IklkZW50aXR5Q2hlY2sifV19LCJqdGkiOiJkdW1teUp0aSJ9\\..*"
+            }]
+          }
+        }
+      },
+      "status": 200
+    }
+  }, {
+    "_id": "d9c39a95f9bc04eac265bfc7c3c1d444c2b5b435",
+    "description": "Valid credential request for VC with a Thin-file",
+    "providerStates": [{
+      "name": "dummyApiKey is a valid api key"
+    }, {
+      "name": "dummyAccessToken is a valid access token"
+    }, {
+      "name": "test-subject is a valid subject"
+    }, {
+      "name": "dummyExperianKbvComponentId is a valid issuer"
+    }, {
+      "name": "VC givenName is Mary"
+    }, {
+      "name": "VC familyName is Watson"
+    }, {
+      "name": "VC birthDate is 1932-02-25"
+    }, {
+      "name": "VC evidence verificationScore is 0"
+    }, {
+      "name": "VC evidence txn is dummyTxn"
+    }, {
+      "name": "VC address uprn is 10022812929"
+    }, {
+      "name": "VC address organisationName is FINCH GROUP"
+    }, {
+      "name": "VC address subBuildingName is UNIT 2B"
+    }, {
+      "name": "VC address buildingNumber is 16"
+    }, {
+      "name": "VC address buildingName is COY POND BUSINESS PARK"
+    }, {
+      "name": "VC address dependentStreetName is KINGS PARK"
+    }, {
+      "name": "VC address streetName is BIG STREET"
+    }, {
+      "name": "VC address doubleDependentAddressLocality is SOME DISTRICT"
+    }, {
+      "name": "VC address dependentAddressLocality is LONG EATON"
+    }, {
+      "name": "VC address addressLocality is GREAT MISSENDEN"
+    }, {
+      "name": "VC address postalCode is HP16 0AL"
+    }, {
+      "name": "VC address addressCountry is GB"
+    }],
+    "request": {
+      "headers": {
+        "Authorization": "Bearer dummyAccessToken",
+        "x-api-key": "dummyApiKey"
+      },
+      "method": "POST",
+      "path": "/credential/issue"
+    },
+    "response": {
+      "body": "ZXlKMGVYQWlPaUpLVjFRaUxDSmhiR2NpT2lKRlV6STFOaUlzSW10cFpDSTZJbVJwWkRwM1pXSTZaSFZ0YlhsRmVIQmxjbWxoYmt0aWRrTnZiWEJ2Ym1WdWRFbGtPalV4T0Rjek56Y3lORFZrWm1FM05qaGpPVEU0T0RSa1ltRTVaV1ZoTjJVM1pHSmlaREZqWldWak1XUmtZalJpTVRSaU5qVTRZekJqTkRKaU1EUTBNeklpZlEuZXlKcGMzTWlPaUprZFcxdGVVVjRjR1Z5YVdGdVMySjJRMjl0Y0c5dVpXNTBTV1FpTENKemRXSWlPaUowWlhOMExYTjFZbXBsWTNRaUxDSnVZbVlpT2pRd056QTVNRGc0TURBc0ltVjRjQ0k2TkRBM01Ea3dPVFF3TUN3aWRtTWlPbnNpUUdOdmJuUmxlSFFpT2xzaWFIUjBjSE02THk5M2QzY3Vkek11YjNKbkx6SXdNVGd2WTNKbFpHVnVkR2xoYkhNdmRqRWlMQ0pvZEhSd2N6b3ZMM1p2WTJGaUxtRmpZMjkxYm5RdVoyOTJMblZyTDJOdmJuUmxlSFJ6TDJsa1pXNTBhWFI1TFhZeExtcHpiMjVzWkNKZExDSjBlWEJsSWpwYklsWmxjbWxtYVdGaWJHVkRjbVZrWlc1MGFXRnNJaXdpU1dSbGJuUnBkSGxEYUdWamEwTnlaV1JsYm5ScFlXd2lYU3dpUUdOdmJuUmxlSFFpT2xzaWFIUjBjSE02THk5M2QzY3Vkek11YjNKbkx6SXdNVGd2WTNKbFpHVnVkR2xoYkhNdmRqRWlMQ0pvZEhSd2N6b3ZMM1p2WTJGaUxtRmpZMjkxYm5RdVoyOTJMblZyTDJOdmJuUmxlSFJ6TDJsa1pXNTBhWFI1TFhZeExtcHpiMjVzWkNKZExDSmpjbVZrWlc1MGFXRnNVM1ZpYW1WamRDSTZleUp1WVcxbElqcGJleUp1WVcxbFVHRnlkSE1pT2x0N0luUjVjR1VpT2lKSGFYWmxiazVoYldVaUxDSjJZV3gxWlNJNklrMWhjbmtpZlN4N0luUjVjR1VpT2lKR1lXMXBiSGxPWVcxbElpd2lkbUZzZFdVaU9pSlhZWFJ6YjI0aWZWMTlYU3dpWVdSa2NtVnpjeUk2VzNzaVlXUmtjbVZ6YzBOdmRXNTBjbmtpT2lKSFFpSXNJblZ3Y200aU9qRXdNREl5T0RFeU9USTVMQ0ppZFdsc1pHbHVaMDVoYldVaU9pSlZUa2xVSURKQ0lpd2liM0puWVc1cGMyRjBhVzl1VG1GdFpTSTZJa1pKVGtOSUlFZFNUMVZRSWl3aWMzUnlaV1YwVG1GdFpTSTZJa0pKUnlCVFZGSkZSVlFpTENKa1pYQmxibVJsYm5SVGRISmxaWFJPWVcxbElqb2lTMGxPUjFNZ1VFRlNTeUlzSW5CdmMzUmhiRU52WkdVaU9pSklVREUySURCQlRDSXNJbUoxYVd4a2FXNW5UblZ0WW1WeUlqb2lNVFlpTENKa1pYQmxibVJsYm5SQlpHUnlaWE56VEc5allXeHBkSGtpT2lKTVQwNUhJRVZCVkU5T0lpd2lZV1JrY21WemMweHZZMkZzYVhSNUlqb2lSMUpGUVZRZ1RVbFRVMFZPUkVWT0lpd2laRzkxWW14bFJHVndaVzVrWlc1MFFXUmtjbVZ6YzB4dlkyRnNhWFI1SWpvaVUwOU5SU0JFU1ZOVVVrbERWQ0o5WFN3aVltbHlkR2hFWVhSbElqcGJleUoyWVd4MVpTSTZJakU1TXpJdE1ESXRNalVpZlYxOUxDSmxkbWxrWlc1alpTSTZXM3NpZEhodUlqb2laSFZ0YlhsVWVHNGlMQ0oyWlhKcFptbGpZWFJwYjI1VFkyOXlaU0k2TUN3aWRIbHdaU0k2SWtsa1pXNTBhWFI1UTJobFkyc2lmVjE5TENKcWRHa2lPaUprZFcxdGVVcDBhU0o5LjA3bTlZQ1dkOXBQcVJJeDV5b1N4QzUtblhQdjF4VjhFS1NfdFhzV0tZdkl1a1RvLXNWWWdrQkFwbDh4Z19lWXRYQVlBSUF1dDRVbUExRU8zSjJSWUxR",
+      "headers": {
+        "Content-Type": "application/jwt"
+      },
+      "matchingRules": {
+        "body": {
+          "$": {
+            "combine": "AND",
+            "matchers": [{
+              "match": "regex",
+              "regex": "^eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6ZHVtbXlFeHBlcmlhbktidkNvbXBvbmVudElkOjUxODczNzcyNDVkZmE3NjhjOTE4ODRkYmE5ZWVhN2U3ZGJiZDFjZWVjMWRkYjRiMTRiNjU4YzBjNDJiMDQ0MzIifQ\\.eyJpc3MiOiJkdW1teUV4cGVyaWFuS2J2Q29tcG9uZW50SWQiLCJzdWIiOiJ0ZXN0LXN1YmplY3QiLCJuYmYiOjQwNzA5MDg4MDAsImV4cCI6NDA3MDkwOTQwMCwidmMiOnsiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3ZvY2FiLmFjY291bnQuZ292LnVrL2NvbnRleHRzL2lkZW50aXR5LXYxLmpzb25sZCJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiSWRlbnRpdHlDaGVja0NyZWRlbnRpYWwiXSwiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3ZvY2FiLmFjY291bnQuZ292LnVrL2NvbnRleHRzL2lkZW50aXR5LXYxLmpzb25sZCJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJuYW1lIjpbeyJuYW1lUGFydHMiOlt7InR5cGUiOiJHaXZlbk5hbWUiLCJ2YWx1ZSI6Ik1hcnkifSx7InR5cGUiOiJGYW1pbHlOYW1lIiwidmFsdWUiOiJXYXRzb24ifV19XSwiYWRkcmVzcyI6W3siYWRkcmVzc0NvdW50cnkiOiJHQiIsInVwcm4iOjEwMDIyODEyOTI5LCJidWlsZGluZ05hbWUiOiJVTklUIDJCIiwib3JnYW5pc2F0aW9uTmFtZSI6IkZJTkNIIEdST1VQIiwic3RyZWV0TmFtZSI6IkJJRyBTVFJFRVQiLCJkZXBlbmRlbnRTdHJlZXROYW1lIjoiS0lOR1MgUEFSSyIsInBvc3RhbENvZGUiOiJIUDE2IDBBTCIsImJ1aWxkaW5nTnVtYmVyIjoiMTYiLCJkZXBlbmRlbnRBZGRyZXNzTG9jYWxpdHkiOiJMT05HIEVBVE9OIiwiYWRkcmVzc0xvY2FsaXR5IjoiR1JFQVQgTUlTU0VOREVOIiwiZG91YmxlRGVwZW5kZW50QWRkcmVzc0xvY2FsaXR5IjoiU09NRSBESVNUUklDVCJ9XSwiYmlydGhEYXRlIjpbeyJ2YWx1ZSI6IjE5MzItMDItMjUifV19LCJldmlkZW5jZSI6W3sidHhuIjoiZHVtbXlUeG4iLCJ2ZXJpZmljYXRpb25TY29yZSI6MCwidHlwZSI6IklkZW50aXR5Q2hlY2sifV19LCJqdGkiOiJkdW1teUp0aSJ9\\..*"
+            }]
+          }
+        }
+      },
+      "status": 200
+    }
+  }, {
+    "_id": "bdeec563e6027ad0a4a1a02275db9b2a57a93074",
+    "description": "Valid credential request for VC",
+    "providerStates": [{
+      "name": "dummyApiKey is a valid api key"
+    }, {
+      "name": "dummyAccessToken is a valid access token"
+    }, {
+      "name": "test-subject is a valid subject"
+    }, {
+      "name": "dummyExperianKbvComponentId is a valid issuer"
+    }, {
+      "name": "VC givenName is Mary"
+    }, {
+      "name": "VC familyName is Watson"
+    }, {
+      "name": "VC birthDate is 1932-02-25"
+    }, {
+      "name": "VC evidence verificationScore is 2"
+    }, {
+      "name": "VC evidence txn is dummyTxn"
+    }, {
+      "name": "VC address uprn is 10022812929"
+    }, {
+      "name": "VC address organisationName is FINCH GROUP"
+    }, {
+      "name": "VC address subBuildingName is UNIT 2B"
+    }, {
+      "name": "VC address buildingNumber is 16"
+    }, {
+      "name": "VC address buildingName is COY POND BUSINESS PARK"
+    }, {
+      "name": "VC address dependentStreetName is KINGS PARK"
+    }, {
+      "name": "VC address streetName is BIG STREET"
+    }, {
+      "name": "VC address doubleDependentAddressLocality is SOME DISTRICT"
+    }, {
+      "name": "VC address dependentAddressLocality is LONG EATON"
+    }, {
+      "name": "VC address addressLocality is GREAT MISSENDEN"
+    }, {
+      "name": "VC address postalCode is HP16 0AL"
+    }, {
+      "name": "VC address addressCountry is GB"
+    }, {
+      "name": "VC evidence checkDetails are multiple_choice, multiple_choice, multiple_choice"
+    }, {
+      "name": "VC evidence checkDetails kbvQuality are 2, 2 and 1"
+    }],
+    "request": {
+      "headers": {
+        "Authorization": "Bearer dummyAccessToken",
+        "x-api-key": "dummyApiKey"
+      },
+      "method": "POST",
+      "path": "/credential/issue"
+    },
+    "response": {
+      "body": "ZXlKMGVYQWlPaUpLVjFRaUxDSmhiR2NpT2lKRlV6STFOaUlzSW10cFpDSTZJbVJwWkRwM1pXSTZaSFZ0YlhsRmVIQmxjbWxoYmt0aWRrTnZiWEJ2Ym1WdWRFbGtPalV4T0Rjek56Y3lORFZrWm1FM05qaGpPVEU0T0RSa1ltRTVaV1ZoTjJVM1pHSmlaREZqWldWak1XUmtZalJpTVRSaU5qVTRZekJqTkRKaU1EUTBNeklpZlEuZXlKcGMzTWlPaUprZFcxdGVVVjRjR1Z5YVdGdVMySjJRMjl0Y0c5dVpXNTBTV1FpTENKemRXSWlPaUowWlhOMExYTjFZbXBsWTNRaUxDSnVZbVlpT2pRd056QTVNRGc0TURBc0ltVjRjQ0k2TkRBM01Ea3dPVFF3TUN3aWRtTWlPbnNpUUdOdmJuUmxlSFFpT2xzaWFIUjBjSE02THk5M2QzY3Vkek11YjNKbkx6SXdNVGd2WTNKbFpHVnVkR2xoYkhNdmRqRWlMQ0pvZEhSd2N6b3ZMM1p2WTJGaUxtRmpZMjkxYm5RdVoyOTJMblZyTDJOdmJuUmxlSFJ6TDJsa1pXNTBhWFI1TFhZeExtcHpiMjVzWkNKZExDSjBlWEJsSWpwYklsWmxjbWxtYVdGaWJHVkRjbVZrWlc1MGFXRnNJaXdpU1dSbGJuUnBkSGxEYUdWamEwTnlaV1JsYm5ScFlXd2lYU3dpUUdOdmJuUmxlSFFpT2xzaWFIUjBjSE02THk5M2QzY3Vkek11YjNKbkx6SXdNVGd2WTNKbFpHVnVkR2xoYkhNdmRqRWlMQ0pvZEhSd2N6b3ZMM1p2WTJGaUxtRmpZMjkxYm5RdVoyOTJMblZyTDJOdmJuUmxlSFJ6TDJsa1pXNTBhWFI1TFhZeExtcHpiMjVzWkNKZExDSmpjbVZrWlc1MGFXRnNVM1ZpYW1WamRDSTZleUp1WVcxbElqcGJleUp1WVcxbFVHRnlkSE1pT2x0N0luUjVjR1VpT2lKSGFYWmxiazVoYldVaUxDSjJZV3gxWlNJNklrMWhjbmtpZlN4N0luUjVjR1VpT2lKR1lXMXBiSGxPWVcxbElpd2lkbUZzZFdVaU9pSlhZWFJ6YjI0aWZWMTlYU3dpWVdSa2NtVnpjeUk2VzNzaVlXUmtjbVZ6YzBOdmRXNTBjbmtpT2lKSFFpSXNJblZ3Y200aU9qRXdNREl5T0RFeU9USTVMQ0ppZFdsc1pHbHVaMDVoYldVaU9pSlZUa2xVSURKQ0lpd2liM0puWVc1cGMyRjBhVzl1VG1GdFpTSTZJa1pKVGtOSUlFZFNUMVZRSWl3aWMzUnlaV1YwVG1GdFpTSTZJa0pKUnlCVFZGSkZSVlFpTENKa1pYQmxibVJsYm5SVGRISmxaWFJPWVcxbElqb2lTMGxPUjFNZ1VFRlNTeUlzSW5CdmMzUmhiRU52WkdVaU9pSklVREUySURCQlRDSXNJbUoxYVd4a2FXNW5UblZ0WW1WeUlqb2lNVFlpTENKa1pYQmxibVJsYm5SQlpHUnlaWE56VEc5allXeHBkSGtpT2lKTVQwNUhJRVZCVkU5T0lpd2lZV1JrY21WemMweHZZMkZzYVhSNUlqb2lSMUpGUVZRZ1RVbFRVMFZPUkVWT0lpd2laRzkxWW14bFJHVndaVzVrWlc1MFFXUmtjbVZ6YzB4dlkyRnNhWFI1SWpvaVUwOU5SU0JFU1ZOVVVrbERWQ0o5WFN3aVltbHlkR2hFWVhSbElqcGJleUoyWVd4MVpTSTZJakU1TXpJdE1ESXRNalVpZlYxOUxDSmxkbWxrWlc1alpTSTZXM3NpZEhodUlqb2laSFZ0YlhsVWVHNGlMQ0oyWlhKcFptbGpZWFJwYjI1VFkyOXlaU0k2TWl3aVkyaGxZMnRFWlhSaGFXeHpJanBiZXlKamFHVmphMDFsZEdodlpDSTZJbXRpZGlJc0ltdGlkbEpsYzNCdmJuTmxUVzlrWlNJNkltMTFiSFJwY0d4bFgyTm9iMmxqWlNJc0ltdGlkbEYxWVd4cGRIa2lPako5TEhzaVkyaGxZMnROWlhSb2IyUWlPaUpyWW5ZaUxDSnJZblpTWlhOd2IyNXpaVTF2WkdVaU9pSnRkV3gwYVhCc1pWOWphRzlwWTJVaUxDSnJZblpSZFdGc2FYUjVJam95ZlN4N0ltTm9aV05yVFdWMGFHOWtJam9pYTJKMklpd2lhMkoyVW1WemNHOXVjMlZOYjJSbElqb2liWFZzZEdsd2JHVmZZMmh2YVdObElpd2lhMkoyVVhWaGJHbDBlU0k2TVgxZExDSjBlWEJsSWpvaVNXUmxiblJwZEhsRGFHVmpheUo5WFgwc0ltcDBhU0k2SW1SMWJXMTVTblJwSW4wLjk1Sy1fbTRSUVl5TFhQOEZqUHk3eU5BSUxYRjNHT2tqY21hMHpZVHVmeUVvQ21RN2tGMFBDWDRGVldGNGNEQWNwenZfcWg1aFpiY05kZGp1R0MwTGZn",
+      "headers": {
+        "Content-Type": "application/jwt"
+      },
+      "matchingRules": {
+        "body": {
+          "$": {
+            "combine": "AND",
+            "matchers": [{
+              "match": "regex",
+              "regex": "^eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6ZHVtbXlFeHBlcmlhbktidkNvbXBvbmVudElkOjUxODczNzcyNDVkZmE3NjhjOTE4ODRkYmE5ZWVhN2U3ZGJiZDFjZWVjMWRkYjRiMTRiNjU4YzBjNDJiMDQ0MzIifQ\\.eyJpc3MiOiJkdW1teUV4cGVyaWFuS2J2Q29tcG9uZW50SWQiLCJzdWIiOiJ0ZXN0LXN1YmplY3QiLCJuYmYiOjQwNzA5MDg4MDAsImV4cCI6NDA3MDkwOTQwMCwidmMiOnsiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3ZvY2FiLmFjY291bnQuZ292LnVrL2NvbnRleHRzL2lkZW50aXR5LXYxLmpzb25sZCJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiSWRlbnRpdHlDaGVja0NyZWRlbnRpYWwiXSwiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3ZvY2FiLmFjY291bnQuZ292LnVrL2NvbnRleHRzL2lkZW50aXR5LXYxLmpzb25sZCJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJuYW1lIjpbeyJuYW1lUGFydHMiOlt7InR5cGUiOiJHaXZlbk5hbWUiLCJ2YWx1ZSI6Ik1hcnkifSx7InR5cGUiOiJGYW1pbHlOYW1lIiwidmFsdWUiOiJXYXRzb24ifV19XSwiYWRkcmVzcyI6W3siYWRkcmVzc0NvdW50cnkiOiJHQiIsInVwcm4iOjEwMDIyODEyOTI5LCJidWlsZGluZ05hbWUiOiJVTklUIDJCIiwib3JnYW5pc2F0aW9uTmFtZSI6IkZJTkNIIEdST1VQIiwic3RyZWV0TmFtZSI6IkJJRyBTVFJFRVQiLCJkZXBlbmRlbnRTdHJlZXROYW1lIjoiS0lOR1MgUEFSSyIsInBvc3RhbENvZGUiOiJIUDE2IDBBTCIsImJ1aWxkaW5nTnVtYmVyIjoiMTYiLCJkZXBlbmRlbnRBZGRyZXNzTG9jYWxpdHkiOiJMT05HIEVBVE9OIiwiYWRkcmVzc0xvY2FsaXR5IjoiR1JFQVQgTUlTU0VOREVOIiwiZG91YmxlRGVwZW5kZW50QWRkcmVzc0xvY2FsaXR5IjoiU09NRSBESVNUUklDVCJ9XSwiYmlydGhEYXRlIjpbeyJ2YWx1ZSI6IjE5MzItMDItMjUifV19LCJldmlkZW5jZSI6W3sidHhuIjoiZHVtbXlUeG4iLCJ2ZXJpZmljYXRpb25TY29yZSI6MiwiY2hlY2tEZXRhaWxzIjpbeyJjaGVja01ldGhvZCI6ImtidiIsImtidlJlc3BvbnNlTW9kZSI6Im11bHRpcGxlX2Nob2ljZSIsImtidlF1YWxpdHkiOjJ9LHsiY2hlY2tNZXRob2QiOiJrYnYiLCJrYnZSZXNwb25zZU1vZGUiOiJtdWx0aXBsZV9jaG9pY2UiLCJrYnZRdWFsaXR5IjoyfSx7ImNoZWNrTWV0aG9kIjoia2J2Iiwia2J2UmVzcG9uc2VNb2RlIjoibXVsdGlwbGVfY2hvaWNlIiwia2J2UXVhbGl0eSI6MX1dLCJ0eXBlIjoiSWRlbnRpdHlDaGVjayJ9XX0sImp0aSI6ImR1bW15SnRpIn0\\..*"
+            }]
+          }
+        }
+      },
+      "status": 200
+    }
+  }, {
+    "_id": "656a0292d1bed59491e24c2a1244a42fb806b166",
+    "description": "Invalid credential request due to invalid access token",
+    "providerStates": [{
+      "name": "dummyApiKey is a valid api key"
+    }, {
+      "name": "dummyInvalidAccessToken is an invalid access token"
+    }, {
+      "name": "test-subject is a valid subject"
+    }, {
+      "name": "dummyExperianKbvComponentId is a valid issuer"
+    }],
+    "request": {
+      "headers": {
+        "Authorization": "Bearer dummyInvalidAccessToken",
+        "x-api-key": "dummyApiKey"
+      },
+      "method": "POST",
+      "path": "/credential/issue"
+    },
+    "response": {
+      "status": 403
+    }
+  }],
+  "metadata": {
+    "pact-jvm": {
+      "version": "4.6.5"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "ExperianKbvCriVcProvider"
+  },
+  "createdAt": "2024-08-05T10:41:04+00:00"
+}
