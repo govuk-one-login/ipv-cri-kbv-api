@@ -168,11 +168,12 @@ public class PreLambdaHandler implements HttpHandler {
             throws ParseException, JOSEException, InvalidKeySpecException, NoSuchAlgorithmException,
                     JsonProcessingException {
         JWT jwt = JWTParser.parse(body);
+        JWSHeader jwsHeader = (JWSHeader) jwt.getHeader();
 
         ObjectMapper objectMapper = getMapperWithCustomSerializers();
-        JWSHeader jwsHeader = (JWSHeader) jwt.getHeader();
         String headerString = objectMapper.writeValueAsString(jwsHeader);
         String claimSetString = objectMapper.writeValueAsString(jwt.getJWTClaimsSet());
+
         SignedJWT signedJWT = new SignedJWT(jwsHeader, jwt.getJWTClaimsSet());
         signedJWT.sign(getEcdsaSigner());
 
@@ -180,17 +181,10 @@ public class PreLambdaHandler implements HttpHandler {
         Base64URL payload = Base64URL.encode(minifyJson(claimSetString));
         Base64URL signature = signedJWT.getSignature();
 
-        return header + "." + payload + "." + signature;
+        return new SignedJWT(header, payload, signature).serialize();
     }
 
-    @SuppressWarnings("java:S112")
-    private String minifyJson(String prettyJson) {
-        JsonNode jsonNode;
-        try {
-            jsonNode = getMapperWithCustomSerializers().readValue(prettyJson, JsonNode.class);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-        return jsonNode.toString();
+    private String minifyJson(String prettyJson) throws JsonProcessingException {
+        return getMapperWithCustomSerializers().readValue(prettyJson, JsonNode.class).toString();
     }
 }

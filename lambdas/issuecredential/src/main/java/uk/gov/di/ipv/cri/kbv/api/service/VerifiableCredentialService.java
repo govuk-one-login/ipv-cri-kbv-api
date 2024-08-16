@@ -2,6 +2,7 @@ package uk.gov.di.ipv.cri.kbv.api.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.JOSEException;
@@ -29,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 
 import static com.nimbusds.jwt.JWTClaimNames.ISSUER;
-import static java.util.stream.Collectors.toMap;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createAuditEventExtensions;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.DI_CONTEXT;
@@ -88,7 +88,7 @@ public class VerifiableCredentialService {
     @Tracing
     public SignedJWT generateSignedVerifiableCredentialJwt(
             SessionItem sessionItem, PersonIdentityDetailed personIdentity, KBVItem kbvItem)
-            throws JOSEException, JsonProcessingException, NoSuchAlgorithmException {
+            throws JOSEException, NoSuchAlgorithmException, JsonProcessingException {
         long jwtTtl = this.configurationService.getMaxJwtTtl();
         String issuer = configurationService.getVerifiableCredentialIssuer();
         String kmsSigningKeyId = configurationService.getVerifiableCredentialKmsSigningKeyId();
@@ -129,23 +129,15 @@ public class VerifiableCredentialService {
 
     @SuppressWarnings("unchecked")
     private Object[] convertAddresses(List<Address> addresses) {
-        // Skip superfluous address type from the map to match RFC
-        return addresses.stream()
-                .map(
-                        address ->
-                                convertAddressToMap(address).entrySet().stream()
-                                        .filter((entry -> !entry.getKey().equals("addressType")))
-                                        .collect(
-                                                toMap(
-                                                        Map.Entry::getKey,
-                                                        Map.Entry::getValue,
-                                                        (oldValue, newValue) -> oldValue,
-                                                        LinkedHashMap::new)))
-                .toArray();
+        return addresses.stream().map(this::convertAddressToMapAndFilter).toArray();
     }
 
-    private Map<String, Object> convertAddressToMap(Address address) {
-        return objectMapper.convertValue(address, Map.class);
+    private Map<String, Object> convertAddressToMapAndFilter(Address address) {
+        // Skip superfluous address type from the map to match RFC
+        ObjectNode addressNode = objectMapper.convertValue(address, ObjectNode.class);
+        addressNode.remove("addressType");
+
+        return objectMapper.convertValue(addressNode, LinkedHashMap.class);
     }
 
     private Object[] convertBirthDates(List<BirthDate> birthDates) {

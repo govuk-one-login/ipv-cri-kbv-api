@@ -5,7 +5,9 @@ import au.com.dius.pact.provider.junit5.PactVerificationContext;
 import au.com.dius.pact.provider.junit5.PactVerificationInvocationContextProvider;
 import au.com.dius.pact.provider.junitsupport.Provider;
 import au.com.dius.pact.provider.junitsupport.State;
-import au.com.dius.pact.provider.junitsupport.loader.PactFolder;
+import au.com.dius.pact.provider.junitsupport.loader.PactBroker;
+import au.com.dius.pact.provider.junitsupport.loader.PactBrokerAuth;
+import au.com.dius.pact.provider.junitsupport.loader.SelectorBuilder;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.AccessTokenType;
@@ -44,7 +46,12 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler.KBV_CREDE
 
 @Tag("Pact")
 @Provider("ExperianKbvCriVcProvider")
-@PactFolder("pacts")
+@PactBroker(
+        url = "https://${PACT_BROKER_HOST}",
+        authentication =
+                @PactBrokerAuth(
+                        username = "${PACT_BROKER_USERNAME}",
+                        password = "${PACT_BROKER_PASSWORD}"))
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(SystemStubsExtension.class)
@@ -55,6 +62,14 @@ class InValidIssueHandler403Test implements DummyStates {
     private static final int PORT = 5020;
     private static final boolean ENABLE_FULL_DEBUG = true;
     @InjectMocks IssueCredentialHandler handler;
+
+    @au.com.dius.pact.provider.junitsupport.loader.PactBrokerConsumerVersionSelectors
+    public static SelectorBuilder consumerVersionSelectors() {
+        return new SelectorBuilder()
+                .tag("ExperianKbvCriVcProvider")
+                .branch("main", "IpvCoreBack")
+                .deployedOrReleased();
+    }
 
     @BeforeAll
     static void setupServer() {
