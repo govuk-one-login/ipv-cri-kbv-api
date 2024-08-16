@@ -24,6 +24,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -134,7 +135,12 @@ public class VerifiableCredentialService {
                         address ->
                                 convertAddressToMap(address).entrySet().stream()
                                         .filter((entry -> !entry.getKey().equals("addressType")))
-                                        .collect(toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                                        .collect(
+                                                toMap(
+                                                        Map.Entry::getKey,
+                                                        Map.Entry::getValue,
+                                                        (oldValue, newValue) -> oldValue,
+                                                        LinkedHashMap::new)))
                 .toArray();
     }
 

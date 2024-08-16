@@ -9,6 +9,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.persistence.item.CanonicalAddress;
 import uk.gov.di.ipv.cri.kbv.api.objectmapper.mixin.AddressMixIn;
 
@@ -27,9 +28,9 @@ public class CustomObjectMapper {
                         .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
 
         objectMapper.addMixIn(CanonicalAddress.class, AddressMixIn.class);
+        objectMapper.addMixIn(Address.class, AddressMixIn.class);
 
         SimpleModule module = new SimpleModule();
-
         module.addSerializer(JWTClaimsSet.class, new JWTClaimsSetSerializer());
         module.addSerializer(JWSHeader.class, new JWSHeaderSerializer());
 

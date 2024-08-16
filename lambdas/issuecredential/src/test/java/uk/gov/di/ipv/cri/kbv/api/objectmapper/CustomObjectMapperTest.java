@@ -89,7 +89,8 @@ class CustomObjectMapperTest implements TestFixtures {
 
         CanonicalAddress address = new CanonicalAddress();
         address.setAddressCountry("GB");
-        address.setBuildingName("");
+        address.setBuildingName("COY POND BUSINESS PARK");
+        address.setSubBuildingName("UNIT 2B");
         address.setStreetName("HADLEY ROAD");
         address.setPostalCode("BA2 5AA");
         address.setBuildingNumber("8");
@@ -121,7 +122,7 @@ class CustomObjectMapperTest implements TestFixtures {
         String actualJson = objectMapper.writeValueAsString(claimsSet);
 
         assertEquals(
-                "{\"vc\":{\"credentialSubject\":{\"address\":[{\"addressCountry\":\"GB\",\"buildingName\":\"\",\"streetName\":\"HADLEY ROAD\",\"postalCode\":\"BA2 5AA\",\"buildingNumber\":\"8\",\"addressLocality\":\"BATH\",\"validFrom\":\"2000-01-01\"}]}}}",
+                "{\"vc\":{\"credentialSubject\":{\"address\":[{\"addressCountry\":\"GB\",\"buildingName\":\"COY POND BUSINESS PARK\",\"subBuildingName\":\"UNIT 2B\",\"streetName\":\"HADLEY ROAD\",\"postalCode\":\"BA2 5AA\",\"buildingNumber\":\"8\",\"addressLocality\":\"BATH\",\"validFrom\":\"2000-01-01\"}]}}}",
                 actualJson);
     }
 }
