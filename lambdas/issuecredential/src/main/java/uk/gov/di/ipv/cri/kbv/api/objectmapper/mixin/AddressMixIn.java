@@ -7,6 +7,7 @@ import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverage
     "addressCountry",
     "uprn",
     "buildingName",
+    "subBuildingName",
     "organisationName",
     "streetName",
     "dependentStreetName",
@@ -14,8 +15,7 @@ import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverage
     "buildingNumber",
     "dependentAddressLocality",
     "addressLocality",
-    "doubleDependentAddressLocality",
-    "validFrom"
+    "doubleDependentAddressLocality"
 })
 @ExcludeFromGeneratedCoverageReport
 public abstract class AddressMixIn {}

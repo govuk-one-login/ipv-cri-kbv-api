@@ -5,11 +5,11 @@ import au.com.dius.pact.provider.junit5.PactVerificationContext;
 import au.com.dius.pact.provider.junit5.PactVerificationInvocationContextProvider;
 import au.com.dius.pact.provider.junitsupport.Provider;
 import au.com.dius.pact.provider.junitsupport.State;
-import au.com.dius.pact.provider.junitsupport.loader.PactFolder;
+import au.com.dius.pact.provider.junitsupport.loader.PactBroker;
+import au.com.dius.pact.provider.junitsupport.loader.PactBrokerAuth;
+import au.com.dius.pact.provider.junitsupport.loader.SelectorBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
@@ -68,10 +68,16 @@ import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.common.library.util.VerifiableCredentialClaimsSetBuilder.ENV_VAR_FEATURE_FLAG_VC_CONTAINS_UNIQUE_ID;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.METRIC_DIMENSION_KBV_VERIFICATION;
 import static uk.gov.di.ipv.cri.kbv.api.handler.util.JwtSigner.getEcdsaSigner;
+import static uk.gov.di.ipv.cri.kbv.api.objectmapper.CustomObjectMapper.getMapperWithCustomSerializers;
 
 @Tag("Pact")
 @Provider("ExperianKbvCriVcProvider")
-@PactFolder("pacts")
+@PactBroker(
+        url = "https://${PACT_BROKER_HOST}",
+        authentication =
+                @PactBrokerAuth(
+                        username = "${PACT_BROKER_USERNAME}",
+                        password = "${PACT_BROKER_PASSWORD}"))
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(SystemStubsExtension.class)
@@ -90,10 +96,15 @@ public class ValidVcIssuedHandlerThinFileTest
     public static final String SUBJECT = "test-subject";
     private final UUID sessionId = UUID.randomUUID();
     IssueCredentialHandler handler;
-    private ObjectMapper objectMapper =
-            new ObjectMapper()
-                    .registerModule(new Jdk8Module())
-                    .registerModule(new JavaTimeModule());
+    private ObjectMapper objectMapper = getMapperWithCustomSerializers();
+
+    @au.com.dius.pact.provider.junitsupport.loader.PactBrokerConsumerVersionSelectors
+    public static SelectorBuilder consumerVersionSelectors() {
+        return new SelectorBuilder()
+                .tag("ExperianKbvCriVcProvider")
+                .branch("main", "IpvCoreBack")
+                .deployedOrReleased();
+    }
 
     @BeforeAll
     static void setupServer() {

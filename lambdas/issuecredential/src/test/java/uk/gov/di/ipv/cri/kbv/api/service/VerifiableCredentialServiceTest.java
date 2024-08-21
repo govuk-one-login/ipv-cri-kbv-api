@@ -1,6 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -40,9 +41,13 @@ import uk.gov.di.ipv.cri.kbv.api.service.fixtures.TestFixtures;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.text.ParseException;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,6 +60,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -70,7 +76,7 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.W3_BASE_CONTEXT;
 
 @ExtendWith(MockitoExtension.class)
-class VerifiableCredentialServiceTest {
+class VerifiableCredentialServiceTest implements TestFixtures {
     private static final String SUBJECT = "subject";
     private static final JWTClaimsSet TEST_CLAIMS_SET =
             new JWTClaimsSet.Builder().subject("test").issuer("test").build();
@@ -169,6 +175,85 @@ class VerifiableCredentialServiceTest {
             makeVerifiableCredentialSubjectClaimsAssertions(personIdentity);
         }
 
+        @Test
+        void shouldExcludeAddressFilteredOutByAddressTypeWhenPresent()
+                throws JOSEException, NoSuchAlgorithmException, JsonProcessingException {
+
+            initMockConfigurationService();
+            when(mockConfigurationService.getMaxJwtTtl()).thenReturn(10L);
+            when(mockConfigurationService.getParameterValue("JwtTtlUnit")).thenReturn("MINUTES");
+            when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn(ISSUER);
+            ArgumentCaptor<JWTClaimsSet> jwtClaimsSetArgumentCaptor =
+                    ArgumentCaptor.forClass(JWTClaimsSet.class);
+            SignedJWTFactory signedJWTFactory = mock(SignedJWTFactory.class);
+            when(signedJWTFactory.createSignedJwt(
+                            any(JWTClaimsSet.class), eq(ISSUER), eq(KMS_SIGNING_KEY_ID)))
+                    .thenReturn(mock(SignedJWT.class));
+            Clock clock = Clock.fixed(Instant.parse("2099-01-01T00:00:00.00Z"), ZoneId.of("UTC"));
+            VerifiableCredentialClaimsSetBuilder claimsSetBuilder =
+                    new VerifiableCredentialClaimsSetBuilder(mockConfigurationService, clock);
+            spyEvidenceFactory =
+                    spy(
+                            new EvidenceFactory(
+                                    objectMapper,
+                                    mockEventProbe,
+                                    KBV_QUESTION_QUALITY_MAPPING_SERIALIZED));
+            verifiableCredentialService =
+                    new VerifiableCredentialService(
+                            signedJWTFactory,
+                            mockConfigurationService,
+                            objectMapper,
+                            claimsSetBuilder,
+                            spyEvidenceFactory);
+
+            EvidenceRequest evidenceRequest = new EvidenceRequest();
+            mockSessionItem = new SessionItem();
+            mockSessionItem.setSubject(SUBJECT);
+            mockSessionItem.setEvidenceRequest(evidenceRequest);
+
+            KBVItem kbvItem = getKbvItem();
+            kbvItem.setStatus("not authenticated");
+            setKbvItemQuestionState(kbvItem);
+
+            String addressWithAddressTypeJson =
+                    "{"
+                            + "\"addressType\": \"CURRENT\","
+                            + "\"buildingNumber\": \"114\","
+                            + "\"streetName\": \"Wellington Street\","
+                            + "\"postalCode\": \"LS1 1BA\""
+                            + "}";
+
+            Address address = objectMapper.readValue(addressWithAddressTypeJson, Address.class);
+            var personIdentity = getPersonIdentityDetailedWithAddresses(List.of(address));
+
+            verifiableCredentialService.generateSignedVerifiableCredentialJwt(
+                    mockSessionItem, personIdentity, kbvItem);
+
+            verify(signedJWTFactory)
+                    .createSignedJwt(
+                            jwtClaimsSetArgumentCaptor.capture(),
+                            eq(ISSUER),
+                            eq(KMS_SIGNING_KEY_ID));
+
+            JsonNode credentialSubject =
+                    objectMapper
+                            .readTree(jwtClaimsSetArgumentCaptor.getValue().toString())
+                            .get("vc")
+                            .get("credentialSubject");
+
+            JsonNode nameParts = credentialSubject.get("name").get(0).get("nameParts");
+            assertEquals("GivenName", nameParts.get(0).get("type").asText());
+            assertEquals("FamilyName", nameParts.get(1).get("type").asText());
+            assertEquals("Joe", nameParts.get(0).get("value").asText());
+            assertEquals("Bloggs", nameParts.get(1).get("value").asText());
+
+            JsonNode addressNode = credentialSubject.get("address").get(0);
+            assertEquals("114", addressNode.get("buildingNumber").asText());
+            assertEquals("Wellington Street", addressNode.get("streetName").asText());
+            assertEquals("LS1 1BA", addressNode.get("postalCode").asText());
+            assertNull(addressNode.get("addressType"));
+        }
+
         @ParameterizedTest
         @CsvSource({"some-other-experian-status,an auth ref no,0", ",an auth ref no,0"})
         void shouldCreateValidSignedJWTWithVcZeroWhenKbvStatusNullOrAnyOtherValue(
@@ -208,7 +293,6 @@ class VerifiableCredentialServiceTest {
 
             verify(mockVcClaimSetBuilder)
                     .verifiableCredentialEvidence(mapArrayArgumentCaptor.capture());
-            verify(signedJWTFactory).createSignedJwt(TEST_CLAIMS_SET, ISSUER, KMS_SIGNING_KEY_ID);
             verify(spyEvidenceFactory).create(kbvItem, null);
             Map<String, Object> evidenceItems = mapArrayArgumentCaptor.getValue()[0];
             assertEquals(kbvItem.getAuthRefNo(), evidenceItems.get("txn"));
@@ -239,7 +323,7 @@ class VerifiableCredentialServiceTest {
                             spyEvidenceFactory);
 
             KBVItem kbvItem = new KBVItem();
-            kbvItem.setAuthRefNo(UUID.randomUUID().toString());
+            kbvItem.setAuthRefNo("dummyTxn");
             kbvItem.setStatus("Not Authenticated");
             kbvItem.setQuestionAnswerResultSummary(getKbvQuestionAnswerSummary(2, 0, 2));
             setKbvItemQuestionState(kbvItem);
@@ -274,6 +358,7 @@ class VerifiableCredentialServiceTest {
                     verifiableCredentialService.getAuditEventExtensions(kbvItem, null);
 
             verify(spyEvidenceFactory).create(kbvItem, null);
+
             assertEquals(
                     auditEventExtensions,
                     Map.of(
@@ -292,10 +377,14 @@ class VerifiableCredentialServiceTest {
         address.setStreetName("Wellington Street");
         address.setPostalCode("LS1 1BA");
 
+        return getPersonIdentityDetailedWithAddresses(Collections.singletonList(address));
+    }
+
+    private PersonIdentityDetailed getPersonIdentityDetailedWithAddresses(List<Address> address) {
         Name name = new Name();
         NamePart firstNamePart = new NamePart();
         firstNamePart.setType("GivenName");
-        firstNamePart.setValue("Bloggs");
+        firstNamePart.setValue("Joe");
         NamePart surnamePart = new NamePart();
         surnamePart.setType("FamilyName");
         surnamePart.setValue("Bloggs");
@@ -305,7 +394,7 @@ class VerifiableCredentialServiceTest {
         birthDate.setValue(LocalDate.of(1980, 5, 3));
 
         return PersonIdentityDetailedBuilder.builder(List.of(name), List.of(birthDate))
-                .withAddresses(List.of(address))
+                .withAddresses(address)
                 .build();
     }
 

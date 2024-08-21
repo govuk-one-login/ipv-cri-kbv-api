@@ -10,11 +10,11 @@ import java.util.List;
 import java.util.Map;
 
 public class JWTClaimsSetSerializer extends JsonSerializer<JWTClaimsSet> {
-    public static final String BIRTH_DATE = "birthDate";
-    public static final String NAME = "name";
-    public static final String ADDRESS = "address";
-    public static final String CONTEXT = "@context";
-    public static final String CREDENTIAL_SUBJECT = "credentialSubject";
+    private static final String BIRTH_DATE = "birthDate";
+    private static final String NAME = "name";
+    private static final String ADDRESS = "address";
+    private static final String CONTEXT = "@context";
+    private static final String CREDENTIAL_SUBJECT = "credentialSubject";
     public static final String EVIDENCE = "evidence";
 
     @Override
