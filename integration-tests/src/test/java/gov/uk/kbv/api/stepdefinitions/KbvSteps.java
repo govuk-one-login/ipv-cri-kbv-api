@@ -196,7 +196,9 @@ public class KbvSteps {
         assertEquals("JWT", header.at("/typ").asText());
         assertEquals("ES256", header.at("/alg").asText());
 
-        assertEquals("did:web:review-k.dev.account.gov.uk#f06e603c0b11557151851ba196a46657f47daaca9f151761980f9f5c39210482", header.at("/kid").asText());
+        assertEquals(
+                "did:web:review-k.dev.account.gov.uk#f06e603c0b11557151851ba196a46657f47daaca9f151761980f9f5c39210482",
+                header.at("/kid").asText());
 
         assertNotNull(payload);
         assertNotNull(payload.at("/nbf"));
