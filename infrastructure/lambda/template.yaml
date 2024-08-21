@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Transform: [AWS::Serverless-2016-10-31, AWS::LanguageExtensions]
+Transform: [AWS::Serverless-2016-10-31, AWS::LanguageExtensions] 
 Description: "Digital Identity IPV CRI KBV API"
 
 Parameters:
@@ -231,20 +231,19 @@ Resources:
           ThrottlingRateLimit: 200
           ThrottlingBurstLimit: 400
       AccessLogSetting:
-        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${PrivateKBVApiAccessLogGroup}'
-        Format: >-
-          {
-          "requestId":"$context.requestId",
-          "ip":"$context.identity.sourceIp",
-          "requestTime":"$context.requestTime",
-          "httpMethod":"$context.httpMethod",
-          "path":"$context.path",
-          "routeKey":"$context.routeKey",
-          "status":"$context.status",
-          "protocol":"$context.protocol",
-          "responseLatency":"$context.responseLatency",
-          "responseLength":"$context.responseLength"
-          }
+        DestinationArn: !GetAtt PrivateKBVApiAccessLogGroup.Arn
+        Format:
+          Fn::ToJsonString:
+            requestId: $context.requestId
+            ip: $context.identity.sourceIp
+            requestTime: $context.requestTime
+            httpMethod: $context.httpMethod
+            path: $context.path
+            routeKey: $context.routeKey
+            status: $context.status
+            protocol: $context.protocol
+            responseLatency: $context.responseLatency
+            responseLength: $context.responseLength
       TracingEnabled: true
       Name: !Sub "kbv-cri-private-${AWS::StackName}"
       StageName: !Ref Environment
@@ -275,10 +274,7 @@ Resources:
                 - 'execute-api:/*'
               Condition:
                 StringNotEquals:
-                  aws:SourceVpce: !If
-                    - IsDevEnvironment
-                    - vpce-082cab7c78139eb54
-                    - !ImportValue cri-vpc-ApiGatewayVpcEndpointId
+                  aws:SourceVpce: !ImportValue cri-vpc-ApiGatewayVpcEndpointId
 
   DevOnlyKBVApi:
     Type: AWS::Serverless::Api
@@ -871,7 +867,6 @@ Resources:
       OKActions:
         - !ImportValue core-infrastructure-AlarmTopic
       InsufficientDataActions: []
-      Dimensions: []
       DatapointsToAlarm: 3
       EvaluationPeriods: 3
       Threshold: 1
