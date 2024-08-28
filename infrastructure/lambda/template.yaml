@@ -328,7 +328,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PublicKBVApi}-public-AccessLogs
-      RetentionInDays: 365
+      RetentionInDays: 30
 
   PublicKBVApiAccessLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
@@ -343,7 +343,7 @@ Resources:
     Condition: IsNotDevEnvironment
     Properties:
       LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PrivateKBVApi}-private-AccessLogs
-      RetentionInDays: 365
+      RetentionInDays: 30
 
   DevOnlyKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
