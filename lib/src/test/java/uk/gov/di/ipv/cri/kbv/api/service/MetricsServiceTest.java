@@ -10,6 +10,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.verify;
 import static uk.gov.di.ipv.cri.kbv.api.service.MetricsService.ERROR_CODE;
 import static uk.gov.di.ipv.cri.kbv.api.service.MetricsService.EXECUTION_DURATION;
@@ -52,5 +53,10 @@ class MetricsServiceTest {
         this.metricsService.sendErrorMetric(errorCode, "baz");
         verify(eventProbe).counterMetric("baz");
         verify(eventProbe).addDimensions(Map.of(ERROR_CODE, errorCode));
+    }
+
+    @Test
+    void eventProbeShouldNotBeNull() {
+        assertNotNull(metricsService.getEventProbe());
     }
 }
