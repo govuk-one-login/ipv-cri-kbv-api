@@ -11,6 +11,7 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import software.amazon.cloudwatchlogs.emf.model.Unit;
 import software.amazon.lambda.powertools.tracing.Tracing;
 import software.amazon.lambda.powertools.tracing.TracingUtils;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
@@ -62,8 +63,17 @@ public class KBVGateway {
         SAARequest saaRequest = saaRequestMapper.mapQuestionRequest(questionRequest);
 
         Instant start = Instant.now();
+        long startTime = System.nanoTime();
         SAAResponse2 saaResponse2 = getQuestionRequestResponse(saaRequest);
+        long endTime = System.nanoTime();
         Instant end = Instant.now();
+        long totalTimeInMs = (endTime - startTime) / 1000000;
+
+        LOGGER.info("Get questions API response latency: latencyInMs={}", totalTimeInMs);
+
+        metricsService
+                .getEventProbe()
+                .counterMetric("get_questions_duration", totalTimeInMs, Unit.MILLISECONDS);
 
         QuestionsResponse questionsResponse = questionsResponseMapper.mapSAAResponse(saaResponse2);
 
@@ -92,8 +102,18 @@ public class KBVGateway {
                 responseToQuestionMapper.mapQuestionAnswersRtqRequest(questionAnswerRequest);
 
         Instant start = Instant.now();
+        long startTime = System.nanoTime();
         RTQResponse2 rtqResponse2 = submitQuestionAnswerResponse(rtqRequest);
+        long endTime = System.nanoTime();
         Instant end = Instant.now();
+
+        long totalTimeInMs = (endTime - startTime) / 1000000;
+
+        LOGGER.info("Submit answers API response latency: latencyInMs={}", totalTimeInMs);
+
+        metricsService
+                .getEventProbe()
+                .counterMetric("submit_answers_duration", totalTimeInMs, Unit.MILLISECONDS);
 
         QuestionsResponse questionsResponse = questionsResponseMapper.mapRTQResponse(rtqResponse2);
 

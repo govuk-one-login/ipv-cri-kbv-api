@@ -45,4 +45,8 @@ public class MetricsService {
             }
         }
     }
+
+    public EventProbe getEventProbe() {
+        return eventProbe;
+    }
 }
