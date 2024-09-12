@@ -32,5 +32,6 @@ sam deploy --stack-name "$stack_name" \
   --parameter-overrides \
   Environment=dev \
   SecretPrefix=pre-merge-test \
+  LambdaDeploymentPreference=Canary10Percent5Minutes\
   ${common_stack_name:+CommonStackName=$common_stack_name} \
   ${secret_prefix:+SecretPrefix=$secret_prefix}
