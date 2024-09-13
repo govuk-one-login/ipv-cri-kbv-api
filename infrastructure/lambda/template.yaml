@@ -938,7 +938,7 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: breaching
+      TreatMissingData: notBreaching
 
   KBVAnswerFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
