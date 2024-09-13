@@ -452,11 +452,6 @@ Resources:
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
       DeploymentPreference:
-        Type: !If
-          - IsDevEnvironment
-          #- IsProdEnvironment
-          - !Ref LambdaDeploymentPreference
-          - AllAtOnce
         Alarms:
           - !Ref KBVAnswerFunctionCanary5xxErrors
           - !Ref KBVAnswerFunctionCanaryErrors
@@ -917,7 +912,6 @@ Resources:
             Period: 300
             Stat: Sum
 
-
   KBVAnswerFunctionCanary5xxErrors:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -936,6 +930,8 @@ Resources:
           Value: POST
         - Name: Resource
           Value: /answer
+        - Name: Stage
+          Value: !Ref Environment
       Statistic: Sum
       Unit: Count
       Period: 60
