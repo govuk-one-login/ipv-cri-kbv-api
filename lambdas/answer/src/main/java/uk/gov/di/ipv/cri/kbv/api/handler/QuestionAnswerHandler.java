@@ -169,7 +169,7 @@ public class QuestionAnswerHandler
                 new AuditEventContext(requestHeaders, sessionItem),
                 Map.of("component_id", configurationService.getVerifiableCredentialIssuer()));
         LOGGER.info(
-                "ANOTHER CANARY DEPLOYMENT TEST AGAIN. ANSWER HANDLER: QuestionIds: {} answered and sent to 3rd-party",
+                "CANARY DEPLOYMENT TEST AGAIN. ANSWER HANDLER: QuestionIds: {} answered and sent to 3rd-party",
                 questionAnswerRequest.getAllQuestionIdAnswered());
         var questionsResponse = kbvService.submitAnswers(questionAnswerRequest);
         auditService.sendAuditEvent(
