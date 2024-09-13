@@ -852,11 +852,11 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmDescription: !Sub KBV ${Environment} lambda errors
-      ActionsEnabled: true
-      AlarmActions:
-        - !ImportValue core-infrastructure-AlarmTopic
-      OKActions:
-        - !ImportValue core-infrastructure-AlarmTopic
+      # ActionsEnabled: true
+      # AlarmActions:
+      #   - !ImportValue core-infrastructure-AlarmTopic
+      # OKActions:
+      #   - !ImportValue core-infrastructure-AlarmTopic
       InsufficientDataActions: []
       MetricName: Errors
       Namespace: AWS/Lambda
@@ -873,11 +873,11 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmDescription: !Sub KBV ${Environment} API Gateway 5XX errors
-      ActionsEnabled: true
-      AlarmActions:
-        - !ImportValue core-infrastructure-AlarmTopic
-      OKActions:
-        - !ImportValue core-infrastructure-AlarmTopic
+      # ActionsEnabled: true
+      # AlarmActions:
+      #   - !ImportValue core-infrastructure-AlarmTopic
+      # OKActions:
+      #   - !ImportValue core-infrastructure-AlarmTopic
       InsufficientDataActions: []
       DatapointsToAlarm: 3
       EvaluationPeriods: 3
@@ -916,10 +916,10 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       ActionsEnabled: true
-      AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
-      OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+      # AlarmActions:
+      #   - !ImportValue platform-alarm-warning-alert-topic
+      # OKActions:
+      #   - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVAnswerFunction Lambda returning 5xx response."
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
@@ -938,16 +938,16 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
+      TreatMissingData: breaching
 
   KBVAnswerFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Properties:
       ActionsEnabled: true
-      AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
-      OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+      # AlarmActions:
+      #   - !ImportValue platform-alarm-warning-alert-topic
+      # OKActions:
+      #   - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVAnswerFunction Lambda error."
       MetricName: Errors
       Dimensions:
