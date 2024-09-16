@@ -212,3 +212,4 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     Examples:
       | user |
       | 197  |
+      | 256  |

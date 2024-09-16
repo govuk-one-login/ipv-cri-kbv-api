@@ -90,3 +90,4 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 2 question
     Examples:
       | user |
       | 197  |
+      | 256  |
