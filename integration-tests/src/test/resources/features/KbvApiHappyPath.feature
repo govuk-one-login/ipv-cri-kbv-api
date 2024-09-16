@@ -3,8 +3,8 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
   Tests are run against the KBV Stub.
 
   @pre_merge_happy_with_device_information_header
-  Scenario: User answers 3 questions correctly in 3-out-of-4 question strategy with device information header
-    Given user has the test-identity 197 in the form of a signed JWT string
+  Scenario Outline: User answers 3 questions correctly in 3-out-of-4 question strategy with device information header
+    Given user has the test-identity <user> in the form of a signed JWT string
 
     # Session
     When user sends a POST request to session end point with txma header
@@ -16,19 +16,19 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     # First question
     When user sends a GET request to question endpoint
     Then user gets status code 200
-    And user answers the question correctly
+    And <user> answers the question correctly
     Then user gets status code 200
 
     # Second question
     When user sends a GET request to question endpoint
     Then user gets status code 200
-    And user answers the question correctly
+    And <user> answers the question correctly
     Then user gets status code 200
 
     # Third question
     When user sends a GET request to question endpoint
     Then user gets status code 200
-    And user answers the question correctly
+    And <user> answers the question correctly
     Then user gets status code 200
 
     When user sends a GET request to question endpoint when there are no questions left
@@ -52,9 +52,13 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And the check details array has 3 objects returned in the response
     And 10 events are deleted from the audit events SQS queue
 
+    Examples:
+      | user |
+      | 197  |
+
   @pre_merge_happy_medium_confidence
-  Scenario: User answers 3 questions correctly in 3-out-of-4 question strategy
-    Given user has the test-identity 197 in the form of a signed JWT string
+  Scenario Outline: User answers 3 questions correctly in 3-out-of-4 question strategy
+    Given user has the test-identity <user> in the form of a signed JWT string
 
     # Session
     When user sends a POST request to session end point
@@ -66,19 +70,19 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     # First question
     When user sends a GET request to question endpoint
     Then user gets status code 200
-    And user answers the question correctly
+    And <user> answers the question correctly
     Then user gets status code 200
 
     # Second question
     When user sends a GET request to question endpoint
     Then user gets status code 200
-    And user answers the question correctly
+    And <user> answers the question correctly
     Then user gets status code 200
 
     # Third question
     When user sends a GET request to question endpoint
     Then user gets status code 200
-    And user answers the question correctly
+    And <user> answers the question correctly
     Then user gets status code 200
 
     When user sends a GET request to question endpoint when there are no questions left
@@ -102,9 +106,13 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And the check details array has 3 objects returned in the response
     And 10 events are deleted from the audit events SQS queue
 
+    Examples:
+      | user |
+      | 197  |
+
   @pre_merge_happy_low_confidence
-  Scenario: User answers 2 questions correctly in 2-out-of-3 question strategy
-    Given user has the test-identity 197 and verificationScore of 1 in the form of a signed JWT string
+  Scenario Outline: User answers 2 questions correctly in 2-out-of-3 question strategy
+    Given user has the test-identity <user> and verificationScore of 1 in the form of a signed JWT string
 
     # Session
     When user sends a POST request to session end point
@@ -116,13 +124,13 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     # First question
     When user sends a GET request to question endpoint
     Then user gets status code 200
-    And user answers the question correctly
+    And <user> answers the question correctly
     Then user gets status code 200
 
     # Second question
     When user sends a GET request to question endpoint
     Then user gets status code 200
-    And user answers the question correctly
+    And <user> answers the question correctly
     Then user gets status code 200
 
     When user sends a GET request to question endpoint when there are no questions left
@@ -146,9 +154,13 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And the check details array has 2 objects returned in the response
     And 8 events are deleted from the audit events SQS queue
 
+    Examples:
+      | user |
+      | 197  |
+
   @pre_merge_happy_low_confidence
-  Scenario: User answers 2 out of 3 questions correctly with in 2-out-of-3 question strategy
-    Given user has the test-identity 197 and verificationScore of 1 in the form of a signed JWT string
+  Scenario Outline: User answers 2 out of 3 questions correctly with in 2-out-of-3 question strategy
+    Given user has the test-identity <user> and verificationScore of 1 in the form of a signed JWT string
 
     # Session
     When user sends a POST request to session end point
@@ -160,19 +172,19 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     # First question
     When user sends a GET request to question endpoint
     Then user gets status code 200
-    And user answers the question correctly
+    And <user> answers the question correctly
     Then user gets status code 200
 
     # Second question
     When user sends a GET request to question endpoint
     Then user gets status code 200
-    And user answers the question incorrectly
+    And <user> answers the question incorrectly
     Then user gets status code 200
 
     # Third question
     When user sends a GET request to question endpoint
     Then user gets status code 200
-    And user answers the question correctly
+    And <user> answers the question correctly
     Then user gets status code 200
 
     When user sends a GET request to question endpoint when there are no questions left
@@ -196,3 +208,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And the check details array has 2 objects returned in the response
     And the failed details array has 1 objects returned in the response
     And 10 events are deleted from the audit events SQS queue
+
+    Examples:
+      | user |
+      | 197  |
