@@ -83,14 +83,15 @@ public class KbvSteps {
                 this.kbvApiClient.sendAbandonRequest(this.testContext.getSessionId()));
     }
 
-    @And("user answers the question correctly")
-    public void userAnswersTheQuestionCorrectly() throws IOException, InterruptedException {
-        this.kbvApiClient.submitCorrectAnswers(questionId, this.testContext.getSessionId());
+    @And("{int} answers the question correctly")
+    public void userAnswersTheQuestionCorrectly(int user) throws IOException, InterruptedException {
+        this.kbvApiClient.submitCorrectAnswers(questionId, this.testContext.getSessionId(), user);
     }
 
-    @Then("user answers the question incorrectly")
-    public void userAnswersTheQuestionIncorrectly() throws IOException, InterruptedException {
-        this.kbvApiClient.submitIncorrectAnswers(questionId, this.testContext.getSessionId());
+    @Then("{int} answers the question incorrectly")
+    public void userAnswersTheQuestionIncorrectly(int user)
+            throws IOException, InterruptedException {
+        this.kbvApiClient.submitIncorrectAnswers(questionId, this.testContext.getSessionId(), user);
     }
 
     @And("a valid JWT is returned in the response")

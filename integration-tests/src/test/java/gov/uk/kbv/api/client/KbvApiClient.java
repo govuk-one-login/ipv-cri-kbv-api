@@ -83,11 +83,15 @@ public class KbvApiClient {
         return sendHttpRequest(request);
     }
 
-    public void submitCorrectAnswers(String question, String sessionId)
+    public void submitCorrectAnswers(String question, String sessionId, int user)
             throws IOException, InterruptedException {
 
         String POST_REQUEST_BODY =
-                "{\"questionId\":\"" + question + "\",\"answer\":\"" + getCorrect(question) + "\"}";
+                "{\"questionId\":\""
+                        + question
+                        + "\",\"answer\":\""
+                        + getCorrect(question, user)
+                        + "\"}";
         HttpRequest request =
                 HttpRequest.newBuilder()
                         .uri(
@@ -106,14 +110,14 @@ public class KbvApiClient {
         sendHttpRequest(request);
     }
 
-    public void submitIncorrectAnswers(String question, String sessionId)
+    public void submitIncorrectAnswers(String question, String sessionId, int user)
             throws IOException, InterruptedException {
 
         String POST_REQUEST_BODY =
                 "{\"questionId\":\""
                         + question
                         + "\",\"answer\":\""
-                        + getInCorrect(question)
+                        + getInCorrect(question, user)
                         + "\"}";
         HttpRequest request =
                 HttpRequest.newBuilder()
