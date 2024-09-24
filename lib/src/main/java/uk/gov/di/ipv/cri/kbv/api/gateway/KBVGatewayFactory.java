@@ -10,6 +10,7 @@ import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandlerResolver;
 import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapToken;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
+import uk.gov.di.ipv.cri.kbv.api.util.SOAPMessageWriterHandler;
 
 public class KBVGatewayFactory {
     public KBVGateway create(ConfigurationService configurationService) {
@@ -24,7 +25,9 @@ public class KBVGatewayFactory {
                 new QuestionsResponseMapper(),
                 new KBVClientFactory(
                                 new IdentityIQWebService(),
-                                new HeaderHandlerResolver(getHeaderHandler(configurationService)),
+                                new HeaderHandlerResolver(
+                                        getHeaderHandler(configurationService),
+                                        new SOAPMessageWriterHandler()),
                                 configurationService)
                         .createClient(),
                 new MetricsService(new EventProbe()));
