@@ -331,7 +331,7 @@ public class QuestionHandler
         auditService.sendAuditEvent(
                 AuditEventType.RESPONSE_RECEIVED,
                 new AuditEventContext(requestHeaders, sessionItem),
-                Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
+                Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse, true)));
     }
 
     private void sendAuditEventIfThinFileEncountered(
@@ -343,7 +343,9 @@ public class QuestionHandler
             auditService.sendAuditEvent(
                     THIN_FILE_ENCOUNTERED.toString(),
                     new AuditEventContext(requestHeaders, sessionItem),
-                    Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
+                    Map.of(
+                            EXPERIAN_IIQ_RESPONSE,
+                            createAuditEventExtensions(questionsResponse, false)));
         }
     }
 
