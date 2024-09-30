@@ -7,6 +7,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class QuestionsResponse {
+    private static final String REPEAT_ATTEMPT_ALERT_CODE = "U501";
+
     private String uniqueReference;
     private String authReference;
     private String errorCode;
@@ -102,5 +104,12 @@ public class QuestionsResponse {
             return this.getResults().getAnswerSummary();
         }
         return null;
+    }
+
+    public boolean isRepeatAttemptAlert() {
+        return Objects.nonNull(results)
+                && Objects.nonNull(results.getAlerts())
+                && results.getAlerts().stream()
+                        .anyMatch(a -> a.getCode().equalsIgnoreCase(REPEAT_ATTEMPT_ALERT_CODE));
     }
 }

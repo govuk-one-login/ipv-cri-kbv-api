@@ -14,32 +14,36 @@ public class KbvResponsesAuditExtension {
     private KbvResponsesAuditExtension() {}
 
     public static Map<String, Object> createAuditEventExtensions(
-            QuestionsResponse questionsResponse) {
-
-        if (Objects.nonNull(questionsResponse)
-                && Objects.nonNull(questionsResponse.getStatus())
-                && Objects.nonNull(questionsResponse.getResults())) {
-
-            return createAuditEventExtensions(
-                    questionsResponse.getStatus(),
-                    questionsResponse.getResults().getAnswerSummary());
-        }
-        return Collections.emptyMap();
+            String status, KbvQuestionAnswerSummary questionSummary) {
+        return getKbvResponsesSummaryEntries(status, questionSummary);
     }
 
     public static Map<String, Object> createAuditEventExtensions(
-            String status, KbvQuestionAnswerSummary questionSummary) {
+            QuestionsResponse questionsResponse) {
+        if (Objects.isNull(questionsResponse) || Objects.isNull(questionsResponse.getResults())) {
+            return Collections.emptyMap();
+        }
+        return createAuditEventExtensions(
+                questionsResponse.getStatus(), questionsResponse.getResults().getAnswerSummary());
+    }
 
-        return Objects.nonNull((status))
-                ? getKbvResponsesSummaryEntries(status, questionSummary)
-                : Collections.emptyMap();
+    public static Map<String, Object> createResponseReceivedAuditEventExtensions(
+            QuestionsResponse questionsResponse) {
+        Map<String, Object> extensionsMap = createAuditEventExtensions(questionsResponse);
+        if (questionsResponse.isRepeatAttemptAlert()) {
+            extensionsMap.put("repeatAttemptAlert", true);
+        }
+        return extensionsMap;
     }
 
     private static Map<String, Object> getKbvResponsesSummaryEntries(
             String status, KbvQuestionAnswerSummary questionSummary) {
 
         Map<String, Object> contextEntries = new HashMap<>();
-        contextEntries.put("outcome", status);
+
+        if (Objects.nonNull(status)) {
+            contextEntries.put("outcome", status);
+        }
 
         if (Objects.nonNull(questionSummary)) {
             contextEntries.put("totalQuestionsAsked", questionSummary.getQuestionsAsked());

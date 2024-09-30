@@ -42,7 +42,7 @@ import static org.apache.logging.log4j.Level.ERROR;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_EXPIRED;
 import static uk.gov.di.ipv.cri.common.library.error.ErrorResponse.SESSION_NOT_FOUND;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
-import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createAuditEventExtensions;
+import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createResponseReceivedAuditEventExtensions;
 
 public class QuestionAnswerHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -174,7 +174,9 @@ public class QuestionAnswerHandler
         auditService.sendAuditEvent(
                 AuditEventType.RESPONSE_RECEIVED,
                 new AuditEventContext(requestHeaders, sessionItem),
-                Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
+                Map.of(
+                        EXPERIAN_IIQ_RESPONSE,
+                        createResponseReceivedAuditEventExtensions(questionsResponse)));
         if (questionsResponse.hasQuestions()) {
             LOGGER.info(
                     "ANSWER HANDLER: QuestionIds: {} received from 3rd-party",

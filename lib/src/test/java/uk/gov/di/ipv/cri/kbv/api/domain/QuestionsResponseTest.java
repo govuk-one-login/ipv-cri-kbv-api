@@ -6,6 +6,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.Collections;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -97,6 +99,59 @@ class QuestionsResponseTest {
             result.setAuthenticationResult(null);
 
             assertFalse(response.isThinFile());
+        }
+    }
+
+    @Nested
+    class RepeatAttemptAlert {
+        @Test
+        void shouldReturnTrueWhenResponseHasRepeatAttemptAlert() {
+            QuestionsResponse response = new QuestionsResponse();
+            KbvResult result = new KbvResult();
+            KbvAlert alert = new KbvAlert();
+            alert.setCode("U501");
+            alert.setText("Applicant has previously requested authentication");
+            result.setAlerts(Collections.singletonList(alert));
+            response.setResults(result);
+
+            assertTrue(response.isRepeatAttemptAlert());
+        }
+
+        @Test
+        void shouldReturnFalseWhenResponseAlertsEmpty() {
+            QuestionsResponse response = new QuestionsResponse();
+            KbvResult result = new KbvResult();
+            result.setAlerts(Collections.emptyList());
+            response.setResults(result);
+
+            assertFalse(response.isRepeatAttemptAlert());
+        }
+
+        @Test
+        void shouldReturnFalseWhenResponseAlertsDoesNotContainAlertWithAlertCode() {
+            QuestionsResponse response = new QuestionsResponse();
+            KbvResult result = new KbvResult();
+            KbvAlert alert = new KbvAlert();
+            alert.setCode("Not the correct code");
+            alert.setText("Applicant has previously requested authentication");
+            result.setAlerts(Collections.singletonList(alert));
+            response.setResults(result);
+
+            assertFalse(response.isRepeatAttemptAlert());
+        }
+
+        @Test
+        void shouldReturnFalseWhenResponseAlertsIsNull() {
+            QuestionsResponse response = new QuestionsResponse();
+            KbvResult result = new KbvResult();
+            response.setResults(result);
+            assertFalse(response.isRepeatAttemptAlert());
+        }
+
+        @Test
+        void shouldReturnFalseWhenResponseResultsIsNull() {
+            QuestionsResponse response = new QuestionsResponse();
+            assertFalse(response.isRepeatAttemptAlert());
         }
     }
 }

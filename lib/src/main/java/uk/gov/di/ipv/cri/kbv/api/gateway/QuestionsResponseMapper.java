@@ -6,6 +6,7 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Questions;
 import com.experian.uk.schema.experian.identityiq.services.webservice.RTQResponse2;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvAlert;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionAnswerSummary;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionOptions;
@@ -14,6 +15,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 class QuestionsResponseMapper {
     QuestionsResponse mapRTQResponse(RTQResponse2 response) {
@@ -88,6 +90,13 @@ class QuestionsResponseMapper {
                 summary.setAnsweredIncorrect(results.getQuestions().getIncorrect());
                 summary.setQuestionsAsked(results.getQuestions().getAsked());
                 kbvResult.setAnswerSummary(summary);
+            }
+            if (Objects.nonNull(results.getAlerts())
+                    && Objects.nonNull(results.getAlerts().getAlerts())) {
+                kbvResult.setAlerts(
+                        results.getAlerts().getAlerts().stream()
+                                .map(KbvAlert::new)
+                                .collect(Collectors.toList()));
             }
         }
         return kbvResult;

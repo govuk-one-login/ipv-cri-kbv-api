@@ -3,6 +3,7 @@ package uk.gov.di.ipv.cri.kbv.api.util;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.AddressType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvAlert;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionAnswerSummary;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionOptions;
@@ -15,6 +16,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.List;
 
 public class TestDataCreator {
@@ -96,6 +98,31 @@ public class TestDataCreator {
         questionsResponse.setAuthReference("authrefno");
         questionsResponse.setUniqueReference("urn");
         questionsResponse.setQuestions(kbvQuestions);
+
+        return questionsResponse;
+    }
+
+    public static QuestionsResponse getExperianQuestionResponseWithQuestions() {
+        KbvQuestion[] questions = new KbvQuestion[] {getQuestionOne(), getQuestionTwo()};
+        QuestionsResponse questionsResponse = getExperianQuestionResponse(questions);
+
+        KbvResult kbvResult = new KbvResult();
+        kbvResult.setOutcome("Authentication Questions returned");
+        kbvResult.setNextTransId(new String[] {"RTQ"});
+        questionsResponse.setResults(kbvResult);
+        return questionsResponse;
+    }
+
+    public static QuestionsResponse getExperianQuestionResponseWithAlert() {
+        QuestionsResponse questionsResponse = getExperianQuestionResponseWithQuestions();
+        KbvResult kbvResult = questionsResponse.getResults();
+
+        KbvAlert alert = new KbvAlert();
+        alert.setCode("U501");
+        alert.setText("Applicant has previously requested authentication");
+
+        kbvResult.setAlerts(Collections.singletonList(alert));
+        questionsResponse.setResults(kbvResult);
 
         return questionsResponse;
     }

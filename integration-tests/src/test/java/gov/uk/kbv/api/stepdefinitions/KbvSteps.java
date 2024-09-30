@@ -146,6 +146,12 @@ public class KbvSteps {
         assertEquals("", getDeviceInformationHeader());
     }
 
+    @Then("TXMA event is added to the SQS queue with repeatAttemptAlert present {word}")
+    public void txmaEventIsAddedToSqsQueueContainingAttemptAlert(String attemptAlert)
+            throws IOException, InterruptedException {
+        assertEquals(Boolean.valueOf(attemptAlert), isAttemptAlert());
+    }
+
     @And("{int} events are deleted from the audit events SQS queue")
     public void deleteEventsFromSqsQueue(int messageCount) throws InterruptedException {
         this.sqs.deleteMatchingMessages(
@@ -186,6 +192,23 @@ public class KbvSteps {
                 .readTree(startEventMessages.get(0).body())
                 .at("/extensions/evidence_requested/verificationScore")
                 .asText();
+    }
+
+    private Boolean isAttemptAlert() throws InterruptedException, IOException {
+        final List<Message> receivedEventMessages =
+                this.sqs.receiveMatchingMessages(
+                        auditEventQueueUrl,
+                        1,
+                        Map.ofEntries(
+                                entry("/event_name", "IPV_KBV_CRI_RESPONSE_RECEIVED"),
+                                entry("/user/session_id", testContext.getSessionId())));
+
+        assertEquals(1, receivedEventMessages.size());
+
+        return objectMapper
+                .readTree(receivedEventMessages.get(0).body())
+                .at("/extensions/experianIiqResponse/repeatAttemptAlert")
+                .asBoolean();
     }
 
     private void makeVerifiableCredentialJwtAssertions(SignedJWT decodedJWT) throws IOException {
