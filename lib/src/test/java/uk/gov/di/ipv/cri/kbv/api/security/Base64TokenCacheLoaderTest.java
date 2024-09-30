@@ -27,8 +27,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class Base64TokenCacheLoaderTest {
-    private String key = "valid-key";
-    private final String application = "testApplication";
+    private static final String KEY = "valid-key";
+    private static final String APPLICATION = "testApplication";
     private Boolean checkIp = true;
     private SoapToken soapTokenSpy;
     @Mock private SoapToken soapTokenMock;
@@ -41,15 +41,14 @@ class Base64TokenCacheLoaderTest {
         soapTokenSpy =
                 spy(
                         new SoapToken(
-                                application, checkIp, tokenServiceMock, configurationServiceMock));
+                                APPLICATION, checkIp, tokenServiceMock, configurationServiceMock));
     }
 
     @Test
     void shouldLoadValidSoapToken() throws InvalidSoapTokenException {
-        String key = "valid-key";
         when(soapTokenMock.getToken()).thenReturn("token");
 
-        Base64TokenEncoder result = base64TokenCacheLoader.load(key);
+        Base64TokenEncoder result = base64TokenCacheLoader.load(KEY);
 
         verify(soapTokenMock).getToken();
         assertNotNull(result);
@@ -74,7 +73,7 @@ class Base64TokenCacheLoaderTest {
 
         InvalidSoapTokenException expectedException =
                 assertThrows(
-                        InvalidSoapTokenException.class, () -> base64TokenCacheLoader.load(key));
+                        InvalidSoapTokenException.class, () -> base64TokenCacheLoader.load(KEY));
         assertEquals(
                 "SOAP Fault occurred: Invalid namespace for SOAP Envelope",
                 expectedException.getMessage());
@@ -95,7 +94,7 @@ class Base64TokenCacheLoaderTest {
 
         InvalidSoapTokenException expectedException =
                 assertThrows(
-                        InvalidSoapTokenException.class, () -> base64TokenCacheLoader.load(key));
+                        InvalidSoapTokenException.class, () -> base64TokenCacheLoader.load(KEY));
         assertEquals(
                 "Web Service error occurred: Failed to connect to the service endpoint",
                 expectedException.getMessage());
@@ -115,7 +114,7 @@ class Base64TokenCacheLoaderTest {
 
         InvalidSoapTokenException expectedException =
                 assertThrows(
-                        InvalidSoapTokenException.class, () -> base64TokenCacheLoader.load(key));
+                        InvalidSoapTokenException.class, () -> base64TokenCacheLoader.load(KEY));
         assertEquals(
                 "Unexpected error occurred: Unknown exception", expectedException.getMessage());
     }

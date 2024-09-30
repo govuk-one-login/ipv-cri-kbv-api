@@ -1,5 +1,6 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
+import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -11,10 +12,16 @@ import software.amazon.lambda.powertools.parameters.SSMProvider;
 import software.amazon.lambda.powertools.parameters.SecretsProvider;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.util.ClientProviderFactory;
+import uk.gov.di.ipv.cri.kbv.api.exception.KBVGatewayCreationException;
+import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
+import uk.gov.di.ipv.cri.kbv.api.gateway.KeyStoreLoader;
+import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -87,5 +94,29 @@ class ServiceFactoryTest {
         ConfigurationService configurationService2 = serviceFactory.getConfigurationService();
         assertNotNull(configurationService2);
         assertEquals(configurationService1, configurationService2);
+    }
+
+    @Test
+    void testGetKbvGateway() {
+        KBVClientFactory kbvClientFactoryMock = mock(KBVClientFactory.class);
+        KeyStoreLoader keyStoreLoaderMock = mock(KeyStoreLoader.class);
+        IdentityIQWebServiceSoap identityIQWebServiceSoapMock =
+                mock(IdentityIQWebServiceSoap.class);
+
+        when(kbvClientFactoryMock.createClient()).thenReturn(identityIQWebServiceSoapMock);
+        KBVGateway kbvGateway =
+                serviceFactory.getKbvGateway(keyStoreLoaderMock, kbvClientFactoryMock);
+
+        assertNotNull(kbvGateway);
+    }
+
+    @Test
+    void testGetKbvGatewayReturnsExceptionWhenCreationFails() {
+
+        KBVGatewayCreationException exception =
+                assertThrows(
+                        KBVGatewayCreationException.class, () -> serviceFactory.getKbvGateway());
+
+        assertEquals("Failed to create KBVGateway: null", exception.getMessage());
     }
 }

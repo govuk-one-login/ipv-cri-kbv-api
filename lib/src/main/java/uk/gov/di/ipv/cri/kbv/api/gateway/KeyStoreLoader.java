@@ -37,7 +37,7 @@ public class KeyStoreLoader {
         return this.configurationService.getSecretValue("experian/keystore-password");
     }
 
-    void load() throws IOException {
+    public void load() throws IOException {
         System.setProperty("javax.net.ssl.keyStoreType", "pkcs12");
         System.setProperty("javax.net.ssl.keyStore", getKeyStorePath());
         System.setProperty("javax.net.ssl.keyStorePassword", getPassword());

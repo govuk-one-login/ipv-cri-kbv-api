@@ -1,7 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.security;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import uk.gov.di.ipv.cri.kbv.api.exception.HeaderHandlerException;
 
 import javax.xml.namespace.QName;
 import javax.xml.soap.Name;
@@ -17,13 +17,12 @@ import javax.xml.ws.handler.soap.SOAPMessageContext;
 
 import java.util.Collections;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
     private final LoadingCache<String, Base64TokenEncoder> cache;
 
-    public HeaderHandler(Base64TokenCacheLoader tokenEncoder) {
-        this.cache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.HOURS).build(tokenEncoder);
+    public HeaderHandler(LoadingCache<String, Base64TokenEncoder> cache) {
+        this.cache = cache;
     }
 
     public boolean handleMessage(SOAPMessageContext smc) {
@@ -62,8 +61,8 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
                 binarySecurityToken.setValue(tokenEncoder.getToken());
                 soapMessage.saveChanges();
 
-            } catch (SOAPException e) {
-                throw new RuntimeException("Error in HeaderHandler", e);
+            } catch (SOAPException | RuntimeException e) {
+                throw new HeaderHandlerException("Error in SOAP HeaderHandler", e);
             }
         }
 
