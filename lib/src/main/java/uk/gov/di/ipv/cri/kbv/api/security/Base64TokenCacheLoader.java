@@ -10,7 +10,7 @@ public class Base64TokenCacheLoader implements CacheLoader<String, Base64TokenEn
     }
 
     @Override
-    public Base64TokenEncoder load(String key) throws Exception {
+    public Base64TokenEncoder load(String key) {
         return new Base64TokenEncoder(key, soapToken);
     }
 }

@@ -3,6 +3,7 @@ package uk.gov.di.ipv.cri.kbv.api.security;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.di.ipv.cri.kbv.api.exception.InvalidSoapTokenException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -16,7 +17,7 @@ import static org.mockito.Mockito.when;
 class Base64TokenEncoderTest {
 
     private Base64TokenEncoder base64TokenEncoder;
-    private SoapToken token = mock(SoapToken.class);
+    private final SoapToken token = mock(SoapToken.class);
 
     @Test
     void shouldReturnAGeneratedBase64EncodedTokenWhenGivenASoapTokenService() {
@@ -30,20 +31,21 @@ class Base64TokenEncoderTest {
 
     @Test
     void shouldThrowAnExceptionWhenGivenSoapTokenServiceIsNotValid() {
-        base64TokenEncoder = new Base64TokenEncoder(null, token);
-        when(token.getToken()).thenReturn(null);
+        when(token.getToken()).thenReturn("Error");
+        base64TokenEncoder = new Base64TokenEncoder("token", token);
 
-        NullPointerException soapTokenNullRefException =
-                assertThrows(NullPointerException.class, () -> base64TokenEncoder.getToken());
+        InvalidSoapTokenException soapTokenNullRefException =
+                assertThrows(InvalidSoapTokenException.class, () -> base64TokenEncoder.getToken());
 
-        assertEquals("The token must not be null", soapTokenNullRefException.getMessage());
+        assertEquals(
+                "The SOAP token contains an error: Error", soapTokenNullRefException.getMessage());
     }
 
     @Test
     void shouldThrowAnRuntimeExceptionWhenGivenSoapTokenServiceIsNotValid() {
-        base64TokenEncoder = new Base64TokenEncoder("Error", token);
         when(token.getToken()).thenReturn("Error");
+        base64TokenEncoder = new Base64TokenEncoder("Error", token);
 
-        assertThrows(RuntimeException.class, () -> base64TokenEncoder.getToken());
+        assertThrows(InvalidSoapTokenException.class, () -> base64TokenEncoder.getToken());
     }
 }
