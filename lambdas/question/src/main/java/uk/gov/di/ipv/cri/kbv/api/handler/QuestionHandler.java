@@ -37,7 +37,6 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidStrategyScoreException;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
-import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
@@ -82,14 +81,15 @@ public class QuestionHandler
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
         ServiceFactory serviceFactory = new ServiceFactory();
+        this.configurationService = serviceFactory.getConfigurationService();
 
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.personIdentityService =
                 new PersonIdentityService(
                         serviceFactory.getConfigurationService(),
                         serviceFactory.getDynamoDbEnhancedClient());
-        this.configurationService = serviceFactory.getConfigurationService();
-        this.kbvService = new KBVService(new KBVGatewayFactory().create(this.configurationService));
+
+        this.kbvService = new KBVService(serviceFactory.getKbvGateway());
         this.kbvStorageService = new KBVStorageService(this.configurationService);
         this.auditService = serviceFactory.getAuditService();
         this.sessionService = serviceFactory.getSessionService();

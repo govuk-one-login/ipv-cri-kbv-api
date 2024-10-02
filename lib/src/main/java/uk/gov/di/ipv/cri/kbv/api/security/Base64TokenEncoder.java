@@ -1,7 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.security;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidSoapTokenException;
 
 import java.nio.charset.StandardCharsets;
@@ -9,7 +7,6 @@ import java.util.Base64;
 import java.util.Objects;
 
 public class Base64TokenEncoder {
-    private static final Logger LOGGER = LogManager.getLogger();
     private final String key;
     private String token;
 
@@ -20,11 +17,14 @@ public class Base64TokenEncoder {
 
     public String getToken() {
         if (token.contains("Error")) {
-            LOGGER.info("The SOAP token contains an error: {}", token);
             throw new InvalidSoapTokenException("The SOAP token contains an error: " + token);
         }
-
-        return Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8));
+        try {
+            return Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            throw new InvalidSoapTokenException(
+                    "Failed to encode the SOAP token: " + token + ": " + e.getMessage());
+        }
     }
 
     @Override

@@ -1,5 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
+import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebService;
+import com.experian.uk.wasp.TokenService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -11,12 +13,21 @@ import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.ClientProviderFactory;
+import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
+import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
+import uk.gov.di.ipv.cri.kbv.api.gateway.KeyStoreLoader;
+import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandler;
+import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandlerResolver;
+import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
+import uk.gov.di.ipv.cri.kbv.api.security.SoapToken;
 
 import java.time.Clock;
 
 public class ServiceFactory {
+    private static final String APPLICATION = "GDS DI";
     private final ClientProviderFactory clientProviderFactory;
     private ConfigurationService configurationService;
+    private KBVGateway kbvGateway;
 
     @ExcludeFromGeneratedCoverageReport
     public ServiceFactory(ClientProviderFactory clientProviderFactory) {
@@ -61,5 +72,29 @@ public class ServiceFactory {
                 getConfigurationService(),
                 new ObjectMapper(),
                 new AuditEventFactory(getConfigurationService(), Clock.systemDefaultZone()));
+    }
+
+    public KBVGateway getKbvGateway() {
+        if (this.kbvGateway == null) {
+            this.kbvGateway =
+                    getKbvGateway(
+                            new KeyStoreLoader(getConfigurationService()), getKbvClientFactory());
+        }
+        return this.kbvGateway;
+    }
+
+    KBVGateway getKbvGateway(KeyStoreLoader keyStoreLoader, KBVClientFactory kbvClientFactory) {
+        return new KBVGatewayFactory(keyStoreLoader, kbvClientFactory, getConfigurationService())
+                .create();
+    }
+
+    private KBVClientFactory getKbvClientFactory() {
+        TokenService tokenService = new TokenService();
+        SoapToken soapToken = new SoapToken(APPLICATION, true, tokenService, configurationService);
+        HeaderHandler headerHandler = new HeaderHandler(soapToken);
+        HeaderHandlerResolver headerResolver = new HeaderHandlerResolver(headerHandler);
+
+        return new KBVClientFactory(
+                new IdentityIQWebService(), headerResolver, getConfigurationService());
     }
 }
