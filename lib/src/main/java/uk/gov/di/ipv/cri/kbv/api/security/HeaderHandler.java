@@ -1,6 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.security;
 
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import uk.gov.di.ipv.cri.kbv.api.exception.HeaderHandlerException;
 
 import javax.xml.namespace.QName;
@@ -19,10 +18,10 @@ import java.util.Collections;
 import java.util.Set;
 
 public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
-    private final LoadingCache<String, Base64TokenEncoder> cache;
+    private final SoapToken token;
 
-    public HeaderHandler(LoadingCache<String, Base64TokenEncoder> cache) {
-        this.cache = cache;
+    public HeaderHandler(SoapToken token) {
+        this.token = token;
     }
 
     public boolean handleMessage(SOAPMessageContext smc) {
@@ -57,8 +56,7 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
                         "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
                 binarySecurityToken.addAttribute(new QName("EncodingType"), "wsse:Base64Binary");
                 binarySecurityToken.addAttribute(new QName("ValueType"), "ExperianWASP");
-                Base64TokenEncoder tokenEncoder = cache.get("experian-soap-token");
-                binarySecurityToken.setValue(tokenEncoder.getToken());
+                binarySecurityToken.setValue(token.getToken());
                 soapMessage.saveChanges();
 
             } catch (SOAPException | RuntimeException e) {

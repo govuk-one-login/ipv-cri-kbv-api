@@ -117,6 +117,8 @@ class ServiceFactoryTest {
                 assertThrows(
                         KBVGatewayCreationException.class, () -> serviceFactory.getKbvGateway());
 
-        assertEquals("Failed to create KBVGateway: null", exception.getMessage());
+        assertEquals(
+                "Failed to create KBVGateway: Persist keystore to file failed: null",
+                exception.getMessage());
     }
 }

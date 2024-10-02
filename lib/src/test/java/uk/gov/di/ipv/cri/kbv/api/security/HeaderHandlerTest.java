@@ -1,11 +1,11 @@
 package uk.gov.di.ipv.cri.kbv.api.security;
 
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.gov.di.ipv.cri.kbv.api.exception.HeaderHandlerException;
 
 import javax.xml.soap.Name;
 import javax.xml.soap.SOAPElement;
@@ -22,6 +22,7 @@ import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -30,10 +31,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class HeaderHandlerTest {
-    private static final String EXPERIAN_SOAP_TOKEN_CACHE_KEY = "experian-soap-token";
     private static final String MOCKED_TOKEN_VALUE = "mockedTokenValue";
-    @Mock private LoadingCache<String, Base64TokenEncoder> cacheMock;
-    @Mock private Base64TokenEncoder tokenEncoderMock;
+    @Mock private SoapToken soapTokenMock;
     @Mock private SOAPMessageContext soapMessageContextMock;
     @Mock private SOAPMessage soapMessageMock;
     @Mock private SOAPPart soapPartMock;
@@ -47,6 +46,7 @@ class HeaderHandlerTest {
         SOAPHeaderElement soapHeaderElementMock = mock(SOAPHeaderElement.class);
         SOAPElement soapElementMock = mock(SOAPElement.class);
         Name securityNameMock = mock(Name.class);
+
         when(soapMessageContextMock.getMessage()).thenReturn(soapMessageMock);
         when(soapMessageMock.getSOAPPart()).thenReturn(soapPartMock);
         when(soapPartMock.getEnvelope()).thenReturn(soapEnvelopeMock);
@@ -60,15 +60,14 @@ class HeaderHandlerTest {
         when(newSoapHeader.addHeaderElement(securityNameMock)).thenReturn(soapHeaderElementMock);
         when(soapHeaderElementMock.addChildElement("BinarySecurityToken", "wsse"))
                 .thenReturn(soapElementMock);
-        when(cacheMock.get(EXPERIAN_SOAP_TOKEN_CACHE_KEY)).thenReturn(tokenEncoderMock);
-        when(tokenEncoderMock.getToken()).thenReturn(MOCKED_TOKEN_VALUE);
+        when(soapTokenMock.getToken()).thenReturn(MOCKED_TOKEN_VALUE);
         when(soapMessageContextMock.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY)).thenReturn(true);
 
         boolean result = headerHandler.handleMessage(soapMessageContextMock);
 
         verify(soapHeader).detachNode();
         verify(soapEnvelopeMock).addHeader();
-        verify(tokenEncoderMock).getToken();
+        verify(soapTokenMock).getToken();
         verify(soapMessageMock).saveChanges();
         assertTrue(result);
     }
@@ -82,6 +81,16 @@ class HeaderHandlerTest {
 
         verify(soapMessageMock, never()).getSOAPPart();
         assertTrue(result);
+    }
+
+    @Test
+    void shouldThrowHeaderHandlerExceptionWhenSOAPExceptionOccursOrRuntimeExceptionOccurs() {
+        when(soapMessageContextMock.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY)).thenReturn(true);
+
+        assertThrows(
+                HeaderHandlerException.class,
+                () -> headerHandler.handleMessage(soapMessageContextMock),
+                "Error in SOAP HeaderHandler");
     }
 
     @Test
