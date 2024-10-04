@@ -115,7 +115,7 @@ class AbandonKbvHandlerTest {
         doNothing().when(mockSessionService).createAuthorizationCode(mockSessionItem);
         doThrow(SqsException.class).when(mockAuditService).sendAuditEvent(anyString(), any());
 
-        var result = abandonKbvHandler.handleRequest(input, mock(Context.class));
+        abandonKbvHandler.handleRequest(input, mock(Context.class));
 
         verify(mockKbvStorageService)
                 .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
