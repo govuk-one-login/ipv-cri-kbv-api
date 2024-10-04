@@ -26,17 +26,38 @@ import java.time.Clock;
 public class ServiceFactory {
     private static final String APPLICATION = "GDS DI";
     private final ClientProviderFactory clientProviderFactory;
+    private final KeyStoreLoader keyStoreLoader;
+    private KBVClientFactory kbvClientFactory;
     private ConfigurationService configurationService;
     private KBVGateway kbvGateway;
 
     @ExcludeFromGeneratedCoverageReport
-    public ServiceFactory(ClientProviderFactory clientProviderFactory) {
+    public ServiceFactory(
+            ConfigurationService configurationService,
+            ClientProviderFactory clientProviderFactory,
+            KBVClientFactory kbvClientFactory,
+            KeyStoreLoader keyStoreLoader) {
+        this.configurationService = configurationService;
         this.clientProviderFactory = clientProviderFactory;
+        this.kbvClientFactory = kbvClientFactory;
+        this.keyStoreLoader = keyStoreLoader;
     }
 
     @ExcludeFromGeneratedCoverageReport
     public ServiceFactory() {
-        this(new ClientProviderFactory());
+        TokenService tokenService = new TokenService();
+        this.clientProviderFactory = new ClientProviderFactory();
+        this.configurationService =
+                new ConfigurationService(getSsmProvider(), getSecretsProvider());
+
+        this.keyStoreLoader = new KeyStoreLoader(getConfigurationService());
+
+        SoapToken soapToken =
+                new SoapToken(APPLICATION, true, tokenService, getConfigurationService());
+        HeaderHandler headerHandler = new HeaderHandler(soapToken);
+
+        setKBVClientFactory(new IdentityIQWebService(), new HeaderHandlerResolver(headerHandler));
+        setKbvGateway(keyStoreLoader);
     }
 
     public SSMProvider getSsmProvider() {
@@ -56,9 +77,6 @@ public class ServiceFactory {
     }
 
     public ConfigurationService getConfigurationService() {
-        if (configurationService == null) {
-            configurationService = new ConfigurationService(getSsmProvider(), getSecretsProvider());
-        }
         return configurationService;
     }
 
@@ -75,26 +93,25 @@ public class ServiceFactory {
     }
 
     public KBVGateway getKbvGateway() {
-        if (this.kbvGateway == null) {
-            this.kbvGateway =
-                    getKbvGateway(
-                            new KeyStoreLoader(getConfigurationService()), getKbvClientFactory());
-        }
         return this.kbvGateway;
     }
 
-    KBVGateway getKbvGateway(KeyStoreLoader keyStoreLoader, KBVClientFactory kbvClientFactory) {
-        return new KBVGatewayFactory(keyStoreLoader, kbvClientFactory, getConfigurationService())
-                .create();
+    void setKbvGateway(KeyStoreLoader keyStoreLoader) {
+        this.kbvGateway =
+                new KBVGatewayFactory(
+                                keyStoreLoader, getKBVClientFactory(), getConfigurationService())
+                        .create();
     }
 
-    private KBVClientFactory getKbvClientFactory() {
-        TokenService tokenService = new TokenService();
-        SoapToken soapToken = new SoapToken(APPLICATION, true, tokenService, configurationService);
-        HeaderHandler headerHandler = new HeaderHandler(soapToken);
-        HeaderHandlerResolver headerResolver = new HeaderHandlerResolver(headerHandler);
+    void setKBVClientFactory(
+            IdentityIQWebService identityIQWebService,
+            HeaderHandlerResolver headerHandlerResolver) {
+        kbvClientFactory =
+                new KBVClientFactory(
+                        identityIQWebService, headerHandlerResolver, getConfigurationService());
+    }
 
-        return new KBVClientFactory(
-                new IdentityIQWebService(), headerResolver, getConfigurationService());
+    private KBVClientFactory getKBVClientFactory() {
+        return this.kbvClientFactory;
     }
 }

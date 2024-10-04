@@ -14,14 +14,17 @@ import javax.xml.ws.handler.MessageContext;
 import javax.xml.ws.handler.soap.SOAPHandler;
 import javax.xml.ws.handler.soap.SOAPMessageContext;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
 public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
-    private final SoapToken token;
+    private final String token;
 
     public HeaderHandler(SoapToken token) {
-        this.token = token;
+        this.token = Objects.requireNonNull(token.getToken(), "The token must not be null");
     }
 
     public boolean handleMessage(SOAPMessageContext smc) {
@@ -56,15 +59,29 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
                         "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
                 binarySecurityToken.addAttribute(new QName("EncodingType"), "wsse:Base64Binary");
                 binarySecurityToken.addAttribute(new QName("ValueType"), "ExperianWASP");
-                binarySecurityToken.setValue(token.getToken());
+
+                binarySecurityToken.setValue(toBase64(this.token));
                 soapMessage.saveChanges();
 
             } catch (SOAPException | RuntimeException e) {
-                throw new HeaderHandlerException("Error in SOAP HeaderHandler", e);
+                throw new HeaderHandlerException(
+                        "Error in SOAP HeaderHandler: " + e.getMessage(), e);
             }
         }
 
         return true;
+    }
+
+    private String toBase64(String token) {
+        if (token.isEmpty()) {
+            throw new IllegalArgumentException("Token must not be empty.");
+        }
+
+        try {
+            return Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            throw new HeaderHandlerException("Failed to encode the token to Base64", e);
+        }
     }
 
     public Set getHeaders() {

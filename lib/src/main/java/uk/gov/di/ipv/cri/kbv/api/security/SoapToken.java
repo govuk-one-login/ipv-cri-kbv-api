@@ -37,8 +37,8 @@ public class SoapToken {
                             BindingProvider.ENDPOINT_ADDRESS_PROPERTY,
                             configurationService.getSecretValue("experian/iiq-wasp-service"));
 
-            return tokenServiceSoap.loginWithCertificate(application, checkIp);
-
+            return validateTokenContent(
+                    tokenServiceSoap.loginWithCertificate(application, checkIp));
         } catch (SOAPFaultException e) {
             throw new InvalidSoapTokenException("SOAP Fault occurred: " + e.getMessage());
         } catch (WebServiceException e) {
@@ -46,5 +46,12 @@ public class SoapToken {
         } catch (Exception e) {
             throw new InvalidSoapTokenException("Unexpected error occurred: " + e.getMessage());
         }
+    }
+
+    private String validateTokenContent(String token) {
+        if (token.contains("Error")) {
+            throw new InvalidSoapTokenException("The SOAP token contains an error: " + token);
+        }
+        return token;
     }
 }

@@ -1,90 +1,118 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
+import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebService;
 import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.lambda.powertools.parameters.SSMProvider;
 import software.amazon.lambda.powertools.parameters.SecretsProvider;
+import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.ClientProviderFactory;
+import uk.gov.di.ipv.cri.kbv.api.exception.InvalidSoapTokenException;
 import uk.gov.di.ipv.cri.kbv.api.exception.KBVGatewayCreationException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KeyStoreLoader;
+import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandlerResolver;
 import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
+
+import javax.xml.ws.BindingProvider;
+
+import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
+@ExtendWith(MockitoExtension.class)
 class ServiceFactoryTest {
-
-    @Mock private ClientProviderFactory clientProviderFactory;
-
-    @Mock private SSMProvider ssmProvider;
-
-    @Mock private DynamoDbEnhancedClient dynamoDbEnhancedClient;
-
-    @Mock private SecretsProvider secretsProvider;
-
-    @Mock private SqsClient sqsClient;
+    @Mock private ConfigurationService configurationServiceMock;
+    @Mock private ClientProviderFactory clientProviderFactoryMock;
+    @Mock private KeyStoreLoader keyStoreLoaderMock;
+    @Mock private IdentityIQWebServiceSoap identityIQWebServiceSoapMock;
+    @Mock private KBVClientFactory kbvClientFactoryMock;
+    @Mock private SSMProvider ssmProviderMock;
+    @Mock private DynamoDbEnhancedClient dynamoDbEnhancedClientMock;
+    @Mock private SecretsProvider secretsProviderMock;
+    @Mock private SqsClient sqsClientMock;
 
     @InjectMocks private ServiceFactory serviceFactory;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        when(clientProviderFactory.getSSMProvider()).thenReturn(ssmProvider);
-        when(clientProviderFactory.getDynamoDbEnhancedClient()).thenReturn(dynamoDbEnhancedClient);
-        when(clientProviderFactory.getSecretsProvider()).thenReturn(secretsProvider);
-        when(clientProviderFactory.getSqsClient()).thenReturn(sqsClient);
-    }
-
     @Test
     void testGetSsmProvider() {
+        when(clientProviderFactoryMock.getSSMProvider()).thenReturn(ssmProviderMock);
         SSMProvider result = serviceFactory.getSsmProvider();
+
         assertNotNull(result);
-        verify(clientProviderFactory).getSSMProvider();
+        verify(clientProviderFactoryMock).getSSMProvider();
     }
 
     @Test
     void testGetDynamoDbEnhancedClient() {
+        when(clientProviderFactoryMock.getDynamoDbEnhancedClient())
+                .thenReturn(dynamoDbEnhancedClientMock);
         DynamoDbEnhancedClient result = serviceFactory.getDynamoDbEnhancedClient();
+
         assertNotNull(result);
-        verify(clientProviderFactory).getDynamoDbEnhancedClient();
+        verify(clientProviderFactoryMock).getDynamoDbEnhancedClient();
     }
 
     @Test
     void testGetSecretsProvider() {
+        when(clientProviderFactoryMock.getSecretsProvider()).thenReturn(secretsProviderMock);
         SecretsProvider result = serviceFactory.getSecretsProvider();
+
         assertNotNull(result);
-        verify(clientProviderFactory).getSecretsProvider();
+        verify(clientProviderFactoryMock).getSecretsProvider();
     }
 
     @Test
     void testGetSqsClient() {
+        when(clientProviderFactoryMock.getSqsClient()).thenReturn(sqsClientMock);
         SqsClient result = serviceFactory.getSqsClient();
+
         assertNotNull(result);
-        verify(clientProviderFactory).getSqsClient();
+        verify(clientProviderFactoryMock).getSqsClient();
     }
 
     @Test
-    void testGetAuditServiceThrowsWhenEnvironmentNotSetupCorrectly() {
-        boolean hasThrown = false;
-        try {
-            serviceFactory.getAuditService();
-        } catch (Exception e) {
-            hasThrown = true;
-        }
-        assertTrue(hasThrown);
+    void testGetAuditService() {
+        when(configurationServiceMock.getSqsAuditEventPrefix()).thenReturn("auditPrefix");
+        when(configurationServiceMock.getSqsAuditEventQueueUrl())
+                .thenReturn("http://audit-event-url");
+        when(configurationServiceMock.getVerifiableCredentialIssuer()).thenReturn("an-issuer");
+        when(clientProviderFactoryMock.getSqsClient()).thenReturn(sqsClientMock);
+        serviceFactory.getConfigurationService();
+
+        AuditService auditService = serviceFactory.getAuditService();
+
+        verify(configurationServiceMock).getSqsAuditEventPrefix();
+        verify(configurationServiceMock).getSqsAuditEventQueueUrl();
+        verify(configurationServiceMock).getVerifiableCredentialIssuer();
+        verify(clientProviderFactoryMock).getSqsClient();
+        assertNotNull(auditService);
+    }
+
+    @Test
+    void testGetAuditServiceThrowsWhenAuditAttributesNotSetupCorrectly() {
+        IllegalStateException exception =
+                assertThrows(IllegalStateException.class, () -> serviceFactory.getAuditService());
+
+        assertEquals(
+                "Audit event prefix not retrieved from configuration service",
+                exception.getMessage());
     }
 
     @Test
@@ -97,28 +125,75 @@ class ServiceFactoryTest {
     }
 
     @Test
-    void testGetKbvGateway() {
-        KBVClientFactory kbvClientFactoryMock = mock(KBVClientFactory.class);
-        KeyStoreLoader keyStoreLoaderMock = mock(KeyStoreLoader.class);
-        IdentityIQWebServiceSoap identityIQWebServiceSoapMock =
-                mock(IdentityIQWebServiceSoap.class);
+    void testGetSessionService() {
+        when(clientProviderFactoryMock.getDynamoDbEnhancedClient())
+                .thenReturn(dynamoDbEnhancedClientMock);
 
-        when(kbvClientFactoryMock.createClient()).thenReturn(identityIQWebServiceSoapMock);
-        KBVGateway kbvGateway =
-                serviceFactory.getKbvGateway(keyStoreLoaderMock, kbvClientFactoryMock);
+        SessionService result = serviceFactory.getSessionService();
 
-        assertNotNull(kbvGateway);
+        verify(clientProviderFactoryMock).getDynamoDbEnhancedClient();
+        assertNotNull(result);
     }
 
     @Test
-    void testGetKbvGatewayReturnsExceptionWhenCreationFails() {
+    void testGetKbvGatewayReturnsSameInstanceOnMultipleInitialization() throws IOException {
+        when(kbvClientFactoryMock.createClient()).thenReturn(identityIQWebServiceSoapMock);
+        doNothing().when(keyStoreLoaderMock).load();
+
+        serviceFactory.setKbvGateway(keyStoreLoaderMock);
+        KBVGateway firstCall = serviceFactory.getKbvGateway();
+        KBVGateway secondCall = serviceFactory.getKbvGateway();
+
+        verify(kbvClientFactoryMock).createClient();
+        verify(keyStoreLoaderMock).load();
+        assertNotNull(firstCall);
+        assertNotNull(secondCall);
+        assertSame(firstCall, secondCall);
+    }
+
+    @Test
+    void testGetKbvGatewayWhenGatewayIsNullShouldInitializeKbvGateway() throws IOException {
+        when(kbvClientFactoryMock.createClient()).thenReturn(identityIQWebServiceSoapMock);
+        doNothing().when(keyStoreLoaderMock).load();
+
+        serviceFactory.setKbvGateway(keyStoreLoaderMock);
+        KBVGateway result = serviceFactory.getKbvGateway();
+
+        assertNotNull(result);
+        verify(kbvClientFactoryMock).createClient();
+        verify(keyStoreLoaderMock).load();
+    }
+
+    @Test
+    void testGetKbvGatewayReturnsAnInstanceUsingKbvClientFactoryWithMockedDependencies() {
+        identityIQWebServiceSoapMock =
+                mock(
+                        IdentityIQWebServiceSoap.class,
+                        withSettings().extraInterfaces(BindingProvider.class));
+        IdentityIQWebService identityIQWebServiceMock = mock(IdentityIQWebService.class);
+
+        when(identityIQWebServiceMock.getIdentityIQWebServiceSoap())
+                .thenReturn(identityIQWebServiceSoapMock);
+
+        serviceFactory.setKBVClientFactory(
+                identityIQWebServiceMock, mock(HeaderHandlerResolver.class));
+        serviceFactory.setKbvGateway(keyStoreLoaderMock);
+
+        assertNotNull(serviceFactory.getKbvGateway());
+        verify(identityIQWebServiceMock).getIdentityIQWebServiceSoap();
+    }
+
+    @Test
+    void testGetKbvGatewayThrowsKBVGatewayCreationExceptionOnSoapFault() {
+        when(kbvClientFactoryMock.createClient())
+                .thenThrow(new InvalidSoapTokenException("SOAP Fault occurred"));
 
         KBVGatewayCreationException exception =
                 assertThrows(
-                        KBVGatewayCreationException.class, () -> serviceFactory.getKbvGateway());
+                        KBVGatewayCreationException.class,
+                        () -> serviceFactory.setKbvGateway(keyStoreLoaderMock));
 
-        assertEquals(
-                "Failed to create KBVGateway: Persist keystore to file failed: null",
-                exception.getMessage());
+        assertEquals("Failed to create KBVGateway: SOAP Fault occurred", exception.getMessage());
+        verify(kbvClientFactoryMock).createClient();
     }
 }
