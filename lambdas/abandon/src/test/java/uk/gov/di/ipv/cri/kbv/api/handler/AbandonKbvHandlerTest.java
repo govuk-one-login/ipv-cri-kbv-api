@@ -28,7 +28,6 @@ import static org.apache.logging.log4j.Level.ERROR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -113,9 +112,12 @@ class AbandonKbvHandlerTest {
         when(mockEventProbe.counterMetric(ABANDON_KBV)).thenReturn(mockEventProbe);
 
         doNothing().when(mockSessionService).createAuthorizationCode(mockSessionItem);
-        doThrow(SqsException.class).when(mockAuditService).sendAuditEvent(anyString(), any());
+        doThrow(SqsException.class)
+                .when(mockAuditService)
+                .sendAuditEvent(eq("ABANDONED"), any(AuditEventContext.class));
 
-        abandonKbvHandler.handleRequest(input, mock(Context.class));
+        var result = abandonKbvHandler.handleRequest(input, mock(Context.class));
+        assertEquals(HttpStatusCode.BAD_REQUEST, result.getStatusCode());
 
         verify(mockKbvStorageService)
                 .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
@@ -125,6 +127,8 @@ class AbandonKbvHandlerTest {
 
         verify(mockEventProbe).log(any(ERROR.getClass()), any(SqsException.class));
         verify(mockEventProbe).counterMetric(ABANDON_KBV, 0d);
+
+        verify(mockAuditService).sendAuditEvent(eq("ABANDONED"), any(AuditEventContext.class));
     }
 
     @Test
