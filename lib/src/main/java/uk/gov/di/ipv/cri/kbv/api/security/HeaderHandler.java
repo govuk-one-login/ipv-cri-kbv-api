@@ -1,6 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.security;
 
 import uk.gov.di.ipv.cri.kbv.api.exception.HeaderHandlerException;
+import uk.gov.di.ipv.cri.kbv.api.exception.InvalidSoapTokenException;
 
 import javax.xml.namespace.QName;
 import javax.xml.soap.Name;
@@ -15,6 +16,7 @@ import javax.xml.ws.handler.soap.SOAPHandler;
 import javax.xml.ws.handler.soap.SOAPMessageContext;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
 public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
@@ -56,15 +58,25 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
                         "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
                 binarySecurityToken.addAttribute(new QName("EncodingType"), "wsse:Base64Binary");
                 binarySecurityToken.addAttribute(new QName("ValueType"), "ExperianWASP");
-                binarySecurityToken.setValue(token.getToken());
+                binarySecurityToken.setValue(retrieveTokenWithoutError(token));
                 soapMessage.saveChanges();
 
             } catch (SOAPException | RuntimeException e) {
-                throw new HeaderHandlerException("Error in SOAP HeaderHandler", e);
+                throw new HeaderHandlerException(
+                        "Error in SOAP HeaderHandler: " + e.getMessage(), e);
             }
         }
 
         return true;
+    }
+
+    private String retrieveTokenWithoutError(SoapToken token) {
+        String tokenValue = Objects.requireNonNull(token.getToken(), "The token must not be null");
+
+        if (tokenValue.toLowerCase().contains("error")) {
+            throw new InvalidSoapTokenException("The SOAP token contains an error: " + tokenValue);
+        }
+        return tokenValue;
     }
 
     public Set getHeaders() {
