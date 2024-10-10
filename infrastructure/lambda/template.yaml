@@ -56,9 +56,9 @@ Conditions:
     - !Equals [ !Ref Environment, staging ]
     - !Equals [ !Ref Environment, integration ]
   IsDevEnvironment: !Equals [!Ref Environment, dev]
-  IsProdEnvironment: !Equals [!Ref Environment, production]
   IsNotDevEnvironment: !Not [!Condition IsDevEnvironment]
   UseSecretPrefix: !Not [!Equals [!Ref SecretPrefix, "none"]]
+  UseCanaryDeploymentAlarms: !Not [ !Equals [ !Ref LambdaDeploymentPreference, AllAtOnce ]]
 
 Globals:
   Function:
@@ -375,9 +375,10 @@ Resources:
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
       DeploymentPreference:
-        Alarms:
-          - !Ref KBVQuestionFunctionCanaryErrors
-          - !Ref KBVQuestionFunctionCanary5xxErrors
+        Alarms: !If
+          - UseCanaryDeploymentAlarms
+          - [!Ref KBVQuestionFunctionCanaryErrors, !Ref KBVQuestionFunction5xxCanaryErrors]
+          - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
@@ -457,9 +458,10 @@ Resources:
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
       DeploymentPreference:
-        Alarms:
-          - !Ref KBVAnswerFunctionCanaryErrors
-          - !Ref KBVAnswerFunctionCanary5xxErrors
+        Alarms: !If
+          - UseCanaryDeploymentAlarms
+          - [!Ref KBVAnswerFunctionCanaryErrors, !Ref KBVAnswerFunction5xxCanaryErrors]
+          - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
@@ -535,9 +537,10 @@ Resources:
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
       DeploymentPreference:
-        Alarms:
-          - !Ref KBVAbandonFunctionCanaryErrors
-          - !Ref KBVAbandonFunctionCanary5xxErrors
+        Alarms: !If
+          - UseCanaryDeploymentAlarms
+          - [!Ref KBVAbandonFunctionCanaryErrors, !Ref KBVAbandonFunction5xxCanaryErrors]
+          - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
@@ -594,9 +597,10 @@ Resources:
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
       DeploymentPreference:
-        Alarms:
-          - !Ref IssueCredentialFunctionCanaryErrors
-          - !Ref IssueCredentialFunctionCanary5xxErrors
+        Alarms: !If
+          - UseCanaryDeploymentAlarms
+          - [!Ref IssueCredentialFunctionCanaryErrors, !Ref IssueCredentialFunction5xxCanaryErrors]
+          - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
@@ -924,15 +928,17 @@ Resources:
             Period: 300
             Stat: Sum
 
-  KBVQuestionFunctionCanary5xxErrors:
+  KBVQuestionFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
+    Condition: UseCanaryDeploymentAlarms
     Properties:
       ActionsEnabled: false
       AlarmActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue] # Only sends notifications in prod, where LambdaCanaryDeployment is set. See https://github.com/govuk-one-login/identity-common-infra/blob/main/terraform/orange/kbv/production/pipelines/main.tf
+        - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVQuestionFunction Lambda returning 5xx response."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVQuestionFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
@@ -954,13 +960,15 @@ Resources:
 
   KBVQuestionFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
+    Condition: UseCanaryDeploymentAlarms
     Properties:
       ActionsEnabled: false
       AlarmActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVQuestionFunction Lambda error."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVQuestionFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
@@ -978,15 +986,17 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  KBVAnswerFunctionCanary5xxErrors:
+  KBVAnswerFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
+    Condition: UseCanaryDeploymentAlarms
     Properties:
       ActionsEnabled: false
       AlarmActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVAnswerFunction Lambda returning 5xx response."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVAnswerFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
@@ -1008,13 +1018,15 @@ Resources:
 
   KBVAnswerFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
+    Condition: UseCanaryDeploymentAlarms
     Properties:
       ActionsEnabled: false
       AlarmActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVAnswerFunction Lambda error."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVAnswerFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
@@ -1032,15 +1044,17 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       
-  KBVAbandonFunctionCanary5xxErrors:
+  KBVAbandonFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
+    Condition: UseCanaryDeploymentAlarms
     Properties:
       ActionsEnabled: false
       AlarmActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVAbandonFunction Lambda returning 5xx response."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVAbandonFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
@@ -1062,13 +1076,15 @@ Resources:
 
   KBVAbandonFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
+    Condition: UseCanaryDeploymentAlarms
     Properties:
       ActionsEnabled: false
       AlarmActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVAbandon Lambda error."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVAbandonFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
@@ -1086,15 +1102,17 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  IssueCredentialFunctionCanary5xxErrors:
+  IssueCredentialFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
+    Condition: UseCanaryDeploymentAlarms
     Properties:
       ActionsEnabled: false
       AlarmActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "IssueCredentialFunction Lambda returning 5xx response."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-IssueCredentialFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
@@ -1116,13 +1134,15 @@ Resources:
 
   IssueCredentialFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
+    Condition: UseCanaryDeploymentAlarms
     Properties:
       ActionsEnabled: false
       AlarmActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
-        - !If [IsProdEnvironment, !ImportValue platform-alarm-warning-alert-topic, !Ref AWS::NoValue]
+        - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "IssueCredential Lambda error."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-IssueCredentialFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
