@@ -938,6 +938,7 @@ Resources:
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVQuestionFunction Lambda returning 5xx response."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVQuestionFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
@@ -967,6 +968,7 @@ Resources:
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVQuestionFunction Lambda error."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVQuestionFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
@@ -994,6 +996,7 @@ Resources:
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVAnswerFunction Lambda returning 5xx response."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVAnswerFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
@@ -1023,6 +1026,7 @@ Resources:
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVAnswerFunction Lambda error."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVAnswerFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
@@ -1050,6 +1054,7 @@ Resources:
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVAbandonFunction Lambda returning 5xx response."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVAbandonFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
@@ -1079,6 +1084,7 @@ Resources:
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "KBVAbandon Lambda error."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVAbandonFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
@@ -1106,6 +1112,7 @@ Resources:
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "IssueCredentialFunction Lambda returning 5xx response."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-IssueCredentialFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
@@ -1135,6 +1142,7 @@ Resources:
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
       AlarmDescription: !Sub "IssueCredential Lambda error."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-IssueCredentialFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
