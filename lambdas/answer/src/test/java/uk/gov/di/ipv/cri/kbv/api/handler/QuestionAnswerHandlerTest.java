@@ -40,6 +40,7 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -199,14 +200,17 @@ class QuestionAnswerHandlerTest {
         Map<?, ?> auditEventExtensionEntries =
                 (Map<?, ?>) auditEventExtensionsArgCaptor.getValue().get("experianIiqResponse");
         assertNotNull(auditEventExtensionEntries);
-        assertEquals(responseStatus, auditEventExtensionEntries.get("outcome"));
-        assertEquals(totalQuestionsAsked, auditEventExtensionEntries.get("totalQuestionsAsked"));
-        assertEquals(
-                totalCorrectAnswers,
-                auditEventExtensionEntries.get("totalQuestionsAnsweredCorrect"));
-        assertEquals(
-                totalIncorrectAnswers,
-                auditEventExtensionEntries.get("totalQuestionsAnsweredIncorrect"));
+
+        Map<String, Object> extensionsMap =
+                new HashMap<>(
+                        Map.of(
+                                "totalQuestionsAnsweredCorrect", totalCorrectAnswers,
+                                "totalQuestionsAsked", totalQuestionsAsked,
+                                "totalQuestionsAnsweredIncorrect", totalIncorrectAnswers,
+                                "outcome", responseStatus));
+
+        assertEquals(extensionsMap, auditEventExtensionEntries);
+
         assertEquals(HttpStatusCode.OK, result.getStatusCode());
         assertNull(result.getBody());
     }

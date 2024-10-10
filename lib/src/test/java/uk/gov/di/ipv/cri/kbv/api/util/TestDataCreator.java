@@ -3,6 +3,7 @@ package uk.gov.di.ipv.cri.kbv.api.util;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.AddressType;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.PersonIdentity;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvAlert;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionAnswerSummary;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionOptions;
@@ -15,7 +16,10 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TestDataCreator {
     public static PersonIdentity createTestPersonIdentity(AddressType addressType) {
@@ -100,6 +104,26 @@ public class TestDataCreator {
         return questionsResponse;
     }
 
+    public static QuestionsResponse getExperianQuestionResponse(boolean withAlert) {
+        KbvQuestion[] questions = new KbvQuestion[] {getQuestionOne(), getQuestionTwo()};
+        QuestionsResponse questionsResponse = new QuestionsResponse();
+        questionsResponse.setAuthReference("authrefno");
+        questionsResponse.setUniqueReference("urn");
+        questionsResponse.setQuestions(questions);
+        KbvResult kbvResult = new KbvResult();
+        kbvResult.setNextTransId(new String[] {"RTQ"});
+        kbvResult.setOutcome("Authentication Questions returned");
+        if (withAlert) {
+            KbvAlert alert = new KbvAlert();
+            alert.setCode("U501");
+            alert.setText("Applicant has previously requested authentication");
+            kbvResult.setAlerts(Collections.singletonList(alert));
+        }
+        questionsResponse.setResults(kbvResult);
+
+        return questionsResponse;
+    }
+
     public static KbvQuestion getQuestionOne() {
         KbvQuestionOptions questionOptions = new KbvQuestionOptions();
         questionOptions.setIdentifier("A00004");
@@ -172,5 +196,18 @@ public class TestDataCreator {
         kbvResult.setAnswerSummary(kbvQuestionAnswerSummary);
         questionsResponse.setResults(kbvResult);
         return questionsResponse;
+    }
+
+    public static Map<String, Object> createAuditExtensionsMap(
+            String authenticationResult,
+            int answeredCorrectly,
+            int answeredInCorrectly,
+            int totalQuestionsAsked) {
+        Map<String, Object> extensionsMap = new HashMap<>();
+        extensionsMap.put("outcome", authenticationResult);
+        extensionsMap.put("totalQuestionsAnsweredCorrect", answeredCorrectly);
+        extensionsMap.put("totalQuestionsAsked", totalQuestionsAsked);
+        extensionsMap.put("totalQuestionsAnsweredIncorrect", answeredInCorrectly);
+        return extensionsMap;
     }
 }

@@ -103,4 +103,10 @@ public class QuestionsResponse {
         }
         return null;
     }
+
+    public boolean isRepeatAttemptAlert() {
+        return Objects.nonNull(results)
+                && Objects.nonNull(results.getAlerts())
+                && results.getAlerts().stream().anyMatch(a -> a.getCode().equalsIgnoreCase("U501"));
+    }
 }

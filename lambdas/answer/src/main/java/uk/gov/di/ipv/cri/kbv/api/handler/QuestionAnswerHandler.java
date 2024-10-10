@@ -174,7 +174,7 @@ public class QuestionAnswerHandler
         auditService.sendAuditEvent(
                 AuditEventType.RESPONSE_RECEIVED,
                 new AuditEventContext(requestHeaders, sessionItem),
-                Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
+                Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse, true)));
         if (questionsResponse.hasQuestions()) {
             LOGGER.info(
                     "ANSWER HANDLER: QuestionIds: {} received from 3rd-party",
