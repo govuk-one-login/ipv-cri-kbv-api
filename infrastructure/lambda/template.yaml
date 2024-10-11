@@ -932,7 +932,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
-      ActionsEnabled: false
+      ActionsEnabled: true
       AlarmActions:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
@@ -962,7 +962,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
-      ActionsEnabled: false
+      ActionsEnabled: true
       AlarmActions:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
@@ -990,7 +990,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
-      ActionsEnabled: false
+      ActionsEnabled: true
       AlarmActions:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
@@ -1020,7 +1020,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
-      ActionsEnabled: false
+      ActionsEnabled: true
       AlarmActions:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
@@ -1048,7 +1048,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
-      ActionsEnabled: false
+      ActionsEnabled: true
       AlarmActions:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
@@ -1078,7 +1078,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
-      ActionsEnabled: false
+      ActionsEnabled: true
       AlarmActions:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
@@ -1106,7 +1106,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
-      ActionsEnabled: false
+      ActionsEnabled: true
       AlarmActions:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
@@ -1136,7 +1136,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
-      ActionsEnabled: false
+      ActionsEnabled: true
       AlarmActions:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
