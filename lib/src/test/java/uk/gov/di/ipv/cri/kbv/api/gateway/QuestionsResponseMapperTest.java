@@ -1,6 +1,8 @@
 package uk.gov.di.ipv.cri.kbv.api.gateway;
 
+import com.experian.uk.schema.experian.identityiq.services.webservice.Alerts;
 import com.experian.uk.schema.experian.identityiq.services.webservice.AnswerFormat;
+import com.experian.uk.schema.experian.identityiq.services.webservice.ArrayOfAlerts;
 import com.experian.uk.schema.experian.identityiq.services.webservice.ArrayOfString;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
@@ -18,12 +20,14 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionAnswerSummary;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -46,6 +50,8 @@ class QuestionsResponseMapperTest {
     private static final String AUTH_RESULT = "auth-result";
     private static final String CONFIRMATION_CODE = "conf-code";
     private static final String TRANS_ID = "trans-id";
+    private static final String ALERT_CODE = "U501";
+    private static final String ALERT_TEXT = "Applicant has previously requested authentication";
     private static final int CORRECT_ANSWERS = 2;
     private static final int INCORRECT_ANSWERS = 1;
     private static final int QUESTIONS_ASKED = 3;
@@ -93,6 +99,31 @@ class QuestionsResponseMapperTest {
                 questionsResponseMapper.mapSAAResponse(mockSaaResponse);
 
         makeQuestionsResponseAssertions(questionsResponse);
+        assertNull(questionsResponse.getResults().getAlerts());
+    }
+
+    @Test
+    void shouldMapSAAResponseWithAlert() {
+        Control mockControl = createControl();
+        Error mockError = createError();
+        Questions mockQuestions = createQuestions();
+        Results mockResults = createResults();
+
+        SAAResponse2 mockSaaResponse = mock(SAAResponse2.class);
+        when(mockSaaResponse.getControl()).thenReturn(mockControl);
+        when(mockSaaResponse.getError()).thenReturn(mockError);
+        when(mockSaaResponse.getQuestions()).thenReturn(mockQuestions);
+        when(mockSaaResponse.getResults()).thenReturn(mockResults);
+        ArrayOfAlerts mockArrayOfAlerts = createArrayOfAlerts();
+        when(mockSaaResponse.getResults().getAlerts()).thenReturn(mockArrayOfAlerts);
+
+        QuestionsResponse questionsResponse =
+                questionsResponseMapper.mapSAAResponse(mockSaaResponse);
+
+        makeQuestionsResponseAssertions(questionsResponse);
+        assertEquals(1, questionsResponse.getResults().getAlerts().size());
+        assertEquals(ALERT_CODE, questionsResponse.getResults().getAlerts().get(0).getCode());
+        assertEquals(ALERT_TEXT, questionsResponse.getResults().getAlerts().get(0).getText());
     }
 
     private void makeQuestionsResponseAssertions(QuestionsResponse questionsResponse) {
@@ -172,5 +203,14 @@ class QuestionsResponseMapperTest {
         when(mockQuestion.getAnswerFormat()).thenReturn(mockAnswerFormat);
         when(mockQuestions.getQuestion()).thenReturn(List.of(mockQuestion));
         return mockQuestions;
+    }
+
+    private ArrayOfAlerts createArrayOfAlerts() {
+        ArrayOfAlerts mockArrayOfAlerts = mock(ArrayOfAlerts.class);
+        Alerts alerts = new Alerts();
+        alerts.setCode(ALERT_CODE);
+        alerts.setText(ALERT_TEXT);
+        when(mockArrayOfAlerts.getAlerts()).thenReturn(Collections.singletonList(alerts));
+        return mockArrayOfAlerts;
     }
 }

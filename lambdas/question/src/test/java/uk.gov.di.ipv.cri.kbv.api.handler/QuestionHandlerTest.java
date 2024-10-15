@@ -33,6 +33,7 @@ import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
+import uk.gov.di.ipv.cri.kbv.api.domain.KbvAlert;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestionOptions;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
@@ -130,8 +131,6 @@ class QuestionHandlerTest {
         @Nested
         class When1stCalledAndReturn1stUnAnsweredQuestionFromExperianEndpoint {
             private final String expectedComponentId = "kbv-component-id";
-            private final Map<String, String> outcome =
-                    Map.of("outcome", "Authentication successful");
             private final KBVItem kbvItem = new KBVItem();
             private final Map<String, String> requestHeaders =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
@@ -154,11 +153,6 @@ class QuestionHandlerTest {
                         .thenReturn(personIdentity);
                 doNothing().when(mockKBVStorageService).save(any());
 
-                QuestionsResponse experianQuestionResponse =
-                        getExperianQuestionResponse(
-                                new KbvQuestion[] {getQuestionOne(), getQuestionTwo()});
-                doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
-
                 when(mockObjectMapper.writeValueAsString(any())).thenReturn(expectedQuestion);
                 when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                         .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -171,6 +165,10 @@ class QuestionHandlerTest {
 
             @Test
             void shouldReturn200Ok() throws JsonProcessingException {
+                QuestionsResponse experianQuestionResponse =
+                        getExperianQuestionResponseWithQuestions();
+                doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
+
                 APIGatewayProxyResponseEvent response =
                         questionHandler.handleRequest(input, mock(Context.class));
 
@@ -195,6 +193,11 @@ class QuestionHandlerTest {
                         ArgumentCaptor.forClass(Map.class);
                 ArgumentCaptor<Map<String, Object>> auditEventMapForReceived =
                         ArgumentCaptor.forClass(Map.class);
+
+                QuestionsResponse questionsResponse = getExperianQuestionResponseWithQuestions();
+                doReturn(questionsResponse)
+                        .when(spyKBVService)
+                        .getQuestions(any(QuestionRequest.class));
 
                 questionHandler.handleRequest(input, mock(Context.class));
 
@@ -224,7 +227,8 @@ class QuestionHandlerTest {
 
                 assertThat(
                         auditEventMapForReceived.getValue().get("experianIiqResponse"),
-                        equalTo(outcome));
+                        equalTo(Collections.emptyMap()));
+
                 assertEquals(
                         sessionItem,
                         argumentCaptorForExperianIIQStarted.getValue().getSessionItem());
@@ -237,7 +241,36 @@ class QuestionHandlerTest {
             }
 
             @Test
+            void shouldSendRepeatAttemptAlert() throws SqsException {
+                ArgumentCaptor<AuditEventContext> argumentCaptorForReceived =
+                        ArgumentCaptor.forClass(AuditEventContext.class);
+                ArgumentCaptor<Map<String, Object>> auditEventMapForReceived =
+                        ArgumentCaptor.forClass(Map.class);
+
+                QuestionsResponse questionsResponse = getExperianQuestionResponseWithAlert();
+                doReturn(questionsResponse)
+                        .when(spyKBVService)
+                        .getQuestions(any(QuestionRequest.class));
+
+                questionHandler.handleRequest(input, mock(Context.class));
+
+                verify(mockAuditService)
+                        .sendAuditEvent(
+                                eq(AuditEventType.RESPONSE_RECEIVED),
+                                argumentCaptorForReceived.capture(),
+                                auditEventMapForReceived.capture());
+
+                assertThat(
+                        auditEventMapForReceived.getValue().get("experianIiqResponse"),
+                        equalTo(Map.of("repeatAttemptAlert", true)));
+            }
+
+            @Test
             void shouldAddMetrics() {
+                QuestionsResponse experianQuestionResponse =
+                        getExperianQuestionResponseWithQuestions();
+                doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
+
                 questionHandler.handleRequest(input, mock(Context.class));
 
                 verify(mockEventProbe).counterMetric(LAMBDA_NAME);
@@ -663,6 +696,7 @@ class QuestionHandlerTest {
 
     @Nested
     class ThinFileAuditEvent {
+
         @Test
         void shouldSendThinFileEncounteredAuditEventGivenResponseOnAThinFile()
                 throws SqsException, IOException {
@@ -708,6 +742,60 @@ class QuestionHandlerTest {
                             auditEventMapForThinFile.capture());
             assertEquals(sessionItem, argumentCaptorForThinFile.getValue().getSessionItem());
             assertEquals(requestHeaders, argumentCaptorForThinFile.getValue().getRequestHeaders());
+
+            Map<?, ?> auditEventExtensionEntries =
+                    (Map<?, ?>) auditEventMapForThinFile.getValue().get("experianIiqResponse");
+            assertEquals(Map.of("outcome", "Unable to Authenticate"), auditEventExtensionEntries);
+        }
+
+        @Test
+        void shouldNotIncludeAttemptAlertInThinFileAuditEvent() throws SqsException, IOException {
+            Map<String, String> requestHeaders =
+                    Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
+            ArgumentCaptor<AuditEventContext> argumentCaptorForThinFile =
+                    ArgumentCaptor.forClass(AuditEventContext.class);
+            ArgumentCaptor<Map<String, Object>> auditEventMapForThinFile =
+                    ArgumentCaptor.forClass(Map.class);
+
+            QuestionState questionState = new QuestionState();
+            KBVItem kbvItem = new KBVItem();
+            UUID sessionId = UUID.randomUUID();
+            SessionItem sessionItem = new SessionItem();
+            sessionItem.setSessionId(sessionId);
+            kbvItem.setSessionId(sessionId);
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
+
+            when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
+                    .thenReturn(personIdentity);
+            QuestionsResponse experianQuestionResponse = getExperianThinFileResponseWithAlert();
+            doReturn(experianQuestionResponse)
+                    .when(spyKBVService)
+                    .getQuestions(any(QuestionRequest.class));
+
+            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
+                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
+            when(mockObjectMapper.readValue(
+                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
+                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
+            when(mockConfigurationService.getVerifiableCredentialIssuer())
+                    .thenReturn("kbv-component-id");
+
+            assertNotNull(
+                    questionHandler.processQuestionRequest(
+                            questionState, kbvItem, sessionItem, requestHeaders));
+
+            verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
+            verify(mockAuditService)
+                    .sendAuditEvent(
+                            eq(THIN_FILE_ENCOUNTERED.toString()),
+                            argumentCaptorForThinFile.capture(),
+                            auditEventMapForThinFile.capture());
+            assertEquals(sessionItem, argumentCaptorForThinFile.getValue().getSessionItem());
+            assertEquals(requestHeaders, argumentCaptorForThinFile.getValue().getRequestHeaders());
+
+            Map<?, ?> auditEventExtensionEntries =
+                    (Map<?, ?>) auditEventMapForThinFile.getValue().get("experianIiqResponse");
+            assertEquals(Map.of("outcome", "Unable to Authenticate"), auditEventExtensionEntries);
         }
 
         @Test
@@ -778,7 +866,7 @@ class QuestionHandlerTest {
 
             when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
                     .thenReturn(personIdentity);
-            QuestionsResponse experianQuestionResponse = getExperianQuestionResponse();
+            QuestionsResponse experianQuestionResponse = getExperianQuestionResponseWithQuestions();
             doReturn(experianQuestionResponse)
                     .when(spyKBVService)
                     .getQuestions(any(QuestionRequest.class));
@@ -857,9 +945,27 @@ class QuestionHandlerTest {
         questionsResponse.setQuestions(kbvQuestions);
 
         KbvResult kbvResult = new KbvResult();
-        kbvResult.setAuthenticationResult("Authentication successful");
+        kbvResult.setOutcome("Authentication Questions returned");
         kbvResult.setNextTransId(new String[] {"RTQ"});
+        questionsResponse.setResults(kbvResult);
 
+        return questionsResponse;
+    }
+
+    public QuestionsResponse getExperianQuestionResponseWithQuestions() {
+        KbvQuestion[] questions = new KbvQuestion[] {getQuestionOne(), getQuestionTwo()};
+        return getExperianQuestionResponse(questions);
+    }
+
+    public QuestionsResponse getExperianQuestionResponseWithAlert() {
+        QuestionsResponse questionsResponse = getExperianQuestionResponseWithQuestions();
+        KbvResult kbvResult = questionsResponse.getResults();
+
+        KbvAlert alert = new KbvAlert();
+        alert.setCode("U501");
+        alert.setText("Applicant has previously requested authentication");
+
+        kbvResult.setAlerts(Collections.singletonList(alert));
         questionsResponse.setResults(kbvResult);
 
         return questionsResponse;
@@ -874,7 +980,19 @@ class QuestionHandlerTest {
         KbvResult kbvResult = new KbvResult();
         kbvResult.setAuthenticationResult("Unable to Authenticate");
         kbvResult.setNextTransId(new String[] {"END"});
+        questionsResponse.setResults(kbvResult);
 
+        return questionsResponse;
+    }
+
+    private QuestionsResponse getExperianThinFileResponseWithAlert() {
+        QuestionsResponse questionsResponse = getExperianThinFileResponse();
+        KbvResult kbvResult = questionsResponse.getResults();
+
+        KbvAlert alert = new KbvAlert();
+        alert.setCode("U501");
+        alert.setText("Applicant has previously requested authentication");
+        kbvResult.setAlerts(Collections.singletonList(alert));
         questionsResponse.setResults(kbvResult);
 
         return questionsResponse;

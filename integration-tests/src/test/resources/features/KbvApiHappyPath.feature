@@ -16,6 +16,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     # First question
     When user sends a GET request to question endpoint
     Then user gets status code 200
+    Then TXMA event is added to the SQS queue with repeatAttemptAlert present <alert>
     And <user> answers the question correctly
     Then user gets status code 200
 
@@ -53,8 +54,9 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And 10 events are deleted from the audit events SQS queue
 
     Examples:
-      | user |
-      | 197  |
+      | user | alert |
+      | 197  | false |
+      | 1188 | true |
 
   @pre_merge_happy_medium_confidence
   Scenario Outline: User answers 3 questions correctly in 3-out-of-4 question strategy

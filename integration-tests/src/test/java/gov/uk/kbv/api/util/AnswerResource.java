@@ -16,7 +16,8 @@ public class AnswerResource {
     private static final Map<Integer, String> resourceMap =
             Map.of(
                     197, "KennethDecerqueira.json",
-                    256, "HildaHead.json");
+                    256, "HildaHead.json",
+                    1188, "CarolineCoulson.json");
 
     public static String getCorrect(String question, int user) throws IOException {
         return AnswerResource.retrieve(question, CORRECT, user);

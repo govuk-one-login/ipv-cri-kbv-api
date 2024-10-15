@@ -56,6 +56,7 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.EXPERIAN_IIQ_ST
 import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.THIN_FILE_ENCOUNTERED;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createAuditEventExtensions;
+import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createResponseReceivedAuditEventExtensions;
 
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -331,7 +332,9 @@ public class QuestionHandler
         auditService.sendAuditEvent(
                 AuditEventType.RESPONSE_RECEIVED,
                 new AuditEventContext(requestHeaders, sessionItem),
-                Map.of(EXPERIAN_IIQ_RESPONSE, createAuditEventExtensions(questionsResponse)));
+                Map.of(
+                        EXPERIAN_IIQ_RESPONSE,
+                        createResponseReceivedAuditEventExtensions(questionsResponse)));
     }
 
     private void sendAuditEventIfThinFileEncountered(

@@ -1,8 +1,11 @@
 package uk.gov.di.ipv.cri.kbv.api.domain;
 
+import java.util.List;
+
 public class KbvResult {
     private String outcome;
     private String authenticationResult;
+    private List<KbvAlert> alerts;
     private KbvQuestionAnswerSummary answerSummary;
     private String[] nextTransId;
     private String confirmationCode;
@@ -21,6 +24,14 @@ public class KbvResult {
 
     public void setAuthenticationResult(String authenticationResult) {
         this.authenticationResult = authenticationResult;
+    }
+
+    public List<KbvAlert> getAlerts() {
+        return alerts;
+    }
+
+    public void setAlerts(List<KbvAlert> alerts) {
+        this.alerts = alerts;
     }
 
     public KbvQuestionAnswerSummary getAnswerSummary() {
