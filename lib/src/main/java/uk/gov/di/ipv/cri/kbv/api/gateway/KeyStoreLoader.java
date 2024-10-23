@@ -21,7 +21,8 @@ public class KeyStoreLoader {
 
     private String getKeyStorePath() throws IOException {
         try {
-            File file = Files.createTempFile(UUID.randomUUID().toString(), ".tmp").toFile();
+            File file =
+                    Files.createTempFile(UUID.randomUUID().toString(), ".tmp").toFile(); // NOSONAR
             Path tempFile = file.toPath();
             Files.write(
                     tempFile,
