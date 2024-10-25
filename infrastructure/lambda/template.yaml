@@ -813,28 +813,28 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !GetAtt KBVQuestionFunction.Arn
+      FunctionName: !Ref KBVQuestionFunction.Alias
       Principal: apigateway.amazonaws.com
 
   KBVAnswerFunctionPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !GetAtt KBVAnswerFunction.Arn
+      FunctionName: !Ref KBVAnswerFunction.Alias
       Principal: apigateway.amazonaws.com
 
   KBVAbandonFunctionPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !GetAtt KBVAbandonFunction.Arn
+      FunctionName: !Ref KBVAbandonFunction.Alias
       Principal: apigateway.amazonaws.com
 
   IssueCredentialFunctionPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !GetAtt IssueCredentialFunction.Arn
+      FunctionName: !Ref IssueCredentialFunction.Alias
       Principal: apigateway.amazonaws.com
 
   LoggingKmsKey:
@@ -972,7 +972,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-KBVQuestionFunction:live"
+          Value: !Sub ${KBVQuestionFunction}:live
         - Name: FunctionName
           Value: !Ref KBVQuestionFunction
         - Name: ExecutedVersion
@@ -1030,7 +1030,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-KBVAnswerFunction:live"
+          Value: !Sub ${KBVAnswerFunction}:live
         - Name: FunctionName
           Value: !Ref KBVAnswerFunction
         - Name: ExecutedVersion
@@ -1088,7 +1088,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-KBVAbandonFunction:live"
+          Value: !Sub ${KBVAbandonFunction}:live
         - Name: FunctionName
           Value: !Ref KBVAbandonFunction
         - Name: ExecutedVersion
@@ -1146,7 +1146,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-IssueCredentialFunction:live"
+          Value: !Sub ${IssueCredentialFunction}:live
         - Name: FunctionName
           Value: !Ref IssueCredentialFunction
         - Name: ExecutedVersion
