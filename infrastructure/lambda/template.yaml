@@ -17,7 +17,7 @@ Parameters:
       - "staging"
       - "integration"
       - "production"
-    ConstraintDescription: must be dev, build, staging, integration or production
+    ConstraintDescription: Must be dev, build, staging, integration or production
   LambdaDeploymentPreference:
     Description: "Specifies the configuration to enable gradual Lambda deployments. It can be used to set deployment type, and also allows skipping canary deployment by setting to 'AllAtOnce'."
     Type: String
@@ -837,6 +837,34 @@ Resources:
       FunctionName: !GetAtt IssueCredentialFunction.Arn
       Principal: apigateway.amazonaws.com
 
+  KBVQuestionFunctionPermissionAlias:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref KBVQuestionFunction.Alias
+      Principal: apigateway.amazonaws.com
+
+  KBVAnswerFunctionPermissionAlias:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref KBVAnswerFunction.Alias
+      Principal: apigateway.amazonaws.com
+
+  KBVAbandonFunctionPermissionAlias:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref KBVAbandonFunction.Alias
+      Principal: apigateway.amazonaws.com
+
+  IssueCredentialFunctionPermissionAlias:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref IssueCredentialFunction.Alias
+      Principal: apigateway.amazonaws.com
+
   LoggingKmsKey:
     Type: AWS::KMS::Key
     Properties:
@@ -953,7 +981,7 @@ Resources:
       Statistic: Sum
       Unit: Count
       Period: 60
-      EvaluationPeriods: 1
+      EvaluationPeriods: 3
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
@@ -1011,7 +1039,7 @@ Resources:
       Statistic: Sum
       Unit: Count
       Period: 60
-      EvaluationPeriods: 1
+      EvaluationPeriods: 3
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
@@ -1069,7 +1097,7 @@ Resources:
       Statistic: Sum
       Unit: Count
       Period: 60
-      EvaluationPeriods: 1
+      EvaluationPeriods: 3
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
@@ -1127,7 +1155,7 @@ Resources:
       Statistic: Sum
       Unit: Count
       Period: 60
-      EvaluationPeriods: 1
+      EvaluationPeriods: 3
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
