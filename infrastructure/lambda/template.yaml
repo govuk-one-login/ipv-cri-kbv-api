@@ -837,6 +837,34 @@ Resources:
       FunctionName: !GetAtt IssueCredentialFunction.Arn
       Principal: apigateway.amazonaws.com
 
+  KBVQuestionFunctionPermissionArn:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref KBVQuestionFunction.Alias
+      Principal: apigateway.amazonaws.com
+
+  KBVAnswerFunctionPermissionArn:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref KBVAnswerFunction.Alias
+      Principal: apigateway.amazonaws.com
+
+  KBVAbandonFunctionPermissionArn:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref KBVAbandonFunction.Alias
+      Principal: apigateway.amazonaws.com
+
+  IssueCredentialFunctionPermissionArn:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref IssueCredentialFunction.Alias
+      Principal: apigateway.amazonaws.com
+
   LoggingKmsKey:
     Type: AWS::KMS::Key
     Properties:
@@ -953,7 +981,7 @@ Resources:
       Statistic: Sum
       Unit: Count
       Period: 60
-      EvaluationPeriods: 1
+      EvaluationPeriods: 3
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
@@ -972,7 +1000,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-KBVQuestionFunction:live"
+          Value: !Sub ${KBVQuestionFunction}:live
         - Name: FunctionName
           Value: !Ref KBVQuestionFunction
         - Name: ExecutedVersion
@@ -1011,7 +1039,7 @@ Resources:
       Statistic: Sum
       Unit: Count
       Period: 60
-      EvaluationPeriods: 1
+      EvaluationPeriods: 3
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
@@ -1030,7 +1058,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-KBVAnswerFunction:live"
+          Value: !Sub ${KBVQuestionFunction}:live
         - Name: FunctionName
           Value: !Ref KBVAnswerFunction
         - Name: ExecutedVersion
@@ -1069,7 +1097,7 @@ Resources:
       Statistic: Sum
       Unit: Count
       Period: 60
-      EvaluationPeriods: 1
+      EvaluationPeriods: 3
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
@@ -1088,7 +1116,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-KBVAbandonFunction:live"
+          Value: !Sub ${KBVQuestionFunction}:live
         - Name: FunctionName
           Value: !Ref KBVAbandonFunction
         - Name: ExecutedVersion
@@ -1127,7 +1155,7 @@ Resources:
       Statistic: Sum
       Unit: Count
       Period: 60
-      EvaluationPeriods: 1
+      EvaluationPeriods: 3
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
@@ -1146,7 +1174,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-IssueCredentialFunction:live"
+          Value: !Sub ${KBVQuestionFunction}:live
         - Name: FunctionName
           Value: !Ref IssueCredentialFunction
         - Name: ExecutedVersion
