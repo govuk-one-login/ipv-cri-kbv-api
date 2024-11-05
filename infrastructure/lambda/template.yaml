@@ -813,28 +813,28 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref KBVQuestionFunction.Alias
+      FunctionName: !GetAtt KBVQuestionFunction.Arn
       Principal: apigateway.amazonaws.com
 
   KBVAnswerFunctionPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref KBVAnswerFunction.Alias
+      FunctionName: !GetAtt KBVAnswerFunction.Arn
       Principal: apigateway.amazonaws.com
 
   KBVAbandonFunctionPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref KBVAbandonFunction.Alias
+      FunctionName: !GetAtt KBVAbandonFunction.Arn
       Principal: apigateway.amazonaws.com
 
   IssueCredentialFunctionPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref IssueCredentialFunction.Alias
+      FunctionName: !GetAtt IssueCredentialFunction.Arn
       Principal: apigateway.amazonaws.com
 
   KBVQuestionFunctionPermissionAlias:
@@ -1000,7 +1000,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub ${KBVQuestionFunction}:live
+          Value: !Sub "${AWS::StackName}-KBVQuestionFunction:live"
         - Name: FunctionName
           Value: !Ref KBVQuestionFunction
         - Name: ExecutedVersion
@@ -1058,7 +1058,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub ${KBVAnswerFunction}:live
+          Value: !Sub "${AWS::StackName}-KBVAnswerFunction:live"
         - Name: FunctionName
           Value: !Ref KBVAnswerFunction
         - Name: ExecutedVersion
@@ -1116,7 +1116,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub ${KBVAbandonFunction}:live
+          Value: !Sub "${AWS::StackName}-KBVAbandonFunction:live"
         - Name: FunctionName
           Value: !Ref KBVAbandonFunction
         - Name: ExecutedVersion
@@ -1174,7 +1174,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub ${IssueCredentialFunction}:live
+          Value: !Sub "${AWS::StackName}-IssueCredentialFunction:live"
         - Name: FunctionName
           Value: !Ref IssueCredentialFunction
         - Name: ExecutedVersion
