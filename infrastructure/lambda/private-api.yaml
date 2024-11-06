@@ -121,7 +121,7 @@ paths:
         type: "aws_proxy"
         httpMethod: "POST"
         uri:
-          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KBVQuestionFunction.Arn}/invocations"
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KBVQuestionFunction.Arn}:live/invocations"
         passthroughBehavior: "when_no_match"
 
   /answer:
@@ -155,7 +155,7 @@ paths:
         type: "aws_proxy"
         httpMethod: "POST"
         uri:
-          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KBVAnswerFunction.Arn}/invocations"
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KBVAnswerFunction.Arn}:live/invocations"
         passthroughBehavior: "when_no_match"
 
   /abandon:
@@ -182,7 +182,7 @@ paths:
         type: "aws_proxy"
         httpMethod: "POST"
         uri:
-          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KBVAbandonFunction.Arn}/invocations"
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KBVAbandonFunction.Arn}:live/invocations"
         passthroughBehavior: "when_no_match"
 components:
   parameters:
