@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Digital Identity IPV CRI KBV API
-Transform: [AWS::Serverless-2016-10-31, AWS::LanguageExtensions] #TODO: LanguageExtensions must come before Serverless
+Transform: [AWS::LanguageExtensions, AWS::Serverless-2016-10-31]
 
 Parameters:
   Environment:
@@ -242,16 +242,14 @@ Resources:
       EndpointConfiguration:
         Type: !If [IsLocalDevEnvironment, REGIONAL, PRIVATE]
       Auth:
-        ResourcePolicy:
-          CustomStatements:
-            #FIXME: Workaround for incorrect order of transforms - need at least one policy in the list
-            - Effect: Allow
-              Resource: execute-api:/*
-              Action: execute-api:Invoke
-              Principal: "*"
-            - !If
-              - IsLocalDevEnvironment
-              - !Ref AWS::NoValue
+        ResourcePolicy: !If
+          - IsLocalDevEnvironment
+          - !Ref AWS::NoValue
+          - CustomStatements:
+              - Effect: Allow
+                Resource: execute-api:/*
+                Action: execute-api:Invoke
+                Principal: "*"
               - Effect: Deny
                 Resource: execute-api:/*
                 Action: execute-api:Invoke
@@ -1106,7 +1104,7 @@ Outputs:
       Name: !Sub ${AWS::StackName}-PublicKBVApiGatewayId
 
   PrivateKBVApiGatewayId:
-    Description: "API GatewayID of the private KBV CRI API"
+    Description: API Gateway ID of the private KBV CRI API
     Value: !Ref PrivateKBVApi
     Export:
       Name: !Sub ${AWS::StackName}-PrivateKBVApiGatewayId
