@@ -213,7 +213,7 @@ public class QuestionHandler
 
         if (questionsResponse != null && questionsResponse.hasQuestions()) {
             LOGGER.info(
-                    "QUESTION HANDLER: QuestionIds from 3rd-party {}",
+                    "QUESTION HANDLER: CANARY QuestionIds from 3rd-party {}",
                     questionsResponse.getAllQuestionIds());
             questionState.setQAPairs(questionsResponse.getQuestions());
             return questionState.getNextQuestion();
