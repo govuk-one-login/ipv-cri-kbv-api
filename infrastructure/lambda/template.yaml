@@ -967,7 +967,7 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "KBVQuestionFunction Lambda error."
+      AlarmDescription: "KBVQuestionFunction Lambda error."
       AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVQuestionFunctionCanaryError
       MetricName: Errors
       Dimensions:
