@@ -813,52 +813,24 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !GetAtt KBVQuestionFunction.Arn
+      FunctionName: !Ref KBVQuestionFunction.Alias
       Principal: apigateway.amazonaws.com
 
   KBVAnswerFunctionPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !GetAtt KBVAnswerFunction.Arn
+      FunctionName: !Ref KBVAnswerFunction.Alias
       Principal: apigateway.amazonaws.com
 
   KBVAbandonFunctionPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !GetAtt KBVAbandonFunction.Arn
-      Principal: apigateway.amazonaws.com
-
-  IssueCredentialFunctionPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt IssueCredentialFunction.Arn
-      Principal: apigateway.amazonaws.com
-
-  KBVQuestionFunctionPermissionAlias:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref KBVQuestionFunction.Alias
-      Principal: apigateway.amazonaws.com
-
-  KBVAnswerFunctionPermissionAlias:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref KBVAnswerFunction.Alias
-      Principal: apigateway.amazonaws.com
-
-  KBVAbandonFunctionPermissionAlias:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
       FunctionName: !Ref KBVAbandonFunction.Alias
       Principal: apigateway.amazonaws.com
 
-  IssueCredentialFunctionPermissionAlias:
+  IssueCredentialFunctionPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
