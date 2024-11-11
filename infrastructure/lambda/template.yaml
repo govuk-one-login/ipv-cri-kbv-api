@@ -46,6 +46,10 @@ Parameters:
     Description: "The stack containing the TXMA infrastructure"
     Type: String
     Default: txma-infrastructure
+  SupportManualURL:
+    Type: String
+    Default: "https://team-manual.account.gov.uk/teams/CRI-Orange-team/supporting-cri-orange/experian-kbv-credential-issuer-runbook/#experian-knowledge-based-verification-kbv-credential-issuer-runbook"
+    Description: The support manual URL to be provided in alarm messages.
 
 Conditions:
   UseCodeSigningConfigArn: !Not [!Equals [!Ref CodeSigningConfigArn, "none"]]
@@ -377,7 +381,7 @@ Resources:
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
-          - [!Ref KBVQuestionFunctionCanaryErrors, !Ref KBVQuestionFunction5xxCanaryErrors]
+          - [!Ref ExperianKBVQuestionFunctionCanaryErrors, !Ref ExperianKBVQuestionFunction5xxCanaryErrors]
           - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -460,7 +464,7 @@ Resources:
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
-          - [!Ref KBVAnswerFunctionCanaryErrors, !Ref KBVAnswerFunction5xxCanaryErrors]
+          - [!Ref ExperianKBVAnswerFunctionCanaryErrors, !Ref ExperianKBVAnswerFunction5xxCanaryErrors]
           - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -539,7 +543,7 @@ Resources:
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
-          - [!Ref KBVAbandonFunctionCanaryErrors, !Ref KBVAbandonFunction5xxCanaryErrors]
+          - [!Ref ExperianKBVAbandonFunctionCanaryErrors, !Ref ExperianKBVAbandonFunction5xxCanaryErrors]
           - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -599,7 +603,7 @@ Resources:
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
-          - [!Ref IssueCredentialFunctionCanaryErrors, !Ref IssueCredentialFunction5xxCanaryErrors]
+          - [!Ref ExperianKBVIssueCredentialFunctionCanaryErrors, !Ref ExperianKBVIssueCredentialFunction5xxCanaryErrors]
           - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -864,10 +868,11 @@ Resources:
               ArnLike:
                 "kms:EncryptionContext:aws:logs:arn": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
 
-  KBVLambdaErrors:
+  ExperianKBVLambdaErrors:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmDescription: !Sub KBV ${Environment} lambda errors
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVLambdaErrors
+      AlarmDescription: !Sub Experian KBV ${Environment} lambda errors. ${SupportManualURL}
       ActionsEnabled: true
       AlarmActions:
         - !ImportValue core-infrastructure-AlarmTopic
@@ -885,10 +890,11 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
 
-  KBVAPIGW5XXErrors:
+  ExperianKBVAPIGW5XXErrors:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmDescription: !Sub KBV ${Environment} API Gateway 5XX errors
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAPIGW5XXErrors
+      AlarmDescription: !Sub Experian KBV ${Environment} API Gateway 5XX errors. ${SupportManualURL}
       ActionsEnabled: true
       AlarmActions:
         - !ImportValue core-infrastructure-AlarmTopic
@@ -928,7 +934,7 @@ Resources:
             Period: 300
             Stat: Sum
 
-  KBVQuestionFunction5xxCanaryErrors:
+  ExperianKBVQuestionFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -937,8 +943,8 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "KBVQuestionFunction Lambda returning 5xx response."
-      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVQuestionFunction5xxCanaryError
+      AlarmDescription: !Sub "Experian KBV QuestionFunction Lambda returning 5xx response."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVQuestionFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
@@ -958,7 +964,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  KBVQuestionFunctionCanaryErrors:
+  ExperianKBVQuestionFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -967,8 +973,8 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "KBVQuestionFunction Lambda error."
-      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVQuestionFunctionCanaryError
+      AlarmDescription: !Sub "Experian KBV QuestionFunction Lambda error."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVQuestionFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
@@ -986,7 +992,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  KBVAnswerFunction5xxCanaryErrors:
+  ExperianKBVAnswerFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -995,8 +1001,8 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "KBVAnswerFunction Lambda returning 5xx response."
-      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVAnswerFunction5xxCanaryError
+      AlarmDescription: !Sub "Experian KBV AnswerFunction Lambda returning 5xx response."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAnswerFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
@@ -1016,7 +1022,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  KBVAnswerFunctionCanaryErrors:
+  ExperianKBVAnswerFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -1025,8 +1031,8 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "KBVAnswerFunction Lambda error."
-      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVAnswerFunctionCanaryError
+      AlarmDescription: !Sub "Experian KBV AnswerFunction Lambda error."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAnswerFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
@@ -1044,7 +1050,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       
-  KBVAbandonFunction5xxCanaryErrors:
+  ExperianKBVAbandonFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -1053,8 +1059,8 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "KBVAbandonFunction Lambda returning 5xx response."
-      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVAbandonFunction5xxCanaryError
+      AlarmDescription: !Sub "Experian KBV AbandonFunction Lambda returning 5xx response."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAbandonFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
@@ -1074,7 +1080,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  KBVAbandonFunctionCanaryErrors:
+  ExperianKBVAbandonFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -1083,8 +1089,8 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "KBVAbandon Lambda error."
-      AlarmName: !Sub ${AWS::StackName}-${Environment}-KBVAbandonFunctionCanaryError
+      AlarmDescription: !Sub "Experian KBV Abandon Lambda error."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAbandonFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
@@ -1102,7 +1108,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  IssueCredentialFunction5xxCanaryErrors:
+  ExperianKBVIssueCredentialFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -1111,8 +1117,8 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "IssueCredentialFunction Lambda returning 5xx response."
-      AlarmName: !Sub ${AWS::StackName}-${Environment}-IssueCredentialFunction5xxCanaryError
+      AlarmDescription: !Sub "Experian KBV IssueCredentialFunction Lambda returning 5xx response."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVIssueCredentialFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
@@ -1132,7 +1138,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  IssueCredentialFunctionCanaryErrors:
+  ExperianKBVIssueCredentialFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -1141,8 +1147,8 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "IssueCredential Lambda error."
-      AlarmName: !Sub ${AWS::StackName}-${Environment}-IssueCredentialFunctionCanaryError
+      AlarmDescription: !Sub "Experian KBV IssueCredential Lambda error."
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVIssueCredentialFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
