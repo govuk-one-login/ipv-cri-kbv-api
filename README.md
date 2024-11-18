@@ -11,7 +11,7 @@ If you have not installed `pre-commit` then please do so [here](https://pre-comm
 
 ## Build
 
-> Ensure that you are using the java version specified in `.sdkmanrc`.
+> Ensure that you are using the java version specified in `.sdkmanrc` TEST.
 
 Build with `./gradlew`
 
