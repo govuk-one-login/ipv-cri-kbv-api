@@ -1,51 +1,68 @@
 package gov.uk.kbv.api.stepdefinitions;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import gov.uk.kbv.api.client.KbvApiClient;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import software.amazon.awssdk.services.sqs.model.Message;
-import uk.gov.di.ipv.cri.common.library.aws.CloudFormationHelper;
-import uk.gov.di.ipv.cri.common.library.aws.SQSHelper;
 import uk.gov.di.ipv.cri.common.library.client.ClientConfigurationService;
+import uk.gov.di.ipv.cri.common.library.domain.AuditEvent;
+import uk.gov.di.ipv.cri.common.library.domain.TestHarnessResponse;
 import uk.gov.di.ipv.cri.common.library.stepdefinitions.CriTestContext;
+import uk.gov.di.ipv.cri.common.library.util.JsonSchemaValidator;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.ParseException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import static java.util.Map.entry;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class KbvSteps {
+
     private final ObjectMapper objectMapper;
     private final KbvApiClient kbvApiClient;
     private final CriTestContext testContext;
-    private final SQSHelper sqs;
+
     private String questionId;
 
-    private final String auditEventQueueUrl =
-            CloudFormationHelper.getOutput(
-                    CloudFormationHelper.getParameter(System.getenv("STACK_NAME"), "TxmaStackName"),
-                    "AuditEventQueueUrl");
+    private static final String KBV_START_SCHEMA_FILE =
+            "src/test/resources/features/schema/IPV_KBV_CRI_START.json";
+    private static final String KBV_RESPONSE_RECEIVED_SCHEMA_FILE =
+            "src/test/resources/features/schema/IPV_KBV_CRI_RESPONSE_RECEIVED.json";
+
+    private final String kbvStartJsonSchema;
+    private final String kbvResponseReceivedJsonSchema;
 
     public KbvSteps(
-            ClientConfigurationService clientConfigurationService, CriTestContext testContext) {
+            ClientConfigurationService clientConfigurationService, CriTestContext testContext)
+            throws URISyntaxException, IOException {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         this.kbvApiClient = new KbvApiClient(clientConfigurationService);
         this.testContext = testContext;
 
-        this.sqs = new SQSHelper(null, this.objectMapper);
+        Path schemaPath = Paths.get(KBV_START_SCHEMA_FILE);
+        this.kbvStartJsonSchema = Files.readString(schemaPath);
+
+        Path schemaResponsePath = Paths.get(KBV_RESPONSE_RECEIVED_SCHEMA_FILE);
+        this.kbvResponseReceivedJsonSchema = Files.readString(schemaResponsePath);
     }
 
     @When("user sends a GET request to question endpoint")
@@ -128,87 +145,98 @@ public class KbvSteps {
         assertEquals(object, payload.at("/vc/evidence/0/failedCheckDetails").size());
     }
 
-    @Then("TXMA event is added to the SQS queue containing device information header")
-    public void txmaEventIsAddedToSqsQueueContainingDeviceInformationHeader()
-            throws IOException, InterruptedException {
-        assertEquals("deviceInformation", getDeviceInformationHeader());
+    @And("a valid START event is returned in the response with txma header")
+    public void aValidStartEventIsReturnedInTheResponseWithTxmaHeader() throws IOException {
+        String responseBody = testContext.getTestHarnessResponseBody();
+        List<TestHarnessResponse<AuditEvent<Map<String, Object>>>> events =
+                objectMapper.readValue(responseBody, new TypeReference<>() {});
+
+        assertFalse(events.isEmpty());
+        assertEquals(1, events.size());
+
+        for (TestHarnessResponse<AuditEvent<Map<String, Object>>> response : events) {
+            AuditEvent<?> event = response.readAuditEvent();
+            assertEquals("IPV_KBV_CRI_START", event.getEvent());
+            assertEquals(this.testContext.getSessionId(), event.getUser().getSessionId());
+            assertEquals(
+                    "deviceInformation", event.getRestricted().getDeviceInformation().getEncoded());
+        }
     }
 
-    @Then("TXMA event is added to the SQS queue containing evidence requested")
-    public void txmaEventIsAddedToSqsQueueContainingEvidenceRequested()
-            throws IOException, InterruptedException {
-        assertEquals("1", getEvidenceRequested());
+    @And("a valid START event is returned in the response without txma header")
+    public void aValidStartEventIsReturnedInTheResponseWithoutTxmaHeader() throws IOException {
+        String responseBody = testContext.getTestHarnessResponseBody();
+        assertEquals(200, testContext.getTestHarnessResponse().httpResponse().statusCode());
+        assertNotNull(responseBody);
+
+        List<TestHarnessResponse<AuditEvent<Map<String, Object>>>> events =
+                objectMapper.readValue(responseBody, new TypeReference<>() {});
+
+        assertFalse(events.isEmpty());
+        assertEquals(1, events.size());
+
+        for (TestHarnessResponse<AuditEvent<Map<String, Object>>> response : events) {
+            AuditEvent<?> event = response.readAuditEvent();
+            assertEquals("IPV_KBV_CRI_START", event.getEvent());
+            assertEquals(this.testContext.getSessionId(), event.getUser().getSessionId());
+            assertTrue(
+                    JsonSchemaValidator.validateJsonAgainstSchema(
+                            response.getEvent().getData(), kbvStartJsonSchema));
+            assertNull(event.getRestricted());
+        }
     }
 
-    @Then("TXMA event is added to the SQS queue not containing device information header")
-    public void txmaEventIsAddedToSqsQueueNotContainingDeviceInformationHeader()
-            throws InterruptedException, IOException {
-        assertEquals("", getDeviceInformationHeader());
+    @Then("START TxMA event is validated against schema")
+    public void startTxmaEventValidatedAgainstSchema() throws IOException {
+        String responseBody = testContext.getTestHarnessResponseBody();
+
+        List<TestHarnessResponse<AuditEvent<Map<String, Object>>>> testHarnessResponses =
+                objectMapper.readValue(responseBody, new TypeReference<>() {});
+
+        var events =
+                testHarnessResponses.stream()
+                        .filter(event -> event.getEvent().toString().equals("IPV_KBV_CRI_START"))
+                        .collect(Collectors.toList());
+
+        assertNotNull(events);
+        for (TestHarnessResponse<AuditEvent<Map<String, Object>>> testHarnessResponse : events) {
+            AuditEvent<?> event =
+                    objectMapper.readValue(
+                            testHarnessResponse.getEvent().getData(), AuditEvent.class);
+            assertEquals(1, events.size());
+            assertEquals(this.testContext.getSessionId(), event.getUser().getSessionId());
+            assertTrue(
+                    JsonSchemaValidator.validateJsonAgainstSchema(
+                            testHarnessResponse.getEvent().getData(), kbvStartJsonSchema));
+        }
     }
 
-    @Then("TXMA event is added to the SQS queue with repeatAttemptAlert present {word}")
-    public void txmaEventIsAddedToSqsQueueContainingAttemptAlert(String attemptAlert)
-            throws IOException, InterruptedException {
-        assertEquals(Boolean.valueOf(attemptAlert), isAttemptAlert());
-    }
+    @And("a RESPONSE_RECEIVED event is returned with repeatAttemptAlert present {word}")
+    public void aResponseReceivedEventIsReturnedWithRepeatAttemptedAlert(String attemptAlert)
+            throws IOException {
+        String responseBody = testContext.getTestHarnessResponseBody();
+        List<TestHarnessResponse<AuditEvent<Map<String, Object>>>> events =
+                objectMapper.readValue(responseBody, new TypeReference<>() {});
 
-    @And("{int} events are deleted from the audit events SQS queue")
-    public void deleteEventsFromSqsQueue(int messageCount) throws InterruptedException {
-        this.sqs.deleteMatchingMessages(
-                auditEventQueueUrl,
-                messageCount,
-                Collections.singletonMap("/user/session_id", testContext.getSessionId()));
-    }
+        assertFalse(events.isEmpty());
+        assertEquals(1, events.size());
 
-    private String getDeviceInformationHeader() throws InterruptedException, IOException {
-        final List<Message> startEventMessages =
-                this.sqs.receiveMatchingMessages(
-                        auditEventQueueUrl,
-                        1,
-                        Map.ofEntries(
-                                entry("/event_name", "IPV_KBV_CRI_START"),
-                                entry("/user/session_id", testContext.getSessionId())));
+        for (TestHarnessResponse<AuditEvent<Map<String, Object>>> response : events) {
+            AuditEvent<?> event = response.readAuditEvent();
 
-        assertEquals(1, startEventMessages.size());
+            assertEquals("IPV_KBV_CRI_RESPONSE_RECEIVED", event.getEvent());
+            assertEquals(this.testContext.getSessionId(), event.getUser().getSessionId());
 
-        return objectMapper
-                .readTree(startEventMessages.get(0).body())
-                .at("/restricted/device_information/encoded")
-                .asText();
-    }
-
-    private String getEvidenceRequested() throws InterruptedException, IOException {
-        final List<Message> startEventMessages =
-                this.sqs.receiveMatchingMessages(
-                        auditEventQueueUrl,
-                        1,
-                        Map.ofEntries(
-                                entry("/event_name", "IPV_KBV_CRI_START"),
-                                entry("/user/session_id", testContext.getSessionId())));
-
-        assertEquals(1, startEventMessages.size());
-
-        return objectMapper
-                .readTree(startEventMessages.get(0).body())
-                .at("/extensions/evidence_requested/verificationScore")
-                .asText();
-    }
-
-    private Boolean isAttemptAlert() throws InterruptedException, IOException {
-        final List<Message> receivedEventMessages =
-                this.sqs.receiveMatchingMessages(
-                        auditEventQueueUrl,
-                        1,
-                        Map.ofEntries(
-                                entry("/event_name", "IPV_KBV_CRI_RESPONSE_RECEIVED"),
-                                entry("/user/session_id", testContext.getSessionId())));
-
-        assertEquals(1, receivedEventMessages.size());
-
-        return objectMapper
-                .readTree(receivedEventMessages.get(0).body())
-                .at("/extensions/experianIiqResponse/repeatAttemptAlert")
-                .asBoolean();
+            Object extensions = event.getExtensions();
+            String jsonString = objectMapper.writeValueAsString(extensions);
+            JsonNode jsonNode = objectMapper.readTree(jsonString);
+            boolean repeatAttemptAlert =
+                    jsonNode.path("experianIiqResponse").path("repeatAttemptAlert").asBoolean();
+            assertEquals(Boolean.valueOf(attemptAlert), repeatAttemptAlert);
+            assertTrue(
+                    JsonSchemaValidator.validateJsonAgainstSchema(
+                            response.getEvent().getData(), kbvResponseReceivedJsonSchema));
+        }
     }
 
     private void makeVerifiableCredentialJwtAssertions(SignedJWT decodedJWT) throws IOException {

@@ -16,7 +16,6 @@ Feature: User goes through 3-out-of-4 question strategy and 2-out-of-3 question 
     # Abandon
     When user chooses to abandon the question
     Then user gets status code 200
-    And 5 events are deleted from the audit events SQS queue
 
   @pre_merge_abandon_medium_confidence
   Scenario Outline: 3-out-of-4 question strategy user abandons second question
@@ -39,7 +38,6 @@ Feature: User goes through 3-out-of-4 question strategy and 2-out-of-3 question 
     # Abandon
     When user chooses to abandon the question
     Then user gets status code 200
-    And 5 events are deleted from the audit events SQS queue
 
     Examples:
       | user |
@@ -60,7 +58,6 @@ Feature: User goes through 3-out-of-4 question strategy and 2-out-of-3 question 
     # Abandon
     When user chooses to abandon the question
     Then user gets status code 200
-    And 5 events are deleted from the audit events SQS queue
 
   @pre_merge_abandon_low_confidence
   Scenario Outline: 2-out-of-3 question strategy user abandons second question
@@ -83,7 +80,6 @@ Feature: User goes through 3-out-of-4 question strategy and 2-out-of-3 question 
     # Abandon
     When user chooses to abandon the question
     Then user gets status code 200
-    And 5 events are deleted from the audit events SQS queue
 
     Examples:
       | user |
