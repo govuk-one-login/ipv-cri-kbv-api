@@ -8,7 +8,7 @@
       "type": "object",
       "properties": {
         "evidence": {
-          "type": "array",
+          "type": "object",
           "items": {
             "type": "object",
             "properties": {
