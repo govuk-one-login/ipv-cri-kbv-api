@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertTrue;
@@ -41,28 +42,35 @@ public class KbvSteps {
 
     private String questionId;
 
-    private static final String KBV_START_SCHEMA_FILE =
-            "src/test/resources/features/schema/IPV_KBV_CRI_START.json";
+    private static final String KBV_START_SCHEMA_FILE = "/features/schema/IPV_KBV_CRI_START.json";
     private static final String KBV_RESPONSE_RECEIVED_SCHEMA_FILE =
-            "src/test/resources/features/schema/IPV_KBV_CRI_RESPONSE_RECEIVED.json";
+            "/features/schema/IPV_KBV_CRI_RESPONSE_RECEIVED.json";
 
     private final String kbvStartJsonSchema;
     private final String kbvResponseReceivedJsonSchema;
 
     public KbvSteps(
             ClientConfigurationService clientConfigurationService, CriTestContext testContext)
-            throws URISyntaxException, IOException {
+            throws IOException, URISyntaxException {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         this.kbvApiClient = new KbvApiClient(clientConfigurationService);
         this.testContext = testContext;
 
-        Path schemaPath = Paths.get(KBV_START_SCHEMA_FILE);
-        this.kbvStartJsonSchema = Files.readString(schemaPath);
+        Path startSchemaFile =
+                Paths.get(
+                        Objects.requireNonNull(KbvSteps.class.getResource(KBV_START_SCHEMA_FILE))
+                                .toURI());
+        this.kbvStartJsonSchema = Files.readString(startSchemaFile);
 
-        Path schemaResponsePath = Paths.get(KBV_RESPONSE_RECEIVED_SCHEMA_FILE);
-        this.kbvResponseReceivedJsonSchema = Files.readString(schemaResponsePath);
+        Path responseReceivedSchemaFile =
+                Paths.get(
+                        Objects.requireNonNull(
+                                        KbvSteps.class.getResource(
+                                                KBV_RESPONSE_RECEIVED_SCHEMA_FILE))
+                                .toURI());
+        this.kbvResponseReceivedJsonSchema = Files.readString(responseReceivedSchemaFile);
     }
 
     @When("user sends a GET request to question endpoint")
