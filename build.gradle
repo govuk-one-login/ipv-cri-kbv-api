@@ -7,7 +7,7 @@ plugins {
 ext {
 	dependencyVersions = [
 		aws_lambda_events_version: "3.11.0",
-		jackson_version          : "2.13.1",
+		jackson_version          : "2.15.4",
 		nimbusds_oauth_version   : "11.2",
 		nimbusds_jwt_version     : "9.36",
 		protobuf_version         : "3.19.4",
@@ -15,7 +15,7 @@ ext {
 		mockito					 : "4.3.1",
 		glassfish_version        : "3.0.3",
 		powertools_version       : "1.12.3",
-		cri_common_lib           : "3.0.6",
+		cri_common_lib           : "3.5.0",
 		pact_provider_version    : "4.5.11",
 		webcompere_version       : "2.1.6",
 	]

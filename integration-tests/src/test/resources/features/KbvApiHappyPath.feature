@@ -11,14 +11,17 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     Then user gets a session-id
 
     # TXMA event
-    Then TXMA event is added to the SQS queue containing device information header
+    When user sends a GET request to events end point for "IPV_KBV_CRI_START"
+    And a valid START event is returned in the response with txma header
+    Then START TxMA event is validated against schema
 
     # First question
     When user sends a GET request to question endpoint
     Then user gets status code 200
-    Then TXMA event is added to the SQS queue with repeatAttemptAlert present <alert>
     And <user> answers the question correctly
     Then user gets status code 200
+    When user sends a GET request to events end point for "IPV_KBV_CRI_RESPONSE_RECEIVED"
+    Then a RESPONSE_RECEIVED event is returned with repeatAttemptAlert present <alert>
 
     # Second question
     When user sends a GET request to question endpoint
@@ -51,7 +54,6 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And a valid JWT is returned in the response
     And a verification score of 2 is returned in the response
     And the check details array has 3 objects returned in the response
-    And 10 events are deleted from the audit events SQS queue
 
     Examples:
       | user | alert |
@@ -67,7 +69,9 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     Then user gets a session-id
 
     # TXMA event
-    Then TXMA event is added to the SQS queue not containing device information header
+    When user sends a GET request to events end point for "IPV_KBV_CRI_START"
+    And a valid START event is returned in the response without txma header
+    Then START TxMA event is validated against schema
 
     # First question
     When user sends a GET request to question endpoint
@@ -106,7 +110,6 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And a valid JWT is returned in the response
     And a verification score of 2 is returned in the response
     And the check details array has 3 objects returned in the response
-    And 10 events are deleted from the audit events SQS queue
 
     Examples:
       | user |
@@ -121,7 +124,9 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     Then user gets a session-id
 
     # TXMA event
-    Then TXMA event is added to the SQS queue containing evidence requested
+    When user sends a GET request to events end point for "IPV_KBV_CRI_START"
+    And a valid START event is returned in the response without txma header
+    Then START TxMA event is validated against schema
 
     # First question
     When user sends a GET request to question endpoint
@@ -154,7 +159,6 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And a valid JWT is returned in the response
     And a verification score of 1 is returned in the response
     And the check details array has 2 objects returned in the response
-    And 8 events are deleted from the audit events SQS queue
 
     Examples:
       | user |
@@ -169,7 +173,9 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     Then user gets a session-id
 
     # TXMA event
-    Then TXMA event is added to the SQS queue containing evidence requested
+    When user sends a GET request to events end point for "IPV_KBV_CRI_START"
+    And a valid START event is returned in the response without txma header
+    Then START TxMA event is validated against schema
 
     # First question
     When user sends a GET request to question endpoint
@@ -209,7 +215,6 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And a verification score of 1 is returned in the response
     And the check details array has 2 objects returned in the response
     And the failed details array has 1 objects returned in the response
-    And 10 events are deleted from the audit events SQS queue
 
     Examples:
       | user |
