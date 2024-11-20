@@ -61,7 +61,7 @@ jobs:
           path: ~/.sonar/cache
 
       - name: Get coverage results
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ needs.unit-tests.outputs.coverage-artifact }}
 
@@ -78,6 +78,6 @@ jobs:
       security-events: write
     steps:
       - name: Run CodeQL scan
-        uses: govuk-one-login/github-actions/code-quality/codeql@cd7d35dde348251237efbbaee5345e95adef0321
+        uses: govuk-one-login/github-actions/code-quality/codeql@d4ec36f4ed5ebfb93d4866b3322a70b27bb8f92f #31st Jan 2024
         with:
           languages: javascript-typescript
