@@ -42,7 +42,7 @@ Feature: User goes through 3-out-of-4 question strategy and 2-out-of-3 question 
     Examples:
       | user |
       | 197  |
-  
+
   @abandon_low_confidence
   Scenario: 2-out-of-3 question strategy user abandons first question
     Given user has the test-identity 197 and verificationScore of 1 in the form of a signed JWT string

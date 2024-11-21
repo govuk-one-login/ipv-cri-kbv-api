@@ -963,7 +963,7 @@ Resources:
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
-      
+
   ExperianKBVAbandonFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms

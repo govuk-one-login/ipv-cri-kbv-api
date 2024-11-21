@@ -1,6 +1,6 @@
 # IPV Experian Knowledge Based Verification Credential Issuer
 
-The Experian Knowledge Based Verification (KBV) Credential Issuer (CRI) gives users a way to prove their identity by answering a series of questions which only they should know. The RFC can be found [here](https://github.com/govuk-one-login/architecture/blob/main/rfc/0019-ipv-kbv-experian-interaction.md). In the case of the Experian KBV CRI, this involves questions about the user’s financial and credit history. For example, "What was the amount of you last mortgage payment". 
+The Experian Knowledge Based Verification (KBV) Credential Issuer (CRI) gives users a way to prove their identity by answering a series of questions which only they should know. The RFC can be found [here](https://github.com/govuk-one-login/architecture/blob/main/rfc/0019-ipv-kbv-experian-interaction.md). In the case of the Experian KBV CRI, this involves questions about the user’s financial and credit history. For example, "What was the amount of you last mortgage payment".
 
 Information about working with Experian KBV CRI API can be found [here](https://govukverify.atlassian.net/wiki/spaces/OJ/pages/3837362945/Working+with+the+Experian+KBV+credential+issuer+API).
 
@@ -37,16 +37,16 @@ Override by supply a preferred stack name in place of `your-stack-name` below, t
 `AWS_PROFILE=profile-name-you-created ./deploy.sh your-stack-name your-common-stack-name your-secret-prefix`
 
 ## Canaries
-When deploying using sam deploy, canary deployment strategy will be used which is set in LambdaDeploymentPreference in template.yaml file. 
+When deploying using sam deploy, canary deployment strategy will be used which is set in LambdaDeploymentPreference in template.yaml file.
 
-When deploying using the pipeline, canary deployment strategy set in the pipeline will be used and override the default set in template.yaml. 
+When deploying using the pipeline, canary deployment strategy set in the pipeline will be used and override the default set in template.yaml.
 
-Canary deployments will cause a rollback if any canary alarms associated with a lambda are triggered. 
+Canary deployments will cause a rollback if any canary alarms associated with a lambda are triggered.
 
-To skip canaries such as when releasing urgent changes to production, set the last commit message to contain either of these phrases: [skip canary], [canary skip], or [no canary] as specified in the [Canary Escape Hatch guide](https://govukverify.atlassian.net/wiki/spaces/PLAT/pages/3836051600/Rollback+Recovery+Guidance#Escape-Hatch%3A-how-to-skip-canary-deployments-when-needed). 
+To skip canaries such as when releasing urgent changes to production, set the last commit message to contain either of these phrases: [skip canary], [canary skip], or [no canary] as specified in the [Canary Escape Hatch guide](https://govukverify.atlassian.net/wiki/spaces/PLAT/pages/3836051600/Rollback+Recovery+Guidance#Escape-Hatch%3A-how-to-skip-canary-deployments-when-needed).
 `git commit -m "some message [skip canary]"`
 
-Note: To update LambdaDeploymentPreference, update the LambdaCanaryDeployment pipeline parameter in the [identity-common-infra repository](https://github.com/govuk-one-login/identity-common-infra/tree/main/terraform/orange/address). To update the LambdaDeploymentPreference for a stack in dev using sam deploy, parameter override needs to be set in the [deploy script](./deploy.sh). 
+Note: To update LambdaDeploymentPreference, update the LambdaCanaryDeployment pipeline parameter in the [identity-common-infra repository](https://github.com/govuk-one-login/identity-common-infra/tree/main/terraform/orange/address). To update the LambdaDeploymentPreference for a stack in dev using sam deploy, parameter override needs to be set in the [deploy script](./deploy.sh).
 `--parameter-overrides LambdaDeploymentPreference=<define-strategy> \`
 
 ## Deploy to AWS lambda
