@@ -3,25 +3,21 @@ Transform: [AWS::Serverless-2016-10-31, AWS::LanguageExtensions]
 Description: "Digital Identity IPV CRI KBV API"
 
 Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, localdev, build, staging, integration, production]
+    ConstraintDescription: Must be dev, localdev, build, staging, integration or production
+  LambdaDeploymentPreference:
+    Type: String
+    Default: AllAtOnce
+    Description: >-
+      Specifies the configuration to enable gradual Lambda deployments.
+      It can be used to set deployment type, and also allows skipping canary deployment by setting to 'AllAtOnce'.
   CodeSigningConfigArn:
     Type: String
     Default: "none"
-    Description: >
-      The ARN of the Code Signing Config to use, provided by the deployment pipeline
-  Environment:
-    Description: "The environment type"
-    Type: "String"
-    AllowedValues:
-      - "dev"
-      - "build"
-      - "staging"
-      - "integration"
-      - "production"
-    ConstraintDescription: must be dev, build, staging, integration or production
-  LambdaDeploymentPreference:
-    Description: "Specifies the configuration to enable gradual Lambda deployments. It can be used to set deployment type, and also allows skipping canary deployment by setting to 'AllAtOnce'."
-    Type: String
-    Default: AllAtOnce
+    Description: The ARN of the Code Signing Config to use, provided by the deployment pipeline
   PermissionsBoundary:
     Description: "The ARN of the permissions boundary to apply when creating IAM roles"
     Type: String
@@ -52,17 +48,14 @@ Parameters:
     Description: The support manual URL to be provided in alarm messages.
 
 Conditions:
-  UseCodeSigningConfigArn: !Not [!Equals [!Ref CodeSigningConfigArn, "none"]]
-  UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, "none"]]
-  IsStubEnvironment: !Or
-    - !Equals [ !Ref Environment, dev]
-    - !Equals [ !Ref Environment, build ]
-    - !Equals [ !Ref Environment, staging ]
-    - !Equals [ !Ref Environment, integration ]
-  IsDevEnvironment: !Equals [!Ref Environment, dev]
-  IsNotDevEnvironment: !Not [!Condition IsDevEnvironment]
   UseSecretPrefix: !Not [!Equals [!Ref SecretPrefix, "none"]]
-  UseCanaryDeploymentAlarms: !Not [ !Equals [ !Ref LambdaDeploymentPreference, AllAtOnce ]]
+  UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, "none"]]
+  UseCodeSigningConfigArn: !Not [!Equals [!Ref CodeSigningConfigArn, "none"]]
+  UseCanaryDeploymentAlarms: !Not [!Equals [!Ref LambdaDeploymentPreference, AllAtOnce]]
+  IsDevEnvironment: !Or [!Equals [!Ref Environment, dev], !Condition IsLocalDevEnvironment]
+  IsStubEnvironment: !Not [!Equals [!Ref Environment, production]]
+  IsLocalDevEnvironment: !Equals [!Ref Environment, localdev]
+  IsNotDevEnvironment: !Not [!Condition IsDevEnvironment]
 
 Globals:
   Function:
@@ -120,9 +113,10 @@ Globals:
         - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
 
 Mappings:
-
   EnvironmentConfiguration:
     dev:
+      dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+    localdev:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
     build:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
@@ -140,6 +134,7 @@ Mappings:
       staging: 2048
       integration: 2048
       production: 3072
+      localdev: 2048
 
   IIQAPIDatabaseModeMapping:
     Environment:
@@ -148,6 +143,7 @@ Mappings:
       staging: Static
       integration: Static
       production: Normal
+      localdev: Static
 
   IIQOperatorIdMapping:
     Environment:
@@ -156,6 +152,7 @@ Mappings:
       staging: GDSCABINETUIIQ01U
       integration: GDSCABINETUIIQ01U
       production: GDSCABINETUIIQ01U
+      localdev: GDSCABINETUIIQ01U
 
   # Only numeric values should be assigned here
   MaxJwtTtlMapping:
@@ -165,6 +162,7 @@ Mappings:
       staging: 6
       integration: 6
       production: 6
+      localdev: 2
 
   # Permitted values: SECONDS,MINUTES,HOURS,DAYS,MONTHS,YEARS
   JwtTtlUnitMapping:
@@ -174,14 +172,16 @@ Mappings:
       staging: MONTHS
       integration: MONTHS
       production: MONTHS
+      localdev: HOURS
 
   VcContainsUniqueIdMapping:
     Environment:
-      dev: "true"
-      build: "true"
-      staging: "true"
-      integration: "false"
-      production: "false"
+      dev: true
+      build: true
+      staging: true
+      integration: false
+      production: false
+      localdev: true
 
 Resources:
   PublicKBVApi:
@@ -230,7 +230,6 @@ Resources:
 
   PrivateKBVApi:
     Type: AWS::Serverless::Api
-    Condition: IsNotDevEnvironment
     Properties:
       Description: Private KBV CRI API
       MethodSettings:
@@ -270,67 +269,25 @@ Resources:
             Location: './private-api.yaml'
       OpenApiVersion: 3.0.1
       EndpointConfiguration:
-        Type: PRIVATE
+        Type: !If [IsLocalDevEnvironment, REGIONAL, PRIVATE]
       Auth:
         ResourcePolicy:
           CustomStatements:
-            - Action: 'execute-api:Invoke'
-              Effect: Allow
-              Principal: '*'
-              Resource:
-                - 'execute-api:/*'
-            - Action: 'execute-api:Invoke'
-              Effect: Deny
-              Principal: '*'
-              Resource:
-                - 'execute-api:/*'
-              Condition:
-                StringNotEquals:
-                  aws:SourceVpce: !ImportValue cri-vpc-ApiGatewayVpcEndpointId
-
-  DevOnlyKBVApi:
-    Type: AWS::Serverless::Api
-    Condition: IsDevEnvironment
-    Properties:
-      Description: Private Dev KBV CRI API
-      MethodSettings:
-        - LoggingLevel: INFO
-          ResourcePath: '/*'
-          HttpMethod: '*'
-          DataTraceEnabled: true
-          MetricsEnabled: true
-          ThrottlingRateLimit: 200
-          ThrottlingBurstLimit: 400
-      AccessLogSetting:
-        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${DevOnlyKBVApiAccessLogGroup}'
-        Format: >-
-          {
-          "requestId":"$context.requestId",
-          "ip":"$context.identity.sourceIp",
-          "requestTime":"$context.requestTime",
-          "httpMethod":"$context.httpMethod",
-          "path":"$context.path",
-          "routeKey":"$context.routeKey",
-          "status":"$context.status",
-          "protocol":"$context.protocol",
-          "responseLatency":"$context.responseLatency",
-          "responseLength":"$context.responseLength"
-          }
-      TracingEnabled: true
-      Name: !Sub "kbv-cri-private-${AWS::StackName}"
-      StageName: !Ref Environment
-      DefinitionBody:
-        openapi: "3.0.1" # workaround to get `sam validate` to work
-        paths: # workaround to get `sam validate` to work
-          /never-created:
-            options: { } # workaround to get `sam validate` to work
-        Fn::Transform:
-          Name: AWS::Include
-          Parameters:
-            Location: './private-api.yaml'
-      OpenApiVersion: 3.0.1
-      EndpointConfiguration:
-        Type: REGIONAL
+            #FIXME: Workaround for incorrect order of transforms - need at least one policy in the list
+            - Effect: Allow
+              Resource: execute-api:/*
+              Action: execute-api:Invoke
+              Principal: "*"
+            - !If
+              - IsLocalDevEnvironment
+              - !Ref AWS::NoValue
+              - Effect: Deny
+                Resource: execute-api:/*
+                Action: execute-api:Invoke
+                Principal: "*"
+                Condition:
+                  StringNotEquals:
+                    aws:SourceVpce: !ImportValue cri-vpc-ApiGatewayVpcEndpointId
 
   PublicKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
@@ -348,16 +305,8 @@ Resources:
 
   PrivateKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
-    Condition: IsNotDevEnvironment
     Properties:
       LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PrivateKBVApi}-private-AccessLogs
-      RetentionInDays: 30
-
-  DevOnlyKBVApiAccessLogGroup:
-    Type: AWS::Logs::LogGroup
-    Condition: IsDevEnvironment
-    Properties:
-      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${DevOnlyKBVApi}-private-AccessLogs
       RetentionInDays: 30
 
   PrivateKBVApiAccessLogGroupSubscriptionFilterCSLS:
@@ -1191,7 +1140,7 @@ Outputs:
 
   PrivateKBVApiGatewayId:
     Description: "API GatewayID of the private KBV CRI API"
-    Value: !If [IsNotDevEnvironment, !Ref PrivateKBVApi, !Ref DevOnlyKBVApi]
+    Value: !Ref PrivateKBVApi
     Export:
       Name: !Sub ${AWS::StackName}-PrivateKBVApiGatewayId
 
