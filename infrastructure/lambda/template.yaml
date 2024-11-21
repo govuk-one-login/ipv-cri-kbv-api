@@ -50,7 +50,7 @@ Parameters:
 Conditions:
   UseSecretPrefix: !Not [!Equals [!Ref SecretPrefix, "none"]]
   UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, "none"]]
-  UseCodeSigningConfigArn: !Not [!Equals [!Ref CodeSigningConfigArn, "none"]]
+  EnforceCodeSigning: !Not [!Equals [!Ref CodeSigningConfigArn, "none"]]
   UseCanaryDeploymentAlarms: !Not [!Equals [!Ref LambdaDeploymentPreference, AllAtOnce]]
   IsDevEnvironment: !Or [!Equals [!Ref Environment, dev], !Condition IsLocalDevEnvironment]
   IsStubEnvironment: !Not [!Equals [!Ref Environment, production]]
@@ -64,8 +64,6 @@ Globals:
       SubnetIds: !Split [",", !ImportValue cri-vpc-PrivateSubnets]
     PermissionsBoundary:
       !If [UsePermissionsBoundary, !Ref PermissionsBoundary, !Ref AWS::NoValue]
-    CodeSigningConfigArn:
-      !If [UseCodeSigningConfigArn, !Ref CodeSigningConfigArn, !Ref AWS::NoValue]
     Tracing: Active
     Timeout: 30 # seconds
     Runtime: java11
@@ -291,15 +289,17 @@ Resources:
     Properties:
       CodeUri: ../../lambdas/question
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler::handleRequest
+      CodeSigningConfigArn:
+        !If [EnforceCodeSigning, !Ref CodeSigningConfigArn, !Ref AWS::NoValue]
       Environment:
         Variables:
-          POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-question"
+          POWERTOOLS_SERVICE_NAME: !Sub ${CriIdentifier}-question
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
-          - [!Ref ExperianKBVQuestionFunctionCanaryErrors, !Ref ExperianKBVQuestionFunction5xxCanaryErrors]
+          - [!Ref KBVQuestionFunctionCanaryErrors, !Ref KBVQuestionFunction5xxCanaryErrors]
           - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -335,19 +335,16 @@ Resources:
         - Statement:
             - Sid: ReadSecretsPolicy
               Effect: Allow
-              Action:
-                - 'secretsmanager:GetSecretValue'
+              Action: secretsmanager:GetSecretValue
               Resource: !Sub
-                - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*'
+                - "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*"
                 - Prefix: !If [UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName]
         - Statement:
             - Effect: Allow
-              Action:
-                - ssm:GetParametersByPath
-              Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
+              Action: ssm:GetParametersByPath
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
         - Statement:
-            - Sid: auditEventQueueKmsEncryptionKeyPermission
+            - Sid: AuditEventQueueKmsEncryptionKeyPermission
               Effect: Allow
               Action:
                 - kms:Decrypt
@@ -366,23 +363,25 @@ Resources:
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
-      FilterPattern: ""
       LogGroupName: !Ref KBVQuestionFunctionLogGroup
+      FilterPattern: ""
 
   KBVAnswerFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../../lambdas/answer
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionAnswerHandler::handleRequest
+      CodeSigningConfigArn:
+        !If [EnforceCodeSigning, !Ref CodeSigningConfigArn, !Ref AWS::NoValue]
       Environment:
         Variables:
-          POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-answer"
+          POWERTOOLS_SERVICE_NAME: !Sub ${CriIdentifier}-answer
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
-          - [!Ref ExperianKBVAnswerFunctionCanaryErrors, !Ref ExperianKBVAnswerFunction5xxCanaryErrors]
+          - [!Ref KBVAnswerFunctionCanaryErrors, !Ref KBVAnswerFunction5xxCanaryErrors]
           - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -414,19 +413,16 @@ Resources:
         - Statement:
             - Sid: ReadSecretsPolicy
               Effect: Allow
-              Action:
-                - 'secretsmanager:GetSecretValue'
+              Action: secretsmanager:GetSecretValue
               Resource: !Sub
-                - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*'
+                - "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*"
                 - Prefix: !If [UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName]
         - Statement:
             - Effect: Allow
-              Action:
-                - ssm:GetParametersByPath
-              Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
+              Action: ssm:GetParametersByPath
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
         - Statement:
-            - Sid: auditEventQueueKmsEncryptionKeyPermission
+            - Sid: AuditEventQueueKmsEncryptionKeyPermission
               Effect: Allow
               Action:
                 - kms:Decrypt
@@ -445,23 +441,25 @@ Resources:
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
-      FilterPattern: ""
       LogGroupName: !Ref KBVAnswerFunctionLogGroup
+      FilterPattern: ""
 
   KBVAbandonFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../../lambdas/abandon
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.AbandonKbvHandler::handleRequest
+      CodeSigningConfigArn:
+        !If [EnforceCodeSigning, !Ref CodeSigningConfigArn, !Ref AWS::NoValue]
       Environment:
         Variables:
-          POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-abandon"
+          POWERTOOLS_SERVICE_NAME: !Sub ${CriIdentifier}-abandon
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
-          - [!Ref ExperianKBVAbandonFunctionCanaryErrors, !Ref ExperianKBVAbandonFunction5xxCanaryErrors]
+          - [!Ref KBVAbandonFunctionCanaryErrors, !Ref KBVAbandonFunction5xxCanaryErrors]
           - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -478,15 +476,14 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - Statement:
-          - Effect: Allow
-            Action:
-              - ssm:GetParameter
-            Resource:
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
+            - Effect: Allow
+              Action: ssm:GetParameter
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
         - Statement:
-            - Sid: auditEventQueueKmsEncryptionKeyPermission
+            - Sid: AuditEventQueueKmsEncryptionKeyPermission
               Effect: Allow
               Action:
                 - kms:Decrypt
@@ -505,23 +502,25 @@ Resources:
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
-      FilterPattern: ""
       LogGroupName: !Ref KBVAbandonFunctionLogGroup
+      FilterPattern: ""
 
   IssueCredentialFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler::handleRequest
       CodeUri: ../../lambdas/issuecredential
+      Handler: uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler::handleRequest
+      CodeSigningConfigArn:
+        !If [EnforceCodeSigning, !Ref CodeSigningConfigArn, !Ref AWS::NoValue]
       Environment:
         Variables:
-          POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-issuecredential"
+          POWERTOOLS_SERVICE_NAME: !Sub ${CriIdentifier}-issuecredential
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
-          - [!Ref ExperianKBVIssueCredentialFunctionCanaryErrors, !Ref ExperianKBVIssueCredentialFunction5xxCanaryErrors]
+          - [!Ref IssueCredentialFunctionCanaryErrors, !Ref IssueCredentialFunction5xxCanaryErrors]
           - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -534,8 +533,7 @@ Resources:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
         - Statement:
             Effect: Allow
-            Action:
-              - "kms:Sign"
+            Action: kms:Sign
             Resource: !ImportValue core-infrastructure-CriVcSigningKey1Arn
         - SQSSendMessagePolicy:
             QueueName:
@@ -649,7 +647,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/MaxJwtTtl"
       Type: String
-      Value: !FindInMap [MaxJwtTtlMapping, Environment, !Ref 'Environment']
+      Value: !FindInMap [MaxJwtTtlMapping, Environment, !Ref Environment]
       Description: default time to live for an JWT in (seconds)
 
   JwtTtlUnitParameter:
@@ -657,7 +655,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/JwtTtlUnit"
       Type: String
-      Value: !FindInMap [ JwtTtlUnitMapping, Environment, !Ref Environment ]
+      Value: !FindInMap [JwtTtlUnitMapping, Environment, !Ref Environment]
       Description: The unit for the time-to-live for an JWT e.g. (MONTHS)
 
   IIQAPIDatabaseModeParameter:
@@ -665,26 +663,26 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/IIQDatabaseMode"
       Type: String
-      Value: !FindInMap [ IIQAPIDatabaseModeMapping, Environment, !Ref 'Environment' ]
+      Value: !FindInMap [IIQAPIDatabaseModeMapping, Environment, !Ref Environment]
       Description: "one of: S or Static, A or Aged, N or Normal (Live)"
 
   IIQAPIStrategyParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub "/${AWS::StackName}/IIQStrategy"
       Type: String
+      Name: !Sub "/${AWS::StackName}/IIQStrategy"
+      Description: Strategy to be used for Experian KBV Questions. Example - 3 of 4
       Value:
         Fn::ToJsonString:
           "1": "2 out of 3 prioritised"
           "2": "3 out of 4 prioritised"
-      Description: Strategy to be used for Experian KBV Questions. Example - 3 of 4
 
   IIQOperatorIdParameter:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub "/${AWS::StackName}/IIQOperatorId"
       Type: String
-      Value: !FindInMap [ IIQOperatorIdMapping, Environment, !Ref 'Environment' ]
+      Value: !FindInMap [IIQOperatorIdMapping, Environment, !Ref Environment]
       Description: Unique operator id provided by Experian to GDS
 
   IPVCoreStubAuthenticationAlgParameter:
@@ -724,7 +722,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/release-flags/vc-contains-unique-id"
       Type: String
-      Value: !FindInMap [ VcContainsUniqueIdMapping, Environment, !Ref Environment ]
+      Value: !FindInMap [VcContainsUniqueIdMapping, Environment, !Ref Environment]
       Description: Verifiable Credential Contains UniqueId Mapping
 
   KBVQuestionFunctionPermission:
@@ -765,24 +763,23 @@ Resources:
           - Effect: Allow
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action:
-              - kms:*
+            Action: kms:*
             Resource: "*"
           - Effect: Allow
             Principal:
               Service: !Sub "logs.${AWS::Region}.amazonaws.com"
             Action:
-              - "kms:Encrypt*"
-              - "kms:Decrypt*"
-              - "kms:ReEncrypt*"
-              - "kms:GenerateDataKey*"
-              - "kms:Describe*"
+              - kms:Encrypt*
+              - kms:Decrypt*
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:Describe*
             Resource: "*"
             Condition:
               ArnLike:
                 "kms:EncryptionContext:aws:logs:arn": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
 
-  ExperianKBVLambdaErrors:
+  KBVLambdaErrors:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVLambdaErrors
@@ -804,7 +801,7 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
 
-  ExperianKBVAPIGW5XXErrors:
+  KBVAPIGW5XXErrors:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAPIGW5XXErrors
@@ -848,7 +845,7 @@ Resources:
             Period: 300
             Stat: Sum
 
-  ExperianKBVQuestionFunction5xxCanaryErrors:
+  KBVQuestionFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -857,13 +854,13 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "Experian KBV QuestionFunction Lambda returning 5xx response."
+      AlarmDescription: Experian KBV QuestionFunction Lambda returning 5xx response
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVQuestionFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
         - Name: ApiName
-          Value: !Sub "kbv-cri-private-${AWS::StackName}"
+          Value: !Sub kbv-cri-private-${AWS::StackName}
         - Name: Method
           Value: GET
         - Name: Resource
@@ -878,7 +875,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  ExperianKBVQuestionFunctionCanaryErrors:
+  KBVQuestionFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -887,12 +884,12 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "Experian KBV QuestionFunction Lambda error."
+      AlarmDescription: Experian KBV QuestionFunction Lambda error
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVQuestionFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-KBVQuestionFunction:live"
+          Value: !Sub ${AWS::StackName}-KBVQuestionFunction:live
         - Name: FunctionName
           Value: !Ref KBVQuestionFunction
         - Name: ExecutedVersion
@@ -906,7 +903,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  ExperianKBVAnswerFunction5xxCanaryErrors:
+  KBVAnswerFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -915,13 +912,13 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "Experian KBV AnswerFunction Lambda returning 5xx response."
+      AlarmDescription: Experian KBV AnswerFunction Lambda returning 5xx response
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAnswerFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
         - Name: ApiName
-          Value: !Sub "kbv-cri-private-${AWS::StackName}"
+          Value: !Sub kbv-cri-private-${AWS::StackName}
         - Name: Method
           Value: POST
         - Name: Resource
@@ -936,7 +933,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  ExperianKBVAnswerFunctionCanaryErrors:
+  KBVAnswerFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -945,12 +942,12 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "Experian KBV AnswerFunction Lambda error."
+      AlarmDescription: Experian KBV AnswerFunction Lambda error
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAnswerFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-KBVAnswerFunction:live"
+          Value: !Sub ${AWS::StackName}-KBVAnswerFunction:live
         - Name: FunctionName
           Value: !Ref KBVAnswerFunction
         - Name: ExecutedVersion
@@ -964,7 +961,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  ExperianKBVAbandonFunction5xxCanaryErrors:
+  KBVAbandonFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -973,13 +970,13 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "Experian KBV AbandonFunction Lambda returning 5xx response."
+      AlarmDescription: Experian KBV AbandonFunction Lambda returning 5xx response
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAbandonFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
         - Name: ApiName
-          Value: !Sub "kbv-cri-private-${AWS::StackName}"
+          Value: !Sub kbv-cri-private-${AWS::StackName}
         - Name: Method
           Value: POST
         - Name: Resource
@@ -994,7 +991,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  ExperianKBVAbandonFunctionCanaryErrors:
+  KBVAbandonFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -1003,12 +1000,12 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "Experian KBV Abandon Lambda error."
+      AlarmDescription: Experian KBV Abandon Lambda error
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAbandonFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-KBVAbandonFunction:live"
+          Value: !Sub ${AWS::StackName}-KBVAbandonFunction:live
         - Name: FunctionName
           Value: !Ref KBVAbandonFunction
         - Name: ExecutedVersion
@@ -1022,7 +1019,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  ExperianKBVIssueCredentialFunction5xxCanaryErrors:
+  IssueCredentialFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -1031,13 +1028,13 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "Experian KBV IssueCredentialFunction Lambda returning 5xx response."
+      AlarmDescription: Experian KBV IssueCredentialFunction Lambda returning 5xx response
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVIssueCredentialFunction5xxCanaryError
       Namespace: AWS/ApiGateway
       MetricName: 5XXError
       Dimensions:
         - Name: ApiName
-          Value: !Sub "kbv-cri-${AWS::StackName}"
+          Value: !Sub kbv-cri-${AWS::StackName}
         - Name: Method
           Value: POST
         - Name: Resource
@@ -1052,7 +1049,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  ExperianKBVIssueCredentialFunctionCanaryErrors:
+  IssueCredentialFunctionCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
     Properties:
@@ -1061,12 +1058,12 @@ Resources:
         - !ImportValue platform-alarm-warning-alert-topic
       OKActions:
         - !ImportValue platform-alarm-warning-alert-topic
-      AlarmDescription: !Sub "Experian KBV IssueCredential Lambda error."
+      AlarmDescription: Experian KBV IssueCredential Lambda error
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVIssueCredentialFunctionCanaryError
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-IssueCredentialFunction:live"
+          Value: !Sub ${AWS::StackName}-IssueCredentialFunction:live
         - Name: FunctionName
           Value: !Ref IssueCredentialFunction
         - Name: ExecutedVersion
@@ -1084,22 +1081,20 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: 2012-10-17
         Statement:
-          - Action:
-              - sts:AssumeRole
+          - Action: sts:AssumeRole
             Effect: Allow
             Principal:
-              Service:
-                - codedeploy.amazonaws.com
+              Service: codedeploy.amazonaws.com
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRoleForLambda
       PermissionsBoundary: !If [UsePermissionsBoundary, !Ref PermissionsBoundary,!Ref AWS::NoValue]
 
 Outputs:
   PublicKBVApiGatewayId:
-    Description: "API GatewayID of the public KBV CRI API"
-    Value: !Sub "${PublicKBVApi}"
+    Description: API Gateway ID of the public KBV CRI API
+    Value: !Ref PublicKBVApi
     Export:
       Name: !Sub ${AWS::StackName}-PublicKBVApiGatewayId
 
@@ -1109,8 +1104,8 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-PrivateKBVApiGatewayId
 
-  KBVApiGatewayId:
-    Description: "API GatewayID of the KBV CRI API - export currently used by dns-records stack"
-    Value: !Sub "${PublicKBVApi}"
+  KBVApiGatewayIdToRemove:
+    Description: API Gateway ID of the KBV CRI API - export currently used by dns-records stack"
+    Value: !Ref PublicKBVApi
     Export:
       Name: !Sub ${AWS::StackName}-KBVApiGatewayId
