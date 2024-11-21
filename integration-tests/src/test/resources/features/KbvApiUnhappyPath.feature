@@ -2,7 +2,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 2 question
   User goes through 2-out-of-3 question strategy. User answers 2 questions incorrectly and fails with a vc score of 0.
   Tests are run against the KBV Stub.
 
-  @pre_merge_unhappy_medium_confidence
+  @unhappy_medium_confidence
   Scenario Outline: 3-out-of-4 question strategy user answers 2 questions incorrectly
     Given user has the test-identity <user> in the form of a signed JWT string
 
@@ -45,7 +45,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 2 question
       | user |
       | 197  |
 
-  @pre_merge_unhappy_low_confidence
+  @unhappy_low_confidence
   Scenario Outline: 2-out-of-3 question strategy user answers 2 questions incorrectly
     Given user has the test-identity <user> and verificationScore of 1 in the form of a signed JWT string
 

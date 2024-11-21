@@ -2,7 +2,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
   User goes through 2-out-of-3 question strategy. User answers 2 questions correctly and gets a valid JWT credential issuer with a score of 1.
   Tests are run against the KBV Stub.
 
-  @pre_merge_happy_with_device_information_header
+  @happy_with_device_information_header
   Scenario Outline: User answers 3 questions correctly in 3-out-of-4 question strategy with device information header
     Given user has the test-identity <user> in the form of a signed JWT string
 
@@ -60,7 +60,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
       | 197  | false |
       | 1188 | true |
 
-  @pre_merge_happy_medium_confidence
+  @happy_medium_confidence
   Scenario Outline: User answers 3 questions correctly in 3-out-of-4 question strategy
     Given user has the test-identity <user> in the form of a signed JWT string
 
@@ -115,7 +115,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
       | user |
       | 197  |
 
-  @pre_merge_happy_low_confidence
+  @happy_low_confidence
   Scenario Outline: User answers 2 questions correctly in 2-out-of-3 question strategy
     Given user has the test-identity <user> and verificationScore of 1 in the form of a signed JWT string
 
@@ -164,7 +164,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
       | user |
       | 197  |
 
-  @pre_merge_happy_low_confidence
+  @happy_low_confidence
   Scenario Outline: User answers 2 out of 3 questions correctly with in 2-out-of-3 question strategy
     Given user has the test-identity <user> and verificationScore of 1 in the form of a signed JWT string
 
