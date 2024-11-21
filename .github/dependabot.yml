@@ -1,18 +1,20 @@
 version: 2
 updates:
-  - package-ecosystem: 'github-actions'
-    directory: '/'
-    schedule:
-      interval: 'weekly'
+  - package-ecosystem: github-actions
     target-branch: main
+    directory: /
+    schedule:
+      interval: weekly
     labels:
-    - dependabot
-  - package-ecosystem: "gradle"
-    directory: "/"
+      - dependabot
     commit-message:
-      prefix: BAU
-    schedule:
-      interval: "weekly"
+      prefix: DEP
+  - package-ecosystem: gradle
     target-branch: main
+    directory: /
+    schedule:
+      interval: weekly
     labels:
-    - dependabot
+      - dependabot
+    commit-message:
+      prefix: DEP
