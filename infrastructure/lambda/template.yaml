@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Transform: [AWS::Serverless-2016-10-31, AWS::LanguageExtensions] 
-Description: "Digital Identity IPV CRI KBV API"
+Description: Digital Identity IPV CRI KBV API
+Transform: [AWS::Serverless-2016-10-31, AWS::LanguageExtensions] #TODO: LanguageExtensions must come before Serverless
 
 Parameters:
   Environment:
@@ -60,57 +60,75 @@ Conditions:
 Globals:
   Function:
     VpcConfig:
-      SecurityGroupIds:
-        - !ImportValue cri-vpc-LambdaSecurityGroup
-      SubnetIds: !Split [ ",", !ImportValue cri-vpc-PrivateSubnets ]
-    PermissionsBoundary: !If
-      - UsePermissionsBoundary
-      - !Ref PermissionsBoundary
-      - !Ref AWS::NoValue
-    CodeSigningConfigArn: !If
-      - UseCodeSigningConfigArn
-      - !Ref CodeSigningConfigArn
-      - !Ref AWS::NoValue
+      SecurityGroupIds: [!ImportValue cri-vpc-LambdaSecurityGroup]
+      SubnetIds: !Split [",", !ImportValue cri-vpc-PrivateSubnets]
+    PermissionsBoundary:
+      !If [UsePermissionsBoundary, !Ref PermissionsBoundary, !Ref AWS::NoValue]
+    CodeSigningConfigArn:
+      !If [UseCodeSigningConfigArn, !Ref CodeSigningConfigArn, !Ref AWS::NoValue]
+    Tracing: Active
     Timeout: 30 # seconds
     Runtime: java11
+    Architectures: [arm64]
     AutoPublishAlias: live
     DeploymentPreference:
       Type: !Ref LambdaDeploymentPreference
       Role: !GetAtt CodeDeployServiceRole.Arn
-    Tracing: Active
-    MemorySize: !FindInMap [MemorySizeMapping, Environment, !Ref 'Environment']
-    Architectures:
-      - arm64
+    MemorySize: !FindInMap [MemorySizeMapping, Environment, !Ref Environment]
     Environment:
       Variables:
-        JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
-        AWS_STACK_NAME: !Sub ${AWS::StackName}
+        AWS_STACK_NAME: !Ref AWS::StackName
         SECRET_PREFIX: !If [UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName]
-        POWERTOOLS_LOG_LEVEL: INFO
-        POWERTOOLS_METRICS_NAMESPACE: !Ref CriIdentifier
         SQS_AUDIT_EVENT_PREFIX: !Ref AuditEventNamePrefix
         COMMON_PARAMETER_NAME_PREFIX: !Ref CommonStackName
+        POWERTOOLS_METRICS_NAMESPACE: !Ref CriIdentifier
+        POWERTOOLS_LOG_LEVEL: INFO
         AWS_LAMBDA_EXEC_WRAPPER: /opt/dynatrace
+        JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
         DT_CONNECTION_AUTH_TOKEN: !Sub
-          - '{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CONNECTION_AUTH_TOKEN}}'
-          - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
+          - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CONNECTION_AUTH_TOKEN}}"
+          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
         DT_CONNECTION_BASE_URL: !Sub
-          - '{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CONNECTION_BASE_URL}}'
-          - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
+          - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CONNECTION_BASE_URL}}"
+          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
         DT_CLUSTER_ID: !Sub
-          - '{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CLUSTER_ID}}'
-          - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
+          - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CLUSTER_ID}}"
+          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
         DT_LOG_COLLECTION_AUTH_TOKEN: !Sub
-          - '{{resolve:secretsmanager:${SecretArn}:SecretString:DT_LOG_COLLECTION_AUTH_TOKEN}}'
-          - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
+          - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_LOG_COLLECTION_AUTH_TOKEN}}"
+          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
         DT_TENANT: !Sub
-          - '{{resolve:secretsmanager:${SecretArn}:SecretString:DT_TENANT}}'
-          - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
+          - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_TENANT}}"
+          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
         DT_OPEN_TELEMETRY_ENABLE_INTEGRATION: "true"
     Layers:
       - !Sub
-        - '{{resolve:secretsmanager:${SecretArn}:SecretString:JAVA_LAYER}}'
-        - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
+        - "{{resolve:secretsmanager:${SecretArn}:SecretString:JAVA_LAYER}}"
+        - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
+  Api:
+    TracingEnabled: true
+    OpenApiVersion: 3.0.1
+    MethodSettings:
+      - LoggingLevel: INFO
+        ResourcePath: /*
+        HttpMethod: "*"
+        DataTraceEnabled: true
+        MetricsEnabled: true
+        ThrottlingRateLimit: 200
+        ThrottlingBurstLimit: 400
+    AccessLogSetting:
+      Format:
+        Fn::ToJsonString:
+          requestId: $context.requestId
+          ip: $context.identity.sourceIp
+          requestTime: $context.requestTime
+          httpMethod: $context.httpMethod
+          path: $context.path
+          routeKey: $context.routeKey
+          status: $context.status
+          protocol: $context.protocol
+          responseLatency: $context.responseLatency
+          responseLength: $context.responseLength
 
 Mappings:
   EnvironmentConfiguration:
@@ -187,87 +205,40 @@ Resources:
   PublicKBVApi:
     Type: AWS::Serverless::Api
     Properties:
+      Name: !Sub kbv-cri-${AWS::StackName}
       Description: Public KBV CRI API
-      MethodSettings:
-        - LoggingLevel: INFO
-          ResourcePath: '/*'
-          HttpMethod: '*'
-          # Disable data trace in production to avoid logging customer sensitive information
-          DataTraceEnabled: true
-          MetricsEnabled: true
-          ThrottlingRateLimit: 200
-          ThrottlingBurstLimit: 400
-      AccessLogSetting:
-        DestinationArn: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${PublicKBVApiAccessLogGroup}'
-        Format: >-
-          {
-          "requestId":"$context.requestId",
-          "ip":"$context.identity.sourceIp",
-          "requestTime":"$context.requestTime",
-          "httpMethod":"$context.httpMethod",
-          "path":"$context.path",
-          "routeKey":"$context.routeKey",
-          "status":"$context.status",
-          "protocol":"$context.protocol",
-          "responseLatency":"$context.responseLatency",
-          "responseLength":"$context.responseLength"
-          }
-      TracingEnabled: true
-      Name: !Sub "kbv-cri-${AWS::StackName}"
       StageName: !Ref Environment
+      AccessLogSetting:
+        DestinationArn: !GetAtt PublicKBVApiAccessLogGroup.Arn
       DefinitionBody:
-        openapi: "3.0.1" # workaround to get `sam validate` to work
+        openapi: 3.0.1
         paths: # workaround to get `sam validate` to work
           /never-created:
-            options: { } # workaround to get `sam validate` to work
+            options: { }
         Fn::Transform:
           Name: AWS::Include
           Parameters:
-            Location: './public-api.yaml'
-      OpenApiVersion: 3.0.1
+            Location: ./public-api.yaml
       EndpointConfiguration:
         Type: REGIONAL
 
   PrivateKBVApi:
     Type: AWS::Serverless::Api
     Properties:
+      Name: !Sub kbv-cri-private-${AWS::StackName}
       Description: Private KBV CRI API
-      MethodSettings:
-        - LoggingLevel: INFO
-          ResourcePath: '/*'
-          HttpMethod: '*'
-          # Disable data trace in production to avoid logging customer sensitive information
-          DataTraceEnabled: true
-          MetricsEnabled: true
-          ThrottlingRateLimit: 200
-          ThrottlingBurstLimit: 400
+      StageName: !Ref Environment
       AccessLogSetting:
         DestinationArn: !GetAtt PrivateKBVApiAccessLogGroup.Arn
-        Format:
-          Fn::ToJsonString:
-            requestId: $context.requestId
-            ip: $context.identity.sourceIp
-            requestTime: $context.requestTime
-            httpMethod: $context.httpMethod
-            path: $context.path
-            routeKey: $context.routeKey
-            status: $context.status
-            protocol: $context.protocol
-            responseLatency: $context.responseLatency
-            responseLength: $context.responseLength
-      TracingEnabled: true
-      Name: !Sub "kbv-cri-private-${AWS::StackName}"
-      StageName: !Ref Environment
       DefinitionBody:
-        openapi: "3.0.1" # workaround to get `sam validate` to work
+        openapi: 3.0.1
         paths: # workaround to get `sam validate` to work
           /never-created:
-            options: { } # workaround to get `sam validate` to work
+            options: { }
         Fn::Transform:
           Name: AWS::Include
           Parameters:
-            Location: './private-api.yaml'
-      OpenApiVersion: 3.0.1
+            Location: ./private-api.yaml
       EndpointConfiguration:
         Type: !If [IsLocalDevEnvironment, REGIONAL, PRIVATE]
       Auth:
@@ -626,12 +597,10 @@ Resources:
   PublicApiUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
     Condition: IsNotDevEnvironment
-    DependsOn:
-      - PublicKBVApiStage
     Properties:
       ApiStages:
         - ApiId: !Ref PublicKBVApi
-          Stage: !Ref Environment
+          Stage: !Ref PublicKBVApi.Stage
       Quota:
         Limit: 500000
         Period: DAY
@@ -642,12 +611,10 @@ Resources:
   PrivateApiUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
     Condition: IsNotDevEnvironment
-    DependsOn:
-      - PrivateKBVApiStage
     Properties:
       ApiStages:
         - ApiId: !Ref PrivateKBVApi
-          Stage: !Ref Environment
+          Stage: !Ref PrivateKBVApi.Stage
       Quota:
         Limit: 500000
         Period: DAY
