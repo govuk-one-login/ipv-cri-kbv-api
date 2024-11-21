@@ -1,4 +1,4 @@
-name: Preview
+name: Deploy preview
 
 on:
   workflow_dispatch:
@@ -23,6 +23,9 @@ jobs:
     name: Build SAM app
     runs-on: ubuntu-latest
     permissions: {}
+    outputs:
+      cache-key: ${{ steps.build.outputs.cache-key }}
+      cache-restore-keys: ${{ steps.build.outputs.cache-restore-keys }}
     steps:
       - name: Pull repository
         uses: actions/checkout@v4
@@ -40,12 +43,13 @@ jobs:
           cache: gradle
 
       - name: Build SAM application
-        uses: govuk-one-login/github-actions/sam/build-application@cd7d35dde348251237efbbaee5345e95adef0321
+        uses: govuk-one-login/github-actions/sam/build-application@d201191485b645ec856a34e5ca48636cf97b2574
         id: build
         with:
           template: infrastructure/lambda/template.yaml
-          cache-key: kbv-api
           pull-repository: false
+          cache-name: kbv-api
+          source-dir: lambdas
 
   deploy:
     name: Deploy stack
@@ -63,13 +67,14 @@ jobs:
       stack-outputs: ${{ steps.deploy.outputs.stack-outputs }}
     steps:
       - name: Deploy stack
-        uses: govuk-one-login/github-actions/sam/deploy-stack@cd7d35dde348251237efbbaee5345e95adef0321
+        uses: govuk-one-login/github-actions/sam/deploy-stack@d201191485b645ec856a34e5ca48636cf97b2574
         id: deploy
         with:
           sam-deployment-bucket: ${{ vars.DEPLOYMENT_ARTIFACTS_BUCKET }}
           aws-role-arn: ${{ vars.DEPLOYMENT_ROLE_ARN }}
           stack-name-prefix: preview-kbv-api
-          cache-key: kbv-api
+          cache-key: ${{ needs.build.outputs.cache-key }}
+          cache-restore-keys: ${{ needs.build.outputs.cache-restore-keys }}
           s3-prefix: preview
           pull-repository: true
           delete-failed-stack: true
@@ -79,5 +84,5 @@ jobs:
             cri:application=Orange
             cri:deployment-source=github-actions
           parameters: |
-            Environment=dev
+            Environment=localdev
             SecretPrefix=pre-merge-test

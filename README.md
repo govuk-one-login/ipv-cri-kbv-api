@@ -88,14 +88,10 @@ Deployment to Build:
 |----------------------------|----------------------------------|
 | `/alerting/email-address`  | email address to receive alerts  |
 
-## Run Integration Tests
+## Run integration tests
 
-To run:
+The command below runs using `https://cri.core.build.stubs.account.gov.uk` in AWS with stub client ID `ipv-core-stub-aws-prod`.
 
-Below runs by with stub client using `https://cri.core.build.stubs.account.gov.uk` in AWS with stub a client_id `ipv-core-stub-aws-stub`
+Optionally set a value for `TEST_RESOURCES_STACK_NAME` if you have deployed a local test resources stack and want to override the default stack named `test-resources`.
 
-Use the default `test-resources` stack in TEST_RESOURCES_STACK_NAME unless you have deployed a local test-resources stack
-
-`ENVIRONMENT=xxxx STACK_NAME=xxxx IPV_CORE_STUB_CRI_ID=kbv-cri-dev  API_GATEWAY_ID_PRIVATE=xxxx API_GATEWAY_ID_PUBLIC=xxxx IPV_CORE_STUB_BASIC_AUTH_USER=xxxx IPV_CORE_STUB_BASIC_AUTH_PASSWORD=xxxx IPV_CORE_STUB_URL="https://cri.core.build.stubs.account.gov.uk" DEFAULT_CLIENT_ID=ipv-core-stub-aws-build APIGW_API_KEY=xxxx TEST_RESOURCES_STACK_NAME=xxxx gradle integration-tests:cucumber`
-
-NB: The environment variable with value `kbv-cri-dev` allows the command above to use keys in `ipv-config` pointing to keys in `di-ipv-cri-kbv-dev` for the deployed stack.
+`ENVIRONMENT=localdev STACK_NAME=<your-stack> API_GATEWAY_ID_PRIVATE=<from-your-stack> API_GATEWAY_ID_PUBLIC=<from-your-stack> IPV_CORE_STUB_CRI_ID=kbv-cri-dev IPV_CORE_STUB_BASIC_AUTH_USER=xxxx IPV_CORE_STUB_BASIC_AUTH_PASSWORD=xxxx IPV_CORE_STUB_URL=https://cri.core.build.stubs.account.gov.uk DEFAULT_CLIENT_ID=ipv-core-stub-aws-prod APIGW_API_KEY=xxxx TEST_RESOURCES_STACK_NAME= gradle integration-tests:cucumber`
