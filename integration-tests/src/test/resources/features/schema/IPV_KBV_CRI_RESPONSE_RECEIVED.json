@@ -1,0 +1,81 @@
+{
+  "type": "object",
+  "properties": {
+    "timestamp": {
+      "type": "integer"
+    },
+    "event_timestamp_ms": {
+      "type": "integer"
+    },
+    "event_name": {
+      "type": "string"
+    },
+    "component_id": {
+      "type": "string"
+    },
+    "user": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string"
+        },
+        "ip_address": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "persistent_session_id": {
+          "type": "string"
+        },
+        "govuk_signin_journey_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "user_id",
+        "ip_address",
+        "session_id",
+        "persistent_session_id",
+        "govuk_signin_journey_id"
+      ]
+    },
+    "extensions": {
+      "type": "object",
+      "properties": {
+        "experianIiqResponse": {
+          "type": "object",
+          "properties": {
+            "repeatAttemptAlert": {
+              "type": "boolean"
+            },
+            "totalQuestionsAnsweredCorrect": {
+              "type": "integer"
+            },
+            "totalQuestionsAsked": {
+              "type": "integer"
+            },
+            "totalQuestionsAnsweredIncorrect": {
+              "type": "integer"
+            },
+            "outcome": {
+              "type": "string"
+            }
+          },
+          "required": [],
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "timestamp",
+    "event_timestamp_ms",
+    "event_name",
+    "component_id",
+    "user",
+    "extensions"
+  ],
+  "additionalProperties": false
+}

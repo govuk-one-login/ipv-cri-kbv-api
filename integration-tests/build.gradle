@@ -13,7 +13,7 @@ repositories {
 ext {
 	cucumberVersion = '7.15.0'
 	junitJupiterapi = '5.9.0'
-	jacksonDatabind = '2.9.5'
+	jacksonDatabind = '2.18.1'
 	apacheHttpClient = '4.5.13'
 	apacheCommonLang = '3.14.0'
 }
