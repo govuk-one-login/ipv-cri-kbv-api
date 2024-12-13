@@ -4,7 +4,6 @@ info:
   version: "1.0"
 
 paths:
-
   /authorization:
     get:
       parameters:
@@ -184,6 +183,7 @@ paths:
         uri:
           Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${KBVAbandonFunction.Arn}/invocations"
         passthroughBehavior: "when_no_match"
+
 components:
   parameters:
     SessionHeader:

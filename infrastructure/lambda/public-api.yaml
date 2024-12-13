@@ -72,6 +72,7 @@ paths:
         passthroughBehavior: "when_no_match"
         contentHandling: "CONVERT_TO_TEXT"
         type: "aws_proxy"
+
   /credential/issue:
     summary: Resource for the KBV API
     description: >-
