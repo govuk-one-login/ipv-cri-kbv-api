@@ -757,7 +757,7 @@ Resources:
       FunctionName: !GetAtt IssueCredentialFunction.Arn
       Principal: apigateway.amazonaws.com
 
-  KBVQuestionFunctionPermissionAlias:
+  KBVQuestionFunctionAliasPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
