@@ -904,7 +904,7 @@ Resources:
       Unit: Count
       Period: 60
       EvaluationPeriods: 1
-      Threshold: 1
+      Threshold: 2
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
@@ -922,7 +922,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-KBVQuestionFunction:live"
+          Value: !Sub ${KBVQuestionFunction}:live
         - Name: FunctionName
           Value: !Ref KBVQuestionFunction
         - Name: ExecutedVersion
@@ -980,7 +980,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-KBVAnswerFunction:live"
+          Value: !Sub ${KBVAnswerFunction}:live
         - Name: FunctionName
           Value: !Ref KBVAnswerFunction
         - Name: ExecutedVersion
@@ -1038,7 +1038,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-KBVAbandonFunction:live"
+          Value: !Sub ${KBVAbandonFunction}:live
         - Name: FunctionName
           Value: !Ref KBVAbandonFunction
         - Name: ExecutedVersion
@@ -1096,7 +1096,7 @@ Resources:
       MetricName: Errors
       Dimensions:
         - Name: Resource
-          Value: !Sub "${AWS::StackName}-IssueCredentialFunction:live"
+          Value: !Sub ${IssueCredentialFunction}:live
         - Name: FunctionName
           Value: !Ref IssueCredentialFunction
         - Name: ExecutedVersion
