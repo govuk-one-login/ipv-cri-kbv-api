@@ -757,6 +757,34 @@ Resources:
       FunctionName: !GetAtt IssueCredentialFunction.Arn
       Principal: apigateway.amazonaws.com
 
+  KBVQuestionFunctionAliasPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref KBVQuestionFunction.Alias
+      Principal: apigateway.amazonaws.com
+
+  KBVAnswerFunctionAliasPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref KBVAnswerFunction.Alias
+      Principal: apigateway.amazonaws.com
+
+  KBVAbandonFunctionAliasPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref KBVAbandonFunction.Alias
+      Principal: apigateway.amazonaws.com
+
+  IssueCredentialFunctionAliasPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref IssueCredentialFunction.Alias
+      Principal: apigateway.amazonaws.com
+
   LoggingKmsKey:
     Type: AWS::KMS::Key
     Properties:
