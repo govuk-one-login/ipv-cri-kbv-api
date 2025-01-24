@@ -60,51 +60,59 @@ Conditions:
 Globals:
   Function:
     VpcConfig:
-      SecurityGroupIds: [!ImportValue cri-vpc-LambdaSecurityGroup]
-      SubnetIds: !Split [",", !ImportValue cri-vpc-PrivateSubnets]
+      SecurityGroupIds: [ !ImportValue cri-vpc-LambdaSecurityGroup ]
+      SubnetIds: !Split [ ",", !ImportValue cri-vpc-PrivateSubnets ]
     PermissionsBoundary:
-      !If [UsePermissionsBoundary, !Ref PermissionsBoundary, !Ref AWS::NoValue]
+      !If [ UsePermissionsBoundary, !Ref PermissionsBoundary, !Ref AWS::NoValue ]
     CodeSigningConfigArn:
-      !If [UseCodeSigningConfigArn, !Ref CodeSigningConfigArn, !Ref AWS::NoValue]
+      !If [ UseCodeSigningConfigArn, !Ref CodeSigningConfigArn, !Ref AWS::NoValue ]
     Tracing: Active
     Timeout: 30 # seconds
     Runtime: java11
-    Architectures: [arm64]
+    Architectures: [ arm64 ]
     AutoPublishAlias: live
     DeploymentPreference:
       Type: !Ref LambdaDeploymentPreference
       Role: !GetAtt CodeDeployServiceRole.Arn
-    MemorySize: !FindInMap [MemorySizeMapping, Environment, !Ref Environment]
+    MemorySize: !FindInMap [ MemorySizeMapping, Environment, !Ref Environment ]
     Environment:
       Variables:
         AWS_STACK_NAME: !Ref AWS::StackName
-        SECRET_PREFIX: !If [UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName]
+        SECRET_PREFIX: !If [ UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName ]
         SQS_AUDIT_EVENT_PREFIX: !Ref AuditEventNamePrefix
         COMMON_PARAMETER_NAME_PREFIX: !Ref CommonStackName
         POWERTOOLS_METRICS_NAMESPACE: !Ref CriIdentifier
         POWERTOOLS_LOG_LEVEL: INFO
-        AWS_LAMBDA_EXEC_WRAPPER: /opt/dynatrace
         JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+        OTEL_EXPORTER_OTLP_ENDPOINT: !Sub
+          - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CONNECTION_BASE_URL}}"
+          - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
+        OTEL_EXPORTER_OTLP_HEADERS: !Sub
+          - "Authorization=Api-Token {{resolve:secretsmanager:${SecretArn}:SecretString:DT_CONNECTION_AUTH_TOKEN}}"
+          - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
+        OTEL_RESOURCE_ATTRIBUTES: !Sub "service.name=${CriIdentifier}"
         DT_CONNECTION_AUTH_TOKEN: !Sub
           - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CONNECTION_AUTH_TOKEN}}"
-          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
+          - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
         DT_CONNECTION_BASE_URL: !Sub
           - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CONNECTION_BASE_URL}}"
-          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
+          - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
         DT_CLUSTER_ID: !Sub
           - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CLUSTER_ID}}"
-          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
+          - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
         DT_LOG_COLLECTION_AUTH_TOKEN: !Sub
           - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_LOG_COLLECTION_AUTH_TOKEN}}"
-          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
+          - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
         DT_TENANT: !Sub
           - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_TENANT}}"
-          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
+          - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
         DT_OPEN_TELEMETRY_ENABLE_INTEGRATION: "true"
     Layers:
+      - !Sub "arn:aws:lambda:${AWS::Region}:901920570463:layer:aws-otel-java-wrapper-arm64-ver-1-32-0:4"
       - !Sub
         - "{{resolve:secretsmanager:${SecretArn}:SecretString:JAVA_LAYER}}"
-        - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
+        - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
+
   Api:
     TracingEnabled: true
     OpenApiVersion: 3.0.1
