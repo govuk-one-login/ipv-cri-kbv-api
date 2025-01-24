@@ -84,7 +84,7 @@ Globals:
         POWERTOOLS_METRICS_NAMESPACE: !Ref CriIdentifier
         POWERTOOLS_LOG_LEVEL: INFO
         JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
-        AWS_LAMBDA_EXEC_WRAPPER: /opt/otel-proxy-handler
+        AWS_LAMBDA_EXEC_WRAPPER: /opt/dynatrace
         OTEL_EXPORTER_OTLP_ENDPOINT: !Sub
           - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CONNECTION_BASE_URL}}"
           - SecretArn: !FindInMap [ EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn ]
