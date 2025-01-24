@@ -5,6 +5,9 @@ plugins {
 }
 
 dependencies {
+
+	runtimeOnly configurations.otel
+
 	implementation project(":lib"),
 			configurations.cri_common_lib,
 			configurations.aws,

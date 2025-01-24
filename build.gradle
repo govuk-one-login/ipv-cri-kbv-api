@@ -63,6 +63,7 @@ subprojects {
 		cri_common_lib
 		pact_tests
 		webcompere
+		otel
 	}
 
 	// The dynamodb enhanced package loads the apache-client as well as the spi-client, so
@@ -133,6 +134,9 @@ subprojects {
 
 		webcompere "uk.org.webcompere:system-stubs-core:${dependencyVersions.webcompere_version}",
 				"uk.org.webcompere:system-stubs-jupiter:${dependencyVersions.webcompere_version}"
+
+		otel "io.opentelemetry.instrumentation:opentelemetry-aws-sdk-2.2-autoconfigure:2.12.0-alpha",
+				"io.opentelemetry.instrumentation:opentelemetry-java-http-client:2.12.0-alpha"
 	}
 
 	apply plugin: 'java'
