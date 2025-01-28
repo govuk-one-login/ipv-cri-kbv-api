@@ -3,6 +3,9 @@ package uk.gov.di.ipv.cri.kbv.api.service;
 import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebService;
 import com.experian.uk.wasp.TokenService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.cxf.Bus;
+import org.apache.cxf.BusFactory;
+import org.apache.cxf.transport.http.HTTPConduitFactory;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.lambda.powertools.parameters.SSMProvider;
@@ -89,6 +92,9 @@ public class ServiceFactory {
     }
 
     private KBVClientFactory getKbvClientFactory() {
+        Bus bus = BusFactory.getDefaultBus();
+        bus.setExtension(new OtelHttpConduitFactory(), HTTPConduitFactory.class);
+
         TokenService tokenService = new TokenService();
         SoapToken soapToken = new SoapToken(APPLICATION, true, tokenService, configurationService);
         HeaderHandler headerHandler = new HeaderHandler(soapToken);
