@@ -12,6 +12,8 @@ repositories {
 }
 
 dependencies {
+	implementation configurations.otel
+
 	implementation configurations.cri_common_lib,
 			configurations.aws,
 			configurations.dynamodb,
