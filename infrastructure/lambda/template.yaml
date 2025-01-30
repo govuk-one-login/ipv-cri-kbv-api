@@ -102,6 +102,7 @@ Globals:
           - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
         DT_OPEN_TELEMETRY_ENABLE_INTEGRATION: "true"
         OTEL_INSTRUMENTATION_AWS_SDK_EXPERIMENTAL_USE_PROPAGATOR_FOR_MESSAGING: "true"
+        OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
     Layers:
       - !Sub
         - "{{resolve:secretsmanager:${SecretArn}:SecretString:JAVA_LAYER}}"
