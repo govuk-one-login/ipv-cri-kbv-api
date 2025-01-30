@@ -9,6 +9,7 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.RTQRespons
 import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
+import io.opentelemetry.api.trace.Span;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.cloudwatchlogs.emf.model.Unit;
@@ -19,6 +20,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
+import uk.gov.di.ipv.cri.kbv.api.util.OpenTelemetryUtil;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -64,7 +66,17 @@ public class KBVGateway {
 
         Instant start = Instant.now();
         long startTime = System.nanoTime();
+
+        Span span =
+                OpenTelemetryUtil.createSpan(
+                        this.getClass(),
+                        "getQuestions",
+                        "SAA getQuestions",
+                        "SAA",
+                        "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/SAA");
         SAAResponse2 saaResponse2 = getQuestionRequestResponse(saaRequest);
+        OpenTelemetryUtil.endSpan(span);
+
         long endTime = System.nanoTime();
         Instant end = Instant.now();
         long totalTimeInMs = (endTime - startTime) / 1000000;
@@ -103,7 +115,18 @@ public class KBVGateway {
 
         Instant start = Instant.now();
         long startTime = System.nanoTime();
+
+        Span span =
+                OpenTelemetryUtil.createSpan(
+                        this.getClass(),
+                        "submitAnswers",
+                        "RTQ submitAnswers",
+                        "RTQ",
+                        "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/RTQ");
+
         RTQResponse2 rtqResponse2 = submitQuestionAnswerResponse(rtqRequest);
+        OpenTelemetryUtil.endSpan(span);
+
         long endTime = System.nanoTime();
         Instant end = Instant.now();
 
