@@ -26,9 +26,9 @@ public class OpenTelemetryUtil {
     }
 
     public static Span createSpan(
-            Class<?> clazz, String functionName, String name, String httpMethod, String url) {
+            Class<?> clazz, String functionName, String httpMethod, String url) {
         return getTracer(clazz.getName())
-                .spanBuilder(name)
+                .spanBuilder(String.format("%s %s", httpMethod, functionName))
                 .setSpanKind(SpanKind.CLIENT)
                 .setStartTimestamp(Instant.now().toEpochMilli(), TimeUnit.MILLISECONDS)
                 .setAttribute("http.method", httpMethod)

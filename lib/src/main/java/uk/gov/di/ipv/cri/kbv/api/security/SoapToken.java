@@ -42,8 +42,7 @@ public class SoapToken {
                 OpenTelemetryUtil.createSpan(
                         this.getClass(),
                         "getToken",
-                        "Experian getToken",
-                        "_UNKNOWN",
+                        "LoginWithCertificate",
                         "http://www.uk.experian.com/WASP/LoginWithCertificate");
 
         try {

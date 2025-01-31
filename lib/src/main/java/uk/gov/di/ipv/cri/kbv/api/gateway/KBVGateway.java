@@ -71,7 +71,6 @@ public class KBVGateway {
                 OpenTelemetryUtil.createSpan(
                         this.getClass(),
                         "getQuestions",
-                        "SAA getQuestions",
                         "SAA",
                         "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/SAA");
         SAAResponse2 saaResponse2 = getQuestionRequestResponse(saaRequest);
@@ -120,7 +119,6 @@ public class KBVGateway {
                 OpenTelemetryUtil.createSpan(
                         this.getClass(),
                         "submitAnswers",
-                        "RTQ submitAnswers",
                         "RTQ",
                         "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/RTQ");
 
