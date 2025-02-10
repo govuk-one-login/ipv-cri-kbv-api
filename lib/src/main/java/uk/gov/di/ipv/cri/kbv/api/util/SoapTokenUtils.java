@@ -31,9 +31,9 @@ public class SoapTokenUtils {
     public static boolean isTokenValid(String tokenPayload) {
         try {
             return tokenPayload != null
-                    && getTokenExpiry(tokenPayload) > Instant.now().getEpochSecond()
-                    && !tokenPayload.trim().equalsIgnoreCase("error")
-                    && !tokenPayload.isEmpty();
+                    && !tokenPayload.isEmpty()
+                    && !tokenPayload.toLowerCase().contains("error")
+                    && getTokenExpiry(tokenPayload) > Instant.now().getEpochSecond();
         } catch (Exception e) {
             return false;
         }
