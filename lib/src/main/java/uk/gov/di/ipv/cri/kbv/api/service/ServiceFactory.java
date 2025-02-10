@@ -20,6 +20,7 @@ import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandler;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandlerResolver;
 import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapToken;
+import uk.gov.di.ipv.cri.kbv.api.security.SoapTokenRetriever;
 
 import java.time.Clock;
 
@@ -91,7 +92,7 @@ public class ServiceFactory {
     private KBVClientFactory getKbvClientFactory() {
         TokenService tokenService = new TokenService();
         SoapToken soapToken = new SoapToken(APPLICATION, true, tokenService, configurationService);
-        HeaderHandler headerHandler = new HeaderHandler(soapToken);
+        HeaderHandler headerHandler = new HeaderHandler(new SoapTokenRetriever(soapToken));
         HeaderHandlerResolver headerResolver = new HeaderHandlerResolver(headerHandler);
 
         return new KBVClientFactory(
