@@ -1,9 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.security;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import uk.gov.di.ipv.cri.kbv.api.exception.HeaderHandlerException;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidSoapTokenException;
-import uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils;
 
 import javax.xml.namespace.QName;
 import javax.xml.soap.Name;
@@ -17,16 +15,15 @@ import javax.xml.ws.handler.MessageContext;
 import javax.xml.ws.handler.soap.SOAPHandler;
 import javax.xml.ws.handler.soap.SOAPMessageContext;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 
 public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
-    private final SoapTokenRetriever tokenRetriever;
+    private final SoapToken token;
 
-    public HeaderHandler(SoapTokenRetriever tokenRetriever) {
-        this.tokenRetriever = tokenRetriever;
+    public HeaderHandler(SoapToken token) {
+        this.token = token;
     }
 
     public boolean handleMessage(SOAPMessageContext smc) {
@@ -61,10 +58,10 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
                         "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
                 binarySecurityToken.addAttribute(new QName("EncodingType"), "wsse:Base64Binary");
                 binarySecurityToken.addAttribute(new QName("ValueType"), "ExperianWASP");
-                binarySecurityToken.setValue(retrieveTokenWithoutError());
+                binarySecurityToken.setValue(retrieveTokenWithoutError(token));
                 soapMessage.saveChanges();
 
-            } catch (SOAPException | RuntimeException | JsonProcessingException e) {
+            } catch (SOAPException | RuntimeException e) {
                 throw new HeaderHandlerException(
                         "Error in SOAP HeaderHandler: " + e.getMessage(), e);
             }
@@ -73,23 +70,12 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
         return true;
     }
 
-    private String retrieveTokenWithoutError() throws JsonProcessingException {
-        String tokenValue =
-                Objects.requireNonNull(tokenRetriever.getSoapToken(), "The token must not be null");
-
-        if (tokenValue.isEmpty()) {
-            throw new InvalidSoapTokenException("The SOAP token value must not be empty");
-        }
+    private String retrieveTokenWithoutError(SoapToken token) {
+        String tokenValue = Objects.requireNonNull(token.getToken(), "The token must not be null");
 
         if (tokenValue.toLowerCase().contains("error")) {
             throw new InvalidSoapTokenException("The SOAP token contains an error: " + tokenValue);
         }
-
-        if (SoapTokenUtils.getTokenExpiry(SoapTokenUtils.decodeTokenPayload(tokenValue))
-                < Instant.now().getEpochSecond()) {
-            throw new InvalidSoapTokenException("The SOAP token is expired");
-        }
-
         return tokenValue;
     }
 
