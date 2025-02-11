@@ -38,6 +38,69 @@ class SoapTokenRetrieverTest {
     }
 
     @Test
+    void shouldCacheToken() {
+        when(soapTokenMock.getToken())
+                .thenReturn(MOCKED_VALID_TOKEN_VALUE)
+                .thenReturn(generateValidToken2());
+
+        String token = soapTokenRetriever.getSoapToken();
+        String token2 = soapTokenRetriever.getSoapToken();
+
+        assertEquals(MOCKED_VALID_TOKEN_VALUE, token);
+        assertEquals(MOCKED_VALID_TOKEN_VALUE, token2);
+    }
+
+    @Test
+    void shouldReturnCloseToExpiringCacheTokenWhenExperianGivesInvalidToken() {
+        when(soapTokenMock.getToken()).thenReturn(MOCKED_CLOSE_TO_EXPIRY_TOKEN);
+
+        soapTokenRetriever.getSoapToken();
+
+        when(soapTokenMock.getToken()).thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
+
+        String token = soapTokenRetriever.getSoapToken();
+
+        assertEquals(MOCKED_CLOSE_TO_EXPIRY_TOKEN, token);
+    }
+
+    @Test
+    void shouldReturnInvalidToken() {
+        when(soapTokenMock.getToken()).thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
+
+        String token = soapTokenRetriever.getSoapToken();
+        String token2 = soapTokenRetriever.getSoapToken();
+
+        assertEquals(MOCKED_EXPIRED_TOKEN_VALUE, token);
+        assertEquals(MOCKED_EXPIRED_TOKEN_VALUE, token2);
+    }
+
+    @Test
+    void shouldUpdateCache() {
+        when(soapTokenMock.getToken())
+                .thenReturn(MOCKED_CLOSE_TO_EXPIRY_TOKEN)
+                .thenReturn(MOCKED_VALID_TOKEN_VALUE);
+
+        String token = soapTokenRetriever.getSoapToken();
+        String token2 = soapTokenRetriever.getSoapToken();
+
+        assertEquals(MOCKED_VALID_TOKEN_VALUE, token);
+        assertEquals(MOCKED_VALID_TOKEN_VALUE, token2);
+    }
+
+    @Test
+    void shouldUseValidCachedTokenIfFailedFetch() {
+        when(soapTokenMock.getToken())
+                .thenReturn(MOCKED_VALID_TOKEN_VALUE)
+                .thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
+
+        soapTokenRetriever.getSoapToken();
+
+        String token = soapTokenRetriever.getSoapToken();
+
+        assertEquals(MOCKED_VALID_TOKEN_VALUE, token);
+    }
+
+    @Test
     void shouldReturnEmptyStringWhenTokenIsEmpty() {
         when(soapTokenMock.getToken()).thenReturn("");
 
@@ -164,6 +227,15 @@ class SoapTokenRetrieverTest {
                         String.format(
                                 "{\"exp\": \"%d\"}",
                                 Instant.now().getEpochSecond() + TimeUnit.DAYS.toSeconds(1)));
+        return TOKEN_HEADER + "." + encodedPayload + "." + TOKEN_SIGNATURE;
+    }
+
+    public static String generateValidToken2() {
+        String encodedPayload =
+                encodeBase64Url(
+                        String.format(
+                                "{\"exp\": %d}",
+                                Instant.now().getEpochSecond() + TimeUnit.DAYS.toSeconds(2)));
         return TOKEN_HEADER + "." + encodedPayload + "." + TOKEN_SIGNATURE;
     }
 
