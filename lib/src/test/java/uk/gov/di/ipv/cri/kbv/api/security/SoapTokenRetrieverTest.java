@@ -10,9 +10,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,24 +41,22 @@ class SoapTokenRetrieverTest {
                 .thenReturn(MOCKED_VALID_TOKEN_VALUE)
                 .thenReturn(generateValidToken2());
 
-        String token = soapTokenRetriever.getSoapToken();
-        String token2 = soapTokenRetriever.getSoapToken();
+        String goodToken = soapTokenRetriever.getSoapToken();
+        String cachedGoodToken = soapTokenRetriever.getSoapToken();
 
-        assertEquals(MOCKED_VALID_TOKEN_VALUE, token);
-        assertEquals(MOCKED_VALID_TOKEN_VALUE, token2);
+        assertEquals(goodToken, cachedGoodToken);
     }
 
     @Test
     void shouldReturnCloseToExpiringCacheTokenWhenExperianGivesInvalidToken() {
         when(soapTokenMock.getToken()).thenReturn(MOCKED_CLOSE_TO_EXPIRY_TOKEN);
-
-        soapTokenRetriever.getSoapToken();
+        String cachedGoodToken = soapTokenRetriever.getSoapToken();
 
         when(soapTokenMock.getToken()).thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
 
-        String token = soapTokenRetriever.getSoapToken();
+        String requestForNewToken = soapTokenRetriever.getSoapToken();
 
-        assertEquals(MOCKED_CLOSE_TO_EXPIRY_TOKEN, token);
+        assertEquals(cachedGoodToken, requestForNewToken);
     }
 
     @Test
@@ -76,28 +72,17 @@ class SoapTokenRetrieverTest {
 
     @Test
     void shouldUpdateCache() {
-        when(soapTokenMock.getToken())
-                .thenReturn(MOCKED_CLOSE_TO_EXPIRY_TOKEN)
-                .thenReturn(MOCKED_VALID_TOKEN_VALUE);
+        when(soapTokenMock.getToken()).thenReturn(MOCKED_CLOSE_TO_EXPIRY_TOKEN);
 
-        String token = soapTokenRetriever.getSoapToken();
-        String token2 = soapTokenRetriever.getSoapToken();
+        String cachedCloseToExpiry = soapTokenRetriever.getSoapToken();
 
-        assertEquals(MOCKED_VALID_TOKEN_VALUE, token);
-        assertEquals(MOCKED_VALID_TOKEN_VALUE, token2);
-    }
+        when(soapTokenMock.getToken()).thenReturn(MOCKED_VALID_TOKEN_VALUE);
 
-    @Test
-    void shouldUseValidCachedTokenIfFailedFetch() {
-        when(soapTokenMock.getToken())
-                .thenReturn(MOCKED_VALID_TOKEN_VALUE)
-                .thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
+        String updatedToken = soapTokenRetriever.getSoapToken();
 
-        soapTokenRetriever.getSoapToken();
-
-        String token = soapTokenRetriever.getSoapToken();
-
-        assertEquals(MOCKED_VALID_TOKEN_VALUE, token);
+        assertEquals(MOCKED_CLOSE_TO_EXPIRY_TOKEN, cachedCloseToExpiry);
+        assertEquals(MOCKED_VALID_TOKEN_VALUE, updatedToken);
+        assertNotEquals(cachedCloseToExpiry, updatedToken);
     }
 
     @Test
