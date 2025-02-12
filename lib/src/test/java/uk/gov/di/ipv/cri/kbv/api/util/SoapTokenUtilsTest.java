@@ -71,10 +71,6 @@ class SoapTokenUtilsTest {
     }
 
     public static String encodeBase64Url(String input) {
-        return Base64.getEncoder()
-                .encodeToString(input.getBytes())
-                .replace('+', '-')
-                .replace('/', '_')
-                .replace("=", "");
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(input.getBytes());
     }
 }

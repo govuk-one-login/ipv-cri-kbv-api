@@ -14,14 +14,8 @@ public class SoapTokenUtils {
     }
 
     public static String decodeTokenPayload(String token) {
-        String[] jwtParts = token.split("\\.");
-        String encodedPayload = jwtParts[1];
-        String decodedToken = encodedPayload.replace('-', '+').replace('_', '/');
-        int paddingLength = 4 - (decodedToken.length() % 4);
-        if (paddingLength < 4) {
-            decodedToken += "=".repeat(paddingLength);
-        }
-        return new String(Base64.getDecoder().decode(decodedToken));
+        String encodedPayload = token.split("\\.", 3)[1];
+        return new String(Base64.getUrlDecoder().decode(encodedPayload));
     }
 
     public static long getTokenExpiry(String tokenPayload) throws JsonProcessingException {

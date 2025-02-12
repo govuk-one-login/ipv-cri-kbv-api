@@ -53,7 +53,9 @@ public class SoapTokenRetriever {
                             "Updated cached token with the one received from Experian. The token given by Experian is valid but not within our threshold, using anyway...");
                 }
             } catch (Exception e) {
-                LOGGER.warn("Cached SOAP token and token from Experian are both invalid: {}.", e.getMessage());
+                LOGGER.warn(
+                        "Cached SOAP token and token from Experian are both invalid: {}.",
+                        e.getMessage());
             }
 
             return token;
