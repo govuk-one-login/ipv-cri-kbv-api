@@ -42,14 +42,29 @@ jobs:
           distribution: zulu
           cache: gradle
 
-      - name: Build SAM application
-        uses: govuk-one-login/github-actions/sam/build-application@d201191485b645ec856a34e5ca48636cf97b2574
+#      - name: Build SAM application
+#        uses: govuk-one-login/github-actions/sam/build-application@d201191485b645ec856a34e5ca48636cf97b2574
+#        id: build
+#        with:
+#          template: infrastructure/lambda/template.yaml
+#          pull-repository: false
+#          cache-name: kbv-api
+#          source-dir: lambdas
+
+      - name: Set up SAM CLI
         id: build
+        uses: aws-actions/setup-sam@819220f63fb333a9a394dd0a5cab2d8303fd17e2
         with:
-          template: infrastructure/lambda/template.yaml
-          pull-repository: false
-          cache-name: kbv-api
-          source-dir: lambdas
+          use-installer: true
+          version: 1.132.0
+
+      - name: SAM Validate
+        run: |
+          sam validate --region eu-west-2 -t infrastructure/lambda/template.yaml
+          sam validate --lint -t infrastructure/lambda/template.yaml
+
+      - name: SAM Build
+        run: sam build -t infrastructure/lambda/template.yaml
 
   deploy:
     name: Deploy stack
@@ -70,6 +85,7 @@ jobs:
         uses: govuk-one-login/github-actions/sam/deploy-stack@d201191485b645ec856a34e5ca48636cf97b2574
         id: deploy
         with:
+          template: infrastructure/lambda/template.yaml
           sam-deployment-bucket: ${{ vars.DEPLOYMENT_ARTIFACTS_BUCKET }}
           aws-role-arn: ${{ vars.DEPLOYMENT_ROLE_ARN }}
           stack-name-prefix: preview-kbv-api

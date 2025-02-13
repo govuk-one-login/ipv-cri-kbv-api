@@ -31,7 +31,10 @@ jobs:
           python-version: 3.11.2
 
       - name: Setup SAM
-        uses: aws-actions/setup-sam@v2
+        uses: aws-actions/setup-sam@819220f63fb333a9a394dd0a5cab2d8303fd17e2
+        with:
+          use-installer: true
+          version: 1.132.0
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
