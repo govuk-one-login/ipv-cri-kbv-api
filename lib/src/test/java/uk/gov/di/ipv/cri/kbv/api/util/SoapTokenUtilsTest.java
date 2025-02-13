@@ -47,19 +47,19 @@ class SoapTokenUtilsTest {
 
     @Test
     void shouldNotValidateIfTokenIsError() {
-        assertFalse(SoapTokenUtils.isTokenValid("error"));
+        assertFalse(SoapTokenUtils.isTokenPayloadValid("error"));
     }
 
     @Test
     void shouldNotValidateIfTokenIsExpired() {
         String payload = "{\"exp\":\"0\"}";
         String token = generateToken(payload);
-        assertFalse(SoapTokenUtils.isTokenValid(token));
+        assertFalse(SoapTokenUtils.isTokenPayloadValid(token));
     }
 
     @Test
     void shouldNotValidateIfTokenIsEmpty() {
-        assertFalse(SoapTokenUtils.isTokenValid(""));
+        assertFalse(SoapTokenUtils.isTokenPayloadValid(""));
     }
 
     private static final String TOKEN_HEADER =

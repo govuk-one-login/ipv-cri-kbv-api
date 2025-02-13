@@ -37,7 +37,8 @@ public class SoapTokenRetriever {
             sleepIfRetry(retry);
             try {
                 token = soapToken.getToken();
-                validTokenFetch = isTokenValid(SoapTokenUtils.decodeTokenPayload(token));
+                validTokenFetch =
+                        isTokenValidWithinThreshold(SoapTokenUtils.decodeTokenPayload(token));
             } catch (Exception e) {
                 LOGGER.error("Error while getting soap token: {}", e.getMessage());
             }
@@ -47,7 +48,8 @@ public class SoapTokenRetriever {
         if (!validTokenFetch && !isCachedTokenValid()) {
             try {
                 if (token != null
-                        && SoapTokenUtils.isTokenValid(SoapTokenUtils.decodeTokenPayload(token))) {
+                        && SoapTokenUtils.isTokenPayloadValid(
+                                SoapTokenUtils.decodeTokenPayload(token))) {
                     cachedToken = token;
                     LOGGER.info(
                             "Updated cached token with the one received from Experian. The token given by Experian is valid but not within our threshold, using anyway...");
@@ -75,8 +77,10 @@ public class SoapTokenRetriever {
     public boolean isCachedTokenValid() {
         try {
             return cachedToken != null
-                    && SoapTokenUtils.isTokenValid(SoapTokenUtils.decodeTokenPayload(cachedToken));
-        } catch (Exception ignored) {
+                    && SoapTokenUtils.isTokenPayloadValid(
+                            SoapTokenUtils.decodeTokenPayload(cachedToken));
+        } catch (Exception e) {
+            LOGGER.debug("Token validation failed due to an error: {}", e.getMessage());
             return false;
         }
     }
@@ -84,15 +88,17 @@ public class SoapTokenRetriever {
     public boolean isCachedTokenValidAndWithinThreshold() {
         try {
             return cachedToken != null
-                    && isTokenValid(SoapTokenUtils.decodeTokenPayload(cachedToken));
-        } catch (Exception ignored) {
+                    && isTokenValidWithinThreshold(SoapTokenUtils.decodeTokenPayload(cachedToken));
+        } catch (Exception e) {
+            LOGGER.debug("Threshold validation failed due to error: {}", e.getMessage());
             return false;
         }
     }
 
-    private static boolean isTokenValid(String decodeTokenPayload) throws JsonProcessingException {
+    private static boolean isTokenValidWithinThreshold(String decodeTokenPayload)
+            throws JsonProcessingException {
         long tokenExpiry = SoapTokenUtils.getTokenExpiry(decodeTokenPayload);
-        return SoapTokenUtils.isTokenValid(decodeTokenPayload)
+        return SoapTokenUtils.isTokenPayloadValid(decodeTokenPayload)
                 && tokenExpiry > (Instant.now().getEpochSecond() + TOKEN_EXPIRY_THRESHOLD);
     }
 
