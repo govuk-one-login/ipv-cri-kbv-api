@@ -29,48 +29,39 @@ public class SoapTokenRetriever {
         }
 
         LOGGER.info("Retrieving SOAP token from Experian...");
-
-        int retry = 0;
         String token = null;
-        boolean validTokenFetch = false;
-        while (retry < MAX_NUMBER_OF_TOKEN_RETRIES && !validTokenFetch) {
+
+        for (int retry = 0; retry < MAX_NUMBER_OF_TOKEN_RETRIES; retry++) {
             sleepIfRetry(retry);
             try {
                 token = soapToken.getToken();
-                validTokenFetch =
-                        isTokenValidWithinThreshold(SoapTokenUtils.decodeTokenPayload(token));
+                if (isTokenValidWithinThreshold(SoapTokenUtils.decodeTokenPayload(token))) {
+                    LOGGER.info("Successfully retrieved a valid token.");
+                    cachedToken = token;
+                    return cachedToken;
+                }
             } catch (Exception e) {
-                LOGGER.error("Error while getting soap token: {}", e.getMessage());
+                LOGGER.error("Error while getting SOAP token: {}", e.getMessage());
             }
-            retry++;
         }
 
-        if (!validTokenFetch && !isCachedTokenValid()) {
+        if (token != null && !isCachedTokenValid()) {
             try {
-                if (token != null
-                        && SoapTokenUtils.isTokenPayloadValid(
-                                SoapTokenUtils.decodeTokenPayload(token))) {
+                if (SoapTokenUtils.isTokenPayloadValid(SoapTokenUtils.decodeTokenPayload(token))) {
                     cachedToken = token;
                     LOGGER.info(
                             "Updated cached token with the one received from Experian. The token given by Experian is valid but not within our threshold, using anyway...");
                 }
             } catch (Exception e) {
                 LOGGER.warn(
-                        "Cached SOAP token and token from Experian are both invalid: {}.",
+                        "Cached SOAP token and retrieved token are both invalid: {}",
                         e.getMessage());
             }
-
             return token;
         }
 
-        if (validTokenFetch) {
-            LOGGER.info("Cached token has been updated");
-            cachedToken = token;
-        } else {
-            LOGGER.warn(
-                    "Received an invalid SOAP token from Experian after retries, using valid cached token for now...");
-        }
-
+        LOGGER.warn(
+                "Received an invalid SOAP token from Experian after retries, using valid cached token for now...");
         return cachedToken;
     }
 
