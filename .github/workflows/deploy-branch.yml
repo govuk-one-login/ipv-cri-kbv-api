@@ -43,13 +43,14 @@ jobs:
           cache: gradle
 
       - name: Build SAM application
-        uses: govuk-one-login/github-actions/sam/build-application@d201191485b645ec856a34e5ca48636cf97b2574
+        uses: govuk-one-login/github-actions/sam/build-application@87ae1213145261e3837cc38d5b9317422acd95c2
         id: build
         with:
           template: infrastructure/lambda/template.yaml
           pull-repository: false
           cache-name: kbv-api
           source-dir: lambdas
+          sam-version: 1.132.0
 
   deploy:
     name: Deploy stack
