@@ -40,23 +40,13 @@ class SoapTokenRetrieverTest {
     }
 
     @Test
-    void hasTokenExpiredReturnsTrueWhenTokenIsExpired() {
-        when(soapTokenMock.getToken()).thenReturn(null);
-
-        assertTrue(soapTokenRetriever.hasTokenExpired());
-
-        verify(soapTokenMock, times(3)).getToken();
+    void hasTokenExpiredReturnsTrueWhenTheirIsNoToken() {
+        assertTrue(soapTokenRetriever.hasTokenExpired(null));
     }
 
     @Test
     void hasTokenExpiredReturnsFalseWhenTokenIsValid() {
-        when(soapTokenMock.getToken())
-                .thenReturn(MOCKED_VALID_TOKEN_VALUE)
-                .thenReturn(generateValidToken2());
-
-        assertFalse(soapTokenRetriever.hasTokenExpired());
-
-        verify(soapTokenMock, times(1)).getToken();
+        assertFalse(soapTokenRetriever.hasTokenExpired(generateValidToken2()));
     }
 
     @Test

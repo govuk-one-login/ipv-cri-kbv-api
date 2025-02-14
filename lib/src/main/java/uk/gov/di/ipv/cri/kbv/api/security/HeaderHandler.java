@@ -82,7 +82,7 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
             throw new InvalidSoapTokenException("The SOAP token contains an error: " + tokenValue);
         }
 
-        if (tokenRetriever.hasTokenExpired()) {
+        if (tokenRetriever.hasTokenExpired(tokenValue)) {
             throw new InvalidSoapTokenException("The SOAP token is expired");
         }
 
