@@ -15,7 +15,18 @@ public class SoapTokenRetriever {
     private static final int MAX_NUMBER_OF_TOKEN_RETRIES = 3;
     private static final long DELAY_BETWEEN_RETRY_MS = 500;
     private static final long TOKEN_EXPIRY_THRESHOLD = TimeUnit.HOURS.toSeconds(2);
-
+    public static final String UPDATED_CACHED_TOKEN_WITH_RECEIVED_EXPERIAN_TOKEN =
+            "Updated cached token with the one received from Experian. "
+                    + "The token given by Experian is valid but not "
+                    + "within our threshold, using anyway...";
+    public static final String EXPERIAN_TOKEN_THAT_IS_OUTSIDE_OUR_THRESHOLD_AND_INVALID =
+            "Returning an Experian token that is outside our threshold and invalid, using anyway...";
+    public static final String CACHED_TOKEN_THAT_IS_OUTSIDE_OUR_THRESHOLD_USING_ANYWAY =
+            "Returning a cached token that is outside our threshold, using anyway...";
+    public static final String TOKEN_EXPIRATION_CHECK_FAILED_JSON_PROCESSING_EXCEPTION =
+            "Token expiration check failed due to a JsonProcessingException error: {}";
+    public static final String FAILED_TO_EXTRACT_TOKEN_EXPIRY_JSON_PROCESSING_ERROR =
+            "Failed to extract token expiry due to JSON processing error: {}";
     private final SoapToken soapToken;
     private String cachedToken;
 
@@ -27,9 +38,9 @@ public class SoapTokenRetriever {
     public String getSoapToken() {
         if (cachedToken != null && isTokenValidWithinThreshold(cachedToken)) {
             LOGGER.info("Using cached SOAP token");
-
             return cachedToken;
         }
+
         LOGGER.info("Retrieving SOAP token from Experian...");
         String token = null;
 
@@ -37,57 +48,39 @@ public class SoapTokenRetriever {
             sleepBeforeRetry(retry);
             try {
                 token = soapToken.getToken();
+                if (token == null) {
+                    LOGGER.warn("Received null token from Experian.");
+                    continue;
+                }
                 if (isTokenValidWithinThreshold(token)) {
                     LOGGER.info("Successfully retrieved a valid token.");
                     this.cachedToken = token;
                     return cachedToken;
                 }
-            } catch (NullPointerException e) {
-                LOGGER.debug("Error while getting SOAP token: {}", e.getMessage());
             } catch (Exception e) {
                 LOGGER.error("Error while getting SOAP token: {}", e.getMessage());
             }
         }
 
-        String fallbackToken = cacheExperianTokenOutsideThresholdIfPossible(token);
-
-        if (fallbackToken != null) {
-            return fallbackToken;
+        if (isTokenPayloadValid(token)) {
+            this.cachedToken = token;
+            LOGGER.info(UPDATED_CACHED_TOKEN_WITH_RECEIVED_EXPERIAN_TOKEN);
+        } else if (isTokenPayloadValid(cachedToken)) {
+            LOGGER.info(CACHED_TOKEN_THAT_IS_OUTSIDE_OUR_THRESHOLD_USING_ANYWAY);
+            return this.cachedToken;
+        } else if (token != null) {
+            LOGGER.info(EXPERIAN_TOKEN_THAT_IS_OUTSIDE_OUR_THRESHOLD_AND_INVALID);
+            cachedToken = token;
+            return cachedToken;
         }
-        LOGGER.warn(
-                "Received an invalid SOAP token from Experian after retries, using valid cached token for now...");
         return cachedToken;
-    }
-
-    private String cacheExperianTokenOutsideThresholdIfPossible(String token) {
-        if (token == null || (cachedToken != null && isTokenPayloadValid(cachedToken))) {
-            return null;
-        }
-
-        try {
-            if (isTokenPayloadValid(token)) {
-                this.cachedToken = token;
-                LOGGER.info(
-                        "Updated cached token with the one received from Experian. "
-                                + "The token given by Experian is valid but not "
-                                + "within our threshold, using anyway...");
-            }
-        } catch (Exception e) {
-            LOGGER.warn(
-                    "Cached SOAP token and token from Experian token are both invalid: {}",
-                    e.getMessage());
-        }
-
-        return token;
     }
 
     public boolean hasTokenExpired(String cachedToken) {
         try {
             return SoapTokenUtils.getTokenExpiry(cachedToken) < Instant.now().getEpochSecond();
         } catch (JsonProcessingException e) {
-            LOGGER.error(
-                    "Token expiration check failed due to a JsonProcessingException error: {}",
-                    e.getMessage());
+            LOGGER.error(TOKEN_EXPIRATION_CHECK_FAILED_JSON_PROCESSING_EXCEPTION, e.getMessage());
             return true;
         } catch (Exception e) {
             LOGGER.debug("Token expiration check failed due to an error: {}", e.getMessage());
@@ -97,30 +90,22 @@ public class SoapTokenRetriever {
 
     private static boolean isTokenValidWithinThreshold(String tokenPayload) {
         try {
-            long expiryTimestamp = SoapTokenUtils.getTokenExpiry(tokenPayload);
-            long thresholdTimestamp = Instant.now().getEpochSecond() + TOKEN_EXPIRY_THRESHOLD;
-
-            if (!isTokenPayloadValid(tokenPayload)) {
-                LOGGER.debug("Token payload is invalid.");
-                return false;
-            }
-
-            return expiryTimestamp > thresholdTimestamp;
+            return isTokenPayloadValid(tokenPayload)
+                    && SoapTokenUtils.getTokenExpiry(tokenPayload)
+                            > Instant.now().getEpochSecond() + TOKEN_EXPIRY_THRESHOLD;
         } catch (JsonProcessingException e) {
-            LOGGER.debug(
-                    "Failed to extract token expiry due to JSON processing error: {}",
-                    e.getMessage());
+            LOGGER.debug(FAILED_TO_EXTRACT_TOKEN_EXPIRY_JSON_PROCESSING_ERROR, e.getMessage());
             return false;
         }
     }
 
     private static void sleepBeforeRetry(int currentIteration) {
-        if (currentIteration > 0) {
-            try {
-                Thread.sleep(DELAY_BETWEEN_RETRY_MS * currentIteration);
-            } catch (InterruptedException ignored) {
-                Thread.currentThread().interrupt();
-            }
+        if (currentIteration <= 0) return;
+
+        try {
+            Thread.sleep(DELAY_BETWEEN_RETRY_MS * currentIteration);
+        } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
         }
     }
 }
