@@ -16,33 +16,29 @@ class SoapTokenUtilsTest {
 
     @Test
     void shouldReturnTokenExpiry() throws JsonProcessingException {
-        String payload = "{\"exp\":123456}";
+        String payload = generateToken("{\"exp\":123456}");
+
         assertEquals(123456, SoapTokenUtils.getTokenExpiry(payload));
     }
 
     @Test
     void shouldThrowWhenNoExpField() {
-        String payload = "{\"foo\":123456}";
+        String payload = generateToken("{\"foo\":123456}");
         assertThrows(Exception.class, () -> SoapTokenUtils.getTokenExpiry(payload));
     }
 
     @Test
     void shouldThrowWhenMalformedJson() {
-        String payload = "dummy";
+        String payload = generateToken("dummy");
+
         assertThrows(Exception.class, () -> SoapTokenUtils.getTokenExpiry(payload));
     }
 
     @Test
     void shouldDefaultWhenNonIntExp() throws JsonProcessingException {
-        String payload = "{\"exp\":\"foo\"}";
-        assertEquals(0, SoapTokenUtils.getTokenExpiry(payload));
-    }
+        String payload = generateToken("{\"exp\":\"foo\"}");
 
-    @Test
-    void shouldDecodePayload() {
-        String payload = "{\"foo\":\"bar\"}";
-        String token = generateToken(payload);
-        assertEquals(payload, SoapTokenUtils.decodeTokenPayload(token));
+        assertEquals(0, SoapTokenUtils.getTokenExpiry(payload));
     }
 
     @Test
@@ -52,14 +48,16 @@ class SoapTokenUtilsTest {
 
     @Test
     void shouldNotValidateIfTokenIsExpired() {
-        String payload = "{\"exp\":\"0\"}";
+        String payload = generateToken("{\"exp\":\"0\"}");
         String token = generateToken(payload);
+
         assertFalse(SoapTokenUtils.isTokenPayloadValid(token));
     }
 
     @Test
     void shouldNotValidateIfTokenIsEmpty() {
-        assertFalse(SoapTokenUtils.isTokenPayloadValid(""));
+
+        assertFalse(SoapTokenUtils.isTokenPayloadValid(generateToken("")));
     }
 
     private static final String TOKEN_HEADER =

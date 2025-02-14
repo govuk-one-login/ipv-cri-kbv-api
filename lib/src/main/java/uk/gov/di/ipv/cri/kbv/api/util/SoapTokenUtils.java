@@ -16,13 +16,8 @@ public class SoapTokenUtils {
         throw new IllegalStateException("Utility class");
     }
 
-    public static String decodeTokenPayload(String token) {
-        String encodedPayload = token.split("\\.", 3)[1];
-        return new String(Base64.getUrlDecoder().decode(encodedPayload));
-    }
-
     public static long getTokenExpiry(String tokenPayload) throws JsonProcessingException {
-        return OBJECT_MAPPER.readTree(tokenPayload).get("exp").asLong();
+        return OBJECT_MAPPER.readTree(decodeTokenPayload(tokenPayload)).get("exp").asLong();
     }
 
     public static boolean isTokenPayloadValid(String tokenPayload) {
@@ -35,5 +30,11 @@ public class SoapTokenUtils {
             LOGGER.debug("Token Payload validation failed due to an error: {}", e.getMessage());
             return false;
         }
+    }
+
+    private static String decodeTokenPayload(String token) {
+        String encodedPayload = token.split("\\.", 3)[1];
+
+        return new String(Base64.getUrlDecoder().decode(encodedPayload));
     }
 }
