@@ -1,9 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.security;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import uk.gov.di.ipv.cri.kbv.api.exception.HeaderHandlerException;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidSoapTokenException;
-import uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils;
 
 import javax.xml.namespace.QName;
 import javax.xml.soap.Name;
@@ -17,7 +15,6 @@ import javax.xml.ws.handler.MessageContext;
 import javax.xml.ws.handler.soap.SOAPHandler;
 import javax.xml.ws.handler.soap.SOAPMessageContext;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
@@ -64,7 +61,7 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
                 binarySecurityToken.setValue(retrieveTokenWithoutError());
                 soapMessage.saveChanges();
 
-            } catch (SOAPException | RuntimeException | JsonProcessingException e) {
+            } catch (SOAPException | RuntimeException e) {
                 throw new HeaderHandlerException(
                         "Error in SOAP HeaderHandler: " + e.getMessage(), e);
             }
@@ -73,7 +70,7 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
         return true;
     }
 
-    private String retrieveTokenWithoutError() throws JsonProcessingException {
+    private String retrieveTokenWithoutError() {
         String tokenValue =
                 Objects.requireNonNull(tokenRetriever.getSoapToken(), "The token must not be null");
 
@@ -85,8 +82,7 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
             throw new InvalidSoapTokenException("The SOAP token contains an error: " + tokenValue);
         }
 
-        if (SoapTokenUtils.getTokenExpiry(SoapTokenUtils.decodeTokenPayload(tokenValue))
-                < Instant.now().getEpochSecond()) {
+        if (tokenRetriever.hasTokenExpired()) {
             throw new InvalidSoapTokenException("The SOAP token is expired");
         }
 

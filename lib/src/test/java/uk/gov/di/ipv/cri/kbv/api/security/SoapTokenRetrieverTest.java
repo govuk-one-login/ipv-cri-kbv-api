@@ -11,6 +11,7 @@ import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -36,6 +37,26 @@ class SoapTokenRetrieverTest {
         String token = soapTokenRetriever.getSoapToken();
 
         assertNull(token);
+    }
+
+    @Test
+    void hasTokenExpiredReturnsTrueWhenTokenIsExpired() {
+        when(soapTokenMock.getToken()).thenReturn(null);
+
+        assertTrue(soapTokenRetriever.hasTokenExpired());
+
+        verify(soapTokenMock, times(3)).getToken();
+    }
+
+    @Test
+    void hasTokenExpiredReturnsFalseWhenTokenIsValid() {
+        when(soapTokenMock.getToken())
+                .thenReturn(MOCKED_VALID_TOKEN_VALUE)
+                .thenReturn(generateValidToken2());
+
+        assertFalse(soapTokenRetriever.hasTokenExpired());
+
+        verify(soapTokenMock, times(1)).getToken();
     }
 
     @Test
