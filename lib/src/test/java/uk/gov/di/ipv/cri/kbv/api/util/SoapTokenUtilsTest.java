@@ -16,50 +16,48 @@ class SoapTokenUtilsTest {
 
     @Test
     void shouldReturnTokenExpiry() throws JsonProcessingException {
-        String payload = "{\"exp\":123456}";
+        String payload = generateToken("{\"exp\":123456}");
+
         assertEquals(123456, SoapTokenUtils.getTokenExpiry(payload));
     }
 
     @Test
     void shouldThrowWhenNoExpField() {
-        String payload = "{\"foo\":123456}";
+        String payload = generateToken("{\"foo\":123456}");
         assertThrows(Exception.class, () -> SoapTokenUtils.getTokenExpiry(payload));
     }
 
     @Test
     void shouldThrowWhenMalformedJson() {
-        String payload = "dummy";
+        String payload = generateToken("dummy");
+
         assertThrows(Exception.class, () -> SoapTokenUtils.getTokenExpiry(payload));
     }
 
     @Test
     void shouldDefaultWhenNonIntExp() throws JsonProcessingException {
-        String payload = "{\"exp\":\"foo\"}";
+        String payload = generateToken("{\"exp\":\"foo\"}");
+
         assertEquals(0, SoapTokenUtils.getTokenExpiry(payload));
     }
 
     @Test
-    void shouldDecodePayload() {
-        String payload = "{\"foo\":\"bar\"}";
-        String token = generateToken(payload);
-        assertEquals(payload, SoapTokenUtils.decodeTokenPayload(token));
-    }
-
-    @Test
     void shouldNotValidateIfTokenIsError() {
-        assertFalse(SoapTokenUtils.isTokenValid("error"));
+        assertFalse(SoapTokenUtils.isTokenPayloadValid("error"));
     }
 
     @Test
     void shouldNotValidateIfTokenIsExpired() {
-        String payload = "{\"exp\":\"0\"}";
+        String payload = generateToken("{\"exp\":\"0\"}");
         String token = generateToken(payload);
-        assertFalse(SoapTokenUtils.isTokenValid(token));
+
+        assertFalse(SoapTokenUtils.isTokenPayloadValid(token));
     }
 
     @Test
     void shouldNotValidateIfTokenIsEmpty() {
-        assertFalse(SoapTokenUtils.isTokenValid(""));
+
+        assertFalse(SoapTokenUtils.isTokenPayloadValid(generateToken("")));
     }
 
     private static final String TOKEN_HEADER =
@@ -71,10 +69,6 @@ class SoapTokenUtilsTest {
     }
 
     public static String encodeBase64Url(String input) {
-        return Base64.getEncoder()
-                .encodeToString(input.getBytes())
-                .replace('+', '-')
-                .replace('/', '_')
-                .replace("=", "");
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(input.getBytes());
     }
 }

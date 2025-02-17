@@ -11,6 +11,8 @@ import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
@@ -35,6 +37,66 @@ class SoapTokenRetrieverTest {
         String token = soapTokenRetriever.getSoapToken();
 
         assertNull(token);
+    }
+
+    @Test
+    void hasTokenExpiredReturnsTrueWhenTheirIsNoToken() {
+        assertTrue(soapTokenRetriever.hasTokenExpired(null));
+    }
+
+    @Test
+    void hasTokenExpiredReturnsFalseWhenTokenIsValid() {
+        assertFalse(soapTokenRetriever.hasTokenExpired(generateValidToken2()));
+    }
+
+    @Test
+    void shouldCacheToken() {
+        when(soapTokenMock.getToken())
+                .thenReturn(MOCKED_VALID_TOKEN_VALUE)
+                .thenReturn(generateValidToken2());
+
+        String goodToken = soapTokenRetriever.getSoapToken();
+        String cachedGoodToken = soapTokenRetriever.getSoapToken();
+
+        assertEquals(goodToken, cachedGoodToken);
+    }
+
+    @Test
+    void shouldReturnCloseToExpiringCacheTokenWhenExperianGivesInvalidToken() {
+        when(soapTokenMock.getToken()).thenReturn(MOCKED_CLOSE_TO_EXPIRY_TOKEN);
+        String cachedGoodToken = soapTokenRetriever.getSoapToken();
+
+        when(soapTokenMock.getToken()).thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
+
+        String requestForNewToken = soapTokenRetriever.getSoapToken();
+
+        assertEquals(cachedGoodToken, requestForNewToken);
+    }
+
+    @Test
+    void shouldReturnInvalidToken() {
+        when(soapTokenMock.getToken()).thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
+
+        String token = soapTokenRetriever.getSoapToken();
+        String token2 = soapTokenRetriever.getSoapToken();
+
+        assertEquals(MOCKED_EXPIRED_TOKEN_VALUE, token);
+        assertEquals(MOCKED_EXPIRED_TOKEN_VALUE, token2);
+    }
+
+    @Test
+    void shouldUpdateCache() {
+        when(soapTokenMock.getToken()).thenReturn(MOCKED_CLOSE_TO_EXPIRY_TOKEN);
+
+        String cachedCloseToExpiry = soapTokenRetriever.getSoapToken();
+
+        when(soapTokenMock.getToken()).thenReturn(MOCKED_VALID_TOKEN_VALUE);
+
+        String updatedToken = soapTokenRetriever.getSoapToken();
+
+        assertEquals(MOCKED_CLOSE_TO_EXPIRY_TOKEN, cachedCloseToExpiry);
+        assertEquals(MOCKED_VALID_TOKEN_VALUE, updatedToken);
+        assertNotEquals(cachedCloseToExpiry, updatedToken);
     }
 
     @Test
@@ -167,6 +229,15 @@ class SoapTokenRetrieverTest {
         return TOKEN_HEADER + "." + encodedPayload + "." + TOKEN_SIGNATURE;
     }
 
+    public static String generateValidToken2() {
+        String encodedPayload =
+                encodeBase64Url(
+                        String.format(
+                                "{\"exp\": %d}",
+                                Instant.now().getEpochSecond() + TimeUnit.DAYS.toSeconds(2)));
+        return TOKEN_HEADER + "." + encodedPayload + "." + TOKEN_SIGNATURE;
+    }
+
     private static String generateExpiredToken() {
         String encodedPayload = encodeBase64Url(String.format("{\"exp\": \"%d\"}", 0));
         return TOKEN_HEADER + "." + encodedPayload + "." + TOKEN_SIGNATURE;
@@ -200,10 +271,6 @@ class SoapTokenRetrieverTest {
     }
 
     public static String encodeBase64Url(String input) {
-        return Base64.getEncoder()
-                .encodeToString(input.getBytes())
-                .replace('+', '-')
-                .replace('/', '_')
-                .replace("=", "");
+        return Base64.getEncoder().withoutPadding().encodeToString(input.getBytes());
     }
 }
