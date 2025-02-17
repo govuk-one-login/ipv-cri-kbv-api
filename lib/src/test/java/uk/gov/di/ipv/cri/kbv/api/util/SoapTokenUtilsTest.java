@@ -5,14 +5,32 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.util.Base64;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 class SoapTokenUtilsTest {
+    @Test
+    void hasTokenExpiredReturnsTrueWhenTheirIsNoToken() {
+        assertTrue(SoapTokenUtils.hasTokenExpired(null));
+    }
+
+    @Test
+    void hasTokenExpiredReturnsFalseWhenTokenIsValid() {
+        String payload =
+                generateToken(
+                        String.format(
+                                "{\"exp\": %d}",
+                                Instant.now().getEpochSecond() + TimeUnit.DAYS.toSeconds(2)));
+
+        assertFalse(SoapTokenUtils.hasTokenExpired(payload));
+    }
 
     @Test
     void shouldReturnTokenExpiry() throws JsonProcessingException {
