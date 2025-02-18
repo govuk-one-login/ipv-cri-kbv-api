@@ -1,8 +1,8 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.persistence.DataStore;
-import uk.gov.di.ipv.cri.common.library.persistence.DynamoDbEnhancedClientFactory;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 
@@ -13,12 +13,14 @@ public class KBVStorageService {
     private final DataStore<KBVItem> dataStore;
 
     @ExcludeFromGeneratedCoverageReport
-    public KBVStorageService(ConfigurationService configurationService) {
+    public KBVStorageService(
+            ConfigurationService configurationService,
+            DynamoDbEnhancedClient dynamoDbEnhancedClient) {
         this.dataStore =
                 new DataStore<>(
                         configurationService.getParameterValue("KBVTableName"),
                         KBVItem.class,
-                        new DynamoDbEnhancedClientFactory().getClient());
+                        dynamoDbEnhancedClient);
     }
 
     public KBVStorageService(DataStore<KBVItem> datastore) {
