@@ -14,11 +14,8 @@ import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.AccessTokenType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.http.HttpStatusCode;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
@@ -98,11 +95,7 @@ public class IssueCredentialHandler
         this.eventProbe = new EventProbe();
         this.auditService =
                 new AuditService(
-                        SqsClient.builder()
-                                .credentialsProvider(
-                                        EnvironmentVariableCredentialsProvider.create())
-                                .region(Region.of(System.getenv("AWS_REGION")))
-                                .build(),
+                        serviceFactory.getSqsClient(),
                         configurationService,
                         new ObjectMapper(),
                         new AuditEventFactory(configurationService, Clock.systemUTC()));
