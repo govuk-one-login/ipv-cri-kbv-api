@@ -65,7 +65,7 @@ class SoapTokenTest {
         when(soapFaultException.getMessage()).thenReturn("SOAP Fault");
 
         InvalidSoapTokenException exception =
-                assertThrows(InvalidSoapTokenException.class, () -> soapToken.getToken());
+                assertThrows(InvalidSoapTokenException.class, soapToken::getToken);
 
         verify(tokenServiceMock).getTokenServiceSoap();
         verify(configurationServiceMock).getSecretValue("experian/iiq-wasp-service");
@@ -78,7 +78,7 @@ class SoapTokenTest {
                 .thenThrow(new WebServiceException("Web Service error"));
 
         InvalidSoapTokenException exception =
-                assertThrows(InvalidSoapTokenException.class, () -> soapToken.getToken());
+                assertThrows(InvalidSoapTokenException.class, soapToken::getToken);
 
         verify(tokenServiceMock).getTokenServiceSoap();
         verify(configurationServiceMock).getSecretValue("experian/iiq-wasp-service");
@@ -91,7 +91,7 @@ class SoapTokenTest {
                 .thenThrow(new RuntimeException("Unexpected error"));
 
         InvalidSoapTokenException exception =
-                assertThrows(InvalidSoapTokenException.class, () -> soapToken.getToken());
+                assertThrows(InvalidSoapTokenException.class, soapToken::getToken);
 
         verify(tokenServiceMock).getTokenServiceSoap();
         verify(configurationServiceMock).getSecretValue("experian/iiq-wasp-service");

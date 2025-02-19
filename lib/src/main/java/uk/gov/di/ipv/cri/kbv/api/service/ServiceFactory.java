@@ -23,6 +23,7 @@ import uk.gov.di.ipv.cri.kbv.api.security.SoapToken;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapTokenRetriever;
 
 import java.time.Clock;
+import java.util.function.Supplier;
 
 public class ServiceFactory {
     private static final String APPLICATION = "GDS DI";
@@ -84,18 +85,28 @@ public class ServiceFactory {
         return this.kbvGateway;
     }
 
-    KBVGateway getKbvGateway(KeyStoreLoader keyStoreLoader, KBVClientFactory kbvClientFactory) {
-        return new KBVGatewayFactory(keyStoreLoader, kbvClientFactory, getConfigurationService())
+    KBVGateway getKbvGateway(
+            KeyStoreLoader keyStoreLoader, Supplier<KBVClientFactory> kbvClientFactory) {
+        return new KBVGatewayFactory(
+                        keyStoreLoader,
+                        kbvClientFactory,
+                        getConfigurationService(),
+                        getSoapTokenRetriever())
                 .create();
     }
 
-    private KBVClientFactory getKbvClientFactory() {
-        TokenService tokenService = new TokenService();
-        SoapToken soapToken = new SoapToken(APPLICATION, true, tokenService, configurationService);
-        HeaderHandler headerHandler = new HeaderHandler(new SoapTokenRetriever(soapToken));
-        HeaderHandlerResolver headerResolver = new HeaderHandlerResolver(headerHandler);
+    private Supplier<KBVClientFactory> getKbvClientFactory() {
+        return () ->
+                new KBVClientFactory(
+                        new IdentityIQWebService(),
+                        new HeaderHandlerResolver(new HeaderHandler(getSoapTokenRetriever().get())),
+                        getConfigurationService());
+    }
 
-        return new KBVClientFactory(
-                new IdentityIQWebService(), headerResolver, getConfigurationService());
+    private Supplier<SoapTokenRetriever> getSoapTokenRetriever() {
+        return () ->
+                new SoapTokenRetriever(
+                        new SoapToken(
+                                APPLICATION, true, new TokenService(), getConfigurationService()));
     }
 }

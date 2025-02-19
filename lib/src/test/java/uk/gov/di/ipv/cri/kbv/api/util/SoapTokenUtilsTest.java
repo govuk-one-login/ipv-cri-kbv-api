@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-class SoapTokenUtilsTest {
+public class SoapTokenUtilsTest {
     @Test
     void hasTokenExpiredReturnsTrueWhenTheirIsNoToken() {
         assertTrue(SoapTokenUtils.hasTokenExpired(null));
