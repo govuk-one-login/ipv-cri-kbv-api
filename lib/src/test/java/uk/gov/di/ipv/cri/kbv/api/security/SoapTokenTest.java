@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidSoapTokenException;
+import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 
 import javax.xml.ws.BindingProvider;
 import javax.xml.ws.WebServiceException;
@@ -17,6 +18,8 @@ import javax.xml.ws.soap.SOAPFaultException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,6 +30,8 @@ class SoapTokenTest {
     @Mock private TokenService tokenServiceMock;
     @Mock private ConfigurationService configurationServiceMock;
     @Mock private TokenServiceSoap tokenServiceSoapMock;
+    @Mock private MetricsService mockMetricsService;
+
     private SoapToken soapToken;
     private final String application = "testApplication";
     private Boolean checkIp = true;
@@ -39,7 +44,13 @@ class SoapTokenTest {
         tokenServiceSoapMock =
                 mock(TokenServiceSoap.class, withSettings().extraInterfaces(BindingProvider.class));
 
-        soapToken = new SoapToken(application, checkIp, tokenServiceMock, configurationServiceMock);
+        soapToken =
+                new SoapToken(
+                        application,
+                        checkIp,
+                        tokenServiceMock,
+                        configurationServiceMock,
+                        mockMetricsService);
 
         when(configurationServiceMock.getSecretValue("experian/iiq-wasp-service"))
                 .thenReturn(endpointUrl);
@@ -54,6 +65,7 @@ class SoapTokenTest {
 
         verify(tokenServiceMock).getTokenServiceSoap();
         verify(configurationServiceMock).getSecretValue("experian/iiq-wasp-service");
+        verify(mockMetricsService).sendDurationMetric(eq("get_soap_token_duration"), anyLong());
         assertEquals(token, result);
     }
 

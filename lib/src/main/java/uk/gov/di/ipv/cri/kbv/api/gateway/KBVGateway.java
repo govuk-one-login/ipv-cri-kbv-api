@@ -11,18 +11,14 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.SAARespons
 import io.opentelemetry.api.trace.Span;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import software.amazon.cloudwatchlogs.emf.model.Unit;
 import software.amazon.lambda.powertools.tracing.Tracing;
 import software.amazon.lambda.powertools.tracing.TracingUtils;
-import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 import uk.gov.di.ipv.cri.kbv.api.util.OpenTelemetryUtil;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
@@ -30,7 +26,12 @@ public class KBVGateway {
     private static final String EXPERIAN_IIQ_REQUEST = "experian_iiq_request_type";
     private static final Logger LOGGER = LogManager.getLogger();
     private static final String EXPERIAN_INITIAL_QUESTION_RESPONSE = "initial_questions_response";
+    private static final String EXPERIAN_INITIAL_QUESTION_DURATION = "get_questions_duration";
+    private static final String EXPERIAN_INITIAL_QUESTION_ERROR =
+            "initial_questions_response_error";
     private static final String EXPERIAN_SUBMIT_RESPONSE = "submit_questions_response";
+    private static final String EXPERIAN_SUBMIT_DURATION = "submit_answers_duration";
+    private static final String EXPERIAN_SUBMIT_ERROR = "submit_questions_response_error";
 
     private final StartAuthnAttemptRequestMapper saaRequestMapper;
     private final ResponseToQuestionMapper responseToQuestionMapper;
@@ -63,42 +64,36 @@ public class KBVGateway {
     public QuestionsResponse getQuestions(QuestionRequest questionRequest) {
         SAARequest saaRequest = saaRequestMapper.mapQuestionRequest(questionRequest);
 
-        Instant start = Instant.now();
-        long startTime = System.nanoTime();
-
         Span span =
                 OpenTelemetryUtil.createSpan(
                         this.getClass(),
                         "getQuestions",
                         "SAA",
                         "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/SAA");
+
+        long startTime = System.nanoTime();
+
         SAAResponse2 saaResponse2 = getQuestionRequestResponse(saaRequest);
+
+        long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
+
         OpenTelemetryUtil.endSpan(span);
 
-        long endTime = System.nanoTime();
-        Instant end = Instant.now();
-        long totalTimeInMs = (endTime - startTime) / 1000000;
-
         LOGGER.info("Get questions API response latency: latencyInMs={}", totalTimeInMs);
-
-        metricsService
-                .getEventProbe()
-                .counterMetric("get_questions_duration", totalTimeInMs, Unit.MILLISECONDS);
+        metricsService.sendDurationMetric(EXPERIAN_INITIAL_QUESTION_DURATION, totalTimeInMs);
 
         QuestionsResponse questionsResponse = questionsResponseMapper.mapSAAResponse(saaResponse2);
 
         if (questionsResponse.hasError()) {
             metricsService.sendErrorMetric(
-                    questionsResponse.getErrorCode(), "initial_questions_response_error");
+                    EXPERIAN_INITIAL_QUESTION_ERROR, questionsResponse.getErrorCode());
             logError(
                     "Question retrieval from the third party API resulted in an error",
                     questionsResponse);
         }
 
-        sendResultMetric(
-                EXPERIAN_INITIAL_QUESTION_RESPONSE,
-                questionsResponse.getResults(),
-                Duration.between(start, end).toMillis());
+        metricsService.sendResultMetric(
+                EXPERIAN_INITIAL_QUESTION_RESPONSE, questionsResponse.getResults());
 
         logQuestionResponse(
                 saaResponse2.getControl(), saaResponse2.getResults(), saaResponse2.getError());
@@ -111,7 +106,6 @@ public class KBVGateway {
         RTQRequest rtqRequest =
                 responseToQuestionMapper.mapQuestionAnswersRtqRequest(questionAnswerRequest);
 
-        Instant start = Instant.now();
         long startTime = System.nanoTime();
 
         Span span =
@@ -122,33 +116,25 @@ public class KBVGateway {
                         "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/RTQ");
 
         RTQResponse2 rtqResponse2 = submitQuestionAnswerResponse(rtqRequest);
+
+        long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
+
         OpenTelemetryUtil.endSpan(span);
 
-        long endTime = System.nanoTime();
-        Instant end = Instant.now();
-
-        long totalTimeInMs = (endTime - startTime) / 1000000;
-
         LOGGER.info("Submit answers API response latency: latencyInMs={}", totalTimeInMs);
-
-        metricsService
-                .getEventProbe()
-                .counterMetric("submit_answers_duration", totalTimeInMs, Unit.MILLISECONDS);
+        metricsService.sendDurationMetric(EXPERIAN_SUBMIT_DURATION, totalTimeInMs);
 
         QuestionsResponse questionsResponse = questionsResponseMapper.mapRTQResponse(rtqResponse2);
 
         if (questionsResponse.hasError()) {
             this.metricsService.sendErrorMetric(
-                    questionsResponse.getErrorCode(), "submit_questions_response_error");
+                    EXPERIAN_SUBMIT_ERROR, questionsResponse.getErrorCode());
             logError(
                     "Answer submission to the third party API resulted in an error",
                     questionsResponse);
         }
 
-        sendResultMetric(
-                EXPERIAN_SUBMIT_RESPONSE,
-                questionsResponse.getResults(),
-                Duration.between(start, end).toMillis());
+        metricsService.sendResultMetric(EXPERIAN_SUBMIT_RESPONSE, questionsResponse.getResults());
 
         return questionsResponse;
     }
@@ -171,12 +157,6 @@ public class KBVGateway {
                 context,
                 questionsResponse.getErrorCode(),
                 questionsResponse.getErrorMessage());
-    }
-
-    private void sendResultMetric(String metricName, KbvResult result, long executionDuration) {
-        if (Objects.nonNull(result)) {
-            this.metricsService.sendResultMetric(result, metricName, executionDuration);
-        }
     }
 
     private void logQuestionResponse(Control control, Results results, Error error) {

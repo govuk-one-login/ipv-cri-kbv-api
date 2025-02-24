@@ -13,6 +13,7 @@ import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.ClientProviderFactory;
+import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGatewayFactory;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KeyStoreLoader;
@@ -102,6 +103,11 @@ public class ServiceFactory {
 
     private SoapTokenRetriever getSoapTokenRetriever() {
         return new SoapTokenRetriever(
-                new SoapToken(APPLICATION, true, new TokenService(), getConfigurationService()));
+                new SoapToken(
+                        APPLICATION,
+                        true,
+                        new TokenService(),
+                        getConfigurationService(),
+                        new MetricsService(new EventProbe())));
     }
 }

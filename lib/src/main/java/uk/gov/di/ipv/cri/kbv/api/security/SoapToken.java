@@ -5,9 +5,7 @@ import com.experian.uk.wasp.TokenServiceSoap;
 import io.opentelemetry.api.trace.Span;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import software.amazon.cloudwatchlogs.emf.model.Unit;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
-import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidSoapTokenException;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 import uk.gov.di.ipv.cri.kbv.api.util.OpenTelemetryUtil;
@@ -22,22 +20,22 @@ public class SoapToken {
     private final String application;
     private final boolean checkIp;
     private final ConfigurationService configurationService;
-    private final MetricsService metricsService = new MetricsService(new EventProbe());
+    private final MetricsService metricsService;
 
     public SoapToken(
             String application,
             boolean checkIp,
             TokenService tokenService,
-            ConfigurationService configurationService) {
+            ConfigurationService configurationService,
+            MetricsService metricsService) {
         this.application = application;
         this.checkIp = checkIp;
         this.tokenService = tokenService;
         this.configurationService = configurationService;
+        this.metricsService = metricsService;
     }
 
     public String getToken() {
-        long startTime = System.nanoTime();
-
         Span span =
                 OpenTelemetryUtil.createSpan(
                         this.getClass(),
@@ -45,6 +43,7 @@ public class SoapToken {
                         "LoginWithCertificate",
                         "http://www.uk.experian.com/WASP/LoginWithCertificate");
 
+        long startTime = System.nanoTime();
         try {
             TokenServiceSoap tokenServiceSoap = tokenService.getTokenServiceSoap();
 
@@ -57,15 +56,12 @@ public class SoapToken {
 
             String token = tokenServiceSoap.loginWithCertificate(application, checkIp);
 
-            OpenTelemetryUtil.endSpan(span);
-
             long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
 
-            LOGGER.info("SoapToken#getToken latency is {}ms", totalTimeInMs);
+            OpenTelemetryUtil.endSpan(span);
 
-            metricsService
-                    .getEventProbe()
-                    .counterMetric("get_soap_token_duration", totalTimeInMs, Unit.MILLISECONDS);
+            LOGGER.info("SoapToken#getToken latency is {}ms", totalTimeInMs);
+            metricsService.sendDurationMetric("get_soap_token_duration", totalTimeInMs);
 
             return token;
         } catch (SOAPFaultException e) {
