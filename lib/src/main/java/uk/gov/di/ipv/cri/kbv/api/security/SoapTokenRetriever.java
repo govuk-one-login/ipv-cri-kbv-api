@@ -5,7 +5,6 @@ import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils;
 
 import static uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils.isTokenPayloadValid;
-import static uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils.isTokenValidWithinThreshold;
 
 public class SoapTokenRetriever {
     private static final Logger LOGGER = LogManager.getLogger();
@@ -68,8 +67,8 @@ public class SoapTokenRetriever {
         return this.cachedToken;
     }
 
-    public boolean hasTokenExpired(String tokenValue) {
-        return SoapTokenUtils.hasTokenExpired(tokenValue);
+    public boolean isTokenValidWithinThreshold(String tokenValue) {
+        return SoapTokenUtils.isTokenValidWithinThreshold(tokenValue);
     }
 
     private static void sleepBeforeRetry(int currentIteration) {

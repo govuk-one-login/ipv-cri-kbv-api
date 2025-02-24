@@ -19,6 +19,8 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 
+import static uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils.hasTokenExpired;
+
 public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
     private final SoapTokenRetriever tokenRetriever;
 
@@ -82,7 +84,7 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
             throw new InvalidSoapTokenException("The SOAP token contains an error: " + tokenValue);
         }
 
-        if (tokenRetriever.hasTokenExpired(tokenValue)) {
+        if (hasTokenExpired(tokenValue)) {
             throw new InvalidSoapTokenException("The SOAP token is expired");
         }
 
