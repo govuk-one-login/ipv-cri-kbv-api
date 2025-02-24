@@ -23,7 +23,6 @@ import uk.gov.di.ipv.cri.kbv.api.security.SoapToken;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapTokenRetriever;
 
 import java.time.Clock;
-import java.util.function.Supplier;
 
 public class ServiceFactory {
     private static final String APPLICATION = "GDS DI";
@@ -85,8 +84,7 @@ public class ServiceFactory {
         return this.kbvGateway;
     }
 
-    KBVGateway getKbvGateway(
-            KeyStoreLoader keyStoreLoader, Supplier<KBVClientFactory> kbvClientFactory) {
+    KBVGateway getKbvGateway(KeyStoreLoader keyStoreLoader, KBVClientFactory kbvClientFactory) {
         return new KBVGatewayFactory(
                         keyStoreLoader,
                         kbvClientFactory,
@@ -95,18 +93,15 @@ public class ServiceFactory {
                 .create();
     }
 
-    private Supplier<KBVClientFactory> getKbvClientFactory() {
-        return () ->
-                new KBVClientFactory(
-                        new IdentityIQWebService(),
-                        new HeaderHandlerResolver(new HeaderHandler(getSoapTokenRetriever().get())),
-                        getConfigurationService());
+    private KBVClientFactory getKbvClientFactory() {
+        return new KBVClientFactory(
+                new IdentityIQWebService(),
+                new HeaderHandlerResolver(new HeaderHandler(getSoapTokenRetriever())),
+                getConfigurationService());
     }
 
-    private Supplier<SoapTokenRetriever> getSoapTokenRetriever() {
-        return () ->
-                new SoapTokenRetriever(
-                        new SoapToken(
-                                APPLICATION, true, new TokenService(), getConfigurationService()));
+    private SoapTokenRetriever getSoapTokenRetriever() {
+        return new SoapTokenRetriever(
+                new SoapToken(APPLICATION, true, new TokenService(), getConfigurationService()));
     }
 }

@@ -16,12 +16,12 @@ import uk.gov.di.ipv.cri.kbv.api.security.SoapTokenRetriever;
 
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtilsTest.generateToken;
 
@@ -33,8 +33,6 @@ class IdentityIQWrapperTest {
                             "{\"exp\": %d}",
                             Instant.now().getEpochSecond() + TimeUnit.DAYS.toSeconds(2)));
 
-    @Mock private Supplier<KBVClientFactory> kbvClientFactorySupplier;
-    @Mock private Supplier<SoapTokenRetriever> soapTokenRetrieverSupplier;
     @Mock private KBVClientFactory kbvClientFactory;
     @Mock private SoapTokenRetriever mockTokenRetriever;
     @Mock private IdentityIQWebServiceSoap identityIQWebServiceSoap;
@@ -43,13 +41,10 @@ class IdentityIQWrapperTest {
 
     @BeforeEach
     void setUp() {
-        when(kbvClientFactorySupplier.get()).thenReturn(kbvClientFactory);
-        when(soapTokenRetrieverSupplier.get()).thenReturn(mockTokenRetriever);
         when(kbvClientFactory.createClient()).thenReturn(identityIQWebServiceSoap);
         when(mockTokenRetriever.getSoapToken()).thenReturn(GENERATE_TOKEN);
 
-        identityIQWrapper =
-                new IdentityIQWrapper(kbvClientFactorySupplier, soapTokenRetrieverSupplier);
+        identityIQWrapper = new IdentityIQWrapper(kbvClientFactory, mockTokenRetriever);
     }
 
     @Test
@@ -63,6 +58,7 @@ class IdentityIQWrapperTest {
 
         assertEquals(response, result);
         verify(identityIQWebServiceSoap).saa(request);
+        verifyNoMoreInteractions(kbvClientFactory.createClient());
     }
 
     @Test
@@ -76,34 +72,33 @@ class IdentityIQWrapperTest {
 
         assertEquals(response, result);
         verify(identityIQWebServiceSoap).rtq(rTQRequest);
+        verifyNoMoreInteractions(kbvClientFactory.createClient());
     }
 
     @Test
-    void callsSAARefreshSoapTokenWhenTokenIsExpired() {
+    void callsSAARefreshSoapTokenWhenTokenIsOutsideOfExpiryThreshold() {
         SAARequest sAARequest = new SAARequest();
         SAAResponse2 response = new SAAResponse2();
 
-        when(mockTokenRetriever.isTokenValidWithinThreshold(GENERATE_TOKEN)).thenReturn(false);
         when(identityIQWebServiceSoap.saa(sAARequest)).thenReturn(response);
 
         identityIQWrapper.saa(sAARequest);
 
-        verify(mockTokenRetriever).isTokenValidWithinThreshold(GENERATE_TOKEN);
-        verify(kbvClientFactory, times(2)).createClient();
+        verify(mockTokenRetriever, times(2)).getSoapToken();
+        verify(kbvClientFactory, times(1)).createClient();
     }
 
     @Test
-    void callsRTQRefreshSoapTokenWhenTokenIsExpired() {
+    void callsRTQRefreshSoapTokenWhenTokenIsOutsideOfExpiryThreshold() {
         RTQRequest rTQRequest = new RTQRequest();
         RTQResponse2 response = new RTQResponse2();
 
-        when(mockTokenRetriever.isTokenValidWithinThreshold(GENERATE_TOKEN)).thenReturn(false);
         when(identityIQWebServiceSoap.rtq(rTQRequest)).thenReturn(response);
 
         identityIQWrapper.rtq(rTQRequest);
 
-        verify(mockTokenRetriever).isTokenValidWithinThreshold(GENERATE_TOKEN);
-        verify(kbvClientFactory, times(2)).createClient();
+        verify(mockTokenRetriever, times(2)).getSoapToken();
+        verify(kbvClientFactory, times(1)).createClient();
     }
 
     @Test
@@ -111,8 +106,6 @@ class IdentityIQWrapperTest {
         SAARequest sAARequest = new SAARequest();
         InvalidSoapTokenException exception =
                 new InvalidSoapTokenException("Some Unknown exception occurred");
-
-        when(mockTokenRetriever.isTokenValidWithinThreshold(GENERATE_TOKEN)).thenReturn(false);
 
         when(mockTokenRetriever.getSoapToken()).thenThrow(exception);
 
@@ -129,8 +122,6 @@ class IdentityIQWrapperTest {
     void doesNotRefreshSoapTokenWhenThereIsAnErrorOccurredDuringARTQRequest() {
         RTQRequest rTQRequest = new RTQRequest();
         RuntimeException exception = new RuntimeException("Some Unknown exception occurred");
-
-        when(mockTokenRetriever.isTokenValidWithinThreshold(GENERATE_TOKEN)).thenReturn(false);
 
         when(mockTokenRetriever.getSoapToken()).thenThrow(exception);
 

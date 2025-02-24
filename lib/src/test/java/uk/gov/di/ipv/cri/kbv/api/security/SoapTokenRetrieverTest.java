@@ -40,12 +40,12 @@ class SoapTokenRetrieverTest {
     }
 
     @Test
-    void hasTokenExpiredReturnsFalseWhenThereIsNoToken() {
+    void isTokenValidWithinThresholdReturnsFalseWhenThereIsNoToken() {
         assertFalse(soapTokenRetriever.isTokenValidWithinThreshold(null));
     }
 
     @Test
-    void hasTokenExpiredReturnsTrueWhenTokenIsValid() {
+    void isTokenValidWithinThresholdReturnsTrueWhenTokenIsValid() {
         assertTrue(soapTokenRetriever.isTokenValidWithinThreshold(generateValidToken2()));
     }
 

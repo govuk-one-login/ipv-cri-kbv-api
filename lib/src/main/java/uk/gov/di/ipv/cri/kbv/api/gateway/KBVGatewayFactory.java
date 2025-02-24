@@ -7,23 +7,21 @@ import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapTokenRetriever;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 
-import java.util.function.Supplier;
-
 public class KBVGatewayFactory {
     private final KeyStoreLoader keyStoreLoader;
     private final ConfigurationService configurationService;
-    private final Supplier<KBVClientFactory> kbvClientFactorySupplier;
-    private final Supplier<SoapTokenRetriever> soapTokenRetrieverSupplier;
+    private final SoapTokenRetriever soapTokenRetriever;
+    private final KBVClientFactory kbvClientFactory;
 
     public KBVGatewayFactory(
             KeyStoreLoader keyStoreLoader,
-            Supplier<KBVClientFactory> kbvClientFactorySupplier,
+            KBVClientFactory kbvClientFactory,
             ConfigurationService configurationService,
-            Supplier<SoapTokenRetriever> soapTokenRetrieverSupplier) {
+            SoapTokenRetriever soapTokenRetriever) {
         this.keyStoreLoader = keyStoreLoader;
-        this.kbvClientFactorySupplier = kbvClientFactorySupplier;
+        this.kbvClientFactory = kbvClientFactory;
         this.configurationService = configurationService;
-        this.soapTokenRetrieverSupplier = soapTokenRetrieverSupplier;
+        this.soapTokenRetriever = soapTokenRetriever;
     }
 
     public KBVGateway create() {
@@ -40,7 +38,7 @@ public class KBVGatewayFactory {
                 new StartAuthnAttemptRequestMapper(configurationService),
                 new ResponseToQuestionMapper(),
                 new QuestionsResponseMapper(),
-                new IdentityIQWrapper(kbvClientFactorySupplier, soapTokenRetrieverSupplier),
+                new IdentityIQWrapper(kbvClientFactory, soapTokenRetriever),
                 new MetricsService(new EventProbe()));
     }
 }

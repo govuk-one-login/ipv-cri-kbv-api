@@ -17,8 +17,6 @@ import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KeyStoreLoader;
 import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 
-import java.util.function.Supplier;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -28,15 +26,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ServiceFactoryTest {
-    @Mock private Supplier<KBVClientFactory> mockKbvClientFactorySupplier;
     @Mock private ClientProviderFactory clientProviderFactory;
-
     @Mock private SSMProvider ssmProvider;
-
     @Mock private DynamoDbEnhancedClient dynamoDbEnhancedClient;
-
     @Mock private SecretsProvider secretsProvider;
-
     @Mock private SqsClient sqsClient;
 
     @InjectMocks private ServiceFactory serviceFactory;
@@ -106,10 +99,9 @@ class ServiceFactoryTest {
                 mock(IdentityIQWebServiceSoap.class);
 
         when(kbvClientFactoryMock.createClient()).thenReturn(identityIQWebServiceSoapMock);
-        when(mockKbvClientFactorySupplier.get()).thenReturn(kbvClientFactoryMock);
 
         KBVGateway kbvGateway =
-                serviceFactory.getKbvGateway(keyStoreLoaderMock, mockKbvClientFactorySupplier);
+                serviceFactory.getKbvGateway(keyStoreLoaderMock, kbvClientFactoryMock);
 
         assertNotNull(kbvGateway);
     }
