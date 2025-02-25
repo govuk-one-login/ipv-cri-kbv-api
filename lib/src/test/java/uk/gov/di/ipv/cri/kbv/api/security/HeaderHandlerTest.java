@@ -144,7 +144,6 @@ class HeaderHandlerTest {
             String token = "{}." + encodeBase64Url(String.format("{\"exp\": \"%d\"}", 0)) + ".{}";
 
             when(soapTokenRetrieverMock.getSoapToken()).thenReturn(token);
-            when(soapTokenRetrieverMock.hasTokenExpired(token)).thenReturn(true);
             when(soapMessageContextMock.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY))
                     .thenReturn(true);
             Exception exception =
@@ -166,7 +165,7 @@ class HeaderHandlerTest {
                                     String.format(
                                             "{\"exp\": \"%d\"}",
                                             Instant.now().getEpochSecond()
-                                                    + TimeUnit.HOURS.toSeconds(1)))
+                                                    + TimeUnit.HOURS.toSeconds(3)))
                             + ".{}";
 
             when(soapTokenRetrieverMock.getSoapToken()).thenReturn(token);

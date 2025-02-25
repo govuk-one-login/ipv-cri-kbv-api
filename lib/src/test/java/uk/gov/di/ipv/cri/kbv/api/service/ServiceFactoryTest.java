@@ -26,15 +26,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ServiceFactoryTest {
-
     @Mock private ClientProviderFactory clientProviderFactory;
-
     @Mock private SSMProvider ssmProvider;
-
     @Mock private DynamoDbEnhancedClient dynamoDbEnhancedClient;
-
     @Mock private SecretsProvider secretsProvider;
-
     @Mock private SqsClient sqsClient;
 
     @InjectMocks private ServiceFactory serviceFactory;
@@ -104,6 +99,7 @@ class ServiceFactoryTest {
                 mock(IdentityIQWebServiceSoap.class);
 
         when(kbvClientFactoryMock.createClient()).thenReturn(identityIQWebServiceSoapMock);
+
         KBVGateway kbvGateway =
                 serviceFactory.getKbvGateway(keyStoreLoaderMock, kbvClientFactoryMock);
 
@@ -114,8 +110,7 @@ class ServiceFactoryTest {
     void testGetKbvGatewayReturnsExceptionWhenCreationFails() {
 
         KBVGatewayCreationException exception =
-                assertThrows(
-                        KBVGatewayCreationException.class, () -> serviceFactory.getKbvGateway());
+                assertThrows(KBVGatewayCreationException.class, serviceFactory::getKbvGateway);
 
         assertEquals(
                 "Failed to create KBVGateway: Persist keystore to file failed: null",

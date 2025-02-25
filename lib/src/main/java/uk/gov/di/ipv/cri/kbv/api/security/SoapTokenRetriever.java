@@ -1,12 +1,8 @@
 package uk.gov.di.ipv.cri.kbv.api.security;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils;
-
-import java.time.Instant;
-import java.util.concurrent.TimeUnit;
 
 import static uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils.isTokenPayloadValid;
 
@@ -14,19 +10,14 @@ public class SoapTokenRetriever {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final int MAX_NUMBER_OF_TOKEN_RETRIES = 3;
     private static final long DELAY_BETWEEN_RETRY_MS = 500;
-    private static final long TOKEN_EXPIRY_THRESHOLD = TimeUnit.HOURS.toSeconds(2);
     public static final String UPDATED_CACHED_TOKEN_WITH_RECEIVED_EXPERIAN_TOKEN =
             "Updated cached token with the one received from Experian. "
                     + "The token given by Experian is valid but not "
                     + "within our threshold, using anyway...";
     public static final String EXPERIAN_TOKEN_THAT_IS_OUTSIDE_OUR_THRESHOLD_AND_INVALID =
             "Returning an Experian token that is outside our threshold and invalid, using anyway...";
-    public static final String CACHED_TOKEN_THAT_IS_OUTSIDE_OUR_THRESHOLD_USING_ANYWAY =
+    public static final String CACHED_TOKEN_THAT_IS_OUTSIDE_SET_THRESHOLD =
             "Returning a cached token that is outside our threshold, using anyway...";
-    public static final String TOKEN_EXPIRATION_CHECK_FAILED_JSON_PROCESSING_EXCEPTION =
-            "Token expiration check failed due to a JsonProcessingException error: {}";
-    public static final String FAILED_TO_EXTRACT_TOKEN_EXPIRY_JSON_PROCESSING_ERROR =
-            "Failed to extract token expiry due to JSON processing error: {}";
     private final SoapToken soapToken;
     private String cachedToken;
 
@@ -38,7 +29,7 @@ public class SoapTokenRetriever {
     public String getSoapToken() {
         if (cachedToken != null && isTokenValidWithinThreshold(cachedToken)) {
             LOGGER.info("Using cached SOAP token");
-            return cachedToken;
+            return this.cachedToken;
         }
 
         LOGGER.info("Retrieving SOAP token from Experian...");
@@ -55,7 +46,7 @@ public class SoapTokenRetriever {
                 if (isTokenValidWithinThreshold(token)) {
                     LOGGER.info("Successfully retrieved a valid token.");
                     this.cachedToken = token;
-                    return cachedToken;
+                    return this.cachedToken;
                 }
             } catch (Exception e) {
                 LOGGER.error("Error while getting SOAP token: {}", e.getMessage());
@@ -66,37 +57,18 @@ public class SoapTokenRetriever {
             this.cachedToken = token;
             LOGGER.info(UPDATED_CACHED_TOKEN_WITH_RECEIVED_EXPERIAN_TOKEN);
         } else if (isTokenPayloadValid(cachedToken)) {
-            LOGGER.info(CACHED_TOKEN_THAT_IS_OUTSIDE_OUR_THRESHOLD_USING_ANYWAY);
+            LOGGER.info(CACHED_TOKEN_THAT_IS_OUTSIDE_SET_THRESHOLD);
             return this.cachedToken;
         } else if (token != null) {
             LOGGER.info(EXPERIAN_TOKEN_THAT_IS_OUTSIDE_OUR_THRESHOLD_AND_INVALID);
-            cachedToken = token;
-            return cachedToken;
+            this.cachedToken = token;
+            return this.cachedToken;
         }
-        return cachedToken;
+        return this.cachedToken;
     }
 
-    public boolean hasTokenExpired(String cachedToken) {
-        try {
-            return SoapTokenUtils.getTokenExpiry(cachedToken) < Instant.now().getEpochSecond();
-        } catch (JsonProcessingException e) {
-            LOGGER.error(TOKEN_EXPIRATION_CHECK_FAILED_JSON_PROCESSING_EXCEPTION, e.getMessage());
-            return true;
-        } catch (Exception e) {
-            LOGGER.debug("Token expiration check failed due to an error: {}", e.getMessage());
-            return true;
-        }
-    }
-
-    private static boolean isTokenValidWithinThreshold(String tokenPayload) {
-        try {
-            return isTokenPayloadValid(tokenPayload)
-                    && SoapTokenUtils.getTokenExpiry(tokenPayload)
-                            > Instant.now().getEpochSecond() + TOKEN_EXPIRY_THRESHOLD;
-        } catch (JsonProcessingException e) {
-            LOGGER.debug(FAILED_TO_EXTRACT_TOKEN_EXPIRY_JSON_PROCESSING_ERROR, e.getMessage());
-            return false;
-        }
+    public boolean isTokenValidWithinThreshold(String tokenValue) {
+        return SoapTokenUtils.isTokenValidWithinThreshold(tokenValue);
     }
 
     private static void sleepBeforeRetry(int currentIteration) {

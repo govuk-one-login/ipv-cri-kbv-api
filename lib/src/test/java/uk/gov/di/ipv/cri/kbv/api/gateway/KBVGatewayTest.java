@@ -1,6 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.gateway;
 
-import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
 import com.experian.uk.schema.experian.identityiq.services.webservice.RTQRequest;
 import com.experian.uk.schema.experian.identityiq.services.webservice.RTQResponse2;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
@@ -29,7 +28,7 @@ class KBVGatewayTest {
     @Mock private StartAuthnAttemptRequestMapper mockSAARequestMapper;
     @Mock private ResponseToQuestionMapper mockResponseToQuestionMapper;
     @Mock private QuestionsResponseMapper mockQuestionsResponseMapper;
-    @Mock private IdentityIQWebServiceSoap mockIdentityIQWebServiceSoap;
+    @Mock private IdentityIQWrapper mockIdentityIQWebServiceSoap;
     @Mock private MetricsService mockMetricsService;
     @InjectMocks private KBVGateway kbvGateway;
 
