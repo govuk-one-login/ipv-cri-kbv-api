@@ -85,9 +85,9 @@ public class IssueCredentialHandler
     @ExcludeFromGeneratedCoverageReport
     public IssueCredentialHandler() throws JsonProcessingException {
         ServiceFactory serviceFactory = new ServiceFactory();
-
-        this.verifiableCredentialService = new VerifiableCredentialService();
         ConfigurationService configurationService = serviceFactory.getConfigurationService();
+
+        this.verifiableCredentialService = new VerifiableCredentialService(configurationService);
         this.kbvStorageService = new KBVStorageService(configurationService);
         this.sessionService = serviceFactory.getSessionService();
         this.eventProbe = new EventProbe();
