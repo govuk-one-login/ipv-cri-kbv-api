@@ -85,23 +85,21 @@ public class ServiceFactory {
     }
 
     KBVGateway getKbvGateway(KeyStoreLoader keyStoreLoader, KBVClientFactory kbvClientFactory) {
-        return new KBVGatewayFactory(
-                        keyStoreLoader,
-                        kbvClientFactory,
-                        getConfigurationService(),
-                        getSoapTokenRetriever())
+        return new KBVGatewayFactory(keyStoreLoader, kbvClientFactory, getConfigurationService())
                 .create();
     }
 
     private KBVClientFactory getKbvClientFactory() {
         return new KBVClientFactory(
                 new IdentityIQWebService(),
-                new HeaderHandlerResolver(new HeaderHandler(getSoapTokenRetriever())),
+                new HeaderHandlerResolver(
+                        new HeaderHandler(
+                                new SoapTokenRetriever(
+                                        new SoapToken(
+                                                APPLICATION,
+                                                true,
+                                                new TokenService(),
+                                                getConfigurationService())))),
                 getConfigurationService());
-    }
-
-    private SoapTokenRetriever getSoapTokenRetriever() {
-        return new SoapTokenRetriever(
-                new SoapToken(APPLICATION, true, new TokenService(), getConfigurationService()));
     }
 }

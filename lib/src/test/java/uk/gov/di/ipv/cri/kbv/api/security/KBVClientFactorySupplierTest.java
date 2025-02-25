@@ -15,19 +15,20 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class KBVClientFactorySupplierTest {
     @Mock private ConfigurationService configurationService;
     @Mock private SoapTokenRetriever soapTokenRetriever;
-    @InjectMocks
-    KBVClientFactorySupplier factoryCreator;
+    @InjectMocks KBVClientFactorySupplier factoryCreator;
 
     @Test
     void returnsNonNullSupplier() {
-        Supplier<KBVClientFactory> factorySupplier = factoryCreator.getKbvClientFactory(soapTokenRetriever);
+        Supplier<KBVClientFactory> factorySupplier =
+                factoryCreator.getKbvClientFactory(soapTokenRetriever);
 
         assertNotNull(factorySupplier);
     }
 
     @Test
     void returnsNonNullInstance() {
-        Supplier<KBVClientFactory> factorySupplier = factoryCreator.getKbvClientFactory(soapTokenRetriever);
+        Supplier<KBVClientFactory> factorySupplier =
+                factoryCreator.getKbvClientFactory(soapTokenRetriever);
 
         assertNotNull(factorySupplier.get());
     }
