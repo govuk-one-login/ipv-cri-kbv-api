@@ -55,7 +55,8 @@ public class VerifiableCredentialService {
         this.signedJwtFactory =
                 new SignedJWTFactory(
                         new KMSSigner(
-                                configurationService.getVerifiableCredentialKmsSigningKeyId()));
+                                configurationService.getVerifiableCredentialKmsSigningKeyId(),
+                                serviceFactory.getKMSClient()));
         this.objectMapper =
                 new ObjectMapper()
                         .registerModule(new Jdk8Module())

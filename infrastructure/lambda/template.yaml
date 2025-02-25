@@ -293,6 +293,8 @@ Resources:
   KBVQuestionFunction:
     Type: AWS::Serverless::Function
     Properties:
+      SnapStart:
+        ApplyOn: PublishedVersions
       CodeUri: ../../lambdas/question
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler::handleRequest
       Environment:
@@ -375,6 +377,8 @@ Resources:
 
   KBVAnswerFunction:
     Type: AWS::Serverless::Function
+    SnapStart:
+      ApplyOn: PublishedVersions
     Properties:
       CodeUri: ../../lambdas/answer
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.QuestionAnswerHandler::handleRequest
@@ -454,6 +458,8 @@ Resources:
 
   KBVAbandonFunction:
     Type: AWS::Serverless::Function
+    SnapStart:
+      ApplyOn: PublishedVersions
     Properties:
       CodeUri: ../../lambdas/abandon
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.AbandonKbvHandler::handleRequest
@@ -515,6 +521,8 @@ Resources:
   IssueCredentialFunction:
     Type: AWS::Serverless::Function
     Properties:
+      SnapStart:
+        ApplyOn: PublishedVersions
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler::handleRequest
       CodeUri: ../../lambdas/issuecredential
       Environment:
