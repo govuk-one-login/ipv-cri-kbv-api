@@ -23,7 +23,8 @@ dependencies {
 			configurations.hibernate,
 			configurations.nimbus,
 			configurations.soap,
-			configurations.sqs
+			configurations.sqs,
+			configurations.kms
 
 	aspect configurations.powertools
 
