@@ -9,7 +9,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.exception.KBVGatewayCreationException;
 import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
-import uk.gov.di.ipv.cri.kbv.api.security.SoapTokenRetriever;
 
 import java.io.IOException;
 
@@ -21,13 +20,11 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static uk.gov.di.ipv.cri.kbv.api.gateway.IdentityIQWrapperTest.GENERATE_TOKEN;
 
 @ExtendWith(MockitoExtension.class)
 class KBVGatewayFactoryTest {
     @Mock private KeyStoreLoader keyStoreLoaderMock;
     @Mock private KBVClientFactory kbvClientFactoryMock;
-    @Mock private SoapTokenRetriever soapTokenRetrieverMock;
 
     @InjectMocks private KBVGatewayFactory kbvGatewayFactory;
 
@@ -39,16 +36,11 @@ class KBVGatewayFactoryTest {
                 mock(IdentityIQWebServiceSoap.class);
 
         doNothing().when(keyStoreLoaderMock).load();
-
-        when(soapTokenRetrieverMock.getSoapToken()).thenReturn(GENERATE_TOKEN);
         when(kbvClientFactoryMock.createClient()).thenReturn(identityIQWebServiceSoapMock);
 
         kbvGatewayFactory =
                 new KBVGatewayFactory(
-                        keyStoreLoaderMock,
-                        kbvClientFactoryMock,
-                        configurationServiceMock,
-                        soapTokenRetrieverMock);
+                        keyStoreLoaderMock, kbvClientFactoryMock, configurationServiceMock);
 
         KBVGateway kbvGateway = kbvGatewayFactory.create();
 

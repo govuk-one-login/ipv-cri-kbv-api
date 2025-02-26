@@ -3,6 +3,7 @@ package uk.gov.di.ipv.cri.kbv.api.gateway;
 import com.experian.uk.schema.experian.identityiq.services.webservice.ArrayOfString;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
+import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
 import com.experian.uk.schema.experian.identityiq.services.webservice.RTQRequest;
 import com.experian.uk.schema.experian.identityiq.services.webservice.RTQResponse2;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
@@ -36,14 +37,14 @@ public class KBVGateway {
     private final StartAuthnAttemptRequestMapper saaRequestMapper;
     private final ResponseToQuestionMapper responseToQuestionMapper;
     private final QuestionsResponseMapper questionsResponseMapper;
-    private final IdentityIQWrapper identityIQWebServiceSoap;
+    private final IdentityIQWebServiceSoap identityIQWebServiceSoap;
     private final MetricsService metricsService;
 
     KBVGateway(
             StartAuthnAttemptRequestMapper saaRequestMapper,
             ResponseToQuestionMapper responseToQuestionMapper,
             QuestionsResponseMapper questionsResponseMapper,
-            IdentityIQWrapper identityIQWebServiceSoap,
+            IdentityIQWebServiceSoap identityIQWebServiceSoap,
             MetricsService metricsService) {
         this.identityIQWebServiceSoap =
                 Objects.requireNonNull(
