@@ -9,7 +9,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
@@ -45,14 +44,13 @@ class KBVGatewayTest {
         when(mockIdentityIQWebServiceSoap.saa(mockSaaRequest)).thenReturn(mockSaaResponse);
         when(mockQuestionsResponseMapper.mapSAAResponse(mockSaaResponse))
                 .thenReturn(mockQuestionsResponse);
-        when(mockMetricsService.getEventProbe()).thenReturn(mock(EventProbe.class));
         kbvGateway.getQuestions(questionRequest);
 
         verify(mockSAARequestMapper).mapQuestionRequest(questionRequest);
         verify(mockIdentityIQWebServiceSoap).saa(mockSaaRequest);
         verify(mockQuestionsResponseMapper).mapSAAResponse(mockSaaResponse);
-        verify(mockMetricsService)
-                .sendResultMetric(eq(mockKbvResult), eq("initial_questions_response"), anyLong());
+        verify(mockMetricsService).sendDurationMetric(eq("get_questions_duration"), anyLong());
+        verify(mockMetricsService).sendResultMetric("initial_questions_response", mockKbvResult);
     }
 
     @Test
@@ -68,14 +66,13 @@ class KBVGatewayTest {
         when(mockIdentityIQWebServiceSoap.rtq(mockRtqRequest)).thenReturn(mockRtqResponse);
         when(mockQuestionsResponseMapper.mapRTQResponse(mockRtqResponse))
                 .thenReturn(mockQuestionsResponse);
-        when(mockMetricsService.getEventProbe()).thenReturn(mock(EventProbe.class));
         kbvGateway.submitAnswers(questionAnswerRequest);
 
         verify(mockResponseToQuestionMapper).mapQuestionAnswersRtqRequest(questionAnswerRequest);
         verify(mockIdentityIQWebServiceSoap).rtq(mockRtqRequest);
         verify(mockQuestionsResponseMapper).mapRTQResponse(mockRtqResponse);
-        verify(mockMetricsService)
-                .sendResultMetric(eq(mockKbvResult), eq("submit_questions_response"), anyLong());
+        verify(mockMetricsService).sendDurationMetric(eq("submit_answers_duration"), anyLong());
+        verify(mockMetricsService).sendResultMetric("submit_questions_response", mockKbvResult);
     }
 
     @Test
