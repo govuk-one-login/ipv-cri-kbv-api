@@ -7,6 +7,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.SignedJWT;
+import software.amazon.awssdk.services.kms.KmsClient;
 import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
@@ -48,13 +49,15 @@ public class VerifiableCredentialService {
     private final EvidenceFactory evidenceFactory;
 
     @ExcludeFromGeneratedCoverageReport
-    public VerifiableCredentialService(ConfigurationService configurationService)
+    public VerifiableCredentialService(
+            ConfigurationService configurationService, KmsClient kmsClient)
             throws JsonProcessingException {
         this.configurationService = configurationService;
         this.signedJwtFactory =
                 new SignedJWTFactory(
                         new KMSSigner(
-                                configurationService.getVerifiableCredentialKmsSigningKeyId()));
+                                configurationService.getVerifiableCredentialKmsSigningKeyId(),
+                                kmsClient));
         this.objectMapper =
                 new ObjectMapper()
                         .registerModule(new Jdk8Module())

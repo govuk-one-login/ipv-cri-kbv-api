@@ -87,7 +87,9 @@ public class IssueCredentialHandler
         ServiceFactory serviceFactory = new ServiceFactory();
         ConfigurationService configurationService = serviceFactory.getConfigurationService();
 
-        this.verifiableCredentialService = new VerifiableCredentialService(configurationService);
+        this.verifiableCredentialService =
+                new VerifiableCredentialService(
+                        configurationService, serviceFactory.getKMSClient());
         this.kbvStorageService = new KBVStorageService(configurationService);
         this.sessionService = serviceFactory.getSessionService();
         this.eventProbe = new EventProbe();
