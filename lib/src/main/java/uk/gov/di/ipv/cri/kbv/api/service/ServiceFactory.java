@@ -92,7 +92,13 @@ public class ServiceFactory {
 
     private KBVClientFactory getKbvClientFactory() {
         TokenService tokenService = new TokenService();
-        SoapToken soapToken = new SoapToken(APPLICATION, true, tokenService, configurationService, new MetricsService(new EventProbe()));
+        SoapToken soapToken =
+                new SoapToken(
+                        APPLICATION,
+                        true,
+                        tokenService,
+                        configurationService,
+                        new MetricsService(new EventProbe()));
         HeaderHandler headerHandler = new HeaderHandler(new SoapTokenRetriever(soapToken));
         HeaderHandlerResolver headerResolver = new HeaderHandlerResolver(headerHandler);
 

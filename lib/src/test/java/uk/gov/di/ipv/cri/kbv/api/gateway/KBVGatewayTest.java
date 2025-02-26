@@ -33,6 +33,7 @@ import javax.xml.soap.SOAPPart;
 import javax.xml.ws.BindingProvider;
 import javax.xml.ws.handler.MessageContext;
 import javax.xml.ws.handler.soap.SOAPMessageContext;
+
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
@@ -182,7 +183,7 @@ class KBVGatewayTest {
 
         private SoapTokenRetriever soapTokenRetriever;
 
-        private final String SoapToken =
+        private final String soapToken =
                 generateToken(
                         String.format(
                                 "{\"exp\": %d}",
@@ -217,7 +218,7 @@ class KBVGatewayTest {
 
         private void mockTokenRetriever() {
             soapTokenRetriever = new SoapTokenRetriever(soapTokenMock);
-            when(soapTokenMock.getToken()).thenReturn(SoapToken);
+            when(soapTokenMock.getToken()).thenReturn(soapToken);
             when(soapMessageContextMock.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY))
                     .thenReturn(true);
         }
