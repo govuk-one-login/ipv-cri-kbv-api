@@ -5,7 +5,6 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.oauth2.sdk.OAuth2Error;
@@ -15,6 +14,7 @@ import com.nimbusds.oauth2.sdk.token.AccessTokenType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
@@ -27,7 +27,6 @@ import uk.gov.di.ipv.cri.common.library.error.ErrorResponse;
 import uk.gov.di.ipv.cri.common.library.exception.AccessTokenExpiredException;
 import uk.gov.di.ipv.cri.common.library.exception.SessionExpiredException;
 import uk.gov.di.ipv.cri.common.library.exception.SessionNotFoundException;
-import uk.gov.di.ipv.cri.common.library.service.AuditEventFactory;
 import uk.gov.di.ipv.cri.common.library.service.AuditService;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
@@ -40,7 +39,6 @@ import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.VerifiableCredentialService;
 
 import java.security.NoSuchAlgorithmException;
-import java.time.Clock;
 import java.util.Map;
 import java.util.Optional;
 
@@ -85,20 +83,17 @@ public class IssueCredentialHandler
     @ExcludeFromGeneratedCoverageReport
     public IssueCredentialHandler() throws JsonProcessingException {
         ServiceFactory serviceFactory = new ServiceFactory();
+        DynamoDbEnhancedClient dynamoDbEnhancedClient = serviceFactory.getDynamoDbEnhancedClient();
         ConfigurationService configurationService = serviceFactory.getConfigurationService();
 
         this.verifiableCredentialService =
                 new VerifiableCredentialService(
                         configurationService, serviceFactory.getKMSClient());
-        this.kbvStorageService = new KBVStorageService(configurationService);
+        this.kbvStorageService =
+                new KBVStorageService(configurationService, dynamoDbEnhancedClient);
         this.sessionService = serviceFactory.getSessionService();
         this.eventProbe = new EventProbe();
-        this.auditService =
-                new AuditService(
-                        serviceFactory.getSqsClient(),
-                        configurationService,
-                        new ObjectMapper(),
-                        new AuditEventFactory(configurationService, Clock.systemUTC()));
+        this.auditService = serviceFactory.getAuditService();
         this.personIdentityService =
                 new PersonIdentityService(
                         configurationService, serviceFactory.getDynamoDbEnhancedClient());
