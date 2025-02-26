@@ -200,3 +200,7 @@ gradle.projectsEvaluated {
 }
 
 defaultTasks 'clean', 'spotlessApply', 'build'
+
+tasks.build {
+	dependsOn("spotlessApply")
+}
