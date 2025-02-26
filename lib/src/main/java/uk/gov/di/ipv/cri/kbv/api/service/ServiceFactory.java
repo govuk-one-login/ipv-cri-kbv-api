@@ -4,6 +4,7 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQ
 import com.experian.uk.wasp.TokenService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.services.kms.KmsClient;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.lambda.powertools.parameters.SSMProvider;
 import software.amazon.lambda.powertools.parameters.SecretsProvider;
@@ -55,6 +56,10 @@ public class ServiceFactory {
 
     public SqsClient getSqsClient() {
         return clientProviderFactory.getSqsClient();
+    }
+
+    public KmsClient getKMSClient() {
+        return clientProviderFactory.getKMSClient();
     }
 
     public ConfigurationService getConfigurationService() {
