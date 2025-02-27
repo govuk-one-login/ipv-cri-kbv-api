@@ -51,7 +51,10 @@ public class AbandonKbvHandler
     public AbandonKbvHandler() {
         ServiceFactory serviceFactory = new ServiceFactory();
         this.eventProbe = new EventProbe();
-        this.kbvStorageService = new KBVStorageService(serviceFactory.getConfigurationService());
+        this.kbvStorageService =
+                new KBVStorageService(
+                        serviceFactory.getConfigurationService(),
+                        serviceFactory.getDynamoDbEnhancedClient());
         this.sessionService = serviceFactory.getSessionService();
         this.auditService = serviceFactory.getAuditService();
     }
