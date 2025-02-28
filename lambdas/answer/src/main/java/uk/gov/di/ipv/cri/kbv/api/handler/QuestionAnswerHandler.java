@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
@@ -62,10 +63,13 @@ public class QuestionAnswerHandler
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
         ServiceFactory serviceFactory = new ServiceFactory();
+        DynamoDbEnhancedClient dynamoDbEnhancedClient = serviceFactory.getDynamoDbEnhancedClient();
+
         this.configurationService = serviceFactory.getConfigurationService();
 
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        this.kbvStorageService = new KBVStorageService(configurationService);
+        this.kbvStorageService =
+                new KBVStorageService(configurationService, dynamoDbEnhancedClient);
         this.kbvService = new KBVService(serviceFactory.getKbvGateway());
         this.sessionService = serviceFactory.getSessionService();
         this.auditService = serviceFactory.getAuditService();
