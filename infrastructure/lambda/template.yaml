@@ -71,6 +71,8 @@ Globals:
     Runtime: java11
     Architectures: [arm64]
     AutoPublishAlias: live
+    SnapStart:
+      ApplyOn: !FindInMap [ SnapStartMapping, Environment, !Ref Environment ]
     DeploymentPreference:
       Type: !Ref LambdaDeploymentPreference
       Role: !GetAtt CodeDeployServiceRole.Arn
@@ -155,6 +157,15 @@ Mappings:
       integration: 2048
       production: 3072
       localdev: 2048
+
+  SnapStartMapping:
+    Environment:
+      localdev: PublishedVersions
+      dev: PublishedVersions
+      build: PublishedVersions
+      staging: PublishedVersions
+      integration: PublishedVersions
+      production: None
 
   IIQAPIDatabaseModeMapping:
     Environment:
