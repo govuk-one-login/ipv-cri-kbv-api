@@ -165,7 +165,7 @@ Mappings:
       build: PublishedVersions
       staging: PublishedVersions
       integration: PublishedVersions
-      production: None
+      production: PublishedVersions
 
   IIQAPIDatabaseModeMapping:
     Environment:
