@@ -5,7 +5,7 @@ cached = true
 parallel = true
 
 [default.deploy.parameters]
-stack_name = "<your-name>-kbv-api"
+stack_name = "suraj-spike"
 
 capabilities = ["CAPABILITY_IAM"]
 fail_on_empty_changeset = false
