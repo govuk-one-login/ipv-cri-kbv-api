@@ -48,9 +48,9 @@ public class ExperianTestHandler
 
             this.testSuits =
                     List.of(
+                            new ImportCertificateTest(keystorePassword),
                             new SSLHandshakeTest(),
                             new SOAPRequestTest(keystorePassword, waspUrl),
-                            new ImportCertificateTest(keystorePassword),
                             new KeyStoreTest(keystorePassword));
 
             initializeKeystore(secretsGrabber);
