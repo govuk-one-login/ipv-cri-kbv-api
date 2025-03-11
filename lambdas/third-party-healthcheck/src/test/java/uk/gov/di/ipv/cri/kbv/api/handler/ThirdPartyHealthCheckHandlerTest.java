@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ExperianTestHandlerTest {
+class ThirdPartyHealthCheckHandlerTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String MOCK_WASP_URL =
@@ -97,7 +97,8 @@ class ExperianTestHandlerTest {
 
     @Test
     void shouldContainAllReportsInOutput() throws JsonProcessingException {
-        ExperianTestHandler experianTestHandler = new ExperianTestHandler(mockServiceFactory);
+        ThirdPartyHealthCheckHandler experianTestHandler =
+                new ThirdPartyHealthCheckHandler(mockServiceFactory);
 
         APIGatewayProxyResponseEvent responseEvent =
                 experianTestHandler.handleRequest(event, mockContext);

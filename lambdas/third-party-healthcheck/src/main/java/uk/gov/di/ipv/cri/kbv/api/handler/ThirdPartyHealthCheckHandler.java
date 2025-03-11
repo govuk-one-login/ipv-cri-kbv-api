@@ -23,19 +23,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class ExperianTestHandler
+public class ThirdPartyHealthCheckHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
-    private static final Logger LOGGER = LogManager.getLogger(ExperianTestHandler.class);
+    private static final Logger LOGGER = LogManager.getLogger(ThirdPartyHealthCheckHandler.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final List<Test<?>> testSuits;
 
     @ExcludeFromGeneratedCoverageReport
-    public ExperianTestHandler() {
+    public ThirdPartyHealthCheckHandler() {
         this(new ServiceFactory());
     }
 
-    public ExperianTestHandler(ServiceFactory serviceFactory) {
+    public ThirdPartyHealthCheckHandler(ServiceFactory serviceFactory) {
         try {
             String waspUrl = serviceFactory.getSecretsProvider().get(Configuration.WASP_URL_SECRET);
             String keystorePassword =
