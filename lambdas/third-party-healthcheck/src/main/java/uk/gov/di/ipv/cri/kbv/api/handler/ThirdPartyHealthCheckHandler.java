@@ -12,6 +12,7 @@ import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
 import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.tests.Test;
 import uk.gov.di.ipv.cri.kbv.api.tests.assertions.AssertionTest;
@@ -44,11 +45,15 @@ public class ThirdPartyHealthCheckHandler
 
     public ThirdPartyHealthCheckHandler(ServiceFactory serviceFactory) {
         try {
-            String waspUrl = serviceFactory.getSecretsProvider().get(Configuration.WASP_URL_SECRET);
+            ConfigurationService configurationService =
+                    new ConfigurationService(
+                            serviceFactory.getSsmProvider(), serviceFactory.getSecretsProvider());
+
+            String waspUrl = configurationService.getSecretValue(Configuration.WASP_URL_SECRET);
             String keystorePassword =
-                    serviceFactory.getSecretsProvider().get(Configuration.KEYSTORE_PASSWORD);
+                    configurationService.getSecretValue(Configuration.KEYSTORE_PASSWORD);
             String keystoreSecret =
-                    serviceFactory.getSecretsProvider().get(Configuration.KEYSTORE_SECRET);
+                    configurationService.getSecretValue(Configuration.KEYSTORE_SECRET);
 
             LOGGER.info("WASP URL: {}", waspUrl);
 
@@ -125,7 +130,7 @@ public class ThirdPartyHealthCheckHandler
         LOGGER.info("Initializing keystore at: {}", Configuration.JKS_FILE_LOCATION);
 
         try {
-            Path path = Paths.get(Configuration.JKS_FILE_LOCATION).normalize(); //NOSONAR
+            Path path = Paths.get(Configuration.JKS_FILE_LOCATION).normalize(); // NOSONAR
             byte[] decodedBytes = Base64.getDecoder().decode(base64KeyStore);
             Files.write(path, decodedBytes);
             LOGGER.info(

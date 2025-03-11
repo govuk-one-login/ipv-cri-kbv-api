@@ -78,15 +78,18 @@ class ThirdPartyHealthCheckHandlerTest {
     void beforeEach() {
         event.setPath("/info");
 
+        String secretPrefix = "/null/";
+
         when(mockServiceFactory.getSecretsProvider()).thenReturn(mockSecretsProvider);
 
-        when(mockSecretsProvider.get(Configuration.KEYSTORE_PASSWORD))
+        when(mockSecretsProvider.get(secretPrefix + Configuration.KEYSTORE_PASSWORD))
                 .thenReturn(MOCK_KEYSTORE_PASSWORD);
 
-        when(mockSecretsProvider.get(Configuration.KEYSTORE_SECRET))
+        when(mockSecretsProvider.get(secretPrefix + Configuration.KEYSTORE_SECRET))
                 .thenReturn(MOCK_KEYSTORE_SECRET);
 
-        when(mockSecretsProvider.get(Configuration.WASP_URL_SECRET)).thenReturn(MOCK_WASP_URL);
+        when(mockSecretsProvider.get(secretPrefix + Configuration.WASP_URL_SECRET))
+                .thenReturn(MOCK_WASP_URL);
     }
 
     @AfterEach

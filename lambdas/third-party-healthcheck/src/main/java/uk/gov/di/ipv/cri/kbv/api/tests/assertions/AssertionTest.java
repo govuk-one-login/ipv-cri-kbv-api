@@ -68,7 +68,11 @@ public class AssertionTest implements Test<Assertions> {
     }
 
     private String checkJksFileExists() {
-        return toStatus(Paths.get(Configuration.JKS_FILE_LOCATION).normalize().toFile().exists()); //NOSONAR
+        return toStatus(
+                Paths.get(Configuration.JKS_FILE_LOCATION)
+                        .normalize()
+                        .toFile()
+                        .exists()); // NOSONAR
     }
 
     private String evaluateSoapTokenValid() {
