@@ -16,6 +16,10 @@ public class KeyToolReportGenerator {
     private static final String ALIAS_PREFIX = "Alias name:";
     private static final String VALID_FROM_PREFIX = "Valid from";
 
+    private KeyToolReportGenerator() {
+        throw new AssertionError("Utility class cannot be instantiated");
+    }
+
     public static KeytoolListTestReport generateKeyToolReport(String output) {
         Objects.requireNonNull(output, "Output string cannot be null");
 

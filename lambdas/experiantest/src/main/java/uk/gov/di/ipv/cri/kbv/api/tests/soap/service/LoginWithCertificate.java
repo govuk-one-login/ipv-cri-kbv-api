@@ -73,20 +73,23 @@ public class LoginWithCertificate {
         }
     }
 
-    private static SSLContext initializeSSLContext(String pfxFile, String password)
-            throws Exception {
-        KeyStore keyStore = KeyStore.getInstance("PKCS12");
-        try (FileInputStream fis = new FileInputStream(pfxFile)) {
-            keyStore.load(fis, password.toCharArray());
+    private static SSLContext initializeSSLContext(String pfxFile, String password) {
+        try {
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            try (FileInputStream fis = new FileInputStream(pfxFile)) {
+                keyStore.load(fis, password.toCharArray());
+            }
+
+            KeyManagerFactory kmf =
+                    KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            kmf.init(keyStore, password.toCharArray());
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(kmf.getKeyManagers(), null, null);
+            return sslContext;
+        } catch (Exception e) {
+            throw new SOAPException("Failed to initialize SSL context", e);
         }
-
-        KeyManagerFactory kmf =
-                KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        kmf.init(keyStore, password.toCharArray());
-
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(kmf.getKeyManagers(), null, null);
-        return sslContext;
     }
 
     private static HttpURLConnection setupConnection(String url, SSLContext sslContext)
@@ -155,10 +158,11 @@ public class LoginWithCertificate {
         if (token == null) {
             return false;
         }
-        if (token.contains("LoginWithCertificateResult")) {
-            int start =
-                    token.indexOf("LoginWithCertificateResult")
-                            + "LoginWithCertificateResult".length();
+
+        String key = "LoginWithCertificateResult";
+
+        if (token.contains(key)) {
+            int start = token.indexOf(key) + key.length();
             int end = token.indexOf("</LoginWithCertificateResponse>");
             return SoapTokenUtils.isTokenPayloadValid(token.substring(start, end));
         }

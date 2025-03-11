@@ -47,7 +47,19 @@ class ExperianTestHandlerTest {
             "https://domain.com/WASPAuthenticator/tokenService.asmx";
     private static final String MOCK_KEYSTORE_ALIAS = "dummyAlias";
     private static final String MOCK_KEYSTORE_PASSWORD = "password";
-    private static String MOCK_KEYSTORE_SECRET;
+    private static final String MOCK_KEYSTORE_SECRET;
+
+    static {
+        try {
+            KeyStore keyStore =
+                    createMockKeyStore(MOCK_KEYSTORE_ALIAS, MOCK_KEYSTORE_PASSWORD.toCharArray());
+            byte[] keyStoreAsByteArray =
+                    convertKeyStoreToByteArray(keyStore, MOCK_KEYSTORE_PASSWORD.toCharArray());
+            MOCK_KEYSTORE_SECRET = Base64.getEncoder().encodeToString(keyStoreAsByteArray);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create mock keystore", e);
+        }
+    }
 
     @Mock private Context mockContext;
     @Mock private ServiceFactory mockServiceFactory;
@@ -60,16 +72,6 @@ class ExperianTestHandlerTest {
         setEnvironmentVariable("WaspURLSecret", "WaspURLSecret");
         setEnvironmentVariable("KeyStoreSecret", "KeyStoreSecret");
         setEnvironmentVariable("KeyStorePassword", "KeyStorePassword");
-
-        try {
-            KeyStore keyStore =
-                    createMockKeyStore(MOCK_KEYSTORE_ALIAS, MOCK_KEYSTORE_PASSWORD.toCharArray());
-            byte[] keyStoreAsByteArray =
-                    convertKeyStoreToByteArray(keyStore, MOCK_KEYSTORE_PASSWORD.toCharArray());
-            MOCK_KEYSTORE_SECRET = Base64.getEncoder().encodeToString(keyStoreAsByteArray);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create mock keystore", e);
-        }
     }
 
     @BeforeEach
@@ -89,8 +91,8 @@ class ExperianTestHandlerTest {
 
     @AfterEach
     void afterEach() {
-        boolean ignore1 = new File(Configuration.JKS_FILE_LOCATION).delete();
-        boolean ignore2 = new File(Configuration.PFX_FILE_LOCATION).delete();
+        new File(Configuration.JKS_FILE_LOCATION).delete();
+        new File(Configuration.PFX_FILE_LOCATION).delete();
     }
 
     @Test

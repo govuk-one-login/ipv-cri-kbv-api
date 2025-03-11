@@ -7,7 +7,9 @@ public class Assertions {
     private String jksLoaded;
     private String soapTokenValid;
 
-    public Assertions() {}
+    public Assertions() {
+        // Empty constructor for Jackson
+    }
 
     public String getSslConnection() {
         return sslConnection;

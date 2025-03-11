@@ -1,14 +1,10 @@
 package uk.gov.di.ipv.cri.kbv.api.tests.keytool.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import uk.gov.di.ipv.cri.kbv.api.utils.bash.Bash;
 
 import java.util.Objects;
 
 public class Keytool {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Keytool.class);
-
     private Keytool() {
         throw new AssertionError("Utility class cannot be instantiated");
     }

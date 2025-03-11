@@ -3,6 +3,10 @@ package uk.gov.di.ipv.cri.kbv.api.tests.keystore.service;
 import uk.gov.di.ipv.cri.kbv.api.utils.bash.Bash;
 
 public class Keytool {
+    private Keytool() {
+        throw new AssertionError("Utility class cannot be instantiated");
+    }
+
     public static String getKeyStoreContents(String keystore, String keystorePassword) {
         try {
             return Bash.execute(
