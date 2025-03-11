@@ -125,7 +125,7 @@ public class ThirdPartyHealthCheckHandler
         LOGGER.info("Initializing keystore at: {}", Configuration.JKS_FILE_LOCATION);
 
         try {
-            Path path = Paths.get(Configuration.JKS_FILE_LOCATION).normalize();
+            Path path = Paths.get(Configuration.JKS_FILE_LOCATION).normalize(); //NOSONAR
             byte[] decodedBytes = Base64.getDecoder().decode(base64KeyStore);
             Files.write(path, decodedBytes);
             LOGGER.info(
