@@ -46,7 +46,8 @@ public class KeyToolReportGenerator {
     }
 
     private static void processLines(String[] lines, KeytoolListTestReport report) {
-        for (int i = 0; i < lines.length; i++) {
+        int i = 0;
+        while (i < lines.length) {
             String line = lines[i].trim();
 
             if (line.startsWith("Keystore type:")) {
@@ -58,6 +59,7 @@ public class KeyToolReportGenerator {
             } else if (line.startsWith(ALIAS_PREFIX)) {
                 i = processKeyStoreEntry(lines, i, report);
             }
+            i++;
         }
     }
 
