@@ -7,6 +7,7 @@ import uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -80,12 +81,23 @@ public class LoginWithCertificate {
                 keyStore.load(fis, password.toCharArray());
             }
 
+            KeyStore trustStore = KeyStore.getInstance("PKCS12");
+
+            try (FileInputStream fis = new FileInputStream(pfxFile)) {
+                trustStore.load(fis, password.toCharArray());
+            }
+
             KeyManagerFactory kmf =
                     KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             kmf.init(keyStore, password.toCharArray());
 
+            TrustManagerFactory tmf =
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(trustStore);
+
             SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(kmf.getKeyManagers(), null, null);
+            sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+
             return sslContext;
         } catch (Exception e) {
             throw new SOAPException("Failed to initialize SSL context", e);
