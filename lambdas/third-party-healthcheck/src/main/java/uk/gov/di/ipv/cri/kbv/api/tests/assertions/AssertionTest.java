@@ -69,10 +69,10 @@ public class AssertionTest implements Test<AssertionsReport> {
 
     private String checkJksFileExists() {
         return toStatus(
-                Paths.get(Configuration.JKS_FILE_LOCATION)
+                Paths.get(Configuration.JKS_FILE_LOCATION) // NOSONAR
                         .normalize()
                         .toFile()
-                        .exists()); // NOSONAR
+                        .exists());
     }
 
     private String evaluateSoapTokenValid() {
