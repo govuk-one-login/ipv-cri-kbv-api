@@ -20,6 +20,7 @@ import uk.gov.di.ipv.cri.kbv.api.tests.keytool.ImportCertificateTest;
 import uk.gov.di.ipv.cri.kbv.api.tests.soap.SOAPRequestTest;
 import uk.gov.di.ipv.cri.kbv.api.tests.soap.report.LoginWithCertificateTestReport;
 import uk.gov.di.ipv.cri.kbv.api.tests.ssl.SSLHandshakeTest;
+import uk.gov.di.ipv.cri.kbv.api.tests.ssl.report.SSLHandshakeTestReport;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,6 +32,8 @@ public class ThirdPartyHealthCheckHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     private static final Logger LOGGER = LogManager.getLogger(ThirdPartyHealthCheckHandler.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final int SUCCESS_HTTP_CODE = 200;
+    private static final int FAIL_HTTP_CODE = 525;
 
     private final List<Test<?>> testSuits;
 
@@ -83,7 +86,16 @@ public class ThirdPartyHealthCheckHandler
                     (LoginWithCertificateTestReport)
                             testReports.get(SOAPRequestTest.class.getSimpleName());
 
-            return createResponse(loginWithCertificateReport.isSoapTokenValid() ? 200 : 416, "");
+            SSLHandshakeTestReport sslHandshakeTestReport =
+                    (SSLHandshakeTestReport)
+                            testReports.get(SSLHandshakeTest.class.getSimpleName());
+
+            return createResponse(
+                    loginWithCertificateReport.isSoapTokenValid()
+                                    && sslHandshakeTestReport.isSessionValid()
+                            ? SUCCESS_HTTP_CODE
+                            : FAIL_HTTP_CODE,
+                    "");
 
         } catch (Exception e) {
             LOGGER.error("Test execution failed", e);
