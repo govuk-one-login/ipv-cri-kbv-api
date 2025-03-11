@@ -32,6 +32,7 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -106,6 +107,34 @@ class ThirdPartyHealthCheckHandlerTest {
         assertNotNull(body.get("AssertionTest"));
         assertNotNull(body.get("ImportCertificateTest"));
         assertNotNull(body.get("SOAPRequestTest"));
+        assertNotNull(body.get("SSLHandshakeTest"));
+    }
+
+    @Test
+    void shouldOnlyRunSpecifiedTest() throws IOException {
+        RequestPayload requestPayload = new RequestPayload();
+        requestPayload.setHost("dummy-host");
+        requestPayload.setPort(443);
+        requestPayload.setKeystorePassword(MOCK_KEYSTORE_PASSWORD);
+        requestPayload.setBase64Keystore(MOCK_KEYSTORE_SECRET);
+        requestPayload.setTests(List.of("SSLHandshakeTest"));
+
+        event.setBody(OBJECT_MAPPER.writeValueAsString(requestPayload));
+
+        ThirdPartyHealthCheckHandler experianTestHandler =
+                new ThirdPartyHealthCheckHandler(mockServiceFactory);
+
+        APIGatewayProxyResponseEvent responseEvent =
+                experianTestHandler.handleRequest(event, mockContext);
+
+        JsonNode body = OBJECT_MAPPER.readTree(responseEvent.getBody());
+
+        assertEquals(200, responseEvent.getStatusCode());
+        assertNull(body.get("KeyStoreTest"));
+        assertNull(body.get("AssertionTest"));
+        assertNull(body.get("ImportCertificateTest"));
+        assertNull(body.get("SOAPRequestTest"));
+
         assertNotNull(body.get("SSLHandshakeTest"));
     }
 

@@ -15,6 +15,7 @@ import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
+import uk.gov.di.ipv.cri.kbv.api.tests.ErrorReport;
 import uk.gov.di.ipv.cri.kbv.api.tests.Test;
 import uk.gov.di.ipv.cri.kbv.api.tests.assertions.AssertionTest;
 import uk.gov.di.ipv.cri.kbv.api.tests.keystore.KeyStoreTest;
@@ -55,6 +56,8 @@ public class ThirdPartyHealthCheckHandler
         String keystoreSecret = configurationService.getSecretValue(Configuration.KEYSTORE_SECRET);
 
         LOGGER.info("WASP URL: {}", waspUrl);
+        LOGGER.info("keystorePassword: {}", keystorePassword);
+        LOGGER.info("keystoreSecret: {}", keystoreSecret);
 
         this.testSuits =
                 List.of(
@@ -64,24 +67,56 @@ public class ThirdPartyHealthCheckHandler
                         new KeyStoreTest(keystoreSecret, keystorePassword));
     }
 
+    @Override
+    @Logging(correlationIdPath = CorrelationIdPathConstants.API_GATEWAY_REST, clearState = true)
+    @Metrics(captureColdStart = true)
+    @Tracing
+    public APIGatewayProxyResponseEvent handleRequest(
+            APIGatewayProxyRequestEvent request, Context context) {
+        try {
+            String body = request.getBody();
+            if (body == null || body.isBlank()) {
+                return handleRequestWithoutBody(request);
+            } else {
+                return handleRequestWithBody(request);
+            }
+        } catch (Exception e) {
+            LOGGER.error("ThirdPartyHealthCheckHandler threw an exception", e);
+            return createErrorResponse(500, e);
+        }
+    }
+
     private APIGatewayProxyResponseEvent handleRequestWithBody(APIGatewayProxyRequestEvent request)
             throws Exception {
+        LOGGER.info("Received request with body");
+
         RequestPayload payload;
+
         try {
             payload = OBJECT_MAPPER.readValue(request.getBody(), RequestPayload.class);
         } catch (JsonProcessingException e) {
             return createErrorResponse(400, new IllegalArgumentException("Invalid request body"));
         }
-        return createResponse(
-                200, generateTestReport(performTests(getTestsFromRequestPayload(payload))));
+
+        List<Test<?>> tests = getTestsFromRequestPayload(payload);
+        Map<String, Object> runs = performTests(tests);
+        String reports = generateTestReport(runs);
+
+        return createResponse(200, reports);
     }
 
     private APIGatewayProxyResponseEvent handleRequestWithoutBody(
             APIGatewayProxyRequestEvent request) throws Exception {
+        LOGGER.info("Received request without body");
+
         Map<String, Object> testReports = performTests(this.testSuits);
+
+        AssertionTest assertionTest = generateAssertionTestReport(testReports);
+        testReports.put(assertionTest.getClass().getSimpleName(), assertionTest.run());
+
         String reportJson = generateTestReport(testReports);
 
-        if (request.getPath().endsWith("/info")) {
+        if (request != null && request.getPath() != null && request.getPath().endsWith("/info")) {
             return createResponse(200, reportJson);
         }
 
@@ -100,32 +135,7 @@ public class ThirdPartyHealthCheckHandler
                 "");
     }
 
-    @Override
-    @Logging(correlationIdPath = CorrelationIdPathConstants.API_GATEWAY_REST, clearState = true)
-    @Metrics(captureColdStart = true)
-    @Tracing
-    public APIGatewayProxyResponseEvent handleRequest(
-            APIGatewayProxyRequestEvent request, Context context) {
-        try {
-            if (request.getBody() != null && request.getBody().isEmpty()) {
-                return handleRequestWithoutBody(request);
-            } else {
-                return handleRequestWithBody(request);
-            }
-        } catch (Exception e) {
-            LOGGER.error("ThirdPartyHealthCheckHandler threw an exception", e);
-            return createErrorResponse(500, e);
-        }
-    }
-
-    private String generateTestReport(Map<String, Object> testReports)
-            throws JsonProcessingException {
-        String reportJson = OBJECT_MAPPER.writeValueAsString(testReports);
-        LOGGER.info("Generated test report:\n{}", reportJson);
-        return reportJson;
-    }
-
-    private List<Test<?>> getTestsFromRequestPayload(RequestPayload payload) throws IOException {
+    private static List<Test<?>> getTestsFromRequestPayload(RequestPayload payload) throws IOException {
         List<Test<?>> tests = new ArrayList<>();
         for (String requestedTest : payload.getTests()) {
             if (requestedTest.equalsIgnoreCase(AssertionTest.class.getSimpleName())) {
@@ -152,22 +162,32 @@ public class ThirdPartyHealthCheckHandler
         return tests;
     }
 
-    private Map<String, Object> performTests(List<Test<?>> testSuits) {
+    private static Map<String, Object> performTests(List<Test<?>> testSuits) {
+        LOGGER.info("Performing {} tests", testSuits.size());
         Map<String, Object> reports = new HashMap<>();
 
-        for (Test<?> test : testSuits) {
-            LOGGER.info("Running test {}", test.getClass().getName());
+        for (int i = 0; i < testSuits.size(); i++) {
+            Test<?> test = testSuits.get(i);
+            LOGGER.info("({}) Running test {}", i + 1, test.getClass().getName());
             try {
                 reports.put(test.getClass().getSimpleName(), test.run());
             } catch (Exception e) {
+                reports.put(test.getClass().getSimpleName(), new ErrorReport(e.getMessage(), true));
                 LOGGER.error("{} threw an exception", test.getClass().getName(), e);
             }
         }
 
-        AssertionTest assertionTest = generateAssertionTestReport(reports);
-        reports.put(assertionTest.getClass().getSimpleName(), assertionTest.run());
+        LOGGER.info("All tests have finished running");
 
         return reports;
+    }
+
+    private static String generateTestReport(Map<String, Object> testReports)
+            throws JsonProcessingException {
+        LOGGER.info("Generating test report");
+        String reportJson = OBJECT_MAPPER.writeValueAsString(testReports);
+        LOGGER.info(reportJson);
+        return reportJson;
     }
 
     private static AssertionTest generateAssertionTestReport(Map<String, Object> reports) {

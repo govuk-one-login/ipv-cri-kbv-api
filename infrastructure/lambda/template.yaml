@@ -160,7 +160,7 @@ Mappings:
 
   SnapStartMapping:
     Environment:
-      localdev: PublishedVersions
+      localdev: None
       dev: PublishedVersions
       build: PublishedVersions
       staging: PublishedVersions
@@ -526,9 +526,7 @@ Resources:
         - Statement:
             Effect: Allow
             Action: secretsmanager:GetSecretValue
-            Resource: !Sub
-              - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*'
-              - Prefix: !If [ UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName ]
+            Resource: "*"
 
   ThirdPartyHealthCheckFunctionLogGroup:
     Type: AWS::Logs::LogGroup

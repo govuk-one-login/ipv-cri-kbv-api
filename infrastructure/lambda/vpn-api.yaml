@@ -18,10 +18,10 @@ paths:
           Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ThirdPartyHealthCheckFunction.Arn}:live/invocations
 
   /health/3rd-party/info:
-    post:
+    get:
       responses:
-         200:
-           description: "Lambda invocation successful"
+        200:
+          description: "Lambda invocation successful"
       x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
@@ -29,10 +29,33 @@ paths:
         type: "aws_proxy"
         uri:
           Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ThirdPartyHealthCheckFunction.Arn}:live/invocations
-    get:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                host:
+                  type: string
+                port:
+                  type: integer
+                base64Keystore:
+                  type: string
+                keystorePassword:
+                  type: string
+                tests:
+                  type: array
+              required:
+                - host
+                - port
+                - base64Keystore
+                - keystorePassword
+                - tests
       responses:
-        200:
-          description: "Lambda invocation successful"
+         200:
+           description: "Lambda invocation successful"
       x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
@@ -45,6 +68,3 @@ x-amazon-apigateway-request-validators:
   Validate both:
     validateRequestBody: true
     validateRequestParameters: true
-  Validate Param only:
-    validateRequestParameters: true
-    validateRequestBody: false
