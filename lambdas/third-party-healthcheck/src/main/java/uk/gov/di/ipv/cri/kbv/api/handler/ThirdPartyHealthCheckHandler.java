@@ -107,7 +107,7 @@ public class ThirdPartyHealthCheckHandler
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent request, Context context) {
         try {
-            if (request.getBody().isEmpty()) {
+            if (request.getBody() != null && request.getBody().isEmpty()) {
                 return handleRequestWithoutBody(request);
             } else {
                 return handleRequestWithBody(request);
