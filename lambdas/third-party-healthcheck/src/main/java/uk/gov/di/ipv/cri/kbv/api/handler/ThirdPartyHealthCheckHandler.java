@@ -87,7 +87,7 @@ public class ThirdPartyHealthCheckHandler
     }
 
     private APIGatewayProxyResponseEvent handleRequestWithBody(APIGatewayProxyRequestEvent request)
-            throws Exception {
+            throws IOException {
         LOGGER.info("Received request with body");
 
         RequestPayload payload;
@@ -106,7 +106,7 @@ public class ThirdPartyHealthCheckHandler
     }
 
     private APIGatewayProxyResponseEvent handleRequestWithoutBody(
-            APIGatewayProxyRequestEvent request) throws Exception {
+            APIGatewayProxyRequestEvent request) throws JsonProcessingException {
         LOGGER.info("Received request without body");
 
         Map<String, Object> testReports = performTests(this.testSuits);
@@ -135,7 +135,8 @@ public class ThirdPartyHealthCheckHandler
                 "");
     }
 
-    private static List<Test<?>> getTestsFromRequestPayload(RequestPayload payload) throws IOException {
+    private static List<Test<?>> getTestsFromRequestPayload(RequestPayload payload)
+            throws IOException {
         List<Test<?>> tests = new ArrayList<>();
         for (String requestedTest : payload.getTests()) {
             if (requestedTest.equalsIgnoreCase(AssertionTest.class.getSimpleName())) {
