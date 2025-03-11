@@ -17,7 +17,7 @@ public class KeystoreFile {
     }
 
     public static String createKeyStoreFile(String base64KeyStore) throws IOException {
-        String keystoreFile = System.currentTimeMillis() + ".jks";
+        String keystoreFile = "/tmp/" + System.currentTimeMillis() + ".jks";
 
         LOGGER.info("Initializing keystore at: {}", keystoreFile);
 

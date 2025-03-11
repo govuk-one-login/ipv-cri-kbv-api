@@ -25,7 +25,7 @@ public class SOAPRequestTest implements Test<LoginWithCertificateTestReport> {
 
     @Override
     public LoginWithCertificateTestReport run() {
-        String pfx = System.currentTimeMillis() + ".pfx";
+        String pfx = "/tmp/" + System.currentTimeMillis() + ".pfx";
 
         Keytool.importCertificate(pfx, jksFileLocation, keystorePassword);
 
