@@ -1,0 +1,41 @@
+plugins {
+	id "java"
+	id "jacoco"
+	id "io.freefair.aspectj.post-compile-weaving" version "6.3.0"
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	runtimeOnly configurations.otel
+
+	implementation project(":lib"),
+			configurations.cri_common_lib,
+			configurations.aws,
+			configurations.lambda,
+			configurations.jackson
+
+	aspect configurations.powertools
+
+	testImplementation configurations.tests,
+			configurations.test_runtime
+
+	testImplementation 'org.bouncycastle:bcpkix-jdk18on:1.80'
+	testImplementation 'org.bouncycastle:bcprov-jdk18on:1.80'
+}
+
+test {
+	useJUnitPlatform{
+		excludeTags 'Pact'
+	}
+	finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+	dependsOn test
+	reports {
+		xml.required.set(true)
+	}
+}

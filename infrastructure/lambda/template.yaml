@@ -215,6 +215,53 @@ Mappings:
       localdev: true
 
 Resources:
+  VpnPublicApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub kbv-cri-${AWS::StackName}-public-private-api
+      Description: VPN only API
+      Body:
+        openapi: 3.0.1
+        paths:
+          /never-created:
+            options: { }
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: ./vpn-api.yaml
+      Policy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Deny
+            Principal: "*"
+            Action: "execute-api:Invoke"
+            Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/${Environment}/GET/health/3rd-party*"
+            Condition:
+              NotIpAddress:
+                aws:SourceIp:
+                  # https://sites.google.com/a/digital.cabinet-office.gov.uk/gds/working-at-gds/gds-internal-it/gds-internal-it-network-public-ip-addresses
+                  - "217.196.229.77/32"
+                  - "217.196.229.79/32"
+                  - "217.196.229.80/32"
+                  - "217.196.229.81/32"
+                  - "51.149.8.0/25"
+                  - "51.149.8.128/29"
+          - Effect: Allow
+            Principal: "*"
+            Action: "execute-api:Invoke"
+            Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/${Environment}/*/*"
+
+  VpnPublicApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref VpnPublicApi
+      StageName: !Ref Environment
+
+  VpnPublicApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${VpnPublicApi}-public-AccessLogs
+
   PublicKBVApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -462,6 +509,45 @@ Resources:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
       FilterPattern: ""
       LogGroupName: !Ref KBVAnswerFunctionLogGroup
+
+  ExperianTestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../lambdas/experiantest
+      Handler: uk.gov.di.ipv.cri.kbv.api.handler.ExperianTestHandler::handleRequest
+      Environment:
+        Variables:
+          KeyStoreSecret: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/experian/keystore
+          KeyStorePassword: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/experian/keystore-password
+          WaspURLSecret: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/experian/iiq-wasp-service
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Sub
+              - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*'
+              - Prefix: !If [ UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName ]
+
+  ExperianTestFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ExperianTestFunction}"
+      RetentionInDays: 30
+
+  ExperianTestFunctionLogGroupSubscriptionFilterCSLS:
+    Type: AWS::Logs::SubscriptionFilter
+    Condition: IsNotDevEnvironment
+    Properties:
+      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
+      FilterPattern: ""
+      LogGroupName: !Ref ExperianTestFunctionLogGroup
+
+  ExperianTestFunctionAliasPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ExperianTestFunction.Alias
+      Principal: apigateway.amazonaws.com
 
   KBVAbandonFunction:
     Type: AWS::Serverless::Function
