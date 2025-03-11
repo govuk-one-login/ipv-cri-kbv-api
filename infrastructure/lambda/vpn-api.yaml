@@ -15,7 +15,7 @@ paths:
         passThroughBehavior: "when_no_templates"
         type: "aws_proxy"
         uri:
-          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ExperianTestFunction.Arn}:live/invocations
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ThirdPartyHealthCheckFunction.Arn}:live/invocations
 
   /health/3rd-party/info:
     get:
@@ -28,7 +28,7 @@ paths:
         passThroughBehavior: "when_no_templates"
         type: "aws_proxy"
         uri:
-          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ExperianTestFunction.Arn}:live/invocations
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ThirdPartyHealthCheckFunction.Arn}:live/invocations
 
 x-amazon-apigateway-request-validators:
   Validate both:

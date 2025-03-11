@@ -510,10 +510,10 @@ Resources:
       FilterPattern: ""
       LogGroupName: !Ref KBVAnswerFunctionLogGroup
 
-  ExperianTestFunction:
+  ThirdPartyHealthCheckFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../../lambdas/experiantest
+      CodeUri: ../../lambdas/third-party-healthcheck
       Handler: uk.gov.di.ipv.cri.kbv.api.handler.ExperianTestHandler::handleRequest
       Environment:
         Variables:
@@ -528,25 +528,25 @@ Resources:
               - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*'
               - Prefix: !If [ UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName ]
 
-  ExperianTestFunctionLogGroup:
+  ThirdPartyHealthCheckFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${ExperianTestFunction}"
+      LogGroupName: !Sub "/aws/lambda/${ThirdPartyHealthCheckFunction}"
       RetentionInDays: 30
 
-  ExperianTestFunctionLogGroupSubscriptionFilterCSLS:
+  ThirdPartyHealthCheckFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
       FilterPattern: ""
-      LogGroupName: !Ref ExperianTestFunctionLogGroup
+      LogGroupName: !Ref ThirdPartyHealthCheckFunctionLogGroup
 
-  ExperianTestFunctionAliasPermission:
+  ThirdPartyHealthCheckFunctionAliasPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref ExperianTestFunction.Alias
+      FunctionName: !Ref ThirdPartyHealthCheckFunction.Alias
       Principal: apigateway.amazonaws.com
 
   KBVAbandonFunction:

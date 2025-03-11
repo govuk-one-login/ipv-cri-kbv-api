@@ -3,7 +3,7 @@ rootProject.name = "ipv-cri-kbv-api"
 // Experian lib
 include "lib"
 
-include 'lambdas:experiantest'
+include 'lambdas:third-party-healthcheck'
 
 // CRI specific lambdas
 include "lambdas:question", "lambdas:answer", "lambdas:issuecredential", "lambdas:abandon"
