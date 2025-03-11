@@ -23,7 +23,7 @@ public class ImportCertificateTest implements Test<ImportCertificateTestReport> 
     public ImportCertificateTestReport run() {
         String importResult =
                 Keytool.importCertificate(
-                        System.currentTimeMillis() + ".pfx", jksFileLocation, keystorePassword);
+                        "/tmp/" + System.currentTimeMillis() + ".pfx", jksFileLocation, keystorePassword);
         boolean success = importResult.contains("successfully imported");
         LOGGER.info("Certificate import {}: {}", success ? "successful" : "failed", importResult);
         return new ImportCertificateTestReport(success);
