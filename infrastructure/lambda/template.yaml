@@ -160,7 +160,7 @@ Mappings:
 
   SnapStartMapping:
     Environment:
-      localdev: PublishedVersions
+      localdev: None
       dev: PublishedVersions
       build: PublishedVersions
       staging: PublishedVersions
