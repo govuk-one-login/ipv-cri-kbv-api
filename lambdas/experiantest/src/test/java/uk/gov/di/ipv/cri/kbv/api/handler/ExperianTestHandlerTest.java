@@ -46,7 +46,7 @@ class ExperianTestHandlerTest {
     private static final String MOCK_WASP_URL =
             "https://domain.com/WASPAuthenticator/tokenService.asmx";
     private static final String MOCK_KEYSTORE_ALIAS = "dummyAlias";
-    private static final String MOCK_KEYSTORE_PASSWORD = "password";
+    private static final String MOCK_KEYSTORE_PASSWORD = "dummyPassword";
     private static final String MOCK_KEYSTORE_SECRET;
 
     static {
