@@ -1,15 +1,12 @@
 package uk.gov.di.ipv.cri.kbv.api.tests.keystore;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.kbv.api.handler.Configuration;
 import uk.gov.di.ipv.cri.kbv.api.tests.Test;
 import uk.gov.di.ipv.cri.kbv.api.tests.keystore.report.KeytoolListTestReport;
-import uk.gov.di.ipv.cri.kbv.api.tests.keystore.service.Keytool;
-import uk.gov.di.ipv.cri.kbv.api.tests.keytool.service.KeyToolReportGenerator;
+import uk.gov.di.ipv.cri.kbv.api.tests.keytool.report.KeyToolReportGenerator;
+import uk.gov.di.ipv.cri.kbv.api.utils.bash.Bash;
 
 public class KeyStoreTest implements Test<KeytoolListTestReport> {
-    private static final Logger LOGGER = LogManager.getLogger(KeyStoreTest.class);
     private final String keystorePassword;
 
     public KeyStoreTest(String keystorePassword) {
@@ -18,10 +15,22 @@ public class KeyStoreTest implements Test<KeytoolListTestReport> {
 
     @Override
     public KeytoolListTestReport run() {
-        String keystoreContent =
-                Keytool.getKeyStoreContents(Configuration.JKS_FILE_LOCATION, keystorePassword);
-        LOGGER.info("Keystore contents:\n{}", keystoreContent);
-        LOGGER.info("Generating keytool list report");
+        String keystoreContent = getKeyStoreContents(keystorePassword);
         return KeyToolReportGenerator.generateKeyToolReport(keystoreContent);
+    }
+
+    private static String getKeyStoreContents(String keystorePassword) {
+        try {
+
+            String command =
+                    String.format(
+                            "keytool -list -v -keystore %s -storepass %s",
+                            Configuration.JKS_FILE_LOCATION, keystorePassword);
+
+            return Bash.execute(command);
+
+        } catch (Exception e) {
+            throw new SecurityException("Failed to list keystore contents", e);
+        }
     }
 }

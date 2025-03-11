@@ -1,13 +1,13 @@
 package uk.gov.di.ipv.cri.kbv.api.tests.assertions.report;
 
-public class Assertions {
+public class AssertionsReport {
     private String sslConnection;
     private String soapTokenRequest;
     private String keystoreImport;
     private String jksLoaded;
     private String soapTokenValid;
 
-    public Assertions() {
+    public AssertionsReport() {
         // Empty constructor for Jackson
     }
 

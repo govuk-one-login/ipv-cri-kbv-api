@@ -112,11 +112,13 @@ public class ThirdPartyHealthCheckHandler
         Map<String, Object> reports = new HashMap<>();
 
         for (Test<?> test : testSuits) {
-            LOGGER.info("Running test {}", test.getClass().getName());
+            String testName = test.getClass().getSimpleName();
+            LOGGER.info("Running test {}", testName);
             try {
-                reports.put(test.getClass().getSimpleName(), test.run());
+                reports.put(testName, test.run());
+                LOGGER.info("Finished test {}", testName);
             } catch (Exception e) {
-                LOGGER.error("{} threw an exception", test.getClass().getName(), e);
+                LOGGER.error("{} threw an exception", testName, e);
             }
         }
 

@@ -2,14 +2,14 @@ package uk.gov.di.ipv.cri.kbv.api.tests.assertions;
 
 import uk.gov.di.ipv.cri.kbv.api.handler.Configuration;
 import uk.gov.di.ipv.cri.kbv.api.tests.Test;
-import uk.gov.di.ipv.cri.kbv.api.tests.assertions.report.Assertions;
+import uk.gov.di.ipv.cri.kbv.api.tests.assertions.report.AssertionsReport;
 import uk.gov.di.ipv.cri.kbv.api.tests.keytool.report.ImportCertificateTestReport;
 import uk.gov.di.ipv.cri.kbv.api.tests.soap.report.LoginWithCertificateTestReport;
 import uk.gov.di.ipv.cri.kbv.api.tests.ssl.report.SSLHandshakeTestReport;
 
 import java.nio.file.Paths;
 
-public class AssertionTest implements Test<Assertions> {
+public class AssertionTest implements Test<AssertionsReport> {
     private final SSLHandshakeTestReport sslHandshakeReport;
     private final LoginWithCertificateTestReport loginWithCertificateReport;
     private final ImportCertificateTestReport importCertificateReport;
@@ -41,16 +41,16 @@ public class AssertionTest implements Test<Assertions> {
     }
 
     @Override
-    public Assertions run() {
-        Assertions assertions = new Assertions();
+    public AssertionsReport run() {
+        AssertionsReport assertionsReport = new AssertionsReport();
 
-        assertions.setSslConnection(evaluateSslConnection());
-        assertions.setSoapTokenRequest(evaluateSoapTokenRequest());
-        assertions.setKeystoreImport(evaluateKeystoreImport());
-        assertions.setJksLoaded(checkJksFileExists());
-        assertions.setSoapTokenValid(evaluateSoapTokenValid());
+        assertionsReport.setSslConnection(evaluateSslConnection());
+        assertionsReport.setSoapTokenRequest(evaluateSoapTokenRequest());
+        assertionsReport.setKeystoreImport(evaluateKeystoreImport());
+        assertionsReport.setJksLoaded(checkJksFileExists());
+        assertionsReport.setSoapTokenValid(evaluateSoapTokenValid());
 
-        return assertions;
+        return assertionsReport;
     }
 
     private String evaluateSslConnection() {

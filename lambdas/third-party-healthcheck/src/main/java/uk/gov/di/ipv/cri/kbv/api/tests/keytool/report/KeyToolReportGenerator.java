@@ -1,4 +1,4 @@
-package uk.gov.di.ipv.cri.kbv.api.tests.keytool.service;
+package uk.gov.di.ipv.cri.kbv.api.tests.keytool.report;
 
 import uk.gov.di.ipv.cri.kbv.api.tests.keystore.report.KeyStoreEntry;
 import uk.gov.di.ipv.cri.kbv.api.tests.keystore.report.KeystoreCertificate;
