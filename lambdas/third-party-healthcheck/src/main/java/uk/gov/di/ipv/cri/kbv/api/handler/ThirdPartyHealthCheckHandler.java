@@ -120,19 +120,19 @@ public class ThirdPartyHealthCheckHandler
             return createResponse(200, reportJson);
         }
 
-        LoginWithCertificateTestReport loginWithCertificateReport =
-                (LoginWithCertificateTestReport)
-                        testReports.get(SOAPRequestTest.class.getSimpleName());
+        Object loginWithCertificateReport = testReports.get(SOAPRequestTest.class.getSimpleName());
 
-        SSLHandshakeTestReport sslHandshakeTestReport =
-                (SSLHandshakeTestReport) testReports.get(SSLHandshakeTest.class.getSimpleName());
+        Object sslHandshakeTestReport = testReports.get(SSLHandshakeTest.class.getSimpleName());
 
-        return createResponse(
-                loginWithCertificateReport.isSoapTokenValid()
-                                && sslHandshakeTestReport.isSessionValid()
-                        ? SUCCESS_HTTP_CODE
-                        : FAIL_HTTP_CODE,
-                "");
+        boolean tokenValid =
+                loginWithCertificateReport instanceof LoginWithCertificateTestReport
+                        && ((LoginWithCertificateTestReport) loginWithCertificateReport)
+                                .isSoapTokenValid();
+        boolean sessionValid =
+                sslHandshakeTestReport instanceof SSLHandshakeTestReport
+                        && ((SSLHandshakeTestReport) sslHandshakeTestReport).isSessionValid();
+
+        return createResponse(tokenValid && sessionValid ? SUCCESS_HTTP_CODE : FAIL_HTTP_CODE, "");
     }
 
     private static List<Test<?>> getTestsFromRequestPayload(RequestPayload payload)

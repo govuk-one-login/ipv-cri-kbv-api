@@ -93,6 +93,20 @@ class ThirdPartyHealthCheckHandlerTest {
     }
 
     @Test
+    void shouldContainNoBodyOnRoot() throws IOException {
+        event.setPath("/");
+
+        ThirdPartyHealthCheckHandler experianTestHandler =
+                new ThirdPartyHealthCheckHandler(mockServiceFactory);
+
+        APIGatewayProxyResponseEvent responseEvent =
+                experianTestHandler.handleRequest(event, mockContext);
+
+        assertEquals(525, responseEvent.getStatusCode());
+        assertEquals(0, responseEvent.getBody().length());
+    }
+
+    @Test
     void shouldContainAllReportsInOutput() throws IOException {
         ThirdPartyHealthCheckHandler experianTestHandler =
                 new ThirdPartyHealthCheckHandler(mockServiceFactory);
