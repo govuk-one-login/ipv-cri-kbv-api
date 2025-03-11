@@ -3,7 +3,6 @@ package uk.gov.di.ipv.cri.kbv.api.handler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -13,7 +12,6 @@ import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +22,7 @@ import software.amazon.lambda.powertools.parameters.SecretsProvider;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.security.KeyPair;
@@ -77,6 +75,7 @@ class ThirdPartyHealthCheckHandlerTest {
     @BeforeEach
     void beforeEach() {
         event.setPath("/info");
+        event.setBody("");
 
         String secretPrefix = "/null/";
 
@@ -92,14 +91,8 @@ class ThirdPartyHealthCheckHandlerTest {
                 .thenReturn(MOCK_WASP_URL);
     }
 
-    @AfterEach
-    void afterEach() {
-        new File(Configuration.JKS_FILE_LOCATION).delete();
-        new File(Configuration.PFX_FILE_LOCATION).delete();
-    }
-
     @Test
-    void shouldContainAllReportsInOutput() throws JsonProcessingException {
+    void shouldContainAllReportsInOutput() throws IOException {
         ThirdPartyHealthCheckHandler experianTestHandler =
                 new ThirdPartyHealthCheckHandler(mockServiceFactory);
 

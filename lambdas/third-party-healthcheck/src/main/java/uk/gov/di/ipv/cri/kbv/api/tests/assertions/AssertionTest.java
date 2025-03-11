@@ -1,13 +1,10 @@
 package uk.gov.di.ipv.cri.kbv.api.tests.assertions;
 
-import uk.gov.di.ipv.cri.kbv.api.handler.Configuration;
 import uk.gov.di.ipv.cri.kbv.api.tests.Test;
 import uk.gov.di.ipv.cri.kbv.api.tests.assertions.report.Assertions;
 import uk.gov.di.ipv.cri.kbv.api.tests.keytool.report.ImportCertificateTestReport;
 import uk.gov.di.ipv.cri.kbv.api.tests.soap.report.LoginWithCertificateTestReport;
 import uk.gov.di.ipv.cri.kbv.api.tests.ssl.report.SSLHandshakeTestReport;
-
-import java.nio.file.Paths;
 
 public class AssertionTest implements Test<Assertions> {
     private final SSLHandshakeTestReport sslHandshakeReport;
@@ -47,7 +44,6 @@ public class AssertionTest implements Test<Assertions> {
         assertions.setSslConnection(evaluateSslConnection());
         assertions.setSoapTokenRequest(evaluateSoapTokenRequest());
         assertions.setKeystoreImport(evaluateKeystoreImport());
-        assertions.setJksLoaded(checkJksFileExists());
         assertions.setSoapTokenValid(evaluateSoapTokenValid());
 
         return assertions;
@@ -65,14 +61,6 @@ public class AssertionTest implements Test<Assertions> {
 
     private String evaluateKeystoreImport() {
         return toStatus(importCertificateReport != null && importCertificateReport.isSuccess());
-    }
-
-    private String checkJksFileExists() {
-        return toStatus(
-                Paths.get(Configuration.JKS_FILE_LOCATION)
-                        .normalize()
-                        .toFile()
-                        .exists()); // NOSONAR
     }
 
     private String evaluateSoapTokenValid() {

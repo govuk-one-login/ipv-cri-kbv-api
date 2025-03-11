@@ -1,8 +1,6 @@
 package uk.gov.di.ipv.cri.kbv.api.handler;
 
 public class Configuration {
-    public static final String JKS_FILE_LOCATION = "/tmp/experian.jks";
-    public static final String PFX_FILE_LOCATION = "/tmp/experian.pfx";
     public static final String WASP_HOST = "secure.wasp.uk.experian.com";
     public static final int WASP_PORT = 443;
 

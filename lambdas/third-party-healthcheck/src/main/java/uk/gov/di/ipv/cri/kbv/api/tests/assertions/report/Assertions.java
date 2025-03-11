@@ -4,7 +4,6 @@ public class Assertions {
     private String sslConnection;
     private String soapTokenRequest;
     private String keystoreImport;
-    private String jksLoaded;
     private String soapTokenValid;
 
     public Assertions() {
@@ -33,14 +32,6 @@ public class Assertions {
 
     public void setKeystoreImport(String keystoreImport) {
         this.keystoreImport = keystoreImport;
-    }
-
-    public String getJksLoaded() {
-        return jksLoaded;
-    }
-
-    public void setJksLoaded(String jksLoaded) {
-        this.jksLoaded = jksLoaded;
     }
 
     public String getSoapTokenValid() {

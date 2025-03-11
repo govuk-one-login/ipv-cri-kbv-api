@@ -10,16 +10,15 @@ public class Keytool {
     }
 
     public static String importCertificate(
-            String sourceKeystore, String destKeystore, String keystorePassword) {
+            String outputPfxFileName, String sourceKeystore, String keystorePassword) {
         validateInput(sourceKeystore, "sourceKeystore");
-        validateInput(destKeystore, "destKeystore");
         validateInput(keystorePassword, "keystorePassword");
 
         String command =
                 String.format(
                         "keytool -importkeystore -srckeystore %s -destkeystore %s -srcstoretype JKS "
                                 + "-deststoretype PKCS12 -deststorepass %s -srcstorepass %s -noprompt",
-                        sourceKeystore, destKeystore, keystorePassword, keystorePassword);
+                        sourceKeystore, outputPfxFileName, keystorePassword, keystorePassword);
 
         try {
             return Bash.execute(command);

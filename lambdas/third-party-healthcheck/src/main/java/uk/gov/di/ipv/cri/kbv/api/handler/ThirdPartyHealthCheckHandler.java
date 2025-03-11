@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,10 +25,10 @@ import uk.gov.di.ipv.cri.kbv.api.tests.ssl.SSLHandshakeTest;
 import uk.gov.di.ipv.cri.kbv.api.tests.ssl.report.SSLHandshakeTestReport;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ThirdPartyHealthCheckHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -39,36 +40,64 @@ public class ThirdPartyHealthCheckHandler
     private final List<Test<?>> testSuits;
 
     @ExcludeFromGeneratedCoverageReport
-    public ThirdPartyHealthCheckHandler() {
+    public ThirdPartyHealthCheckHandler() throws IOException {
         this(new ServiceFactory());
     }
 
-    public ThirdPartyHealthCheckHandler(ServiceFactory serviceFactory) {
+    public ThirdPartyHealthCheckHandler(ServiceFactory serviceFactory) throws IOException {
+        ConfigurationService configurationService =
+                new ConfigurationService(
+                        serviceFactory.getSsmProvider(), serviceFactory.getSecretsProvider());
+
+        String waspUrl = configurationService.getSecretValue(Configuration.WASP_URL_SECRET);
+        String keystorePassword =
+                configurationService.getSecretValue(Configuration.KEYSTORE_PASSWORD);
+        String keystoreSecret = configurationService.getSecretValue(Configuration.KEYSTORE_SECRET);
+
+        LOGGER.info("WASP URL: {}", waspUrl);
+
+        this.testSuits =
+                List.of(
+                        new ImportCertificateTest(keystoreSecret, keystorePassword),
+                        new SSLHandshakeTest(Configuration.WASP_HOST, Configuration.WASP_PORT),
+                        new SOAPRequestTest(keystoreSecret, keystorePassword, waspUrl),
+                        new KeyStoreTest(keystoreSecret, keystorePassword));
+    }
+
+    private APIGatewayProxyResponseEvent handleRequestWithBody(APIGatewayProxyRequestEvent request)
+            throws Exception {
+        RequestPayload payload;
         try {
-            ConfigurationService configurationService =
-                    new ConfigurationService(
-                            serviceFactory.getSsmProvider(), serviceFactory.getSecretsProvider());
-
-            String waspUrl = configurationService.getSecretValue(Configuration.WASP_URL_SECRET);
-            String keystorePassword =
-                    configurationService.getSecretValue(Configuration.KEYSTORE_PASSWORD);
-            String keystoreSecret =
-                    configurationService.getSecretValue(Configuration.KEYSTORE_SECRET);
-
-            LOGGER.info("WASP URL: {}", waspUrl);
-
-            this.testSuits =
-                    List.of(
-                            new ImportCertificateTest(keystorePassword),
-                            new SSLHandshakeTest(),
-                            new SOAPRequestTest(keystorePassword, waspUrl),
-                            new KeyStoreTest(keystorePassword));
-
-            createKeyStoreFile(keystoreSecret);
-
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to initialize ExperianTestHandler", e);
+            payload = OBJECT_MAPPER.readValue(request.getBody(), RequestPayload.class);
+        } catch (JsonProcessingException e) {
+            return createErrorResponse(400, new IllegalArgumentException("Invalid request body"));
         }
+        return createResponse(
+                200, generateTestReport(performTests(getTestsFromRequestPayload(payload))));
+    }
+
+    private APIGatewayProxyResponseEvent handleRequestWithoutBody(
+            APIGatewayProxyRequestEvent request) throws Exception {
+        Map<String, Object> testReports = performTests(this.testSuits);
+        String reportJson = generateTestReport(testReports);
+
+        if (request.getPath().endsWith("/info")) {
+            return createResponse(200, reportJson);
+        }
+
+        LoginWithCertificateTestReport loginWithCertificateReport =
+                (LoginWithCertificateTestReport)
+                        testReports.get(SOAPRequestTest.class.getSimpleName());
+
+        SSLHandshakeTestReport sslHandshakeTestReport =
+                (SSLHandshakeTestReport) testReports.get(SSLHandshakeTest.class.getSimpleName());
+
+        return createResponse(
+                loginWithCertificateReport.isSoapTokenValid()
+                                && sslHandshakeTestReport.isSessionValid()
+                        ? SUCCESS_HTTP_CODE
+                        : FAIL_HTTP_CODE,
+                "");
     }
 
     @Override
@@ -78,37 +107,52 @@ public class ThirdPartyHealthCheckHandler
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent request, Context context) {
         try {
-            Map<String, Object> testReports = performTests();
-            String reportJson = OBJECT_MAPPER.writeValueAsString(testReports);
-
-            LOGGER.info("Generated test report:\n{}", reportJson);
-
-            if (request.getPath().endsWith("/info")) {
-                return createResponse(200, reportJson);
+            if (request.getBody().isEmpty()) {
+                return handleRequestWithoutBody(request);
+            } else {
+                return handleRequestWithBody(request);
             }
-
-            LoginWithCertificateTestReport loginWithCertificateReport =
-                    (LoginWithCertificateTestReport)
-                            testReports.get(SOAPRequestTest.class.getSimpleName());
-
-            SSLHandshakeTestReport sslHandshakeTestReport =
-                    (SSLHandshakeTestReport)
-                            testReports.get(SSLHandshakeTest.class.getSimpleName());
-
-            return createResponse(
-                    loginWithCertificateReport.isSoapTokenValid()
-                                    && sslHandshakeTestReport.isSessionValid()
-                            ? SUCCESS_HTTP_CODE
-                            : FAIL_HTTP_CODE,
-                    "");
-
         } catch (Exception e) {
-            LOGGER.error("Test execution failed", e);
-            return createErrorResponse(e);
+            LOGGER.error("ThirdPartyHealthCheckHandler threw an exception", e);
+            return createErrorResponse(500, e);
         }
     }
 
-    private Map<String, Object> performTests() {
+    private String generateTestReport(Map<String, Object> testReports)
+            throws JsonProcessingException {
+        String reportJson = OBJECT_MAPPER.writeValueAsString(testReports);
+        LOGGER.info("Generated test report:\n{}", reportJson);
+        return reportJson;
+    }
+
+    private List<Test<?>> getTestsFromRequestPayload(RequestPayload payload) throws IOException {
+        List<Test<?>> tests = new ArrayList<>();
+        for (String requestedTest : payload.getTests()) {
+            if (requestedTest.equalsIgnoreCase(AssertionTest.class.getSimpleName())) {
+                tests.add(new AssertionTest());
+            } else if (requestedTest.equalsIgnoreCase(KeyStoreTest.class.getSimpleName())) {
+                tests.add(
+                        new KeyStoreTest(
+                                payload.getBase64Keystore(), payload.getKeystorePassword()));
+            } else if (requestedTest.equalsIgnoreCase(
+                    ImportCertificateTest.class.getSimpleName())) {
+                tests.add(
+                        new ImportCertificateTest(
+                                payload.getBase64Keystore(), payload.getBase64Keystore()));
+            } else if (requestedTest.equalsIgnoreCase(SOAPRequestTest.class.getSimpleName())) {
+                tests.add(
+                        new SOAPRequestTest(
+                                payload.getBase64Keystore(),
+                                payload.getKeystorePassword(),
+                                payload.getHost()));
+            } else if (requestedTest.equalsIgnoreCase(SSLHandshakeTest.class.getSimpleName())) {
+                tests.add(new SSLHandshakeTest(payload.getHost(), payload.getPort()));
+            }
+        }
+        return tests;
+    }
+
+    private Map<String, Object> performTests(List<Test<?>> testSuits) {
         Map<String, Object> reports = new HashMap<>();
 
         for (Test<?> test : testSuits) {
@@ -126,20 +170,6 @@ public class ThirdPartyHealthCheckHandler
         return reports;
     }
 
-    private static void createKeyStoreFile(String base64KeyStore) throws IOException {
-        LOGGER.info("Initializing keystore at: {}", Configuration.JKS_FILE_LOCATION);
-
-        try {
-            Path path = Paths.get(Configuration.JKS_FILE_LOCATION).normalize(); // NOSONAR
-            byte[] decodedBytes = Base64.getDecoder().decode(base64KeyStore);
-            Files.write(path, decodedBytes);
-            LOGGER.info(
-                    "Keystore file created successfully at: {}", Configuration.JKS_FILE_LOCATION);
-        } catch (IllegalArgumentException e) {
-            throw new IOException("Failed to decode Base64 keystore content", e);
-        }
-    }
-
     private static AssertionTest generateAssertionTestReport(Map<String, Object> reports) {
         return new AssertionTest(reports.values().toArray(new Object[0]));
     }
@@ -148,8 +178,8 @@ public class ThirdPartyHealthCheckHandler
         return new APIGatewayProxyResponseEvent().withStatusCode(statusCode).withBody(body);
     }
 
-    private static APIGatewayProxyResponseEvent createErrorResponse(Exception e) {
+    private static APIGatewayProxyResponseEvent createErrorResponse(int statusCode, Exception e) {
         String errorBody = String.format("{\"error\": \"%s\"}", e.getMessage());
-        return createResponse(500, errorBody);
+        return createResponse(statusCode, errorBody);
     }
 }
