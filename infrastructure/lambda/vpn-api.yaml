@@ -18,6 +18,17 @@ paths:
           Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ThirdPartyHealthCheckFunction.Arn}:live/invocations
 
   /health/3rd-party/info:
+    post:
+      responses:
+         200:
+           description: "Lambda invocation successful"
+      x-amazon-apigateway-request-validator: "Validate both"
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        passThroughBehavior: "when_no_templates"
+        type: "aws_proxy"
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ThirdPartyHealthCheckFunction.Arn}:live/invocations
     get:
       responses:
         200:
