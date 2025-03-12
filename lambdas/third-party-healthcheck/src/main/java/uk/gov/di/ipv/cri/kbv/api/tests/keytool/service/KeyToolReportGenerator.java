@@ -1,5 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.tests.keytool.service;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.kbv.api.tests.keystore.report.KeyStoreEntry;
 import uk.gov.di.ipv.cri.kbv.api.tests.keystore.report.KeystoreCertificate;
 import uk.gov.di.ipv.cri.kbv.api.tests.keystore.report.KeytoolListTestReport;
@@ -11,6 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public class KeyToolReportGenerator {
+    private static final Logger LOGGER = LogManager.getLogger();
     private static final String SPLIT_DELIMITER = ":";
     private static final String ENTRY_COUNT_PREFIX = "Your keystore contains";
     private static final String ALIAS_PREFIX = "Alias name:";
@@ -57,7 +60,11 @@ public class KeyToolReportGenerator {
             } else if (line.startsWith(ENTRY_COUNT_PREFIX)) {
                 report.setNumberOfEntries(parseEntryCount(line));
             } else if (line.startsWith(ALIAS_PREFIX)) {
-                i = processKeyStoreEntry(lines, i, report);
+                try {
+                    i = processKeyStoreEntry(lines, i, report);
+                } catch (Exception e) {
+                    LOGGER.warn("Failed to process {}:{}", ALIAS_PREFIX, e.getMessage());
+                }
             }
             i++;
         }
