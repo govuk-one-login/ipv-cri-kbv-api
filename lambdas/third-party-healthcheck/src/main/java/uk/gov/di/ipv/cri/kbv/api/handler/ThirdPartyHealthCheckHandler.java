@@ -56,8 +56,6 @@ public class ThirdPartyHealthCheckHandler
         String keystoreSecret = configurationService.getSecretValue(Configuration.KEYSTORE_SECRET);
 
         LOGGER.info("WASP URL: {}", waspUrl);
-        LOGGER.info("keystorePassword: {}", keystorePassword);
-        LOGGER.info("keystoreSecret: {}", keystoreSecret);
 
         this.testSuits =
                 List.of(
