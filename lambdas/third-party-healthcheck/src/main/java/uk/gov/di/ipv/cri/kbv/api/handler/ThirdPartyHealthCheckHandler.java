@@ -26,10 +26,7 @@ import uk.gov.di.ipv.cri.kbv.api.tests.ssl.SSLHandshakeTest;
 import uk.gov.di.ipv.cri.kbv.api.tests.ssl.report.SSLHandshakeTestReport;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ThirdPartyHealthCheckHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -45,7 +42,7 @@ public class ThirdPartyHealthCheckHandler
         this(new ServiceFactory());
     }
 
-    public ThirdPartyHealthCheckHandler(ServiceFactory serviceFactory) throws IOException {
+    public ThirdPartyHealthCheckHandler(ServiceFactory serviceFactory, Test<?>... tests) throws IOException {
         ConfigurationService configurationService =
                 new ConfigurationService(
                         serviceFactory.getSsmProvider(), serviceFactory.getSecretsProvider());
@@ -57,12 +54,16 @@ public class ThirdPartyHealthCheckHandler
 
         LOGGER.info("WASP URL: {}", waspUrl);
 
-        this.testSuits =
-                List.of(
-                        new ImportCertificateTest(keystoreSecret, keystorePassword),
-                        new SSLHandshakeTest(Configuration.WASP_HOST, Configuration.WASP_PORT),
-                        new SOAPRequestTest(keystoreSecret, keystorePassword, waspUrl),
-                        new KeyStoreTest(keystoreSecret, keystorePassword));
+        if(tests.length > 0) {
+            this.testSuits = List.of(tests);
+        } else {
+            this.testSuits =
+                    List.of(
+                            new ImportCertificateTest(keystoreSecret, keystorePassword),
+                            new SSLHandshakeTest(Configuration.WASP_HOST, Configuration.WASP_PORT),
+                            new SOAPRequestTest(keystoreSecret, keystorePassword, waspUrl),
+                            new KeyStoreTest(keystoreSecret, keystorePassword));
+        }
     }
 
     @Override
