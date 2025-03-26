@@ -24,8 +24,6 @@ import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapToken;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapTokenRetriever;
 
-import java.time.Clock;
-
 public class ServiceFactory {
     private static final String APPLICATION = "GDS DI";
     private final ClientProviderFactory clientProviderFactory;
@@ -78,7 +76,7 @@ public class ServiceFactory {
                 getSqsClient(),
                 getConfigurationService(),
                 new ObjectMapper(),
-                new AuditEventFactory(getConfigurationService(), Clock.systemDefaultZone()));
+                new AuditEventFactory(getConfigurationService()));
     }
 
     public KBVGateway getKbvGateway() {
