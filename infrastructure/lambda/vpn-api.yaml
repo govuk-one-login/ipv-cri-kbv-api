@@ -1,0 +1,70 @@
+openapi: "3.0.1"
+info:
+  title: ""
+  version: "1.0"
+
+paths:
+  /health/3rd-party:
+    get:
+      responses:
+        200:
+          description: "Lambda invocation successful"
+      x-amazon-apigateway-request-validator: "Validate both"
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        passThroughBehavior: "when_no_templates"
+        type: "aws_proxy"
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ThirdPartyHealthCheckFunction.Arn}:live/invocations
+
+  /health/3rd-party/info:
+    get:
+      responses:
+        200:
+          description: "Lambda invocation successful"
+      x-amazon-apigateway-request-validator: "Validate both"
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        passThroughBehavior: "when_no_templates"
+        type: "aws_proxy"
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ThirdPartyHealthCheckFunction.Arn}:live/invocations
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                host:
+                  type: string
+                port:
+                  type: integer
+                base64Keystore:
+                  type: string
+                keystorePassword:
+                  type: string
+                tests:
+                  type: array
+              required:
+                - host
+                - port
+                - base64Keystore
+                - keystorePassword
+                - tests
+      responses:
+         200:
+           description: "Lambda invocation successful"
+      x-amazon-apigateway-request-validator: "Validate both"
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        passThroughBehavior: "when_no_templates"
+        type: "aws_proxy"
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ThirdPartyHealthCheckFunction.Arn}:live/invocations
+
+x-amazon-apigateway-request-validators:
+  Validate both:
+    validateRequestBody: true
+    validateRequestParameters: true
