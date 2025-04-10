@@ -50,7 +50,6 @@ jobs:
           pull-repository: false
           cache-name: kbv-api
           source-dir: lambdas
-          sam-version: 1.132.0
 
   deploy:
     name: Deploy stack
