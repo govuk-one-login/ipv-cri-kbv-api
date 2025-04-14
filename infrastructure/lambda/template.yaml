@@ -21,7 +21,7 @@ Parameters:
   PermissionsBoundary:
     Description: "The ARN of the permissions boundary to apply when creating IAM roles"
     Type: String
-    Default: "none"
+    Default: ""
   SecretPrefix:
     Description: Secrets name prefix
     Type: String
@@ -49,7 +49,7 @@ Parameters:
 
 Conditions:
   UseSecretPrefix: !Not [!Equals [!Ref SecretPrefix, "none"]]
-  UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, "none"]]
+  UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, ""]]
   UseCodeSigningConfigArn: !Not [!Equals [!Ref CodeSigningConfigArn, "none"]]
   UseCanaryDeploymentAlarms: !Not [!Equals [!Ref LambdaDeploymentPreference, AllAtOnce]]
   IsDevEnvironment: !Or [!Equals [!Ref Environment, dev], !Condition IsLocalDevEnvironment]
