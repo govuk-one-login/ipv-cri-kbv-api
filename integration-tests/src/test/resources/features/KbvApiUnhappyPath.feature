@@ -4,7 +4,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 2 question
 
   @unhappy_medium_confidence
   Scenario Outline: 3-out-of-4 question strategy user answers 2 questions incorrectly
-    Given user has the test-identity <user> in the form of a signed JWT string
+    Given user has a default signed JWT
 
     # Session
     When user sends a POST request to session end point
@@ -31,7 +31,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 2 question
     And a valid authorization code is returned in the response
 
     # Access token
-    When user sends a POST request to token end point
+    When user sends a POST request to token end point with "https://review-k.dev.account.gov.uk"
     Then user gets status code 200
     And a valid access token code is returned in the response
 
@@ -47,7 +47,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 2 question
 
   @unhappy_low_confidence
   Scenario Outline: 2-out-of-3 question strategy user answers 2 questions incorrectly
-    Given user has the test-identity <user> and verificationScore of 1 in the form of a signed JWT string
+    Given user has an overridden signed JWT using "<sharedClaims>"
 
     # Session
     When user sends a POST request to session end point
@@ -74,7 +74,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 2 question
     And a valid authorization code is returned in the response
 
     # Access token
-    When user sends a POST request to token end point
+    When user sends a POST request to token end point with "https://review-k.dev.account.gov.uk"
     Then user gets status code 200
     And a valid access token code is returned in the response
 
@@ -85,6 +85,6 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 2 question
     And the failed details array has 2 objects returned in the response
 
     Examples:
-      | user |
-      | 197  |
-      | 256  |
+      | user | sharedClaims        |
+      | 197  | LOW_CONFIDENCE.json |
+      | 256  | HILDA_HEAD.json     |
