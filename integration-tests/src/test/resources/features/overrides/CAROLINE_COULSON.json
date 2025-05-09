@@ -1,0 +1,31 @@
+{ "shared_claims" : {
+  "name": [
+    {
+      "nameParts": [
+        {
+          "type": "GivenName",
+          "value": "CAROLINE"
+        },
+        {
+          "type": "FamilyName",
+          "value": "COULSON"
+        }
+      ]
+    }
+  ],
+  "birthDate": [
+    {
+      "value": "1991-04-10"
+    }
+  ],
+  "address": [
+    {
+      "buildingNumber": "18",
+      "streetName": "CARRAM WAY",
+      "addressLocality": "LINCOLN",
+      "postalCode": "LN1 1AB",
+      "validFrom": "2021-01-01"
+    }
+  ]
+}
+}
