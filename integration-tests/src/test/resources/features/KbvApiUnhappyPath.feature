@@ -31,7 +31,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 2 question
     And a valid authorization code is returned in the response
 
     # Access token
-    When user sends a POST request to token end point with "https://review-k.dev.account.gov.uk"
+    When user sends a POST request to token end point
     Then user gets status code 200
     And a valid access token code is returned in the response
 
@@ -74,7 +74,7 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 2 question
     And a valid authorization code is returned in the response
 
     # Access token
-    When user sends a POST request to token end point with "https://review-k.dev.account.gov.uk"
+    When user sends a POST request to token end point
     Then user gets status code 200
     And a valid access token code is returned in the response
 

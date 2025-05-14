@@ -44,14 +44,14 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And a valid authorization code is returned in the response
 
     # Access token
-    When user sends a POST request to token end point with "https://review-k.dev.account.gov.uk"
+    When user sends a POST request to token end point
     Then user gets status code 200
     And a valid access token code is returned in the response
 
     # Credential issued
     When user sends a POST request to credential issue endpoint with a valid access token
     Then user gets status code 200
-    And a valid JWT is returned in the response
+    And a valid JWT is returned in the response for "<sharedClaims>"
     And a verification score of 2 is returned in the response
     And the check details array has 3 objects returned in the response
 
@@ -100,14 +100,14 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And a valid authorization code is returned in the response
 
     # Access token
-    When user sends a POST request to token end point with "https://review-k.dev.account.gov.uk"
+    When user sends a POST request to token end point
     Then user gets status code 200
     And a valid access token code is returned in the response
 
     # Credential issued
     When user sends a POST request to credential issue endpoint with a valid access token
     Then user gets status code 200
-    And a valid JWT is returned in the response
+    And a valid JWT is returned in the response for ""
     And a verification score of 2 is returned in the response
     And the check details array has 3 objects returned in the response
 
@@ -149,14 +149,14 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And a valid authorization code is returned in the response
 
     # Access token
-    When user sends a POST request to token end point with "https://review-k.dev.account.gov.uk"
+    When user sends a POST request to token end point
     Then user gets status code 200
     And a valid access token code is returned in the response
 
     # Credential issued
     When user sends a POST request to credential issue endpoint with a valid access token
     Then user gets status code 200
-    And a valid JWT is returned in the response
+    And a valid JWT is returned in the response for "<confidenceProfile>"
     And a verification score of 1 is returned in the response
     And the check details array has 2 objects returned in the response
 
@@ -204,14 +204,14 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And a valid authorization code is returned in the response
 
     # Access token
-    When user sends a POST request to token end point with "https://review-k.dev.account.gov.uk"
+    When user sends a POST request to token end point
     Then user gets status code 200
     And a valid access token code is returned in the response
 
     # Credential issued
     When user sends a POST request to credential issue endpoint with a valid access token
     Then user gets status code 200
-    And a valid JWT is returned in the response
+    And a valid JWT is returned in the response for "<confidenceProfile>"
     And a verification score of 1 is returned in the response
     And the check details array has 2 objects returned in the response
     And the failed details array has 1 objects returned in the response
