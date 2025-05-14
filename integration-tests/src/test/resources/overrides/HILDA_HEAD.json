@@ -1,0 +1,36 @@
+{ "shared_claims" : {
+  "name": [
+    {
+      "nameParts": [
+        {
+          "type": "GivenName",
+          "value": "HILDA"
+        },
+        {
+          "type": "FamilyName",
+          "value": "HEAD"
+        }
+      ]
+    }
+  ],
+  "birthDate": [
+    {
+      "value": "1961-05-30"
+    }
+  ],
+  "address": [
+    {
+      "buildingNumber": "153",
+      "streetName": "DIAMOND COURT",
+      "addressLocality": "OXFORD",
+      "postalCode": "OX2 7AA",
+      "validFrom": "2021-01-01"
+    }
+  ]
+},
+  "evidence_requested": {
+    "scoringPolicy": "gpg45",
+    "strengthScore": 2,
+    "verificationScore": 1
+  }
+}

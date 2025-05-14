@@ -3,7 +3,7 @@ Feature: User goes through 3-out-of-4 question strategy and 2-out-of-3 question 
 
   @abandon_medium_confidence
   Scenario: 3-out-of-4 question strategy user abandons first question
-    Given user has the test-identity 197 in the form of a signed JWT string
+    Given user has a default signed JWT
 
     # Session
     When user sends a POST request to session end point
@@ -19,7 +19,7 @@ Feature: User goes through 3-out-of-4 question strategy and 2-out-of-3 question 
 
   @abandon_medium_confidence
   Scenario Outline: 3-out-of-4 question strategy user abandons second question
-    Given user has the test-identity <user> in the form of a signed JWT string
+    Given user has a default signed JWT
 
     # Session
     When user sends a POST request to session end point
@@ -42,10 +42,10 @@ Feature: User goes through 3-out-of-4 question strategy and 2-out-of-3 question 
     Examples:
       | user |
       | 197  |
-  
+
   @abandon_low_confidence
-  Scenario: 2-out-of-3 question strategy user abandons first question
-    Given user has the test-identity 197 and verificationScore of 1 in the form of a signed JWT string
+  Scenario Outline: 2-out-of-3 question strategy user abandons first question
+    Given user has an overridden signed JWT using "<confidenceProfile>"
 
     # Session
     When user sends a POST request to session end point
@@ -58,10 +58,13 @@ Feature: User goes through 3-out-of-4 question strategy and 2-out-of-3 question 
     # Abandon
     When user chooses to abandon the question
     Then user gets status code 200
+    Examples:
+      | confidenceProfile   |
+      | LOW_CONFIDENCE.json |
 
   @abandon_low_confidence
   Scenario Outline: 2-out-of-3 question strategy user abandons second question
-    Given user has the test-identity <user> and verificationScore of 1 in the form of a signed JWT string
+    Given user has an overridden signed JWT using "<sharedClaims>"
 
     # Session
     When user sends a POST request to session end point
@@ -82,6 +85,5 @@ Feature: User goes through 3-out-of-4 question strategy and 2-out-of-3 question 
     Then user gets status code 200
 
     Examples:
-      | user |
-      | 197  |
-      | 256  |
+      | user | sharedClaims    |
+      | 256  | HILDA_HEAD.json |

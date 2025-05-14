@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static gov.uk.kbv.api.util.FileHelper.loadOverrideFile;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -119,12 +120,13 @@ public class KbvSteps {
         this.kbvApiClient.submitIncorrectAnswers(questionId, this.testContext.getSessionId(), user);
     }
 
-    @And("a valid JWT is returned in the response")
-    public void validJwtIsReturnedInTheResponse() throws ParseException, IOException {
+    @And("a valid JWT is returned in the response for {string}")
+    public void validJwtIsReturnedInTheResponse(String fileName)
+            throws ParseException, IOException {
         final String responseBody = this.testContext.getResponse().body();
 
         assertNotNull(responseBody);
-        makeVerifiableCredentialJwtAssertions(SignedJWT.parse(responseBody));
+        makeVerifiableCredentialJwtAssertions(SignedJWT.parse(responseBody), fileName);
     }
 
     @And("a verification score of {int} is returned in the response")
@@ -247,11 +249,10 @@ public class KbvSteps {
         }
     }
 
-    private void makeVerifiableCredentialJwtAssertions(SignedJWT decodedJWT) throws IOException {
+    private void makeVerifiableCredentialJwtAssertions(SignedJWT decodedJWT, String fileName)
+            throws IOException {
         final var header = objectMapper.readTree(decodedJWT.getHeader().toString());
         final var payload = objectMapper.readTree(decodedJWT.getPayload().toString());
-        final var userIdentity =
-                objectMapper.readTree(this.testContext.getSerialisedUserIdentity());
 
         assertEquals("JWT", header.at("/typ").asText());
         assertEquals("ES256", header.at("/alg").asText());
@@ -271,12 +272,22 @@ public class KbvSteps {
         assertEquals("VerifiableCredential", payload.at("/vc/type/0").asText());
         assertEquals("IdentityCheckCredential", payload.at("/vc/type/1").asText());
 
-        assertEquals(
-                userIdentity.at("/shared_claims/birthDate/0/value").asText(),
-                payload.at("/vc/credentialSubject/birthDate/0/value").asText());
+        JsonNode claims = loadOverrideFile(fileName);
+        if (claims == null) {
+            return;
+        }
 
-        assertEquals(
-                userIdentity.at("/shared_claims/name/0/nameParts/0/value").asText(),
-                payload.at("/vc/credentialSubject/name/0/nameParts/0/value").asText());
+        JsonNode sharedClaims = claims.get("shared_claims");
+        if (sharedClaims != null && sharedClaims.has("birthDate")) {
+            assertEquals(
+                    sharedClaims.at("/birthDate/0/value").asText(),
+                    payload.at("/vc/credentialSubject/birthDate/0/value").asText());
+        }
+
+        if (sharedClaims != null && sharedClaims.has("name")) {
+            assertEquals(
+                    sharedClaims.at("/name/0/nameParts/0/value").asText(),
+                    payload.at("/vc/credentialSubject/name/0/nameParts/0/value").asText());
+        }
     }
 }
