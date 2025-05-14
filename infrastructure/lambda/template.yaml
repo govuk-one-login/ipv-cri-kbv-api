@@ -891,6 +891,54 @@ Resources:
             Period: 300
             Stat: Sum
 
+  SessionLambdaFailedToVerifyJWTAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Errors verifying JWTs that have been been received by the session lambda.
+      ActionsEnabled: true
+      AlarmActions:
+        - !ImportValue core-infrastructure-AlarmTopic
+      OKActions:
+        - !ImportValue core-infrastructure-AlarmTopic
+      InsufficientDataActions: []
+      MetricName: jwt_verification_failed
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-SessionLambdaFailedToVerifyJWTAlarm
+      Namespace: !Sub "${CriIdentifier}"
+      Statistic: Sum
+      Dimensions:
+        - Name: service
+          Value: !Sub "${CriIdentifier}-sessionTS"
+      Period: 300
+      DatapointsToAlarm: 3
+      EvaluationPeriods: 3
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  TokenLambdaFailedToVerifyJWTAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Errors verifying JWTs that have been been received by the token lambda.
+      ActionsEnabled: true
+      AlarmActions:
+        - !ImportValue core-infrastructure-AlarmTopic
+      OKActions:
+        - !ImportValue core-infrastructure-AlarmTopic
+      InsufficientDataActions: []
+      MetricName: jwt_verification_failed
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-TokenLambdaFailedToVerifyJWTAlarm
+      Namespace: !Sub "${CriIdentifier}"
+      Statistic: Sum
+      Dimensions:
+        - Name: service
+          Value: !Sub "${CriIdentifier}-access-token-2"
+      Period: 300
+      DatapointsToAlarm: 3
+      EvaluationPeriods: 3
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
   ExperianKBVQuestionFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
