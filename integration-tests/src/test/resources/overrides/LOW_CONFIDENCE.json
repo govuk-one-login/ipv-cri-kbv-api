@@ -1,6 +1,7 @@
 {
   "evidence_requested": {
     "scoringPolicy": "gpg45",
-    "strengthScore": 1
+    "strengthScore": 2,
+    "verificationScore": 1
   }
 }
