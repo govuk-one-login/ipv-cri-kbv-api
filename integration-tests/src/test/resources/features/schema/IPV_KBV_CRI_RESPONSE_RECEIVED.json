@@ -36,7 +36,6 @@
         "user_id",
         "ip_address",
         "session_id",
-        "persistent_session_id",
         "govuk_signin_journey_id"
       ]
     },
