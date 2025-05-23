@@ -94,7 +94,7 @@ To run these tests the following environment variables are needed:
 Temporary credentials can be found by going to the [AWS start page](https://uk-digital-identity.awsapps.com/start#/), selecting the account and clicking
 "Command line or programmatic access" export these before you run the integration-tests.
 
-To initiate journeys for the tests we use the Headless Core Stub, which runs in AWS and at the following endpoint `https://test-resources.review-K.dev.account.gov.uk`.
+To initiate journeys for the tests we use the `Headless Core Stub`, which runs in AWS and at the following endpoint `https://test-resources.review-K.dev.account.gov.uk`.
 
 Optionally set a value for `TEST_RESOURCES_STACK_NAME` if you have deployed a local test resources stack and want to override the default stack named `test-resources`.
 
