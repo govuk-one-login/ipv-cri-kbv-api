@@ -19,20 +19,13 @@ This will run "build", "test", "buildZip", and "spotLess" reformatting
 
 ## Deploy to dev environment
 
-Ensure you have the `sam-cli` and `gds-cli` installed, and that you can assume an admin role on the `di-ipv-cri-dev` AWS account.
-Alternatively you can [create a sso profile](https://govukverify.atlassian.net/wiki/spaces/LO/pages/3725591061/Getting+set+up+with+AWS+SSO+in+terminal+CLI+-+quickstart)
+Ensure you have the `sam-cli` installed, [create a sso profile](https://govukverify.atlassian.net/wiki/spaces/LO/pages/3725591061/Getting+set+up+with+AWS+SSO+in+terminal+CLI+-+quickstart) for the role AdministratorAccessPermission based on `di-ipv-cri-dev` AWS account. Which can be found by searching the [AWS start page](https://uk-digital-identity.awsapps.com/start#/). 
 
 Deploy to the dev environment with:
-
-`gds aws  di-ipv-cri-kbv-dev -- ./deploy.sh` would create a stack using defaults
-
-or using sso profile for di-ipv-cri-kbv-dev
 
 `AWS_PROFILE=profile-name-you-created di-ipv-cri-kbv-dev -- ./deploy.sh`
 
 Override by supply a preferred stack name in place of `your-stack-name` below, the `CommonStackName` and `SecretPrefix`
-
-`gds aws  di-ipv-cri-kbv-dev -- ./deploy.sh your-stack-name your-common-stack-name your-secret-prefix`
 
 `AWS_PROFILE=profile-name-you-created ./deploy.sh your-stack-name your-common-stack-name your-secret-prefix`
 
@@ -90,8 +83,19 @@ Deployment to Build:
 
 ## Run integration tests
 
-The command below runs using `https://cri.core.build.stubs.account.gov.uk` in AWS with stub client ID `ipv-core-stub-aws-prod`.
+To run these tests the following environment variables are needed:
+
+- STACK_NAME
+- AWS_REGION
+- AWS_ACCESS_KEY_ID
+- AWS_SECRET_ACCESS_KEY
+- AWS_SESSION_TOKEN
+
+Temporary credentials can be found by going to the [AWS start page](https://uk-digital-identity.awsapps.com/start#/), selecting the account and clicking
+"Command line or programmatic access" export these before you run the integration-tests.
+
+To initiate journeys for the tests we use the `Headless Core Stub`, which runs in AWS and at the following endpoint `https://test-resources.review-K.dev.account.gov.uk`.
 
 Optionally set a value for `TEST_RESOURCES_STACK_NAME` if you have deployed a local test resources stack and want to override the default stack named `test-resources`.
 
-`ENVIRONMENT=localdev STACK_NAME=<your-stack> API_GATEWAY_ID_PRIVATE=<from-your-stack> API_GATEWAY_ID_PUBLIC=<from-your-stack> IPV_CORE_STUB_CRI_ID=kbv-cri-dev IPV_CORE_STUB_BASIC_AUTH_USER=xxxx IPV_CORE_STUB_BASIC_AUTH_PASSWORD=xxxx IPV_CORE_STUB_URL=https://cri.core.build.stubs.account.gov.uk DEFAULT_CLIENT_ID=ipv-core-stub-aws-prod APIGW_API_KEY=xxxx TEST_RESOURCES_STACK_NAME= gradle integration-tests:cucumber`
+`ENVIRONMENT=localdev STACK_NAME=<your-stack> API_GATEWAY_ID_PRIVATE=<from-your-stack> API_GATEWAY_ID_PUBLIC=<from-your-stack> APIGW_API_KEY=xxxx TEST_RESOURCES_STACK_NAME= gradle integration-tests:cucumber`
