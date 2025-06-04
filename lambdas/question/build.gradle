@@ -1,39 +1,13 @@
 plugins {
-	id "java"
-	id "jacoco"
-	id "application"
-	id "io.freefair.aspectj.post-compile-weaving" version "6.3.0"
-}
-
-repositories {
-	mavenCentral()
+	alias(libs.plugins.java)
+	alias(libs.plugins.jacoco)
+	alias(libs.plugins.post.compile.weaving)
 }
 
 dependencies {
-	runtimeOnly configurations.otel
+	implementation project(":lib")
 
-	implementation project(":lib"),
-			configurations.cri_common_lib,
-			configurations.aws,
-			configurations.lambda,
-			configurations.jackson,
-			configurations.dynamodb,
-			configurations.sqs
+	runtimeOnly(libs.bundles.otel)
 
-	aspect configurations.powertools
-
-	testImplementation configurations.tests,
-			configurations.test_runtime
-}
-
-test {
-	useJUnitPlatform ()
-	finalizedBy jacocoTestReport
-}
-
-jacocoTestReport {
-	dependsOn test
-	reports {
-		xml.required.set(true)
-	}
+	aspect libs.bundles.powertools
 }
