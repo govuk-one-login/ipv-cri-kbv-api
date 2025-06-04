@@ -68,7 +68,7 @@ Globals:
       !If [UseCodeSigningConfigArn, !Ref CodeSigningConfigArn, !Ref AWS::NoValue]
     Tracing: Active
     Timeout: 30 # seconds
-    Runtime: java11
+    Runtime: java21
     Architectures: [arm64]
     AutoPublishAlias: live
     SnapStart:
