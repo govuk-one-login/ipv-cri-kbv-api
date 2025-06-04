@@ -833,8 +833,10 @@ Resources:
       ActionsEnabled: true
       AlarmActions:
         - !ImportValue core-infrastructure-AlarmTopic
+        - !ImportValue platform-alarm-critical-alert-topic
       OKActions:
         - !ImportValue core-infrastructure-AlarmTopic
+        - !ImportValue platform-alarm-critical-alert-topic
       InsufficientDataActions: []
       MetricName: Errors
       Namespace: AWS/Lambda
@@ -855,8 +857,10 @@ Resources:
       ActionsEnabled: true
       AlarmActions:
         - !ImportValue core-infrastructure-AlarmTopic
+        - !ImportValue platform-alarm-critical-alert-topic
       OKActions:
         - !ImportValue core-infrastructure-AlarmTopic
+        - !ImportValue platform-alarm-critical-alert-topic
       InsufficientDataActions: []
       DatapointsToAlarm: 3
       EvaluationPeriods: 3
@@ -898,8 +902,10 @@ Resources:
       ActionsEnabled: true
       AlarmActions:
         - !ImportValue core-infrastructure-AlarmTopic
+        - !ImportValue platform-alarm-critical-alert-topic
       OKActions:
         - !ImportValue core-infrastructure-AlarmTopic
+        - !ImportValue platform-alarm-critical-alert-topic
       InsufficientDataActions: []
       MetricName: jwt_verification_failed
       AlarmName: !Sub ${AWS::StackName}-${Environment}-SessionLambdaFailedToVerifyJWTAlarm
@@ -922,8 +928,10 @@ Resources:
       ActionsEnabled: true
       AlarmActions:
         - !ImportValue core-infrastructure-AlarmTopic
+        - !ImportValue platform-alarm-critical-alert-topic
       OKActions:
         - !ImportValue core-infrastructure-AlarmTopic
+        - !ImportValue platform-alarm-critical-alert-topic
       InsufficientDataActions: []
       MetricName: jwt_verification_failed
       AlarmName: !Sub ${AWS::StackName}-${Environment}-TokenLambdaFailedToVerifyJWTAlarm
