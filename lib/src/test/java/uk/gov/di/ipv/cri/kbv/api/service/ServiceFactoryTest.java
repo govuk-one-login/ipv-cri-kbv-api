@@ -113,7 +113,7 @@ class ServiceFactoryTest {
                 assertThrows(KBVGatewayCreationException.class, serviceFactory::getKbvGateway);
 
         assertEquals(
-                "Failed to create KBVGateway: Persist keystore to file failed: null",
+                "Failed to create KBVGateway: Persist keystore to file failed: Cannot invoke \"String.getBytes(java.nio.charset.Charset)\" because \"src\" is null",
                 exception.getMessage());
     }
 }

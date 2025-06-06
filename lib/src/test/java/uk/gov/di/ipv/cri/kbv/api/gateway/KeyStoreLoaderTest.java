@@ -57,7 +57,9 @@ class KeyStoreLoaderTest {
                             keyStoreLoader.load();
                         });
 
-        assertEquals("Persist keystore to file failed: null", exception.getMessage());
+        assertEquals(
+                "Persist keystore to file failed: Cannot invoke \"String.getBytes(java.nio.charset.Charset)\" because \"src\" is null",
+                exception.getMessage());
     }
 
     @Test

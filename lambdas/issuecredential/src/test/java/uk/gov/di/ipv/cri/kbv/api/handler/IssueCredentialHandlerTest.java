@@ -305,7 +305,10 @@ class IssueCredentialHandlerTest implements TestFixtures {
 
     @Test
     void shouldThrowNoSuchAlgorithmErrorWhenTheWrongKeyAlgorithmIsUsed()
-            throws NoSuchAlgorithmException, JOSEException, JsonProcessingException, ParseException,
+            throws NoSuchAlgorithmException,
+                    JOSEException,
+                    JsonProcessingException,
+                    ParseException,
                     SqsException {
         String issuer = "issuer";
         String kmsSigningKeyId = "kmsSigningId";
