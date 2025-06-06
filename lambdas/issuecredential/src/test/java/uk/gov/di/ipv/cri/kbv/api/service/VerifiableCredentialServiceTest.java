@@ -121,8 +121,11 @@ class VerifiableCredentialServiceTest implements TestFixtures {
                 int answeredInCorrectly,
                 int expectedVerificationScore,
                 ContraIndicator expectedContraIndicator)
-                throws JOSEException, InvalidKeySpecException, NoSuchAlgorithmException,
-                        ParseException, JsonProcessingException {
+                throws JOSEException,
+                        InvalidKeySpecException,
+                        NoSuchAlgorithmException,
+                        ParseException,
+                        JsonProcessingException {
             initMockConfigurationService();
             SignedJWTFactory signedJwtFactory =
                     new SignedJWTFactory(new ECDSASigner(getPrivateKey()));
