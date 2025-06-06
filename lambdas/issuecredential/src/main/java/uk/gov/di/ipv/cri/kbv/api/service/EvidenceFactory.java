@@ -68,6 +68,7 @@ public class EvidenceFactory {
 
         return new Map[] {objectMapper.convertValue(evidence, Map.class)};
     }
+
     /**
      * Return CheckDetail[] with CheckDetail elements that have kbvQuality values assigned according
      * to the following scenarios:
