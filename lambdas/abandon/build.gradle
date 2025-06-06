@@ -1,36 +1,25 @@
 plugins {
-	id "java"
-	id "jacoco"
-	id 'io.freefair.aspectj.post-compile-weaving' version '6.3.0'
+	alias(libs.plugins.java)
+	alias(libs.plugins.jacoco)
+	alias(libs.plugins.post.compile.weaving)
 }
 
 dependencies {
-	runtimeOnly configurations.otel
+	aspect libs.bundles.powertools
 
-	implementation project(":lib"),
-			configurations.cri_common_lib,
-			configurations.aws,
-			configurations.lambda,
-			configurations.sqs,
-			configurations.dynamodb
+	runtimeOnly(libs.bundles.otel)
 
-	aspect configurations.powertools
-	testImplementation configurations.tests
-	testRuntimeOnly configurations.test_runtime
-}
+	implementation(project(":lib"))
+	implementation(libs.cri.common.lib)
+	implementation(libs.aws.lambda)
+	implementation(libs.aws.lambda.events)
+	implementation(libs.powertools.tracing)
+	implementation(libs.aws.dynamodb.enhanced)
+	implementation(libs.bundles.jackson)
 
-test {
-	useJUnitPlatform()
-}
-
-test {
-	useJUnitPlatform()
-	finalizedBy jacocoTestReport
-}
-
-jacocoTestReport {
-	dependsOn test
-	reports {
-		xml.required.set(true)
-	}
+	testImplementation(libs.bundles.junit)
+	testImplementation(libs.mockito.junit)
+	testImplementation(libs.mockito.inline)
+	testImplementation(libs.webcompere.core)
+	testImplementation(libs.webcompere.jupiter)
 }
