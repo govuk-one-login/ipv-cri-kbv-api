@@ -1,35 +1,27 @@
 plugins {
-	id 'java'
-	id 'java-test-fixtures'
+	alias(libs.plugins.java)
+	alias(libs.plugins.java.test.fixtures)
 }
 
 repositories {
 	maven {
 		url = uri('https://repo.maven.apache.org/maven2/')
 	}
-	mavenCentral()
-}
-
-ext {
-	cucumberVersion = '7.15.0'
-	junitJupiterapi = '5.9.0'
-	jacksonDatabind = '2.18.1'
-	apacheHttpClient = '4.5.13'
-	apacheCommonLang = '3.14.0'
 }
 
 dependencies {
 	testImplementation project(":lib")
 
-	testImplementation(testFixtures("uk.gov.account:cri-common-lib:${dependencyVersions.cri_common_lib}"))
-	testImplementation "io.cucumber:cucumber-java:$cucumberVersion"
-	testImplementation "io.cucumber:cucumber-junit:$cucumberVersion"
-	testImplementation "io.cucumber:cucumber-picocontainer:$cucumberVersion"
-	testImplementation "org.apache.httpcomponents:httpclient:$apacheHttpClient"
-	testImplementation "org.apache.commons:commons-lang3:$apacheCommonLang"
-	testImplementation "org.junit.jupiter:junit-jupiter-api:$junitJupiterapi"
-	testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonDatabind"
-	testImplementation configurations.nimbus
+	testImplementation(testFixtures("uk.gov.account:cri-common-lib:6.0.0"))
+	testImplementation "io.cucumber:cucumber-java:7.15.0"
+	testImplementation "io.cucumber:cucumber-junit:7.15.0"
+	testImplementation "io.cucumber:cucumber-picocontainer:7.15.0"
+	testImplementation "org.apache.httpcomponents:httpclient:4.5.13"
+	testImplementation "org.apache.commons:commons-lang3:3.14.0"
+	testImplementation "org.junit.jupiter:junit-jupiter-api:5.9.0"
+	testImplementation "com.fasterxml.jackson.core:jackson-databind:2.18.1"
+	testImplementation(libs.nimbus.jwt)
+	testImplementation(libs.nimbus.oauth)
 }
 
 configurations {
@@ -51,7 +43,7 @@ test {
 	useJUnitPlatform()
 }
 
-task cucumber() {
+tasks.register('cucumber') {
 	dependsOn assemble, testClasses
 	doLast {
 		javaexec {
