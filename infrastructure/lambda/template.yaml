@@ -226,6 +226,45 @@ Mappings:
       localdev: true
 
 Resources:
+  HealthCheckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../lambdas/healthcheck
+      Handler: uk.gov.di.ipv.cri.kbv.healthcheck.handler.HealthCheckHandler::handleRequest
+      Environment:
+        Variables:
+          KeyStoreSecret: experian/keystore
+          KeyStorePassword: experian/keystore-password
+          WaspURLSecret: experian/iiq-wasp-service
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Sub
+              - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*'
+              - Prefix: !If [ UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName ]
+
+  HealthCheckFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${HealthCheckFunction}"
+      RetentionInDays: 30
+
+  HealthCheckFunctionLogGroupSubscriptionFilterCSLS:
+    Type: AWS::Logs::SubscriptionFilter
+    Condition: IsNotDevEnvironment
+    Properties:
+      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
+      FilterPattern: ""
+      LogGroupName: !Ref HealthCheckFunctionLogGroup
+
+  HealthCheckFunctionnAliasPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref HealthCheckFunction.Alias
+      Principal: apigateway.amazonaws.com
+
   PublicKBVApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -245,6 +284,28 @@ Resources:
             Location: ./public-api.yaml
       EndpointConfiguration:
         Type: REGIONAL
+      Auth:
+        ResourcePolicy:
+          CustomStatements:
+            - Effect: Deny
+              Principal: "*"
+              Action: execute-api:Invoke
+              Resource:
+                - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/${Environment}/GET/healthcheck/thirdparty*"
+              Condition:
+                NotIpAddress:
+                  aws:SourceIp:
+                    - "217.196.229.77/32"
+                    - "217.196.229.79/32"
+                    - "217.196.229.80/32"
+                    - "217.196.229.81/32"
+                    - "51.149.8.0/25"
+                    - "51.149.8.128/29"
+
+            - Effect: Allow
+              Principal: "*"
+              Action: execute-api:Invoke
+              Resource: "execute-api:/*"
 
   PrivateKBVApi:
     Type: AWS::Serverless::Api

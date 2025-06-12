@@ -1,0 +1,28 @@
+plugins {
+	alias(libs.plugins.java)
+	alias(libs.plugins.jacoco)
+	alias(libs.plugins.post.compile.weaving)
+}
+
+dependencies {
+	implementation(libs.aws.lambda)
+	implementation(libs.aws.lambda.events)
+	implementation(libs.bundles.powertools)
+
+	implementation(project(":lib"))
+	implementation(libs.cri.common.lib)
+
+	implementation(libs.log4j.lambda)
+
+	testImplementation(libs.bundles.junit)
+	testImplementation(libs.mockito.junit)
+	testImplementation(libs.mockito.inline)
+
+	implementation (libs.mockito.inline){
+		exclude group: 'net.bytebuddy', module: 'byte-buddy'
+	}
+	implementation("net.bytebuddy:byte-buddy:1.17.5")
+
+	testImplementation 'org.bouncycastle:bcpkix-jdk18on:1.80'
+	testImplementation 'org.bouncycastle:bcprov-jdk18on:1.80'
+}
