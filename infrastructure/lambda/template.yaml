@@ -42,20 +42,27 @@ Parameters:
     Description: "The stack containing the TXMA infrastructure"
     Type: String
     Default: txma-infrastructure
-  SupportManualURL:
+  DeployAlarmsInDevEnvironment:
+    Description: "Set to the string value `true` to deploy alarms in a DEV environment"
     Type: String
-    Default: "https://team-manual.account.gov.uk/teams/CRI-Orange-team/supporting-cri-orange/experian-kbv-credential-issuer-runbook/#experian-knowledge-based-verification-kbv-credential-issuer-runbook"
-    Description: The support manual URL to be provided in alarm messages.
+    Default: false
 
 Conditions:
   UseSecretPrefix: !Not [!Equals [!Ref SecretPrefix, "none"]]
   UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, ""]]
   UseCodeSigningConfigArn: !Not [!Equals [!Ref CodeSigningConfigArn, "none"]]
   UseCanaryDeploymentAlarms: !Not [!Equals [!Ref LambdaDeploymentPreference, AllAtOnce]]
+  DeployAlarms: !Or
+    - !Condition IsNotDevLikeEnvironment
+    - !Equals [!Ref DeployAlarmsInDevEnvironment, "true"]
   IsDevEnvironment: !Or [!Equals [!Ref Environment, dev], !Condition IsLocalDevEnvironment]
   IsStubEnvironment: !Not [!Equals [!Ref Environment, production]]
   IsLocalDevEnvironment: !Equals [!Ref Environment, localdev]
   IsNotDevEnvironment: !Not [!Condition IsDevEnvironment]
+  IsDevLikeEnvironment:
+    !Or [!Condition IsLocalDevEnvironment, !Condition IsDevEnvironment]
+  IsNotDevLikeEnvironment: !Not
+    - !Condition IsDevLikeEnvironment
 
 Globals:
   Function:
@@ -135,6 +142,10 @@ Globals:
           responseLength: $context.responseLength
 
 Mappings:
+  StaticVariables:
+    Urls:
+      SupportManualURL: "https://team-manual.account.gov.uk/teams/CRI-Orange-team/supporting-cri-orange/experian-kbv-credential-issuer-runbook/#experian-knowledge-based-verification-kbv-credential-issuer-runbook"
+
   EnvironmentConfiguration:
     dev:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
@@ -827,9 +838,12 @@ Resources:
 
   ExperianKBVLambdaErrors:
     Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
     Properties:
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVLambdaErrors
-      AlarmDescription: !Sub Experian KBV ${Environment} lambda errors. ${SupportManualURL}
+      AlarmDescription: !Sub
+        - "Experian KBV ${Environment} lambda errors. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
         - !ImportValue core-infrastructure-AlarmTopic
@@ -851,9 +865,12 @@ Resources:
 
   ExperianKBVAPIGW5XXErrors:
     Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
     Properties:
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAPIGW5XXErrors
-      AlarmDescription: !Sub Experian KBV ${Environment} API Gateway 5XX errors. ${SupportManualURL}
+      AlarmDescription: !Sub
+        - "Experian KBV ${Environment} API Gateway 5XX errors. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
         - !ImportValue core-infrastructure-AlarmTopic
@@ -897,8 +914,11 @@ Resources:
 
   SessionLambdaFailedToVerifyJWTAlarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
     Properties:
-      AlarmDescription: Errors verifying JWTs that have been been received by the session lambda.
+      AlarmDescription: !Sub
+        - "Errors verifying JWTs that have been been received by the session lambda. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
         - !ImportValue core-infrastructure-AlarmTopic
@@ -923,8 +943,11 @@ Resources:
 
   TokenLambdaFailedToVerifyJWTAlarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
     Properties:
-      AlarmDescription: Errors verifying JWTs that have been been received by the token lambda.
+      AlarmDescription: !Sub
+        - "Errors verifying JWTs that have been been received by the token lambda. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
         - !ImportValue core-infrastructure-AlarmTopic
