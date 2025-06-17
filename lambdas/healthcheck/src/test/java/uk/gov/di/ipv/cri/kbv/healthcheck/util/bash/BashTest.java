@@ -46,7 +46,7 @@ class BashTest {
     }
 
     @Test
-    public void testIOExceptionDuringCommandExecution() {
+    void testIOExceptionDuringCommandExecution() {
         try (MockedConstruction<ProcessBuilder> ignored =
                 mockConstruction(
                         ProcessBuilder.class,
@@ -64,7 +64,7 @@ class BashTest {
     }
 
     @Test
-    public void testInterruptedExceptionDuringCommandExecution() throws InterruptedException {
+    void testInterruptedExceptionDuringCommandExecution() throws InterruptedException {
         Process mockProcess = mock(Process.class);
         when(mockProcess.getInputStream()).thenReturn(new ByteArrayInputStream("".getBytes()));
         when(mockProcess.waitFor(anyLong(), any())).thenThrow(new InterruptedException());
