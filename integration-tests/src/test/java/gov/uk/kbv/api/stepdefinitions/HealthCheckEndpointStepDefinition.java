@@ -32,7 +32,7 @@ public class HealthCheckEndpointStepDefinition {
         String environment = System.getenv("ENVIRONMENT");
 
         this.clientConfigurationService = config;
-        this.healthCheckEndpoint = "%s/%s/health/3rd-party".formatted(baseURL, environment);
+        this.healthCheckEndpoint = "%s/%s/healthcheck/3rd-party".formatted(baseURL, environment);
     }
 
     @Given("user visits the verbose health check endpoint")
