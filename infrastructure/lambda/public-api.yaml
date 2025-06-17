@@ -94,7 +94,7 @@ paths:
         type: "aws"
 
 
-  /healthcheck/3rd-party:
+  /healthcheck/thirdparty:
     get:
       responses:
         200:
@@ -107,7 +107,7 @@ paths:
         uri:
           Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HealthCheckFunction.Arn}:live/invocations
 
-  /healthcheck/3rd-party/info:
+  /healthcheck/thirdparty/info:
     get:
       responses:
         200:
