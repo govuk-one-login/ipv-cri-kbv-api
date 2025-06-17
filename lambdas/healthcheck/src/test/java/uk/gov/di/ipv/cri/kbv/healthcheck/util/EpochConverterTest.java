@@ -2,10 +2,12 @@ package uk.gov.di.ipv.cri.kbv.healthcheck.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class EpochConverterTest {
 
@@ -31,5 +33,16 @@ class EpochConverterTest {
         String result = EpochConverter.convertEpochMillisToDate(date);
 
         assertEquals(expectedFormat.format(date), result);
+    }
+
+    @Test
+    void testPrivateConstructor() throws Exception {
+        Constructor<EpochConverter> constructor = EpochConverter.class.getDeclaredConstructor();
+        constructor.setAccessible(true);
+
+        InvocationTargetException exception =
+                assertThrows(InvocationTargetException.class, constructor::newInstance);
+        assertTrue(exception.getCause() instanceof AssertionError);
+        assertEquals("Utility class cannot be instantiated", exception.getCause().getMessage());
     }
 }

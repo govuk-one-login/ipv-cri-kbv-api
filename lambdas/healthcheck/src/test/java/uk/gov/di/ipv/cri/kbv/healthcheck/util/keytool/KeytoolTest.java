@@ -4,6 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import uk.gov.di.ipv.cri.kbv.healthcheck.util.bash.Bash;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -72,5 +75,16 @@ class KeytoolTest {
                             () -> Keytool.getKeyStoreContents(keystore, password));
             assertTrue(exception.getMessage().contains("Failed to list keystore contents"));
         }
+    }
+
+    @Test
+    void testPrivateConstructor() throws Exception {
+        Constructor<Keytool> constructor = Keytool.class.getDeclaredConstructor();
+        constructor.setAccessible(true);
+
+        InvocationTargetException exception =
+                assertThrows(InvocationTargetException.class, constructor::newInstance);
+        assertTrue(exception.getCause() instanceof AssertionError);
+        assertEquals("Utility class cannot be instantiated", exception.getCause().getMessage());
     }
 }

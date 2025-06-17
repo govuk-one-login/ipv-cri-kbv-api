@@ -7,6 +7,8 @@ import uk.gov.di.ipv.cri.kbv.healthcheck.exceptions.ProcessInvocationException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.util.Map;
 
@@ -86,5 +88,16 @@ class BashTest {
 
             assertTrue(ex.getMessage().contains("Command execution interrupted"));
         }
+    }
+
+    @Test
+    void testPrivateConstructor() throws Exception {
+        Constructor<Bash> constructor = Bash.class.getDeclaredConstructor();
+        constructor.setAccessible(true);
+
+        InvocationTargetException exception =
+                assertThrows(InvocationTargetException.class, constructor::newInstance);
+        assertTrue(exception.getCause() instanceof AssertionError);
+        assertEquals("Utility class cannot be instantiated", exception.getCause().getMessage());
     }
 }
