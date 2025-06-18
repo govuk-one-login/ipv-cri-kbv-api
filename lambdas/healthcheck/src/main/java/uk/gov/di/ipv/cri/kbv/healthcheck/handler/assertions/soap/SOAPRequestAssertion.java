@@ -1,5 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.soap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils;
 import uk.gov.di.ipv.cri.kbv.healthcheck.exceptions.SOAPException;
 import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.Assertion;
@@ -13,7 +15,11 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class SOAPRequestAssertion implements Assertion {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SOAPRequestAssertion.class);
     private static final String SOAP_ENVELOPE =
             """
                     <?xml version="1.0" encoding="utf-8"?>
@@ -68,8 +75,10 @@ public class SOAPRequestAssertion implements Assertion {
             SSLContext sslContext;
 
             if (waspUrl.contains("experian.com")) {
+                LOGGER.info("Initializing SSL context using provided keystore");
                 sslContext = initializeSSLContextUsingCert(pfx, keystorePassword);
             } else {
+                LOGGER.info("Initializing SSL context using system keystore");
                 sslContext = initializeSSLContext();
             }
 
