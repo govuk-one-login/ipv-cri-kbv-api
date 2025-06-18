@@ -97,8 +97,8 @@ public class SOAPRequestAssertion implements Assertion {
         return report;
     }
 
-    private static Map<String, Object> processResponse(
-            AtomicBoolean success, HttpURLConnection connection) throws IOException {
+    private Map<String, Object> processResponse(AtomicBoolean success, HttpURLConnection connection)
+            throws IOException {
         int statusCode = connection.getResponseCode();
         long date = connection.getDate();
         int contentLength = connection.getContentLength();
@@ -113,6 +113,7 @@ public class SOAPRequestAssertion implements Assertion {
 
         Map<String, Object> result = new HashMap<>();
         result.put("status", statusCode);
+        result.put("apiURL", waspUrl);
         result.put("date", date);
         result.put("contentLength", contentLength);
         result.put("headers", headers);
