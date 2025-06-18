@@ -291,7 +291,7 @@ Resources:
               Principal: "*"
               Action: execute-api:Invoke
               Resource:
-                - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/${Environment}/GET/health/3rd-party*"
+                - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/${Environment}/GET/healthcheck/thirdparty*"
               Condition:
                 StringEquals:
                   aws:Stage: !Ref Environment
