@@ -12,7 +12,11 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.Map;
 
 public class SSLHandshakeAssertion implements Assertion {
     private static final int DEFAULT_TIMEOUT_MS = 5000;
