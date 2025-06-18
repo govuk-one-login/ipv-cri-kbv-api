@@ -12,10 +12,7 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SSLHandshakeAssertion implements Assertion {
     private static final int DEFAULT_TIMEOUT_MS = 5000;
@@ -99,10 +96,6 @@ public class SSLHandshakeAssertion implements Assertion {
     }
 
     private static String bytesToHex(byte[] bytes) {
-        var sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append("%02x".formatted(b));
-        }
-        return sb.toString();
+        return HexFormat.of().formatHex(bytes);
     }
 }

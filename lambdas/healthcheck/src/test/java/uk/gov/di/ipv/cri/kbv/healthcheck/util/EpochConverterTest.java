@@ -7,19 +7,21 @@ import java.lang.reflect.InvocationTargetException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EpochConverterTest {
 
     @Test
     void shouldFormatStringEpoch() {
-        long epochMillis = 1672531199000L; // Jan 01, 2023 00:59:59 UTC
+        long firstJan2023At1am = 1672531199000L;
 
-        String result = EpochConverter.convertEpochMillisToDate(epochMillis);
+        String result = EpochConverter.convertEpochMillisToDate(firstJan2023At1am);
 
         SimpleDateFormat expectedFormat = new SimpleDateFormat("MMMM dd, yyyy HH:mm:ss z");
 
-        String expected = expectedFormat.format(new Date(epochMillis));
+        String expected = expectedFormat.format(new Date(firstJan2023At1am));
 
         assertEquals(expected, result);
     }
