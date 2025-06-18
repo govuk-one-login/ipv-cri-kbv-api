@@ -99,7 +99,6 @@ paths:
       responses:
         200:
           description: "Lambda invocation successful"
-      x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
         passThroughBehavior: "when_no_templates"
@@ -112,7 +111,6 @@ paths:
       responses:
         200:
           description: "Lambda invocation successful"
-      x-amazon-apigateway-request-validator: "Validate both"
       x-amazon-apigateway-integration:
         httpMethod: "POST"
         passThroughBehavior: "when_no_templates"
