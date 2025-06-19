@@ -42,11 +42,11 @@ public class KeyStoreLoader {
     }
 
     public void load() throws IOException {
-        loadCertificates();
-
         System.setProperty("javax.net.ssl.keyStoreType", "pkcs12");
         System.setProperty("javax.net.ssl.keyStore", getKeyStorePath());
         System.setProperty("javax.net.ssl.keyStorePassword", getPassword());
+
+        loadCertificates();
     }
 
     private static void loadCertificates() throws TrustManagerException {
