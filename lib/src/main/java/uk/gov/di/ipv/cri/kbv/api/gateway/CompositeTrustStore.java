@@ -1,5 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.gateway;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.gov.di.ipv.cri.kbv.api.exception.TrustManagerException;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -16,6 +18,7 @@ import java.security.cert.X509Certificate;
 import java.util.Map;
 
 public class CompositeTrustStore implements X509TrustManager {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CompositeTrustStore.class);
     private final X509TrustManager defaultTrustManager;
     private final X509TrustManager customTrustManager;
 
@@ -76,6 +79,9 @@ public class CompositeTrustStore implements X509TrustManager {
         for (Map.Entry<String, byte[]> entry : certificates.entrySet()) {
             String caName = entry.getKey().toLowerCase();
             byte[] certBytes = entry.getValue();
+
+            LOGGER.info("Loading certificate {}", caName);
+
             ByteArrayInputStream certStream = new ByteArrayInputStream(certBytes);
             try {
                 X509Certificate cert =
