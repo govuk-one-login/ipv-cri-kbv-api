@@ -5,43 +5,44 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class LambdaHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
+    private static final String TARGET_PATH = "/etc/pki/ca-trust";
+
     @Override
-    public APIGatewayProxyResponseEvent handleRequest(
-            APIGatewayProxyRequestEvent request, Context context) {
-        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+    public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent input, Context context) {
+        File caTrust = new File(TARGET_PATH);
+        String responseBody;
 
-        String url = "https://www.sectigo.com/";
-
-        try {
-
-            try (HttpClient client = HttpClient.newHttpClient()) {
-                HttpRequest httpRequest =
-                        HttpRequest.newBuilder()
-                                .method("get", HttpRequest.BodyPublishers.noBody())
-                                .uri(new URI(url))
-                                .build();
-
-                HttpResponse<String> res =
-                        client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-
-                String responseBody = "{ \"status\": \"%s\", }".formatted(res.statusCode());
-
-                response.setStatusCode(200);
-                response.setBody(responseBody);
+        if (!caTrust.exists()) {
+            responseBody = "Path does not exist: " + TARGET_PATH;
+        } else if (caTrust.isFile()) {
+            try {
+                responseBody = Files.readString(caTrust.toPath());
+            } catch (IOException e) {
+                responseBody = "Error reading file: " + e.getMessage();
             }
-
-        } catch (Exception e) {
-            response.setStatusCode(500);
-            response.setBody(e.getMessage());
+        } else if (caTrust.isDirectory()) {
+            responseBody = Arrays.stream(caTrust.listFiles())
+                    .map(File::getAbsolutePath)
+                    .collect(Collectors.joining("\n"));
+        } else {
+            responseBody = "Unknown file type at path: " + TARGET_PATH;
         }
-        return response;
+
+        return new APIGatewayProxyResponseEvent()
+                .withStatusCode(200)
+                .withBody(responseBody);
     }
 }
