@@ -1,0 +1,21 @@
+plugins {
+	alias(libs.plugins.java)
+	alias(libs.plugins.jacoco)
+	alias(libs.plugins.post.compile.weaving)
+}
+
+dependencies {
+	implementation(project(":lib"))
+	implementation(libs.cri.common.lib)
+	implementation(libs.aws.lambda)
+	implementation(libs.aws.lambda.events)
+	implementation(libs.powertools.tracing)
+	implementation(libs.aws.dynamodb.enhanced)
+	implementation(libs.bundles.jackson)
+
+	testImplementation(libs.bundles.junit)
+	testImplementation(libs.mockito.junit)
+	testImplementation(libs.mockito.inline)
+	testImplementation(libs.webcompere.core)
+	testImplementation(libs.webcompere.jupiter)
+}

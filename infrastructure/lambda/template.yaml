@@ -474,6 +474,20 @@ Resources:
       FilterPattern: ""
       LogGroupName: !Ref KBVAnswerFunctionLogGroup
 
+  CertFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../lambdas/cert-test
+      Handler: org.example.LambdaHandler::handleRequest
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  CertFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${CertFunction}"
+      RetentionInDays: 30
+
   KBVAbandonFunction:
     Type: AWS::Serverless::Function
     Properties:
