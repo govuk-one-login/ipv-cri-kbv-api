@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public class LambdaHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-    private static final String TARGET_PATH = "/etc/pki/ca-trust";
+    private static final String TARGET_PATH = "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem";
 
     @Override
     public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent input, Context context) {
