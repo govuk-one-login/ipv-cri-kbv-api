@@ -293,8 +293,6 @@ Resources:
               Resource:
                 - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/${Environment}/GET/healthcheck/thirdparty*"
               Condition:
-                StringEquals:
-                  aws:Stage: !Ref Environment
                 NotIpAddressIfExists:
                   aws:SourceIp:
                     - "217.196.229.77/32"
@@ -303,8 +301,8 @@ Resources:
                     - "217.196.229.81/32"
                     - "51.149.8.0/25"
                     - "51.149.8.128/29"
-                StringNotEquals:
-                  aws:Stage: "localdev"
+#                StringNotEquals:
+#                  aws:Stage: "localdev"
 
             - Effect: Allow
               Principal: "*"
