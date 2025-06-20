@@ -93,6 +93,31 @@ paths:
         contentHandling: "CONVERT_TO_TEXT"
         type: "aws"
 
+
+  /healthcheck/thirdparty:
+    get:
+      responses:
+        200:
+          description: "Lambda invocation successful"
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        passThroughBehavior: "when_no_templates"
+        type: "aws_proxy"
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HealthCheckFunction.Arn}:live/invocations
+
+  /healthcheck/thirdparty/info:
+    get:
+      responses:
+        200:
+          description: "Lambda invocation successful"
+      x-amazon-apigateway-integration:
+        httpMethod: "POST"
+        passThroughBehavior: "when_no_templates"
+        type: "aws_proxy"
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HealthCheckFunction.Arn}:live/invocations
+
   /token:
     post:
       requestBody:
