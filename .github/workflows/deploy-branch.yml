@@ -83,4 +83,4 @@ jobs:
             cri:deployment-source=github-actions
           parameters: |
             Environment=localdev
-            SecretPrefix=pre-merge-test
+            SecretPrefix=spoke-vpc
