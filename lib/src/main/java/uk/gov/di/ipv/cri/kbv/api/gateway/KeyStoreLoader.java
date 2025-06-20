@@ -1,12 +1,15 @@
 package uk.gov.di.ipv.cri.kbv.api.gateway;
 
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
+import uk.gov.di.ipv.cri.kbv.api.exception.TrustManagerException;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -42,5 +45,35 @@ public class KeyStoreLoader {
         System.setProperty("javax.net.ssl.keyStoreType", "pkcs12");
         System.setProperty("javax.net.ssl.keyStore", getKeyStorePath());
         System.setProperty("javax.net.ssl.keyStorePassword", getPassword());
+
+        loadCertificates();
+    }
+
+    private static void loadCertificates() throws TrustManagerException {
+        Map<String, byte[]> certs =
+                Map.ofEntries(
+                        Map.entry(
+                                "Sectigo Public Server Authentication Root R46",
+                                readCert("4256644734.crt")),
+                        Map.entry(
+                                "Sectigo Public Server Authentication CA EV R36",
+                                readCert("4267304687.crt")),
+                        Map.entry(
+                                "Sectigo Public Server Authentication CA OV R36",
+                                readCert("4267304698.crt")));
+
+        CompositeTrustStore.init(certs);
+    }
+
+    private static byte[] readCert(String path) {
+        try (InputStream is =
+                KeyStoreLoader.class.getResourceAsStream("/certificates/%s".formatted(path))) {
+            if (is == null) {
+                throw new IllegalArgumentException("Certificate not found: " + path);
+            }
+            return is.readAllBytes();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read certificate: " + path, e);
+        }
     }
 }
