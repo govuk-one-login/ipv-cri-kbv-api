@@ -312,6 +312,30 @@ Resources:
       FilterPattern: ""
       LogGroupName: !Ref PrivateKBVApiAccessLogGroup
 
+  ViewCertFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../lambdas/certs
+      Handler: uk.gov.di.ipv.cri.kbv.api.handler.ViewCertificateHandler::handleRequest
+      Environment:
+        Variables:
+          WaspURLSecret: experian/iiq-wasp-service
+          KeyStoreSecret: experian/keystore
+          KeyStorePassword: experian/keystore-password
+      Policies:
+        - Statement:
+            - Sid: ReadSecretsPolicy
+              Effect: Allow
+              Action:
+                - secretsmanager:*
+              Resource: "*"
+
+  ViewCertFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ViewCertFunction}"
+      RetentionInDays: 30
+
   KBVQuestionFunction:
     Type: AWS::Serverless::Function
     Properties:
