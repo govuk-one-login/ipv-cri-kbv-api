@@ -4,6 +4,7 @@ import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.Assertion;
 import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.FailReport;
 import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.Report;
 import uk.gov.di.ipv.cri.kbv.healthcheck.util.EpochConverter;
+import uk.gov.di.ipv.cri.kbv.healthcheck.util.StringMasking;
 
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
@@ -58,7 +59,9 @@ public class SSLHandshakeAssertion implements Assertion {
                 "protocol", session.getProtocol(),
                 "peerHost", session.getPeerHost(),
                 "peerPort", session.getPeerPort(),
-                "sessionId", bytesToHex(session.getId()),
+                "sessionId",
+                        StringMasking.maskString(
+                                bytesToHex(session.getId()), session.getId().length / 2),
                 "sessionValid", session.isValid(),
                 "creationTime", EpochConverter.convertEpochMillisToDate(session.getCreationTime()));
     }
