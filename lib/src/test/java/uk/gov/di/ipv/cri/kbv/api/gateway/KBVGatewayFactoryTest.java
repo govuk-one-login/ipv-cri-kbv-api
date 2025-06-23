@@ -38,9 +38,7 @@ class KBVGatewayFactoryTest {
         doNothing().when(keyStoreLoaderMock).load();
         when(kbvClientFactoryMock.createClient()).thenReturn(identityIQWebServiceSoapMock);
 
-        kbvGatewayFactory =
-                new KBVGatewayFactory(
-                        keyStoreLoaderMock, kbvClientFactoryMock, configurationServiceMock);
+        kbvGatewayFactory = new KBVGatewayFactory(kbvClientFactoryMock, configurationServiceMock);
 
         KBVGateway kbvGateway = kbvGatewayFactory.create();
 

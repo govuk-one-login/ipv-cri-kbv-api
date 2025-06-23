@@ -100,8 +100,7 @@ class ServiceFactoryTest {
 
         when(kbvClientFactoryMock.createClient()).thenReturn(identityIQWebServiceSoapMock);
 
-        KBVGateway kbvGateway =
-                serviceFactory.getKbvGateway(keyStoreLoaderMock, kbvClientFactoryMock);
+        KBVGateway kbvGateway = serviceFactory.getKbvGateway(kbvClientFactoryMock);
 
         assertNotNull(kbvGateway);
     }

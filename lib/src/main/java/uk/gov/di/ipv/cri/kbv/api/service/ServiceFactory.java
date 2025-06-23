@@ -83,16 +83,16 @@ public class ServiceFactory {
 
     public KBVGateway getKbvGateway() {
         if (this.kbvGateway == null) {
-            this.kbvGateway =
-                    getKbvGateway(
-                            new KeyStoreLoader(getConfigurationService()), getKbvClientFactory());
+            KeyStoreLoader keyStoreLoader = new KeyStoreLoader(getConfigurationService());
+            keyStoreLoader.load();
+
+            this.kbvGateway = getKbvGateway(getKbvClientFactory());
         }
         return this.kbvGateway;
     }
 
-    KBVGateway getKbvGateway(KeyStoreLoader keyStoreLoader, KBVClientFactory kbvClientFactory) {
-        return new KBVGatewayFactory(keyStoreLoader, kbvClientFactory, getConfigurationService())
-                .create();
+    KBVGateway getKbvGateway(KBVClientFactory kbvClientFactory) {
+        return new KBVGatewayFactory(kbvClientFactory, getConfigurationService()).create();
     }
 
     private KBVClientFactory getKbvClientFactory() {

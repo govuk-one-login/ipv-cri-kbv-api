@@ -34,8 +34,6 @@ class KeyStoreLoaderTest {
         when(mockConfigurationService.getSecretValue("experian/keystore-password"))
                 .thenReturn(base64KeyStorePassword);
 
-        keyStoreLoader.load();
-
         verify(mockConfigurationService).getSecretValue("experian/keystore");
         verify(mockConfigurationService).getSecretValue("experian/keystore-password");
 
