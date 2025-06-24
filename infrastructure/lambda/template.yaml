@@ -978,7 +978,7 @@ Resources:
     Condition: DeployAlarms
     Properties:
       AlarmDescription: !Sub
-        - "Errors verifying JWTs that have been been received by the session lambda. Runbook: ${SupportManualURL}"
+        - "Errors verifying JWTs in Experian KBV that have been been received by the session lambda. Runbook: ${SupportManualURL}"
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
@@ -1007,7 +1007,7 @@ Resources:
     Condition: DeployAlarms
     Properties:
       AlarmDescription: !Sub
-        - "Errors verifying JWTs that have been been received by the token lambda. Runbook: ${SupportManualURL}"
+        - "Errors verifying JWTs in Experian KBV that have been been received by the token lambda. Runbook: ${SupportManualURL}"
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
@@ -1312,9 +1312,9 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: DeployAlarms
     Properties:
-      AlarmName: !Sub "${AWS::StackName}-${Environment}-JsonWebKeys5XXApiGwErrorAlarm"
+      AlarmName: !Sub "${AWS::StackName}-${Environment}-JsonWebKeys5XXExperianKBVApiGwErrorAlarm"
       AlarmDescription: !Sub
-        - "${AWS::StackName}-PublicKBVApi - There has been a small proportion of 5XX errors on the JsonWebKeys endpoint. Runbook: ${SupportManualURL}"
+        - "Experian KBV kbv-cri-${AWS::StackName} - There has been a small proportion of 5XX errors on the JsonWebKeys endpoint. Runbook: ${SupportManualURL}"
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       OKActions:
@@ -1342,7 +1342,7 @@ Resources:
                 - Name: Method
                   Value: GET
                 - Name: ApiName
-                  Value: !Sub ${AWS::StackName}-PublicKBVApiGatewayId
+                  Value: !Sub "kbv-cri-${AWS::StackName}"
                 - Name: Stage
                   Value: !Ref Environment
                 - Name: Resource
@@ -1363,7 +1363,7 @@ Resources:
                 - Name: Method
                   Value: GET
                 - Name: ApiName
-                  Value: !Sub ${AWS::StackName}-PublicKBVApiGatewayId
+                  Value: !Sub "kbv-cri-${AWS::StackName}"
                 - Name: Stage
                   Value: !Ref Environment
                 - Name: Resource
@@ -1375,9 +1375,9 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: DeployAlarms
     Properties:
-      AlarmName: !Sub "${AWS::StackName}-JsonWebKeys5XXApiGwErrorCriticalAlarm"
+      AlarmName: !Sub "${AWS::StackName}-JsonWebKeys5XXExperianKBVApiGwErrorCriticalAlarm"
       AlarmDescription: !Sub
-        - "${AWS::StackName}-PublicKBVApi - There has been a significant proportion of 5XX errors on the JsonWebKeys endpoint. Runbook: ${SupportManualURL}"
+        - "Experian KBV kbv-cri-${AWS::StackName} - There has been a significant proportion of 5XX errors on the JsonWebKeys endpoint. Runbook: ${SupportManualURL}"
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       OKActions:
@@ -1407,7 +1407,7 @@ Resources:
                 - Name: Method
                   Value: GET
                 - Name: ApiName
-                  Value: !Sub ${AWS::StackName}-PublicKBVApiGatewayId
+                  Value: !Sub "kbv-cri-${AWS::StackName}"
                 - Name: Stage
                   Value: !Ref Environment
                 - Name: Resource
@@ -1428,7 +1428,7 @@ Resources:
                 - Name: Method
                   Value: GET
                 - Name: ApiName
-                  Value: !Sub ${AWS::StackName}-PublicKBVApiGatewayId
+                  Value: !Sub "kbv-cri-${AWS::StackName}"
                 - Name: Stage
                   Value: !Ref Environment
                 - Name: Resource
@@ -1440,9 +1440,9 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: DeployAlarms
     Properties:
-      AlarmName: !Sub "${AWS::StackName}-JsonWebKeys4XXApiGwErrorAlarm"
+      AlarmName: !Sub "${AWS::StackName}-JsonWebKeys4XXExperianKBVApiGwErrorAlarm"
       AlarmDescription: !Sub
-        - "${AWS::StackName}-PublicKBVApiGateway - There has been a small proportion of 4XX errors on the JsonWebKeys endpoint. Runbook: ${SupportManualURL}"
+        - "Experian KBV kbv-cri-${AWS::StackName} - There has been a small proportion of 4XX errors on the JsonWebKeys endpoint. Runbook: ${SupportManualURL}"
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       OKActions:
@@ -1468,7 +1468,7 @@ Resources:
               MetricName: Count
               Dimensions:
                 - Name: ApiName
-                  Value: !Sub ${AWS::StackName}-PublicKBVApiGatewayId
+                  Value: !Sub "kbv-cri-${AWS::StackName}"
                 - Name: Resource
                   Value: /.well-known/jwks.json
                 - Name: Stage
@@ -1489,7 +1489,7 @@ Resources:
               MetricName: 4XXError
               Dimensions:
                 - Name: ApiName
-                  Value: !Sub ${AWS::StackName}-PublicKBVApiGatewayId
+                  Value: !Sub "kbv-cri-${AWS::StackName}"
                 - Name: Resource
                   Value: /.well-known/jwks.json
                 - Name: Stage
