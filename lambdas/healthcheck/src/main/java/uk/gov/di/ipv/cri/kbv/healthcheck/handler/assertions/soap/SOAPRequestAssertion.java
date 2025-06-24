@@ -10,9 +10,6 @@ import uk.gov.di.ipv.cri.kbv.healthcheck.util.keytool.Keytool;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,7 +18,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,8 +50,6 @@ public class SOAPRequestAssertion implements Assertion {
     private final String waspUrl;
     private final String jksFileLocation;
 
-    private static CustomX509TrustManager customTrustManager;
-
     public SOAPRequestAssertion(String keystorePassword, String waspUrl, String keystore)
             throws IOException {
         this.keystorePassword = keystorePassword;
@@ -77,11 +71,6 @@ public class SOAPRequestAssertion implements Assertion {
 
             AtomicBoolean success = new AtomicBoolean(false);
             report.addAttributes("soap_request", processResponse(success, connection));
-            report.addAttributes(
-                    "trust_manager",
-                    Map.of(
-                            "server", customTrustManager.getServerCertificates(),
-                            "client", customTrustManager.getClientCertificates()));
             report.setPassed(success.get());
 
             connection.disconnect();
@@ -157,24 +146,8 @@ public class SOAPRequestAssertion implements Assertion {
 
     private static SSLContext initializeSSLContext() {
         try {
-            TrustManagerFactory factory =
-                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            factory.init((KeyStore) null);
-
-            X509TrustManager defaultTrustManager = null;
-
-            for (TrustManager trustManager : factory.getTrustManagers()) {
-                if (trustManager instanceof X509TrustManager x509TrustManager) {
-                    defaultTrustManager = x509TrustManager;
-                    break;
-                }
-            }
-
-            customTrustManager = new CustomX509TrustManager(defaultTrustManager);
-
             SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, new TrustManager[] {customTrustManager}, null);
-
+            sslContext.init(null, null, null);
             return sslContext;
         } catch (Exception e) {
             throw new SOAPException("Failed to initialize SSL context", e);
