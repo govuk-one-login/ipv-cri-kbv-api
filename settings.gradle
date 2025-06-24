@@ -10,3 +10,5 @@ include "lambdas:question", "lambdas:answer", "lambdas:issuecredential", "lambda
 include 'integration-tests'
 
 startParameter.excludedTaskNames = [':integration-tests:test']
+include 'lambdas:healthcheck'
+findProject(':lambdas:healthcheck')?.name = 'healthcheck'
