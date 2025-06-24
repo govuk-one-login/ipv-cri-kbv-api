@@ -85,9 +85,12 @@ public class HealthCheckHandler
         List<Assertion> tests =
                 List.of(
                         new SSLHandshakeAssertion(Configuration.WASP_HOST, Configuration.WASP_PORT),
-                        new SOAPRequestAssertion(keystorePassword, waspURL, keystoreSecret),
                         new KeyToolAssertion(keystoreSecret, keystorePassword),
-                        new KeyStoreAssertion(keystoreSecret, keystorePassword));
+                        new KeyStoreAssertion(keystoreSecret, keystorePassword),
+                        new SOAPRequestAssertion(
+                                keystorePassword,
+                                waspURL,
+                                keystoreSecret)); // Run SOAPRequestAssertion Last!
 
         for (Assertion assertion : tests) {
             String name = assertion.getClass().getSimpleName();
