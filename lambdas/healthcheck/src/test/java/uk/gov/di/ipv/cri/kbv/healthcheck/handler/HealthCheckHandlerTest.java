@@ -87,6 +87,21 @@ class HealthCheckHandlerTest {
     }
 
     @Test
+    void sOAPRequestAssertionContainsTrustManager() throws JsonProcessingException {
+        APIGatewayProxyRequestEvent request = new APIGatewayProxyRequestEvent().withPath("/info");
+        APIGatewayProxyResponseEvent response = handler.handleRequest(request, mock(Context.class));
+
+        JsonNode body = OBJECT_MAPPER.readTree(response.getBody());
+        JsonNode soapReport = body.get("SOAPRequestAssertion");
+        JsonNode attributes = soapReport.get("attributes");
+        JsonNode trustManager = attributes.get("trust_manager");
+
+        assertTrue(attributes.has("trust_manager"));
+        assertTrue(trustManager.has("server"));
+        assertTrue(trustManager.has("client"));
+    }
+
+    @Test
     void shouldReturnEmptyBody() {
         APIGatewayProxyRequestEvent request = new APIGatewayProxyRequestEvent();
         APIGatewayProxyResponseEvent response = handler.handleRequest(request, mock(Context.class));
