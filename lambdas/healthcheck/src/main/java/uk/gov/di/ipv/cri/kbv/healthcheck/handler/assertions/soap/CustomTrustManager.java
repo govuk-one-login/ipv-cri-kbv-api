@@ -8,7 +8,12 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -69,7 +74,13 @@ public class CustomTrustManager implements X509TrustManager {
         return serverCertificates;
     }
 
-    public static CustomTrustManager bind(byte[] keystore, char[] password) throws Exception {
+    public static CustomTrustManager bind(byte[] keystore, char[] password)
+            throws NoSuchAlgorithmException,
+                    IOException,
+                    KeyManagementException,
+                    KeyStoreException,
+                    CertificateException,
+                    UnrecoverableKeyException {
         TrustManagerFactory trustManagerFactory =
                 TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
 
