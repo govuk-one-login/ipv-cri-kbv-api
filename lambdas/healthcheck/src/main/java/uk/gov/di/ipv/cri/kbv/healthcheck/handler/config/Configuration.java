@@ -1,7 +1,6 @@
 package uk.gov.di.ipv.cri.kbv.healthcheck.handler.config;
 
 public final class Configuration {
-    public static final String WASP_HOST = "secure.wasp.uk.experian.com";
     public static final int WASP_PORT = 443;
 
     public static final String WASP_URL_SECRET = System.getenv("WaspURLSecret");
