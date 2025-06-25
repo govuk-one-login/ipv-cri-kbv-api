@@ -84,7 +84,8 @@ public class HealthCheckHandler
 
         List<Assertion> tests =
                 List.of(
-                        new SSLHandshakeAssertion(Configuration.WASP_HOST, Configuration.WASP_PORT),
+                        new SSLHandshakeAssertion(
+                                experianSecrets.getWaspUrl(), Configuration.WASP_PORT),
                         new KeyToolAssertion(keystoreSecret, keystorePassword),
                         new KeyStoreAssertion(keystoreSecret, keystorePassword),
                         new SOAPRequestAssertion(
