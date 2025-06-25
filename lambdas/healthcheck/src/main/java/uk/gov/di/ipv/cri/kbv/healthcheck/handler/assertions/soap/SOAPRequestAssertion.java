@@ -5,6 +5,7 @@ import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.Assertion;
 import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.FailReport;
 import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.Report;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -68,8 +69,8 @@ public class SOAPRequestAssertion implements Assertion {
 
             report.setPassed(success.get());
 
-        } catch (Exception e) {
-            return new FailReport(e);
+        } catch (Exception e) { // NOSONAR
+            return new FailReport(e); // NOSONAR
         }
 
         return report;
@@ -109,9 +110,7 @@ public class SOAPRequestAssertion implements Assertion {
         return false;
     }
 
-    private HttpResponse<String> sendRequest() throws Exception {
-        System.out.println(waspUrl);
-
+    private HttpResponse<String> sendRequest() throws IOException, InterruptedException {
         try (HttpClient client = HttpClient.newHttpClient()) {
             HttpRequest request =
                     HttpRequest.newBuilder()
