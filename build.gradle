@@ -1,25 +1,10 @@
 plugins {
-	id "java"
-	id "org.sonarqube" version "4.4.+"
-	id "com.diffplug.spotless" version "6.25.+"
+	alias(libs.plugins.java)
+	alias(libs.plugins.sonarqube)
+	alias(libs.plugins.spotless)
 }
 
-ext {
-	dependencyVersions = [
-		aws_lambda_events_version: "3.14.0",
-		jackson_version          : "2.15.4",
-		nimbusds_oauth_version   : "11.2",
-		nimbusds_jwt_version     : "9.36",
-		protobuf_version         : "3.19.4",
-		junit                    : "5.10.2",
-		mockito					 : "4.3.1",
-		glassfish_version        : "3.0.3",
-		powertools_version       : "1.12.3",
-		cri_common_lib           : "6.0.0",
-		pact_provider_version    : "4.5.11",
-		webcompere_version       : "2.1.6",
-	]
-}
+defaultTasks 'clean', 'spotlessApply', 'build'
 
 repositories {
 	maven {
@@ -31,8 +16,8 @@ subprojects {
 	apply plugin: 'java'
 
 	java {
-		sourceCompatibility = JavaVersion.VERSION_11
-		targetCompatibility = JavaVersion.VERSION_11
+		sourceCompatibility = JavaVersion.VERSION_17
+		targetCompatibility = JavaVersion.VERSION_17
 	}
 
 	repositories {
@@ -41,113 +26,18 @@ subprojects {
 		}
 	}
 
-	configurations {
-		aws
-		dynamodb
-		cache
-		jackson
-		tests
-		test_runtime
-		logging_runtime
-		lambda
-		sqs
-		powertools
-		hibernate
-		nimbus
-		soap
-		kms
-		mockito
-		lambda_tests
-		lettuce
-		ssm
-		cri_common_lib
-		pact_tests
-		webcompere
-		otel
-	}
-
 	// The dynamodb enhanced package loads the apache-client as well as the spi-client, so
 	// we need to add the apache-client to the dependencies exclusion to not get a mismatch
-	configurations.all {
+	configurations.configureEach {
 		exclude group:"software.amazon.awssdk", module: "apache-client"
 	}
 
 	dependencies {
+		implementation(platform(libs.aws.sdk.bom))
+		runtimeOnly(libs.log4j.lambda)
 
-		aws platform('software.amazon.awssdk:bom:2.20.162')
-
-		dynamodb "software.amazon.awssdk:dynamodb",
-				"software.amazon.awssdk:dynamodb-enhanced"
-
-		lambda "software.amazon.awssdk:lambda",
-				"com.amazonaws:aws-lambda-java-events:${dependencyVersions.aws_lambda_events_version}"
-
-		sqs "software.amazon.awssdk:sqs"
-
-		kms "software.amazon.awssdk:kms"
-
-		lambda_tests "software.amazon.awssdk:aws-lambda-java-tests:1.1.1"
-
-		cache "com.github.ben-manes.caffeine:caffeine:3.1.8"
-
-		jackson "com.fasterxml.jackson.core:jackson-core:${dependencyVersions.jackson_version}",
-				"com.fasterxml.jackson.core:jackson-databind:${dependencyVersions.jackson_version}",
-				"com.fasterxml.jackson.core:jackson-annotations:${dependencyVersions.jackson_version}",
-				"com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${dependencyVersions.jackson_version}",
-				"com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${dependencyVersions.jackson_version}",
-				"javax.annotation:javax.annotation-api:1.3.2",
-				"javax.validation:validation-api:2.0.1.Final",
-				"javax.el:javax.el-api:3.0.0",
-				"org.glassfish:javax.el:3.0.0"
-
-		soap 	"com.sun.xml.messaging.saaj:saaj-impl:1.5.3",
-				"org.apache.cxf:cxf-rt-frontend-jaxws:3.4.5",
-				"org.apache.cxf:cxf-rt-transports-http:3.4.5",
-				"org.apache.httpcomponents:httpasyncclient:4.1.4"
-
-		powertools "software.amazon.lambda:powertools-logging:${dependencyVersions.powertools_version}",
-				"software.amazon.lambda:powertools-metrics:${dependencyVersions.powertools_version}",
-				"software.amazon.lambda:powertools-tracing:${dependencyVersions.powertools_version}",
-				"software.amazon.lambda:powertools-parameters:${dependencyVersions.powertools_version}"
-
-		tests "org.junit.jupiter:junit-jupiter-api:${dependencyVersions.junit}",
-				"org.junit.jupiter:junit-jupiter-params:${dependencyVersions.junit}",
-				"org.mockito:mockito-junit-jupiter:${dependencyVersions.mockito}",
-				"org.mockito:mockito-inline:${dependencyVersions.mockito}",
-				"org.hamcrest:hamcrest:2.2"
-
-		test_runtime "org.junit.jupiter:junit-jupiter-engine:${dependencyVersions.junit}"
-
-		logging_runtime "com.amazonaws:aws-lambda-java-log4j2:1.6.0"
-
-		hibernate "org.hibernate.validator:hibernate-validator:7.0.1.Final",
-				"org.hibernate:hibernate-validator-annotation-processor:7.0.1.Final"
-
-		lambda_tests "software.amazon.awssdk:aws-lambda-java-tests:1.1.1"
-
-		nimbus "com.nimbusds:oauth2-oidc-sdk:${dependencyVersions.nimbusds_oauth_version}",
-				"com.nimbusds:nimbus-jose-jwt:${dependencyVersions.nimbusds_jwt_version}"
-
-		cri_common_lib "uk.gov.account:cri-common-lib:${dependencyVersions.cri_common_lib}"
-
-		pact_tests "au.com.dius.pact.provider:junit5:${dependencyVersions.pact_provider_version}",
-				"au.com.dius.pact:provider:${dependencyVersions.pact_provider_version}"
-
-		webcompere "uk.org.webcompere:system-stubs-core:${dependencyVersions.webcompere_version}",
-				"uk.org.webcompere:system-stubs-jupiter:${dependencyVersions.webcompere_version}"
-
-		otel "io.opentelemetry:opentelemetry-api:1.46.0",
-				"io.opentelemetry:opentelemetry-sdk:1.46.0",
-				"io.opentelemetry:opentelemetry-context:1.46.0",
-				"io.opentelemetry:opentelemetry-sdk-metrics:1.46.0",
-				"io.opentelemetry:opentelemetry-sdk-trace:1.46.0",
-				"io.opentelemetry:opentelemetry-sdk-logs:1.46.0",
-				"io.opentelemetry:opentelemetry-exporter-otlp:1.46.0",
-				"io.opentelemetry.instrumentation:opentelemetry-aws-sdk-2.2-autoconfigure:2.12.0-alpha",
-				"io.opentelemetry.instrumentation:opentelemetry-java-http-client:2.12.0-alpha"
+		implementation(libs.aspectjrt)
 	}
-
-	apply plugin: 'java'
 
 	test {
 		// Configures environment variable to avoid initialization of AWS X-Ray segments for each tests
@@ -157,11 +47,22 @@ subprojects {
 		}
 	}
 
-
 	tasks.register("pactTests", Test) {
 		useJUnitPlatform {
 			includeTags 'Pact'
 		}
+	}
+
+	tasks.matching { it.name == "jacocoTestReport" }.configureEach {
+		dependsOn test
+		reports {
+			xml.required.set(true)
+		}
+	}
+
+	test {
+		useJUnitPlatform ()
+		finalizedBy(tasks.matching { it.name == 'jacocoTestReport' })
 	}
 }
 
@@ -176,7 +77,7 @@ sonar {
 spotless {
 	java {
 		target "**/src/**/*.java"
-		googleJavaFormat("1.13.0").aosp()
+		googleJavaFormat("1.17.0").aosp()
 		importOrder "", "javax", "java", "\\#"
 		endWithNewline()
 	}
@@ -194,12 +95,12 @@ clean.doFirst {
 }
 
 gradle.projectsEvaluated {
-	tasks.withType(JavaCompile) {
-		options.compilerArgs << "-Xlint:unchecked"
+	tasks.withType(JavaCompile).tap {
+		configureEach {
+			options.compilerArgs << "-Xlint:unchecked"
+		}
 	}
 }
-
-defaultTasks 'clean', 'spotlessApply', 'build'
 
 tasks.build {
 	dependsOn("spotlessApply")

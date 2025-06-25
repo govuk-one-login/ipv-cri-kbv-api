@@ -18,11 +18,11 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 11
+      - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          java-version: 11
-          distribution: zulu
+          java-version: 21
+          distribution: corretto
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -34,8 +34,6 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 7.6.4
 
       - name: Assume temporary AWS role
         uses: aws-actions/configure-aws-credentials@v2

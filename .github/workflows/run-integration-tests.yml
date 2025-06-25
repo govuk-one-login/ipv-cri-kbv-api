@@ -31,10 +31,14 @@ jobs:
       - name: Pull repository
         uses: actions/checkout@v4
 
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: 21
+          distribution: corretto
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 7.6.4
 
       - name: Assume AWS Role
         uses: aws-actions/configure-aws-credentials@v4

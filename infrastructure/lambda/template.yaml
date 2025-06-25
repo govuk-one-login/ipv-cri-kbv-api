@@ -42,20 +42,27 @@ Parameters:
     Description: "The stack containing the TXMA infrastructure"
     Type: String
     Default: txma-infrastructure
-  SupportManualURL:
+  DeployAlarmsInDevEnvironment:
+    Description: "Set to the string value `true` to deploy alarms in a DEV environment"
     Type: String
-    Default: "https://team-manual.account.gov.uk/teams/CRI-Orange-team/supporting-cri-orange/experian-kbv-credential-issuer-runbook/#experian-knowledge-based-verification-kbv-credential-issuer-runbook"
-    Description: The support manual URL to be provided in alarm messages.
+    Default: false
 
 Conditions:
   UseSecretPrefix: !Not [!Equals [!Ref SecretPrefix, "none"]]
   UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, ""]]
   UseCodeSigningConfigArn: !Not [!Equals [!Ref CodeSigningConfigArn, "none"]]
   UseCanaryDeploymentAlarms: !Not [!Equals [!Ref LambdaDeploymentPreference, AllAtOnce]]
+  DeployAlarms: !Or
+    - !Condition IsNotDevLikeEnvironment
+    - !Equals [!Ref DeployAlarmsInDevEnvironment, "true"]
   IsDevEnvironment: !Or [!Equals [!Ref Environment, dev], !Condition IsLocalDevEnvironment]
   IsStubEnvironment: !Not [!Equals [!Ref Environment, production]]
   IsLocalDevEnvironment: !Equals [!Ref Environment, localdev]
   IsNotDevEnvironment: !Not [!Condition IsDevEnvironment]
+  IsDevLikeEnvironment:
+    !Or [!Condition IsLocalDevEnvironment, !Condition IsDevEnvironment]
+  IsNotDevLikeEnvironment: !Not
+    - !Condition IsDevLikeEnvironment
 
 Globals:
   Function:
@@ -68,7 +75,7 @@ Globals:
       !If [UseCodeSigningConfigArn, !Ref CodeSigningConfigArn, !Ref AWS::NoValue]
     Tracing: Active
     Timeout: 30 # seconds
-    Runtime: java11
+    Runtime: java21
     Architectures: [arm64]
     AutoPublishAlias: live
     SnapStart:
@@ -135,6 +142,10 @@ Globals:
           responseLength: $context.responseLength
 
 Mappings:
+  StaticVariables:
+    Urls:
+      SupportManualURL: "https://team-manual.account.gov.uk/teams/CRI-Orange-team/supporting-cri-orange/experian-kbv-credential-issuer-runbook/#experian-knowledge-based-verification-kbv-credential-issuer-runbook"
+
   EnvironmentConfiguration:
     dev:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
@@ -215,6 +226,45 @@ Mappings:
       localdev: true
 
 Resources:
+  HealthCheckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../lambdas/healthcheck
+      Handler: uk.gov.di.ipv.cri.kbv.healthcheck.handler.HealthCheckHandler::handleRequest
+      Environment:
+        Variables:
+          KeyStoreSecret: experian/keystore
+          KeyStorePassword: experian/keystore-password
+          WaspURLSecret: experian/iiq-wasp-service
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Sub
+              - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*'
+              - Prefix: !If [ UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName ]
+
+  HealthCheckFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${HealthCheckFunction}"
+      RetentionInDays: 30
+
+  HealthCheckFunctionLogGroupSubscriptionFilterCSLS:
+    Type: AWS::Logs::SubscriptionFilter
+    Condition: IsNotDevEnvironment
+    Properties:
+      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
+      FilterPattern: ""
+      LogGroupName: !Ref HealthCheckFunctionLogGroup
+
+  HealthCheckFunctionnAliasPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref HealthCheckFunction.Alias
+      Principal: apigateway.amazonaws.com
+
   PublicKBVApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -234,6 +284,28 @@ Resources:
             Location: ./public-api.yaml
       EndpointConfiguration:
         Type: REGIONAL
+      Auth:
+        ResourcePolicy:
+          CustomStatements:
+            - Effect: Deny
+              Principal: "*"
+              Action: execute-api:Invoke
+              Resource:
+                - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/${Environment}/GET/healthcheck/thirdparty*"
+              Condition:
+                NotIpAddress:
+                  aws:SourceIp:
+                    - "217.196.229.77/32"
+                    - "217.196.229.79/32"
+                    - "217.196.229.80/32"
+                    - "217.196.229.81/32"
+                    - "51.149.8.0/25"
+                    - "51.149.8.128/29"
+
+            - Effect: Allow
+              Principal: "*"
+              Action: execute-api:Invoke
+              Resource: "execute-api:/*"
 
   PrivateKBVApi:
     Type: AWS::Serverless::Api
@@ -827,9 +899,12 @@ Resources:
 
   ExperianKBVLambdaErrors:
     Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
     Properties:
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVLambdaErrors
-      AlarmDescription: !Sub Experian KBV ${Environment} lambda errors. ${SupportManualURL}
+      AlarmDescription: !Sub
+        - "Experian KBV ${Environment} lambda errors. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
         - !ImportValue core-infrastructure-AlarmTopic
@@ -851,9 +926,12 @@ Resources:
 
   ExperianKBVAPIGW5XXErrors:
     Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
     Properties:
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAPIGW5XXErrors
-      AlarmDescription: !Sub Experian KBV ${Environment} API Gateway 5XX errors. ${SupportManualURL}
+      AlarmDescription: !Sub
+        - "Experian KBV ${Environment} API Gateway 5XX errors. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
         - !ImportValue core-infrastructure-AlarmTopic
@@ -897,14 +975,17 @@ Resources:
 
   SessionLambdaFailedToVerifyJWTAlarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
     Properties:
-      AlarmDescription: Errors verifying JWTs that have been been received by the session lambda.
+      AlarmDescription: !Sub
+        - "Errors verifying JWTs in Experian KBV that have been been received by the session lambda. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue core-infrastructure-AlarmTopic
+        # - !ImportValue core-infrastructure-AlarmTopic # OJ-3243: turning off pager duty notifications while we are seeing false positives
         - !ImportValue platform-alarm-critical-alert-topic
       OKActions:
-        - !ImportValue core-infrastructure-AlarmTopic
+        # - !ImportValue core-infrastructure-AlarmTopic # OJ-3243: turning off pager duty notifications while we are seeing false positives
         - !ImportValue platform-alarm-critical-alert-topic
       InsufficientDataActions: []
       MetricName: jwt_verification_failed
@@ -923,14 +1004,17 @@ Resources:
 
   TokenLambdaFailedToVerifyJWTAlarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
     Properties:
-      AlarmDescription: Errors verifying JWTs that have been been received by the token lambda.
+      AlarmDescription: !Sub
+        - "Errors verifying JWTs in Experian KBV that have been been received by the token lambda. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue core-infrastructure-AlarmTopic
+        # - !ImportValue core-infrastructure-AlarmTopic # OJ-3243: turning off pager duty notifications while we are seeing false positives
         - !ImportValue platform-alarm-critical-alert-topic
       OKActions:
-        - !ImportValue core-infrastructure-AlarmTopic
+        # - !ImportValue core-infrastructure-AlarmTopic # OJ-3243: turning off pager duty notifications while we are seeing false positives
         - !ImportValue platform-alarm-critical-alert-topic
       InsufficientDataActions: []
       MetricName: jwt_verification_failed
@@ -1194,6 +1278,226 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRoleForLambda
       PermissionsBoundary: !If [UsePermissionsBoundary, !Ref PermissionsBoundary,!Ref AWS::NoValue]
+
+  JWKSBucketRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: "sts:AssumeRole"
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: 2012-10-17
+      Policies:
+        - PolicyName: AccessJWKSJson
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:Get*"
+                Resource: !Sub
+                  - "arn:aws:s3:::govuk-one-login-kbv-published-keys-${env}/jwks.json"
+                  - env: !If [IsLocalDevEnvironment, "dev", !Ref Environment]
+      PermissionsBoundary: !If
+        - UsePermissionsBoundary
+        - !Ref PermissionsBoundary
+        - !Ref AWS::NoValue
+      Tags:
+        - Key: "key_consumer_type"
+          Value: "use"
+
+  JsonWebKeys5XXApiGwErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-${Environment}-JsonWebKeys5XXExperianKBVApiGwErrorAlarm"
+      AlarmDescription: !Sub
+        - "Experian KBV kbv-cri-${AWS::StackName} - There has been a small proportion of 5XX errors on the JsonWebKeys endpoint. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
+      ActionsEnabled: true
+      OKActions:
+        - !ImportValue platform-alarm-warning-alert-topic
+      AlarmActions:
+        - !ImportValue platform-alarm-warning-alert-topic
+      InsufficientDataActions: []
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 2
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      Metrics:
+        - Id: errorThreshold
+          Label: errorThreshold
+          ReturnData: true
+          Expression: IF(invocations<4 || error<2,0,errorPercentage)
+        - Id: invocations
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/ApiGateway
+              MetricName: Count
+              Dimensions:
+                - Name: Method
+                  Value: GET
+                - Name: ApiName
+                  Value: !Sub "kbv-cri-${AWS::StackName}"
+                - Name: Stage
+                  Value: !Ref Environment
+                - Name: Resource
+                  Value: /.well-known/jwks.json
+            Period: 60
+            Stat: Sum
+        - Id: errorPercentage
+          Label: errorPercentage
+          ReturnData: false
+          Expression: (error/invocations)*100
+        - Id: error
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/ApiGateway
+              MetricName: 5XXError
+              Dimensions:
+                - Name: Method
+                  Value: GET
+                - Name: ApiName
+                  Value: !Sub "kbv-cri-${AWS::StackName}"
+                - Name: Stage
+                  Value: !Ref Environment
+                - Name: Resource
+                  Value: /.well-known/jwks.json
+            Period: 60
+            Stat: Sum
+
+  JsonWebKeys5XXApiGwErrorCriticalAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-JsonWebKeys5XXExperianKBVApiGwErrorCriticalAlarm"
+      AlarmDescription: !Sub
+        - "Experian KBV kbv-cri-${AWS::StackName} - There has been a significant proportion of 5XX errors on the JsonWebKeys endpoint. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
+      ActionsEnabled: true
+      OKActions:
+        - !ImportValue core-infrastructure-AlarmTopic
+        - !ImportValue platform-alarm-critical-alert-topic
+      AlarmActions:
+        - !ImportValue core-infrastructure-AlarmTopic
+        - !ImportValue platform-alarm-critical-alert-topic
+      InsufficientDataActions: []
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      Metrics:
+        - Id: errorThreshold
+          Label: errorThreshold
+          ReturnData: true
+          Expression: IF(invocations<10,0,errorPercentage)
+        - Id: invocations
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/ApiGateway
+              MetricName: Count
+              Dimensions:
+                - Name: Method
+                  Value: GET
+                - Name: ApiName
+                  Value: !Sub "kbv-cri-${AWS::StackName}"
+                - Name: Stage
+                  Value: !Ref Environment
+                - Name: Resource
+                  Value: /.well-known/jwks.json
+            Period: 60
+            Stat: Sum
+        - Id: errorPercentage
+          Label: errorPercentage
+          ReturnData: false
+          Expression: (error/invocations)*100
+        - Id: error
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/ApiGateway
+              MetricName: 5XXError
+              Dimensions:
+                - Name: Method
+                  Value: GET
+                - Name: ApiName
+                  Value: !Sub "kbv-cri-${AWS::StackName}"
+                - Name: Stage
+                  Value: !Ref Environment
+                - Name: Resource
+                  Value: /.well-known/jwks.json
+            Period: 60
+            Stat: Sum
+
+  JsonWebKeys4XXApiGwErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-JsonWebKeys4XXExperianKBVApiGwErrorAlarm"
+      AlarmDescription: !Sub
+        - "Experian KBV kbv-cri-${AWS::StackName} - There has been a small proportion of 4XX errors on the JsonWebKeys endpoint. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
+      ActionsEnabled: true
+      OKActions:
+        - !ImportValue platform-alarm-warning-alert-topic
+      AlarmActions:
+        - !ImportValue platform-alarm-warning-alert-topic
+      InsufficientDataActions: []
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      Metrics:
+        - Id: errorThreshold
+          Label: errorThreshold
+          ReturnData: true
+          Expression: IF(invocations<3 || error<2,0,errorPercentage)
+        - Id: invocations
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/ApiGateway
+              MetricName: Count
+              Dimensions:
+                - Name: ApiName
+                  Value: !Sub "kbv-cri-${AWS::StackName}"
+                - Name: Resource
+                  Value: /.well-known/jwks.json
+                - Name: Stage
+                  Value: !Ref Environment
+                - Name: Method
+                  Value: GET
+            Period: 60
+            Stat: Sum
+        - Id: errorPercentage
+          Label: errorPercentage
+          ReturnData: false
+          Expression: (error/invocations)*100
+        - Id: error
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/ApiGateway
+              MetricName: 4XXError
+              Dimensions:
+                - Name: ApiName
+                  Value: !Sub "kbv-cri-${AWS::StackName}"
+                - Name: Resource
+                  Value: /.well-known/jwks.json
+                - Name: Stage
+                  Value: !Ref Environment
+                - Name: Method
+                  Value: GET
+            Period: 60
+            Stat: Sum
 
 Outputs:
   PublicKBVApiGatewayId:

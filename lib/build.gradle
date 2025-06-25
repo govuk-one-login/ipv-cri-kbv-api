@@ -1,62 +1,36 @@
 plugins {
-	id "java"
-	id "jacoco"
-	id "com.github.bjornvester.wsdl2java" version "2.0.1"
-	id "io.freefair.aspectj.post-compile-weaving" version "6.3.0"
-}
-
-repositories {
-	maven {
-		url 'https://gds.jfrog.io/artifactory/di-allowed-repos'
-	}
+	alias(libs.plugins.java)
+	alias(libs.plugins.jacoco)
+	alias(libs.plugins.wsdl2java)
+	alias(libs.plugins.post.compile.weaving)
 }
 
 dependencies {
-	implementation configurations.otel
+	aspect libs.bundles.powertools
 
-	implementation configurations.cri_common_lib,
-			configurations.aws,
-			configurations.dynamodb,
-			configurations.cache,
-			configurations.lambda,
-			configurations.jackson,
-			configurations.hibernate,
-			configurations.nimbus,
-			configurations.soap,
-			configurations.sqs,
-			configurations.kms
+	implementation(libs.cri.common.lib)
+	implementation(libs.bundles.otel)
+	implementation(libs.nimbus.oauth)
+	implementation(libs.aws.dynamodb)
+	implementation(libs.aws.dynamodb.enhanced)
+	implementation(libs.aws.kms)
+	implementation(libs.aws.sqs)
+	implementation(libs.powertools.tracing)
+	implementation(libs.javax.annotation)
+	implementation(libs.javax.validation)
+	implementation(libs.saaj)
+	implementation(libs.cxf.jaxws)
+	implementation(libs.cxf.http)
+	implementation(libs.httpasyncclient)
 
-	aspect configurations.powertools
-
-	runtimeOnly configurations.logging_runtime
-	testImplementation configurations.logging_runtime
-	testImplementation configurations.tests
-	testRuntimeOnly configurations.test_runtime
+	testImplementation(libs.bundles.junit)
+	testImplementation(libs.mockito.junit)
+	testImplementation(libs.webcompere.core)
+	testImplementation(libs.webcompere.jupiter)
 }
 
 java {
 	withSourcesJar()
-}
-
-test {
-	useJUnitPlatform ()
-	finalizedBy jacocoTestReport
-}
-
-jacocoTestReport {
-	dependsOn test
-	reports {
-		xml.required.set(true)
-	}
-}
-
-tasks.named("jar") {
-	manifest {
-		attributes(
-				"Implementation-Title": project.name,
-				"Implementation-Version": project.version
-				)
-	}
 }
 
 sourceSets {
