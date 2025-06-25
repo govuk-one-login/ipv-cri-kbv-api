@@ -26,7 +26,8 @@ public class SSLHandshakeAssertion implements Assertion {
     private final int port;
 
     public SSLHandshakeAssertion(String host, int port) {
-        this.host = host;
+        String domain = host.replace("https://", "");
+        this.host = domain.substring(0, domain.indexOf("/"));
         this.port = port;
     }
 
