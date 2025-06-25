@@ -37,7 +37,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: 21
-          distribution: zulu
+          distribution: corretto
           cache: gradle
 
       - name: Build SAM application
