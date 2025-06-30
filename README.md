@@ -44,7 +44,7 @@ Note: To update LambdaDeploymentPreference, update the LambdaCanaryDeployment pi
 
 ## Deploy to AWS lambda
 
-Automated GitHub actions deployments have been enabled on this repository.
+Automated GitHub actions deployments have been enabled for this repository.
 
 The automated deployments are triggered on a push to main after PR approval.
 
