@@ -47,19 +47,17 @@ public class HealthCheckEndpointStepDefinition {
 
     private void sendRequestToHealthCheckEndpoint(String url)
             throws URISyntaxException, IOException, InterruptedException {
-        try (HttpClient client = HttpClient.newHttpClient()) {
-            HttpRequest request =
-                    HttpRequest.newBuilder()
-                            .method("GET", HttpRequest.BodyPublishers.noBody())
-                            .uri(new URI(url))
-                            .header(
-                                    HttpHeaders.API_KEY,
-                                    clientConfigurationService.getPublicApiKey())
-                            .build();
+        HttpClient client = HttpClient.newHttpClient();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpRequest request =
+                HttpRequest.newBuilder()
+                        .method("GET", HttpRequest.BodyPublishers.noBody())
+                        .uri(new URI(url))
+                        .header(HttpHeaders.API_KEY, clientConfigurationService.getPublicApiKey())
+                        .build();
 
-            assertNotNull(response);
-        }
+        response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertNotNull(response);
     }
 }
