@@ -58,6 +58,7 @@ Conditions:
   IsDevEnvironment: !Or [!Equals [!Ref Environment, dev], !Condition IsLocalDevEnvironment]
   IsStubEnvironment: !Not [!Equals [!Ref Environment, production]]
   IsLocalDevEnvironment: !Equals [!Ref Environment, localdev]
+  IsProductionEnvironment: !Equals [!Ref Environment, production]
   IsNotDevEnvironment: !Not [!Condition IsDevEnvironment]
   IsDevLikeEnvironment:
     !Or [!Condition IsLocalDevEnvironment, !Condition IsDevEnvironment]
@@ -145,6 +146,124 @@ Mappings:
   StaticVariables:
     Urls:
       SupportManualURL: "https://team-manual.account.gov.uk/teams/CRI-Orange-team/supporting-cri-orange/experian-kbv-credential-issuer-runbook/#experian-knowledge-based-verification-kbv-credential-issuer-runbook"
+
+  WaspServiceUrls:
+    localdev:
+      ipvCoreStubAwsProd: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsBuild: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/WASPAuthenticator/tokenService.asmx
+      ipvCoreStub: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubPreProdAwsBuild: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubPreProd: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsHeadless: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsProd3rdparty: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsBuild3rdparty: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCore: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/WASPAuthenticator/tokenService.asmx
+      ipvCore3rdPartyStubs: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+    dev:
+      ipvCoreStubAwsProd: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsBuild: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/WASPAuthenticator/tokenService.asmx
+      ipvCoreStub: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubPreProdAwsBuild: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubPreProd: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsHeadless: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsProd3rdparty: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsBuild3rdparty: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCore: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/WASPAuthenticator/tokenService.asmx
+      ipvCore3rdPartyStubs: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+    build:
+      ipvCoreStubAwsProd: https://l8ouaxf1u9.execute-api.eu-west-2.amazonaws.com/build/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsBuild: https://l8ouaxf1u9.execute-api.eu-west-2.amazonaws.com/build/WASPAuthenticator/tokenService.asmx
+      ipvCoreStub: https://l8ouaxf1u9.execute-api.eu-west-2.amazonaws.com/build/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubPreProdAwsBuild: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubPreProd: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsHeadless: https://l8ouaxf1u9.execute-api.eu-west-2.amazonaws.com/build/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsProd3rdparty: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsBuild3rdparty: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCore: https://l8ouaxf1u9.execute-api.eu-west-2.amazonaws.com/build/WASPAuthenticator/tokenService.asmx
+      ipvCore3rdPartyStubs: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+    staging:
+      ipvCoreStubAwsProd: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/build/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsBuild: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/build/WASPAuthenticator/tokenService.asmx
+      ipvCoreStub: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/build/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubPreProdAwsBuild: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubPreProd: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsHeadless: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/build/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsProd3rdparty: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsBuild3rdparty: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCore: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/build/WASPAuthenticator/tokenService.asmx
+      ipvCore3rdPartyStubs: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+
+    # integration has no stubs
+    integration:
+      ipvCoreStubAwsProd: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsBuild: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStub: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubPreProdAwsBuild: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubPreProd: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsHeadless: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsProd3rdparty: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCoreStubAwsBuild3rdparty: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCore: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+      ipvCore3rdPartyStubs: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
+
+  IIQWebServiceUrls:
+    localdev:
+      ipvCoreStubAwsProd: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsBuild: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStub: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubPreProdAwsBuild: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubPreProd: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsHeadless: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsProd3rdparty: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsBuild3rdparty: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCore: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCore3rdPartyStubs: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+    dev:
+      ipvCoreStubAwsProd: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsBuild: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStub: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubPreProdAwsBuild: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubPreProd: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsHeadless: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsProd3rdparty: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsBuild3rdparty: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCore: https://9poym096f7.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCore3rdPartyStubs: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+    build:
+      ipvCoreStubAwsProd: https://l8ouaxf1u9.execute-api.eu-west-2.amazonaws.com/build/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsBuild: https://l8ouaxf1u9.execute-api.eu-west-2.amazonaws.com/build/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStub: https://l8ouaxf1u9.execute-api.eu-west-2.amazonaws.com/build/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubPreProdAwsBuild: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubPreProd: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsHeadless: https://l8ouaxf1u9.execute-api.eu-west-2.amazonaws.com/build/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsProd3rdparty: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsBuild3rdparty: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCore: https://l8ouaxf1u9.execute-api.eu-west-2.amazonaws.com/build/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCore3rdPartyStubs: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+    staging:
+      ipvCoreStubAwsProd: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsBuild: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStub: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubPreProdAwsBuild: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubPreProd: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsHeadless: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsProd3rdparty: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsBuild3rdparty: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCore: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCore3rdPartyStubs: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+
+    # integration has no stubs
+    integration:
+      ipvCoreStubAwsProd: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsBuild: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStub: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubPreProdAwsBuild: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubPreProd: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsHeadless: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsProd3rdparty: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCoreStubAwsBuild3rdparty: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCore: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+      ipvCore3rdPartyStubs: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
 
   EnvironmentConfiguration:
     dev:
@@ -1624,6 +1743,218 @@ Resources:
                   Value: GET
             Period: 60
             Stat: Sum
+
+  # Production WASP and IIQ Web Service URL
+  ProdIpvCoreWaspURL:
+    Condition: IsProductionEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core"
+      Type: String
+      Value: https://secure.wasp.uk.experian.com/WASPAuthenticator/tokenService.asmx
+
+  ProdIpvCoreIIQWebServiceURL:
+    Condition: IsProductionEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core"
+      Type: String
+      Value: https://identityiq.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+
+  ProdIpvCoreStubPreProdAwsBuildWaspURL:
+    Condition: IsProductionEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-pre-prod-aws-build"
+      Type: String
+      Value: https://secure.wasp.uk.experian.com/WASPAuthenticator/tokenService.asmx
+
+  ProdIpvCoreStubPreProdAwsBuildIIQWebServiceURL:
+    Condition: IsProductionEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-pre-prod-aws-build"
+      Type: String
+      Value: https://identityiq.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+
+  ProdIpvCoreStubPreProdAwsWaspURL:
+    Condition: IsProductionEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-pre-prod-aws"
+      Type: String
+      Value: https://secure.wasp.uk.experian.com/WASPAuthenticator/tokenService.asmx
+
+  ProdIpvCoreStubPreProdAwsIIQWebServiceURL:
+    Condition: IsProductionEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-pre-prod-aws"
+      Type: String
+      Value: https://identityiq.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
+
+  ## WASP URL
+
+  IpvCoreStubAwsProdWaspURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-aws-prod"
+      Type: String
+      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, ipvCoreStubAwsProd ]
+
+  IpvCoreStubAwsBuildWaspURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-aws-build"
+      Type: String
+      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, ipvCoreStubAwsBuild ]
+
+  IpvCoreStubWaspURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub"
+      Type: String
+      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, ipvCoreStub ]
+
+  IpvCoreStubPreProdAwsBuildWaspURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-pre-prod-aws-build"
+      Type: String
+      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, ipvCoreStubPreProdAwsBuild ]
+
+  IpvCoreStubPreProdWaspURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-pre-prod"
+      Type: String
+      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, ipvCoreStubPreProd ]
+
+  IpvCoreStubAwsHeadlessWaspURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-aws-headless"
+      Type: String
+      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, ipvCoreStubAwsHeadless ]
+
+  IpvCoreStubAwsProd3rdpartyWaspURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-aws-prod_3rdparty"
+      Type: String
+      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, ipvCoreStubAwsProd3rdparty ]
+
+  IpvCoreStubAwsBuild3rdpartyWaspURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-aws-build_3rdparty"
+      Type: String
+      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, ipvCoreStubAwsBuild3rdparty ]
+
+  IpvCoreWaspURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core"
+      Type: String
+      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, ipvCore ]
+
+  IpvCore3rdPartyStubsWaspURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-3rd-party-stubs"
+      Type: String
+      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, ipvCore3rdPartyStubs ]
+
+  # IIQ Web Service URL
+  IpvCoreStubAwsProdIIQWebServiceURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-aws-prod"
+      Type: String
+      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, ipvCoreStubAwsProd ]
+
+  IpvCoreStubAwsBuildIIQWebServiceURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-aws-build"
+      Type: String
+      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, ipvCoreStubAwsBuild ]
+
+  IpvCoreStubIIQWebServiceURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub"
+      Type: String
+      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, ipvCoreStub ]
+
+  IpvCoreStubPreProdAwsBuildIIQWebServiceURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-pre-prod-aws-build"
+      Type: String
+      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, ipvCoreStubPreProdAwsBuild ]
+
+  IpvCoreStubPreProdIIQWebServiceURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-pre-prod"
+      Type: String
+      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, ipvCoreStubPreProd ]
+
+  IpvCoreStubAwsHeadlessIIQWebServiceURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-aws-headless"
+      Type: String
+      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, ipvCoreStubAwsHeadless ]
+
+  IpvCoreStubAwsProd3rdpartyIIQWebServiceURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-aws-prod_3rdparty"
+      Type: String
+      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, ipvCoreStubAwsProd3rdparty ]
+
+  IpvCoreStubAwsBuild3rdpartyIIQWebServiceURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-aws-build_3rdparty"
+      Type: String
+      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, ipvCoreStubAwsBuild3rdparty ]
+
+  IpvCoreIIQWebServiceURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core"
+      Type: String
+      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, ipvCore ]
+
+  IpvCore3rdPartyStubsIIQWebServiceURL:
+    Condition: IsStubEnvironment
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-3rd-party-stubs"
+      Type: String
+      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, ipvCore3rdPartyStubs ]
 
 Outputs:
   PublicKBVApiGatewayId:
