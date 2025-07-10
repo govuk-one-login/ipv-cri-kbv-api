@@ -12,6 +12,7 @@ pact-provider = "4.5.11"
 webcompere = "2.1.6"
 otel = "1.46.0"
 otel-alpha = "2.12.0-alpha"
+apache-cfx = "4.1.2"
 
 # Plugins
 spotless = "6.25.+"
@@ -43,9 +44,9 @@ javax-validation = { module = "javax.validation:validation-api", version = "2.0.
 
 # SOAP / CXF
 saaj = { module = "com.sun.xml.messaging.saaj:saaj-impl", version = "1.5.3" }
-cxf-jaxws = { module = "org.apache.cxf:cxf-rt-frontend-jaxws", version = "3.4.5" }
-cxf-http = { module = "org.apache.cxf:cxf-rt-transports-http", version = "3.4.5" }
-httpasyncclient = { module = "org.apache.httpcomponents:httpasyncclient", version = "4.1.4" }
+cxf-jaxws = { module = "org.apache.cxf:cxf-rt-frontend-jaxws", version.ref = "apache-cfx" }
+cxf-http = { module = "org.apache.cxf:cxf-rt-transports-http", version.ref = "apache-cfx" }
+httpasyncclient = { module = "org.apache.httpcomponents:httpasyncclient", version = "4.1.5" }
 
 # Powertools
 powertools-logging = { module = "software.amazon.lambda:powertools-logging", version.ref = "powertools" }
