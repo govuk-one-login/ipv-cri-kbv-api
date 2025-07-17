@@ -41,6 +41,21 @@ class SoapTokenRetrieverTest {
     }
 
     @Test
+    void shouldStoreMultipleTokens() {
+        String tokenA = generateValidToken();
+        String tokenB = generateValidToken();
+
+        when(soapTokenMock.getToken("a")).thenReturn(tokenA);
+        when(soapTokenMock.getToken("b")).thenReturn(tokenB);
+
+        String fetchedA = soapTokenRetriever.getSoapToken("a");
+        String fetchedB = soapTokenRetriever.getSoapToken("b");
+
+        assertEquals(tokenA, fetchedA);
+        assertEquals(tokenB, fetchedB);
+    }
+
+    @Test
     void isTokenValidWithinThresholdReturnsFalseWhenThereIsNoToken() {
         assertFalse(soapTokenRetriever.isTokenValidWithinThreshold(null));
     }
