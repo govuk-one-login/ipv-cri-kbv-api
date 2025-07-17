@@ -46,6 +46,7 @@ import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -106,13 +107,17 @@ class QuestionHandlerTest {
     @Mock private ConfigurationService mockConfigurationService;
     @Mock private AuditService mockAuditService;
     @Mock private SessionService sessionService;
+    @Mock private ServiceFactory mockServiceFactory;
     @Captor private ArgumentCaptor<Map<String, Object>> auditEventMap;
     @Captor private ArgumentCaptor<AuditEventContext> auditEventContextArgCaptor;
     private KBVService spyKBVService;
 
     @BeforeEach
     void setUp() {
-        spyKBVService = Mockito.spy(new KBVService(mockKBVGateway));
+        when(mockServiceFactory.getKbvGateway()).thenReturn(mockKBVGateway);
+
+        spyKBVService = Mockito.spy(new KBVService(mockServiceFactory));
+
         questionHandler =
                 new QuestionHandler(
                         mockObjectMapper,

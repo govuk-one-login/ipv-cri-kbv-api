@@ -92,7 +92,7 @@ public class QuestionHandler
                         serviceFactory.getConfigurationService(),
                         serviceFactory.getDynamoDbEnhancedClient());
 
-        this.kbvService = new KBVService(serviceFactory.getKbvGateway());
+        this.kbvService = new KBVService(serviceFactory);
         this.kbvStorageService =
                 new KBVStorageService(configurationService, dynamoDbEnhancedClient);
         this.auditService = serviceFactory.getAuditService();

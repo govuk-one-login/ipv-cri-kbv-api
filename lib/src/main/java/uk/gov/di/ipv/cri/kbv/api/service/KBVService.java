@@ -8,8 +8,8 @@ import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 public class KBVService {
     private final KBVGateway kbvGateway;
 
-    public KBVService(KBVGateway kbvGateway) {
-        this.kbvGateway = kbvGateway;
+    public KBVService(ServiceFactory serviceFactory) {
+        this.kbvGateway = serviceFactory.getKbvGateway();
     }
 
     public QuestionsResponse getQuestions(QuestionRequest questionRequest) {

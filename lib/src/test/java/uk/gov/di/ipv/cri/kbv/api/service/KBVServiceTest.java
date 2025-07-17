@@ -17,11 +17,15 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class KBVServiceTest {
     @Mock private KBVGateway mockKbvGateway;
+    @Mock private ServiceFactory mockServiceFactory;
+
     private KBVService kbvService;
 
     @BeforeEach
     void setUp() {
-        this.kbvService = new KBVService(mockKbvGateway);
+        when(mockServiceFactory.getKbvGateway()).thenReturn(mockKbvGateway);
+
+        this.kbvService = new KBVService(mockServiceFactory);
     }
 
     @Test

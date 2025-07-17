@@ -37,6 +37,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -82,15 +83,18 @@ class QuestionAnswerHandlerTest {
     @Mock private ConfigurationService mockConfigurationService;
     @Mock private AuditService mockAuditService;
     @Mock private KBVGateway mockKBVGateway;
+    @Mock private ServiceFactory mockServiceFactory;
     @Captor private ArgumentCaptor<Map<String, Object>> auditEventExtensionsArgCaptor;
 
     @BeforeEach
     void setUp() {
+        when(mockServiceFactory.getKbvGateway()).thenReturn(mockKBVGateway);
+
         questionAnswerHandler =
                 new QuestionAnswerHandler(
                         mockObjectMapper,
                         mockKBVStorageService,
-                        Mockito.spy(new KBVService(mockKBVGateway)),
+                        Mockito.spy(new KBVService(mockServiceFactory)),
                         mockEventProbe,
                         mockSessionService,
                         mockConfigurationService,
