@@ -83,19 +83,16 @@ public class ServiceFactory {
 
     public KBVGateway getKbvGateway() {
         if (this.kbvGateway == null) {
-            this.kbvGateway =
-                    getKbvGateway(
-                            new KeyStoreLoader(getConfigurationService()), getKbvClientFactory());
+            this.kbvGateway = getKbvGateway(new KeyStoreLoader(getConfigurationService()));
         }
         return this.kbvGateway;
     }
 
-    KBVGateway getKbvGateway(KeyStoreLoader keyStoreLoader, KBVClientFactory kbvClientFactory) {
-        return new KBVGatewayFactory(keyStoreLoader, kbvClientFactory, getConfigurationService())
-                .create();
+    KBVGateway getKbvGateway(KeyStoreLoader keyStoreLoader) {
+        return new KBVGatewayFactory(keyStoreLoader, getConfigurationService()).create();
     }
 
-    private KBVClientFactory getKbvClientFactory() {
+    public KBVClientFactory getKbvClientFactory() {
         TokenService tokenService = new TokenService();
         SoapToken soapToken =
                 new SoapToken(

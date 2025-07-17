@@ -72,7 +72,7 @@ class KBVGatewayTest {
         when(mockQuestionsResponseMapper.mapSAAResponse(mockSaaResponse))
                 .thenReturn(mockQuestionsResponse);
 
-        kbvGateway.getQuestions(questionRequest);
+        kbvGateway.getQuestions(mockIdentityIQWebServiceSoap, questionRequest);
 
         verify(mockSAARequestMapper).mapQuestionRequest(questionRequest);
         verify(mockIdentityIQWebServiceSoap).saa(mockSaaRequest);
@@ -93,27 +93,13 @@ class KBVGatewayTest {
         when(mockIdentityIQWebServiceSoap.rtq(mockRtqRequest)).thenReturn(mockRtqResponse);
         when(mockQuestionsResponseMapper.mapRTQResponse(mockRtqResponse))
                 .thenReturn(mockQuestionsResponse);
-        kbvGateway.submitAnswers(questionAnswerRequest);
+        kbvGateway.submitAnswers(mockIdentityIQWebServiceSoap, questionAnswerRequest);
 
         verify(mockResponseToQuestionMapper).mapQuestionAnswersRtqRequest(questionAnswerRequest);
         verify(mockIdentityIQWebServiceSoap).rtq(mockRtqRequest);
         verify(mockQuestionsResponseMapper).mapRTQResponse(mockRtqResponse);
         verify(mockMetricsService).sendDurationMetric(eq("submit_answers_duration"), anyLong());
         verify(mockMetricsService).sendResultMetric("submit_questions_response", mockKbvResult);
-    }
-
-    @Test
-    void shouldThrowNullPointerExceptionWhenIdentityIQWebServiceIsNull() {
-        assertThrows(
-                NullPointerException.class,
-                () ->
-                        new KBVGateway(
-                                mockSAARequestMapper,
-                                mockResponseToQuestionMapper,
-                                mockQuestionsResponseMapper,
-                                null,
-                                mockMetricsService),
-                "identityIQWebServiceSoap must not be null");
     }
 
     @Test
@@ -125,7 +111,6 @@ class KBVGatewayTest {
                                 null,
                                 mockResponseToQuestionMapper,
                                 mockQuestionsResponseMapper,
-                                mockIdentityIQWebServiceSoap,
                                 mockMetricsService),
                 "saaRequestMapper must not be null");
     }
@@ -139,7 +124,6 @@ class KBVGatewayTest {
                                 mockSAARequestMapper,
                                 mockResponseToQuestionMapper,
                                 null,
-                                mockIdentityIQWebServiceSoap,
                                 mockMetricsService),
                 "questionsResponseMapper must not be null");
     }
@@ -153,7 +137,6 @@ class KBVGatewayTest {
                                 mockSAARequestMapper,
                                 mockResponseToQuestionMapper,
                                 mockQuestionsResponseMapper,
-                                mockIdentityIQWebServiceSoap,
                                 null),
                 "metricsService must not be null");
     }
@@ -167,7 +150,6 @@ class KBVGatewayTest {
                                 mockSAARequestMapper,
                                 null,
                                 mockQuestionsResponseMapper,
-                                mockIdentityIQWebServiceSoap,
                                 mockMetricsService),
                 "rtqRequestMapper must not be null");
     }

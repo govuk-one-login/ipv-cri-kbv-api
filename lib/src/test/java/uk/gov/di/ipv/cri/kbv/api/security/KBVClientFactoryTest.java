@@ -23,6 +23,8 @@ import static org.mockito.Mockito.withSettings;
 
 @ExtendWith(MockitoExtension.class)
 class KBVClientFactoryTest {
+    private static final String MOCK_CLIENT_ID = "mock_client_id";
+
     @Mock private IdentityIQWebService identityIQWebService;
     @Mock private HeaderHandlerResolver headerHandlerResolver;
     @Mock private ConfigurationService configurationService;
@@ -42,7 +44,7 @@ class KBVClientFactoryTest {
         when(configurationService.getSecretValue("experian/iiq-webservice"))
                 .thenReturn("http://test-endpoint");
 
-        IdentityIQWebServiceSoap result = kbvClientFactory.createClient();
+        IdentityIQWebServiceSoap result = kbvClientFactory.createClient(MOCK_CLIENT_ID);
 
         verify(identityIQWebService).setHandlerResolver(headerHandlerResolver);
         verify(identityIQWebService).getIdentityIQWebServiceSoap();
@@ -59,7 +61,7 @@ class KBVClientFactoryTest {
                 assertThrows(
                         InvalidSoapTokenException.class,
                         () -> {
-                            kbvClientFactory.createClient();
+                            kbvClientFactory.createClient(MOCK_CLIENT_ID);
                         });
 
         assertEquals("SOAP Fault occurred: null", exception.getMessage());
@@ -76,7 +78,7 @@ class KBVClientFactoryTest {
                 assertThrows(
                         InvalidSoapTokenException.class,
                         () -> {
-                            kbvClientFactory.createClient();
+                            kbvClientFactory.createClient(MOCK_CLIENT_ID);
                         });
 
         assertEquals("Web Service error occurred: null", exception.getMessage());
@@ -93,7 +95,7 @@ class KBVClientFactoryTest {
                 assertThrows(
                         InvalidSoapTokenException.class,
                         () -> {
-                            kbvClientFactory.createClient();
+                            kbvClientFactory.createClient(MOCK_CLIENT_ID);
                         });
 
         assertEquals("Unexpected error occurred: null", exception.getMessage());

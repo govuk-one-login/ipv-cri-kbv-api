@@ -23,7 +23,7 @@ public class KBVClientFactory {
         this.configurationService = configurationService;
     }
 
-    public IdentityIQWebServiceSoap createClient() {
+    public IdentityIQWebServiceSoap createClient(String clientId) {
         try {
             identityIQWebService.setHandlerResolver(headerHandlerResolver);
 
