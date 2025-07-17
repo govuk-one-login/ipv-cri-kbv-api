@@ -149,8 +149,10 @@ public class QuestionHandler
                 return createNoContentResponse();
             }
 
+            String clientId = sessionItem.getClientId();
+
             IdentityIQWebServiceSoap identityIQWebServiceSoap =
-                    serviceFactory.getKbvClientFactory().createClient(sessionItem.getClientId());
+                    serviceFactory.getKbvClientFactory(clientId).createClient(clientId);
 
             KbvQuestion question =
                     processQuestionRequest(

@@ -50,6 +50,7 @@ import static uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtilsTest.generateToken;
 
 @ExtendWith(MockitoExtension.class)
 class KBVGatewayTest {
+    private static final String MOCK_CLIENT_ID = "mock-client-id";
     @Mock private QuestionRequest questionRequest;
     @Mock private QuestionAnswerRequest questionAnswerRequest;
     @Mock private StartAuthnAttemptRequestMapper mockSAARequestMapper;
@@ -200,13 +201,13 @@ class KBVGatewayTest {
 
         private void mockTokenRetriever() {
             soapTokenRetriever = new SoapTokenRetriever(soapTokenMock);
-            when(soapTokenMock.getToken()).thenReturn(soapToken);
+            when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn(soapToken);
             when(soapMessageContextMock.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY))
                     .thenReturn(true);
         }
 
         private void initializeWrapper() {
-            HeaderHandler headerHandler = new HeaderHandler(soapTokenRetriever);
+            HeaderHandler headerHandler = new HeaderHandler(soapTokenRetriever, MOCK_CLIENT_ID);
             headerHandler.handleMessage(soapMessageContextMock);
 
             mockIdentityIQWebServiceSoap =
@@ -226,7 +227,7 @@ class KBVGatewayTest {
 
             assertEquals(response, result);
             verify(mockIdentityIQWebServiceSoap).saa(request);
-            verify(soapTokenMock, times(1)).getToken();
+            verify(soapTokenMock, times(1)).getToken(MOCK_CLIENT_ID);
         }
 
         @Test
@@ -240,7 +241,7 @@ class KBVGatewayTest {
 
             assertEquals(response, result);
             verify(mockIdentityIQWebServiceSoap).rtq(rTQRequest);
-            verify(soapTokenMock, times(1)).getToken();
+            verify(soapTokenMock, times(1)).getToken(MOCK_CLIENT_ID);
         }
 
         @Test
@@ -251,7 +252,7 @@ class KBVGatewayTest {
             when(mockIdentityIQWebServiceSoap.saa(sAARequest)).thenReturn(response);
             mockIdentityIQWebServiceSoap.saa(sAARequest);
 
-            verify(soapTokenMock, times(1)).getToken();
+            verify(soapTokenMock, times(1)).getToken(MOCK_CLIENT_ID);
         }
 
         @Test
@@ -262,7 +263,7 @@ class KBVGatewayTest {
             when(mockIdentityIQWebServiceSoap.rtq(rTQRequest)).thenReturn(response);
             mockIdentityIQWebServiceSoap.rtq(rTQRequest);
 
-            verify(soapTokenMock, times(1)).getToken();
+            verify(soapTokenMock, times(1)).getToken(MOCK_CLIENT_ID);
         }
 
         @Test
@@ -270,7 +271,7 @@ class KBVGatewayTest {
             SAARequest sAARequest = new SAARequest();
             soapTokenMock = mock(SoapToken.class);
             soapTokenRetriever = new SoapTokenRetriever(soapTokenMock);
-            HeaderHandler headerHandler = new HeaderHandler(soapTokenRetriever);
+            HeaderHandler headerHandler = new HeaderHandler(soapTokenRetriever, MOCK_CLIENT_ID);
 
             HeaderHandlerException exception =
                     assertThrows(
@@ -283,7 +284,7 @@ class KBVGatewayTest {
                     "Error in SOAP HeaderHandler: The token must not be null",
                     exception.getMessage());
 
-            verify(soapTokenMock, times(3)).getToken();
+            verify(soapTokenMock, times(3)).getToken(MOCK_CLIENT_ID);
         }
 
         @Test
@@ -292,7 +293,7 @@ class KBVGatewayTest {
             RTQRequest rTQRequest = new RTQRequest();
             soapTokenMock = mock(SoapToken.class);
             soapTokenRetriever = new SoapTokenRetriever(soapTokenMock);
-            HeaderHandler headerHandler = new HeaderHandler(soapTokenRetriever);
+            HeaderHandler headerHandler = new HeaderHandler(soapTokenRetriever, MOCK_CLIENT_ID);
 
             HeaderHandlerException exception =
                     assertThrows(
@@ -304,7 +305,7 @@ class KBVGatewayTest {
                     "Error in SOAP HeaderHandler: The token must not be null",
                     exception.getMessage());
 
-            verify(soapTokenMock, times(3)).getToken();
+            verify(soapTokenMock, times(3)).getToken(MOCK_CLIENT_ID);
         }
     }
 }

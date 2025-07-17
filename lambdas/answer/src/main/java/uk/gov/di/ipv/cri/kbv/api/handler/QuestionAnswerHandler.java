@@ -155,8 +155,12 @@ public class QuestionAnswerHandler
         var sessionItem = sessionService.validateSessionId(requestHeaders.get(HEADER_SESSION_ID));
         var kbvItem = kbvStorageService.getKBVItem(sessionItem.getSessionId());
 
+        String clientId = sessionItem.getClientId();
+
         IdentityIQWebServiceSoap identityIQWebServiceSoap =
-                serviceFactory.getKbvClientFactory().createClient(sessionItem.getClientId());
+                serviceFactory
+                        .getKbvClientFactory(clientId)
+                        .createClient(sessionItem.getClientId());
 
         var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
         var submittedAnswer = objectMapper.readValue(requestBody, QuestionAnswer.class);

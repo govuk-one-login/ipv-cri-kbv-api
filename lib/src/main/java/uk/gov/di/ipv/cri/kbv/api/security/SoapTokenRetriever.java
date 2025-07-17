@@ -26,7 +26,7 @@ public class SoapTokenRetriever {
         this.cachedToken = null;
     }
 
-    public String getSoapToken() {
+    public String getSoapToken(String clientId) {
         if (cachedToken != null && isTokenValidWithinThreshold(cachedToken)) {
             LOGGER.info("Using cached SOAP token");
             return this.cachedToken;
@@ -38,7 +38,7 @@ public class SoapTokenRetriever {
         for (int retry = 0; retry < MAX_NUMBER_OF_TOKEN_RETRIES; retry++) {
             sleepBeforeRetry(retry);
             try {
-                token = soapToken.getToken();
+                token = soapToken.getToken(clientId);
                 if (token == null) {
                     LOGGER.warn("Received null token from Experian.");
                     continue;

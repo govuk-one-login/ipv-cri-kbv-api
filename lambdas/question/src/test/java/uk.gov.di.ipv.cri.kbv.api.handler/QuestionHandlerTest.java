@@ -113,7 +113,9 @@ class QuestionHandlerTest {
     @BeforeEach
     void setUp() {
         when(mockServiceFactory.getKbvGateway()).thenReturn(mockKBVGateway);
-        lenient().when(mockServiceFactory.getKbvClientFactory()).thenReturn(mockKBVClientFactory);
+        lenient()
+                .when(mockServiceFactory.getKbvClientFactory("mock-client-id"))
+                .thenReturn(mockKBVClientFactory);
         lenient()
                 .when(mockKBVClientFactory.createClient(any()))
                 .thenReturn(mock(IdentityIQWebServiceSoap.class));
@@ -155,7 +157,7 @@ class QuestionHandlerTest {
                 expectedQuestion = new ObjectMapper().writeValueAsString(getQuestionOne());
 
                 lenient()
-                        .when(mockServiceFactory.getKbvClientFactory())
+                        .when(mockServiceFactory.getKbvClientFactory("mock-client-id"))
                         .thenReturn(mockKBVClientFactory);
                 lenient()
                         .when(mockKBVClientFactory.createClient(any()))
@@ -357,6 +359,7 @@ class QuestionHandlerTest {
             QuestionState questionStateMock = mock(QuestionState.class);
             SessionItem mockSessionItem = mock(SessionItem.class);
             when(mockSessionItem.getEvidenceRequest()).thenReturn(mock(EvidenceRequest.class));
+            when(mockSessionItem.getClientId()).thenReturn("mock-client-id");
             when(sessionService.validateSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                     .thenReturn(mockSessionItem);
 

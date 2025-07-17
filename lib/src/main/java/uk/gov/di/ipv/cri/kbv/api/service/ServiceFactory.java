@@ -92,7 +92,7 @@ public class ServiceFactory {
         return new KBVGatewayFactory(keyStoreLoader, getConfigurationService()).create();
     }
 
-    public KBVClientFactory getKbvClientFactory() {
+    public KBVClientFactory getKbvClientFactory(String clientId) {
         TokenService tokenService = new TokenService();
         SoapToken soapToken =
                 new SoapToken(
@@ -101,7 +101,8 @@ public class ServiceFactory {
                         tokenService,
                         configurationService,
                         new MetricsService(new EventProbe()));
-        HeaderHandler headerHandler = new HeaderHandler(new SoapTokenRetriever(soapToken));
+        HeaderHandler headerHandler =
+                new HeaderHandler(new SoapTokenRetriever(soapToken), clientId);
         HeaderHandlerResolver headerResolver = new HeaderHandlerResolver(headerHandler);
 
         return new KBVClientFactory(

@@ -86,7 +86,9 @@ class QuestionAnswerHandlerTest {
     @BeforeEach
     void setUp() {
         lenient().when(mockServiceFactory.getKbvGateway()).thenReturn(mockKBVGateway);
-        lenient().when(mockServiceFactory.getKbvClientFactory()).thenReturn(mockKBVClientFactory);
+        lenient()
+                .when(mockServiceFactory.getKbvClientFactory(MOCK_CLIENT_ID))
+                .thenReturn(mockKBVClientFactory);
         lenient()
                 .when(mockKBVClientFactory.createClient(any()))
                 .thenReturn(mock(IdentityIQWebServiceSoap.class));

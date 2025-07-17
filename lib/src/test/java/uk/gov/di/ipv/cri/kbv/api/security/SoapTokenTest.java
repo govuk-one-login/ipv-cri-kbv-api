@@ -27,6 +27,7 @@ import static org.mockito.Mockito.withSettings;
 
 @ExtendWith(MockitoExtension.class)
 class SoapTokenTest {
+    private static final String MOCK_CLIENT_ID = "mock-client-id";
     @Mock private TokenService tokenServiceMock;
     @Mock private ConfigurationService configurationServiceMock;
     @Mock private TokenServiceSoap tokenServiceSoapMock;
@@ -61,7 +62,7 @@ class SoapTokenTest {
     void shouldReturnAValidSoapToken() {
         when(tokenServiceSoapMock.loginWithCertificate(application, checkIp)).thenReturn(token);
 
-        String result = soapToken.getToken();
+        String result = soapToken.getToken(MOCK_CLIENT_ID);
 
         verify(tokenServiceMock).getTokenServiceSoap();
         verify(configurationServiceMock).getSecretValue("experian/iiq-wasp-service");
@@ -77,7 +78,8 @@ class SoapTokenTest {
         when(soapFaultException.getMessage()).thenReturn("SOAP Fault");
 
         InvalidSoapTokenException exception =
-                assertThrows(InvalidSoapTokenException.class, soapToken::getToken);
+                assertThrows(
+                        InvalidSoapTokenException.class, () -> soapToken.getToken(MOCK_CLIENT_ID));
 
         verify(tokenServiceMock).getTokenServiceSoap();
         verify(configurationServiceMock).getSecretValue("experian/iiq-wasp-service");
@@ -90,7 +92,8 @@ class SoapTokenTest {
                 .thenThrow(new WebServiceException("Web Service error"));
 
         InvalidSoapTokenException exception =
-                assertThrows(InvalidSoapTokenException.class, soapToken::getToken);
+                assertThrows(
+                        InvalidSoapTokenException.class, () -> soapToken.getToken(MOCK_CLIENT_ID));
 
         verify(tokenServiceMock).getTokenServiceSoap();
         verify(configurationServiceMock).getSecretValue("experian/iiq-wasp-service");
@@ -103,7 +106,8 @@ class SoapTokenTest {
                 .thenThrow(new RuntimeException("Unexpected error"));
 
         InvalidSoapTokenException exception =
-                assertThrows(InvalidSoapTokenException.class, soapToken::getToken);
+                assertThrows(
+                        InvalidSoapTokenException.class, () -> soapToken.getToken(MOCK_CLIENT_ID));
 
         verify(tokenServiceMock).getTokenServiceSoap();
         verify(configurationServiceMock).getSecretValue("experian/iiq-wasp-service");
