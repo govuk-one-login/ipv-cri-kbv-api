@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -93,7 +94,7 @@ class HeaderHandlerTest {
 
         @Test
         void shouldHandleMessageOutbound() throws SOAPException {
-            when(soapTokenRetrieverMock.getSoapToken()).thenReturn(MOCKED_TOKEN_VALUE);
+            when(soapTokenRetrieverMock.getSoapToken(any())).thenReturn(MOCKED_TOKEN_VALUE);
 
             when(soapMessageContextMock.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY))
                     .thenReturn(true);
@@ -102,14 +103,13 @@ class HeaderHandlerTest {
             boolean result = headerHandler.handleMessage(soapMessageContextMock);
 
             verify(soapEnvelopeMock).addHeader();
-            verify(soapTokenRetrieverMock).getSoapToken();
             verify(soapMessageMock).saveChanges();
             assertTrue(result);
         }
 
         @Test
         void shouldDetachSoapCurrentHeaderIfNotNull() throws SOAPException {
-            when(soapTokenRetrieverMock.getSoapToken()).thenReturn(MOCKED_TOKEN_VALUE);
+            when(soapTokenRetrieverMock.getSoapToken(any())).thenReturn(MOCKED_TOKEN_VALUE);
             when(soapMessageContextMock.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY))
                     .thenReturn(true);
             when(soapEnvelopeMock.getHeader()).thenReturn(soapHeader);
@@ -118,14 +118,13 @@ class HeaderHandlerTest {
 
             verify(soapHeader).detachNode();
             verify(soapEnvelopeMock).addHeader();
-            verify(soapTokenRetrieverMock).getSoapToken();
             verify(soapMessageMock).saveChanges();
             assertTrue(result);
         }
 
         @Test
         void shouldThrowHeaderHandlerExceptionWhenTokenIsNull() {
-            when(soapTokenRetrieverMock.getSoapToken()).thenReturn(null);
+            when(soapTokenRetrieverMock.getSoapToken(any())).thenReturn(null);
             when(soapMessageContextMock.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY))
                     .thenReturn(true);
             Exception exception =
@@ -143,7 +142,7 @@ class HeaderHandlerTest {
         void shouldThrowWhenTokenHasExpired() {
             String token = "{}." + encodeBase64Url(String.format("{\"exp\": \"%d\"}", 0)) + ".{}";
 
-            when(soapTokenRetrieverMock.getSoapToken()).thenReturn(token);
+            when(soapTokenRetrieverMock.getSoapToken(any())).thenReturn(token);
             when(soapMessageContextMock.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY))
                     .thenReturn(true);
             Exception exception =
@@ -168,7 +167,7 @@ class HeaderHandlerTest {
                                                     + TimeUnit.HOURS.toSeconds(3)))
                             + ".{}";
 
-            when(soapTokenRetrieverMock.getSoapToken()).thenReturn(token);
+            when(soapTokenRetrieverMock.getSoapToken(any())).thenReturn(token);
             when(soapMessageContextMock.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY))
                     .thenReturn(true);
 
@@ -177,7 +176,7 @@ class HeaderHandlerTest {
 
         @Test
         void shouldThrowHeaderHandlerExceptionWhenSoapTokenHasAnError() {
-            when(soapTokenRetrieverMock.getSoapToken()).thenReturn("Error");
+            when(soapTokenRetrieverMock.getSoapToken(any())).thenReturn("Error");
             when(soapMessageContextMock.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY))
                     .thenReturn(true);
             Exception exception =
@@ -193,7 +192,7 @@ class HeaderHandlerTest {
 
         @Test
         void shouldThrowHeaderHandlerExceptionWhenThereIsASoapFault() {
-            when(soapTokenRetrieverMock.getSoapToken())
+            when(soapTokenRetrieverMock.getSoapToken(any()))
                     .thenThrow(new InvalidSoapTokenException("SOAP Fault occurred"));
             when(soapMessageContextMock.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY))
                     .thenReturn(true);

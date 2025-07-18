@@ -35,7 +35,7 @@ public class SoapToken {
         this.metricsService = metricsService;
     }
 
-    public String getToken() {
+    public String getToken(String clientId) {
         Span span =
                 OpenTelemetryUtil.createSpan(
                         this.getClass(),

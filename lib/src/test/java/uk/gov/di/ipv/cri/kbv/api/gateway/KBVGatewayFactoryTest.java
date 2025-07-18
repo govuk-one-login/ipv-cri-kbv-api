@@ -1,6 +1,5 @@
 package uk.gov.di.ipv.cri.kbv.api.gateway;
 
-import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,7 +18,6 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class KBVGatewayFactoryTest {
@@ -32,15 +30,9 @@ class KBVGatewayFactoryTest {
     void shouldCreateKbvGatewaySuccessfully() throws IOException {
         ConfigurationService configurationServiceMock = mock(ConfigurationService.class);
 
-        IdentityIQWebServiceSoap identityIQWebServiceSoapMock =
-                mock(IdentityIQWebServiceSoap.class);
-
         doNothing().when(keyStoreLoaderMock).load();
-        when(kbvClientFactoryMock.createClient()).thenReturn(identityIQWebServiceSoapMock);
 
-        kbvGatewayFactory =
-                new KBVGatewayFactory(
-                        keyStoreLoaderMock, kbvClientFactoryMock, configurationServiceMock);
+        kbvGatewayFactory = new KBVGatewayFactory(keyStoreLoaderMock, configurationServiceMock);
 
         KBVGateway kbvGateway = kbvGatewayFactory.create();
 

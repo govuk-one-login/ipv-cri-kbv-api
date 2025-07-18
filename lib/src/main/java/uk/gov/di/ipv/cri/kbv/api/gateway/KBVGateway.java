@@ -37,18 +37,13 @@ public class KBVGateway {
     private final StartAuthnAttemptRequestMapper saaRequestMapper;
     private final ResponseToQuestionMapper responseToQuestionMapper;
     private final QuestionsResponseMapper questionsResponseMapper;
-    private final IdentityIQWebServiceSoap identityIQWebServiceSoap;
     private final MetricsService metricsService;
 
     KBVGateway(
             StartAuthnAttemptRequestMapper saaRequestMapper,
             ResponseToQuestionMapper responseToQuestionMapper,
             QuestionsResponseMapper questionsResponseMapper,
-            IdentityIQWebServiceSoap identityIQWebServiceSoap,
             MetricsService metricsService) {
-        this.identityIQWebServiceSoap =
-                Objects.requireNonNull(
-                        identityIQWebServiceSoap, "identityIQWebServiceSoap must not be null");
         this.saaRequestMapper =
                 Objects.requireNonNull(saaRequestMapper, "saaRequestMapper must not be null");
         this.responseToQuestionMapper =
@@ -62,7 +57,8 @@ public class KBVGateway {
     }
 
     @Tracing
-    public QuestionsResponse getQuestions(QuestionRequest questionRequest) {
+    public QuestionsResponse getQuestions(
+            IdentityIQWebServiceSoap identityIQWebServiceSoap, QuestionRequest questionRequest) {
         SAARequest saaRequest = saaRequestMapper.mapQuestionRequest(questionRequest);
 
         Span span =
@@ -74,7 +70,8 @@ public class KBVGateway {
 
         long startTime = System.nanoTime();
 
-        SAAResponse2 saaResponse2 = getQuestionRequestResponse(saaRequest);
+        SAAResponse2 saaResponse2 =
+                getQuestionRequestResponse(identityIQWebServiceSoap, saaRequest);
 
         long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
 
@@ -103,7 +100,9 @@ public class KBVGateway {
     }
 
     @Tracing
-    public QuestionsResponse submitAnswers(QuestionAnswerRequest questionAnswerRequest) {
+    public QuestionsResponse submitAnswers(
+            IdentityIQWebServiceSoap identityIQWebServiceSoap,
+            QuestionAnswerRequest questionAnswerRequest) {
         RTQRequest rtqRequest =
                 responseToQuestionMapper.mapQuestionAnswersRtqRequest(questionAnswerRequest);
 
@@ -116,7 +115,8 @@ public class KBVGateway {
                         "RTQ",
                         "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/RTQ");
 
-        RTQResponse2 rtqResponse2 = submitQuestionAnswerResponse(rtqRequest);
+        RTQResponse2 rtqResponse2 =
+                submitQuestionAnswerResponse(identityIQWebServiceSoap, rtqRequest);
 
         long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
 
@@ -141,13 +141,15 @@ public class KBVGateway {
     }
 
     @Tracing(segmentName = "getQuestionResponse")
-    private SAAResponse2 getQuestionRequestResponse(SAARequest saaRequest) {
+    private SAAResponse2 getQuestionRequestResponse(
+            IdentityIQWebServiceSoap identityIQWebServiceSoap, SAARequest saaRequest) {
         TracingUtils.putAnnotation(EXPERIAN_IIQ_REQUEST, EXPERIAN_INITIAL_QUESTION_RESPONSE);
         return identityIQWebServiceSoap.saa(saaRequest);
     }
 
     @Tracing(segmentName = "submitQuestionAnswerResponse")
-    private RTQResponse2 submitQuestionAnswerResponse(RTQRequest rtqRequest) {
+    private RTQResponse2 submitQuestionAnswerResponse(
+            IdentityIQWebServiceSoap identityIQWebServiceSoap, RTQRequest rtqRequest) {
         TracingUtils.putAnnotation(EXPERIAN_IIQ_REQUEST, EXPERIAN_SUBMIT_RESPONSE);
         return identityIQWebServiceSoap.rtq(rtqRequest);
     }

@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -60,9 +61,12 @@ public class QuestionAnswerHandler
     private final ConfigurationService configurationService;
     private static final Logger LOGGER = LogManager.getLogger(QuestionAnswerHandler.class);
 
+    private final ServiceFactory serviceFactory;
+
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
-        ServiceFactory serviceFactory = new ServiceFactory();
+        this.serviceFactory = new ServiceFactory();
+
         DynamoDbEnhancedClient dynamoDbEnhancedClient = serviceFactory.getDynamoDbEnhancedClient();
 
         this.configurationService = serviceFactory.getConfigurationService();
@@ -70,14 +74,15 @@ public class QuestionAnswerHandler
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.kbvStorageService =
                 new KBVStorageService(configurationService, dynamoDbEnhancedClient);
-        this.kbvService = new KBVService(serviceFactory.getKbvGateway());
+        this.kbvService = new KBVService(serviceFactory);
         this.sessionService = serviceFactory.getSessionService();
         this.auditService = serviceFactory.getAuditService();
 
         this.eventProbe = new EventProbe();
     }
 
-    public QuestionAnswerHandler(
+    public QuestionAnswerHandler( // NOSONAR
+            ServiceFactory serviceFactory,
             ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
             KBVService kbvService,
@@ -85,6 +90,7 @@ public class QuestionAnswerHandler
             SessionService sessionService,
             ConfigurationService configurationService,
             AuditService auditService) {
+        this.serviceFactory = serviceFactory;
         this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
         this.sessionService = sessionService;
@@ -149,15 +155,26 @@ public class QuestionAnswerHandler
         var sessionItem = sessionService.validateSessionId(requestHeaders.get(HEADER_SESSION_ID));
         var kbvItem = kbvStorageService.getKBVItem(sessionItem.getSessionId());
 
+        String clientId = sessionItem.getClientId();
+
+        IdentityIQWebServiceSoap identityIQWebServiceSoap =
+                serviceFactory
+                        .getKbvClientFactory(clientId)
+                        .createClient(sessionItem.getClientId());
+
         var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
         var submittedAnswer = objectMapper.readValue(requestBody, QuestionAnswer.class);
 
-        if (respondWithAnswerFromDbStore(submittedAnswer, questionState, kbvItem)) return;
+        if (respondWithAnswerFromDbStore(submittedAnswer, questionState, kbvItem)) {
+            return;
+        }
+
         respondWithAnswerFromExperianThenStoreInDb(
-                questionState, kbvItem, sessionItem, requestHeaders);
+                identityIQWebServiceSoap, questionState, kbvItem, sessionItem, requestHeaders);
     }
 
     private void respondWithAnswerFromExperianThenStoreInDb(
+            IdentityIQWebServiceSoap identityIQWebServiceSoap,
             QuestionState questionState,
             KBVItem kbvItem,
             SessionItem sessionItem,
@@ -174,7 +191,8 @@ public class QuestionAnswerHandler
         LOGGER.info(
                 "ANSWER HANDLER: QuestionIds: {} answered and sent to 3rd-party",
                 questionAnswerRequest.getAllQuestionIdAnswered());
-        var questionsResponse = kbvService.submitAnswers(questionAnswerRequest);
+        var questionsResponse =
+                kbvService.submitAnswers(identityIQWebServiceSoap, questionAnswerRequest);
         auditService.sendAuditEvent(
                 AuditEventType.RESPONSE_RECEIVED,
                 new AuditEventContext(requestHeaders, sessionItem),

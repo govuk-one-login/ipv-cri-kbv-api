@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -80,9 +81,12 @@ public class QuestionHandler
     private final SessionService sessionService;
     private static final Logger LOGGER = LogManager.getLogger(QuestionHandler.class);
 
+    private final ServiceFactory serviceFactory;
+
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
-        ServiceFactory serviceFactory = new ServiceFactory();
+        this.serviceFactory = new ServiceFactory();
+
         DynamoDbEnhancedClient dynamoDbEnhancedClient = serviceFactory.getDynamoDbEnhancedClient();
         this.configurationService = serviceFactory.getConfigurationService();
 
@@ -92,7 +96,7 @@ public class QuestionHandler
                         serviceFactory.getConfigurationService(),
                         serviceFactory.getDynamoDbEnhancedClient());
 
-        this.kbvService = new KBVService(serviceFactory.getKbvGateway());
+        this.kbvService = new KBVService(serviceFactory);
         this.kbvStorageService =
                 new KBVStorageService(configurationService, dynamoDbEnhancedClient);
         this.auditService = serviceFactory.getAuditService();
@@ -101,6 +105,7 @@ public class QuestionHandler
     }
 
     public QuestionHandler(
+            ServiceFactory serviceFactory,
             ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
             PersonIdentityService personIdentityService,
@@ -109,6 +114,7 @@ public class QuestionHandler
             EventProbe eventProbe,
             AuditService auditService,
             SessionService sessionService) {
+        this.serviceFactory = serviceFactory;
         this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
         this.personIdentityService = personIdentityService;
@@ -142,8 +148,19 @@ public class QuestionHandler
                 eventProbe.counterMetric(LAMBDA_NAME);
                 return createNoContentResponse();
             }
+
+            String clientId = sessionItem.getClientId();
+
+            IdentityIQWebServiceSoap identityIQWebServiceSoap =
+                    serviceFactory.getKbvClientFactory(clientId).createClient(clientId);
+
             KbvQuestion question =
-                    processQuestionRequest(questionState, kbvItem, sessionItem, input.getHeaders());
+                    processQuestionRequest(
+                            identityIQWebServiceSoap,
+                            questionState,
+                            kbvItem,
+                            sessionItem,
+                            input.getHeaders());
             eventProbe.addDimensions(
                     Map.of(METRIC_DIMENSION_QUESTION_ID, question.getQuestionId()));
             eventProbe.counterMetric(LAMBDA_NAME);
@@ -183,6 +200,7 @@ public class QuestionHandler
 
     @Tracing
     KbvQuestion processQuestionRequest(
+            IdentityIQWebServiceSoap identityIQWebServiceSoap,
             QuestionState questionState,
             KBVItem kbvItem,
             SessionItem sessionItem,
@@ -193,7 +211,9 @@ public class QuestionHandler
         if (questionOptional.isPresent()) {
             return questionOptional.get();
         }
-        var questionsResponse = getQuestionAnswerResponse(kbvItem, sessionItem, requestHeaders);
+        var questionsResponse =
+                getQuestionAnswerResponse(
+                        identityIQWebServiceSoap, kbvItem, sessionItem, requestHeaders);
         questionOptional = getQuestionFromResponse(questionsResponse, questionState);
         sendQuestionReceivedAuditEvent(questionsResponse, sessionItem, requestHeaders);
         sendAuditEventIfThinFileEncountered(questionsResponse, sessionItem, requestHeaders);
@@ -238,7 +258,10 @@ public class QuestionHandler
     }
 
     private QuestionsResponse getQuestionAnswerResponse(
-            KBVItem kbvItem, SessionItem sessionItem, Map<String, String> requestHeaders)
+            IdentityIQWebServiceSoap identityIQWebServiceSoap,
+            KBVItem kbvItem,
+            SessionItem sessionItem,
+            Map<String, String> requestHeaders)
             throws SqsException, JsonProcessingException, InvalidStrategyScoreException {
         Objects.requireNonNull(kbvItem, "kbvItem cannot be null");
 
@@ -249,7 +272,7 @@ public class QuestionHandler
 
         sendQuestionRequestSentAuditEvent(sessionItem, personIdentity, requestHeaders);
         sendExperianIIQStartedAuditEvent(sessionItem, requestHeaders);
-        return this.kbvService.getQuestions(questionRequest);
+        return this.kbvService.getQuestions(identityIQWebServiceSoap, questionRequest);
     }
 
     private QuestionRequest createQuestionRequest(
