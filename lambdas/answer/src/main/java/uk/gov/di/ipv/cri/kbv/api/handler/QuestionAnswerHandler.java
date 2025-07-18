@@ -81,8 +81,8 @@ public class QuestionAnswerHandler
         this.eventProbe = new EventProbe();
     }
 
-    public QuestionAnswerHandler(
-            ServiceFactory serviceFactory, // NOSONAR
+    public QuestionAnswerHandler( // NOSONAR
+            ServiceFactory serviceFactory,
             ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
             KBVService kbvService,
