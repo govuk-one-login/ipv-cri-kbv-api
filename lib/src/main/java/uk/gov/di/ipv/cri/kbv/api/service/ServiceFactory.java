@@ -32,9 +32,14 @@ public class ServiceFactory {
     private ConfigurationService configurationService;
     private KBVGateway kbvGateway;
 
+    private SoapToken soapToken;
+    private TokenService tokenService;
+    private final SoapTokenRetriever soapTokenRetriever;
+
     @ExcludeFromGeneratedCoverageReport
     public ServiceFactory(ClientProviderFactory clientProviderFactory) {
         this.clientProviderFactory = clientProviderFactory;
+        this.soapTokenRetriever = new SoapTokenRetriever(getSoapToken());
     }
 
     @ExcludeFromGeneratedCoverageReport
@@ -93,19 +98,26 @@ public class ServiceFactory {
     }
 
     public KBVClientFactory getKbvClientFactory(String clientId) {
-        TokenService tokenService = new TokenService();
-        SoapToken soapToken =
-                new SoapToken(
-                        APPLICATION,
-                        true,
-                        tokenService,
-                        configurationService,
-                        new MetricsService(new EventProbe()));
-        HeaderHandler headerHandler =
-                new HeaderHandler(new SoapTokenRetriever(soapToken), clientId);
+        HeaderHandler headerHandler = new HeaderHandler(soapTokenRetriever, clientId);
         HeaderHandlerResolver headerResolver = new HeaderHandlerResolver(headerHandler);
 
         return new KBVClientFactory(
                 new IdentityIQWebService(), headerResolver, getConfigurationService());
+    }
+
+    private SoapToken getSoapToken() {
+        if (tokenService == null) {
+            tokenService = new TokenService();
+        }
+        if (soapToken == null) {
+            soapToken =
+                    new SoapToken(
+                            APPLICATION,
+                            true,
+                            tokenService,
+                            configurationService,
+                            new MetricsService(new EventProbe()));
+        }
+        return soapToken;
     }
 }
