@@ -82,7 +82,7 @@ public class QuestionAnswerHandler
     }
 
     public QuestionAnswerHandler(
-            ServiceFactory serviceFactory,
+            ServiceFactory serviceFactory, // NOSONAR
             ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
             KBVService kbvService,

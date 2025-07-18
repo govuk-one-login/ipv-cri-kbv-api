@@ -38,6 +38,24 @@ public class SoapTokenRetriever {
         }
 
         LOGGER.info("Retrieving SOAP token from Experian...");
+
+        String token = attemptToFetchToken(clientId);
+
+        if (isTokenPayloadValid(token)) {
+            cachedTokens.put(clientId, token);
+            LOGGER.info(UPDATED_CACHED_TOKEN_WITH_RECEIVED_EXPERIAN_TOKEN);
+        } else if (isTokenPayloadValid(cachedTokens.get(clientId))) {
+            LOGGER.info(CACHED_TOKEN_THAT_IS_OUTSIDE_SET_THRESHOLD);
+            return cachedTokens.get(clientId);
+        } else if (token != null) {
+            LOGGER.info(EXPERIAN_TOKEN_THAT_IS_OUTSIDE_OUR_THRESHOLD_AND_INVALID);
+            cachedTokens.put(clientId, token);
+            return token;
+        }
+        return cachedTokens.get(clientId);
+    }
+
+    private String attemptToFetchToken(String clientId) {
         String token = null;
 
         for (int retry = 0; retry < MAX_NUMBER_OF_TOKEN_RETRIES; retry++) {
@@ -64,18 +82,7 @@ public class SoapTokenRetriever {
             }
         }
 
-        if (isTokenPayloadValid(token)) {
-            cachedTokens.put(clientId, token);
-            LOGGER.info(UPDATED_CACHED_TOKEN_WITH_RECEIVED_EXPERIAN_TOKEN);
-        } else if (isTokenPayloadValid(cachedTokens.get(clientId))) {
-            LOGGER.info(CACHED_TOKEN_THAT_IS_OUTSIDE_SET_THRESHOLD);
-            return cachedTokens.get(clientId);
-        } else if (token != null) {
-            LOGGER.info(EXPERIAN_TOKEN_THAT_IS_OUTSIDE_OUR_THRESHOLD_AND_INVALID);
-            cachedTokens.put(clientId, token);
-            return token;
-        }
-        return cachedTokens.get(clientId);
+        return token;
     }
 
     public boolean isTokenValidWithinThreshold(String tokenValue) {
