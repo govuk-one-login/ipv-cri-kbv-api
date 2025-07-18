@@ -1,4 +1,3 @@
-// TODO: Re-enable disabled tests
 package uk.gov.di.ipv.cri.kbv.api.handler;
 
 import com.amazonaws.services.lambda.runtime.Context;
@@ -10,7 +9,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -303,12 +301,15 @@ class QuestionHandlerTest {
         }
 
         @Test
-        @Disabled
         void shouldReturn200OkWhenCalledAgainAndReturnNextUnAnsweredQuestionFromStorage()
                 throws IOException {
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> sessionHeader =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
+
+            SessionItem sessionItem = new SessionItem();
+            sessionItem.setClientId("mock-client-id");
+            when(sessionService.validateSessionId(anyString())).thenReturn(sessionItem);
 
             KBVItem kbvItem = new KBVItem();
             kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
@@ -426,6 +427,7 @@ class QuestionHandlerTest {
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
             when(input.getHeaders()).thenReturn(sessionHeader);
+
             doThrow(InternalServerErrorException.class)
                     .when(mockKBVStorageService)
                     .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
@@ -441,13 +443,16 @@ class QuestionHandlerTest {
         }
 
         @Test
-        @Disabled
         void shouldReturn500ErrorWhenPersonIdentityCannotBeRetrievedDueToAnAwsError() {
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> sessionHeader =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
             when(input.getHeaders()).thenReturn(sessionHeader);
+
+            SessionItem sessionItem = new SessionItem();
+            sessionItem.setClientId("mock-client-id");
+            when(sessionService.validateSessionId(anyString())).thenReturn(sessionItem);
 
             AwsErrorDetails awsErrorDetails =
                     AwsErrorDetails.builder()
@@ -458,6 +463,7 @@ class QuestionHandlerTest {
                                             .build())
                             .errorMessage("AWS DynamoDbException Occurred")
                             .build();
+
             when(mockPersonIdentityService.getPersonIdentityDetailed(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                     .thenThrow(
@@ -481,8 +487,10 @@ class QuestionHandlerTest {
         }
 
         @Test
-        @Disabled
         void shouldReturn500ErrorWhenExperianServiceIsDown() throws IOException {
+            SessionItem sessionItem = new SessionItem();
+            sessionItem.setClientId("mock-client-id");
+            when(sessionService.validateSessionId(anyString())).thenReturn(sessionItem);
 
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> sessionHeader =
