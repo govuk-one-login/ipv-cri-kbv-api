@@ -3,6 +3,8 @@ package uk.gov.di.ipv.cri.kbv.healthcheck.handler.config;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.common.library.util.ClientProviderFactory;
 
+import java.util.Optional;
+
 public class ExperianSecrets {
     private final ConfigurationService configurationService;
 
@@ -18,7 +20,9 @@ public class ExperianSecrets {
     }
 
     public String getWaspUrl() {
-        return configurationService.getSecretValue(Configuration.WASP_URL_SECRET);
+        return Optional.ofNullable(System.getenv("WaspURL"))
+                .orElse(
+                        "https://identityiq.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx");
     }
 
     public String getKeystorePassword() {

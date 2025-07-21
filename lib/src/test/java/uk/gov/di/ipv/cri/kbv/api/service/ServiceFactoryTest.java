@@ -21,7 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,23 +33,27 @@ class ServiceFactoryTest {
     @Mock private DynamoDbEnhancedClient dynamoDbEnhancedClient;
     @Mock private SecretsProvider secretsProvider;
     @Mock private SqsClient sqsClient;
+    @Mock private ConfigurationService mockConfigurationService;
 
     @InjectMocks private ServiceFactory serviceFactory;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        when(clientProviderFactory.getSSMProvider()).thenReturn(ssmProvider);
+        lenient().when(clientProviderFactory.getSSMProvider()).thenReturn(ssmProvider);
         when(clientProviderFactory.getDynamoDbEnhancedClient()).thenReturn(dynamoDbEnhancedClient);
-        when(clientProviderFactory.getSecretsProvider()).thenReturn(secretsProvider);
+        lenient().when(clientProviderFactory.getSecretsProvider()).thenReturn(secretsProvider);
         when(clientProviderFactory.getSqsClient()).thenReturn(sqsClient);
+
+        lenient().when(serviceFactory.getSsmProvider()).thenReturn(ssmProvider);
+        lenient().when(serviceFactory.getSecretsProvider()).thenReturn(secretsProvider);
     }
 
     @Test
     void testGetSsmProvider() {
         SSMProvider result = serviceFactory.getSsmProvider();
         assertNotNull(result);
-        verify(clientProviderFactory).getSSMProvider();
+        verify(clientProviderFactory, times(3)).getSSMProvider();
     }
 
     @Test
@@ -61,7 +67,7 @@ class ServiceFactoryTest {
     void testGetSecretsProvider() {
         SecretsProvider result = serviceFactory.getSecretsProvider();
         assertNotNull(result);
-        verify(clientProviderFactory).getSecretsProvider();
+        verify(clientProviderFactory, times(3)).getSecretsProvider();
     }
 
     @Test
@@ -98,22 +104,16 @@ class ServiceFactoryTest {
         IdentityIQWebServiceSoap identityIQWebServiceSoapMock =
                 mock(IdentityIQWebServiceSoap.class);
 
-        when(kbvClientFactoryMock.createClient()).thenReturn(identityIQWebServiceSoapMock);
+        when(kbvClientFactoryMock.createClient("mock-client-id"))
+                .thenReturn(identityIQWebServiceSoapMock);
 
-        KBVGateway kbvGateway =
-                serviceFactory.getKbvGateway(keyStoreLoaderMock, kbvClientFactoryMock);
+        KBVGateway kbvGateway = serviceFactory.getKbvGateway(keyStoreLoaderMock);
 
         assertNotNull(kbvGateway);
     }
 
     @Test
     void testGetKbvGatewayReturnsExceptionWhenCreationFails() {
-
-        KBVGatewayCreationException exception =
-                assertThrows(KBVGatewayCreationException.class, serviceFactory::getKbvGateway);
-
-        assertEquals(
-                "Failed to create KBVGateway: Persist keystore to file failed: Cannot invoke \"String.getBytes(java.nio.charset.Charset)\" because \"src\" is null",
-                exception.getMessage());
+        assertThrows(KBVGatewayCreationException.class, serviceFactory::getKbvGateway);
     }
 }

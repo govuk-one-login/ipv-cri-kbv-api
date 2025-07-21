@@ -50,6 +50,8 @@ import static uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtilsTest.generateToken;
 
 @ExtendWith(MockitoExtension.class)
 class KBVGatewayTest {
+    private static final String MOCK_CLIENT_ID = "mock-client-id";
+
     @Mock private QuestionRequest questionRequest;
     @Mock private QuestionAnswerRequest questionAnswerRequest;
     @Mock private StartAuthnAttemptRequestMapper mockSAARequestMapper;
@@ -72,7 +74,7 @@ class KBVGatewayTest {
         when(mockQuestionsResponseMapper.mapSAAResponse(mockSaaResponse))
                 .thenReturn(mockQuestionsResponse);
 
-        kbvGateway.getQuestions(questionRequest);
+        kbvGateway.getQuestions(mockIdentityIQWebServiceSoap, questionRequest);
 
         verify(mockSAARequestMapper).mapQuestionRequest(questionRequest);
         verify(mockIdentityIQWebServiceSoap).saa(mockSaaRequest);
@@ -93,27 +95,13 @@ class KBVGatewayTest {
         when(mockIdentityIQWebServiceSoap.rtq(mockRtqRequest)).thenReturn(mockRtqResponse);
         when(mockQuestionsResponseMapper.mapRTQResponse(mockRtqResponse))
                 .thenReturn(mockQuestionsResponse);
-        kbvGateway.submitAnswers(questionAnswerRequest);
+        kbvGateway.submitAnswers(mockIdentityIQWebServiceSoap, questionAnswerRequest);
 
         verify(mockResponseToQuestionMapper).mapQuestionAnswersRtqRequest(questionAnswerRequest);
         verify(mockIdentityIQWebServiceSoap).rtq(mockRtqRequest);
         verify(mockQuestionsResponseMapper).mapRTQResponse(mockRtqResponse);
         verify(mockMetricsService).sendDurationMetric(eq("submit_answers_duration"), anyLong());
         verify(mockMetricsService).sendResultMetric("submit_questions_response", mockKbvResult);
-    }
-
-    @Test
-    void shouldThrowNullPointerExceptionWhenIdentityIQWebServiceIsNull() {
-        assertThrows(
-                NullPointerException.class,
-                () ->
-                        new KBVGateway(
-                                mockSAARequestMapper,
-                                mockResponseToQuestionMapper,
-                                mockQuestionsResponseMapper,
-                                null,
-                                mockMetricsService),
-                "identityIQWebServiceSoap must not be null");
     }
 
     @Test
@@ -125,7 +113,6 @@ class KBVGatewayTest {
                                 null,
                                 mockResponseToQuestionMapper,
                                 mockQuestionsResponseMapper,
-                                mockIdentityIQWebServiceSoap,
                                 mockMetricsService),
                 "saaRequestMapper must not be null");
     }
@@ -139,7 +126,6 @@ class KBVGatewayTest {
                                 mockSAARequestMapper,
                                 mockResponseToQuestionMapper,
                                 null,
-                                mockIdentityIQWebServiceSoap,
                                 mockMetricsService),
                 "questionsResponseMapper must not be null");
     }
@@ -153,7 +139,6 @@ class KBVGatewayTest {
                                 mockSAARequestMapper,
                                 mockResponseToQuestionMapper,
                                 mockQuestionsResponseMapper,
-                                mockIdentityIQWebServiceSoap,
                                 null),
                 "metricsService must not be null");
     }
@@ -167,7 +152,6 @@ class KBVGatewayTest {
                                 mockSAARequestMapper,
                                 null,
                                 mockQuestionsResponseMapper,
-                                mockIdentityIQWebServiceSoap,
                                 mockMetricsService),
                 "rtqRequestMapper must not be null");
     }
@@ -218,13 +202,13 @@ class KBVGatewayTest {
 
         private void mockTokenRetriever() {
             soapTokenRetriever = new SoapTokenRetriever(soapTokenMock);
-            when(soapTokenMock.getToken()).thenReturn(soapToken);
+            when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn(soapToken);
             when(soapMessageContextMock.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY))
                     .thenReturn(true);
         }
 
         private void initializeWrapper() {
-            HeaderHandler headerHandler = new HeaderHandler(soapTokenRetriever);
+            HeaderHandler headerHandler = new HeaderHandler(soapTokenRetriever, MOCK_CLIENT_ID);
             headerHandler.handleMessage(soapMessageContextMock);
 
             mockIdentityIQWebServiceSoap =
@@ -244,7 +228,7 @@ class KBVGatewayTest {
 
             assertEquals(response, result);
             verify(mockIdentityIQWebServiceSoap).saa(request);
-            verify(soapTokenMock, times(1)).getToken();
+            verify(soapTokenMock, times(1)).getToken(MOCK_CLIENT_ID);
         }
 
         @Test
@@ -258,7 +242,7 @@ class KBVGatewayTest {
 
             assertEquals(response, result);
             verify(mockIdentityIQWebServiceSoap).rtq(rTQRequest);
-            verify(soapTokenMock, times(1)).getToken();
+            verify(soapTokenMock, times(1)).getToken(MOCK_CLIENT_ID);
         }
 
         @Test
@@ -269,7 +253,7 @@ class KBVGatewayTest {
             when(mockIdentityIQWebServiceSoap.saa(sAARequest)).thenReturn(response);
             mockIdentityIQWebServiceSoap.saa(sAARequest);
 
-            verify(soapTokenMock, times(1)).getToken();
+            verify(soapTokenMock, times(1)).getToken(MOCK_CLIENT_ID);
         }
 
         @Test
@@ -280,7 +264,7 @@ class KBVGatewayTest {
             when(mockIdentityIQWebServiceSoap.rtq(rTQRequest)).thenReturn(response);
             mockIdentityIQWebServiceSoap.rtq(rTQRequest);
 
-            verify(soapTokenMock, times(1)).getToken();
+            verify(soapTokenMock, times(1)).getToken(MOCK_CLIENT_ID);
         }
 
         @Test
@@ -288,7 +272,7 @@ class KBVGatewayTest {
             SAARequest sAARequest = new SAARequest();
             soapTokenMock = mock(SoapToken.class);
             soapTokenRetriever = new SoapTokenRetriever(soapTokenMock);
-            HeaderHandler headerHandler = new HeaderHandler(soapTokenRetriever);
+            HeaderHandler headerHandler = new HeaderHandler(soapTokenRetriever, MOCK_CLIENT_ID);
 
             HeaderHandlerException exception =
                     assertThrows(
@@ -301,7 +285,7 @@ class KBVGatewayTest {
                     "Error in SOAP HeaderHandler: The token must not be null",
                     exception.getMessage());
 
-            verify(soapTokenMock, times(3)).getToken();
+            verify(soapTokenMock, times(3)).getToken(MOCK_CLIENT_ID);
         }
 
         @Test
@@ -310,7 +294,7 @@ class KBVGatewayTest {
             RTQRequest rTQRequest = new RTQRequest();
             soapTokenMock = mock(SoapToken.class);
             soapTokenRetriever = new SoapTokenRetriever(soapTokenMock);
-            HeaderHandler headerHandler = new HeaderHandler(soapTokenRetriever);
+            HeaderHandler headerHandler = new HeaderHandler(soapTokenRetriever, MOCK_CLIENT_ID);
 
             HeaderHandlerException exception =
                     assertThrows(
@@ -322,7 +306,7 @@ class KBVGatewayTest {
                     "Error in SOAP HeaderHandler: The token must not be null",
                     exception.getMessage());
 
-            verify(soapTokenMock, times(3)).getToken();
+            verify(soapTokenMock, times(3)).getToken(MOCK_CLIENT_ID);
         }
     }
 }

@@ -23,6 +23,8 @@ import static org.mockito.Mockito.withSettings;
 
 @ExtendWith(MockitoExtension.class)
 class KBVClientFactoryTest {
+    private static final String MOCK_CLIENT_ID = "mock_client_id";
+
     @Mock private IdentityIQWebService identityIQWebService;
     @Mock private HeaderHandlerResolver headerHandlerResolver;
     @Mock private ConfigurationService configurationService;
@@ -39,14 +41,14 @@ class KBVClientFactoryTest {
 
         when(identityIQWebService.getIdentityIQWebServiceSoap())
                 .thenReturn(identityIQWebServiceSoap);
-        when(configurationService.getSecretValue("experian/iiq-webservice"))
+        when(configurationService.getParameterValue("experian/iiq-webservice/" + MOCK_CLIENT_ID))
                 .thenReturn("http://test-endpoint");
 
-        IdentityIQWebServiceSoap result = kbvClientFactory.createClient();
+        IdentityIQWebServiceSoap result = kbvClientFactory.createClient(MOCK_CLIENT_ID);
 
         verify(identityIQWebService).setHandlerResolver(headerHandlerResolver);
         verify(identityIQWebService).getIdentityIQWebServiceSoap();
-        verify(configurationService).getSecretValue("experian/iiq-webservice");
+        verify(configurationService).getParameterValue("experian/iiq-webservice/" + MOCK_CLIENT_ID);
         assertEquals(identityIQWebServiceSoap, result);
     }
 
@@ -58,9 +60,7 @@ class KBVClientFactoryTest {
         InvalidSoapTokenException exception =
                 assertThrows(
                         InvalidSoapTokenException.class,
-                        () -> {
-                            kbvClientFactory.createClient();
-                        });
+                        () -> kbvClientFactory.createClient(MOCK_CLIENT_ID));
 
         assertEquals("SOAP Fault occurred: null", exception.getMessage());
         verify(identityIQWebService).setHandlerResolver(headerHandlerResolver);
@@ -75,9 +75,7 @@ class KBVClientFactoryTest {
         InvalidSoapTokenException exception =
                 assertThrows(
                         InvalidSoapTokenException.class,
-                        () -> {
-                            kbvClientFactory.createClient();
-                        });
+                        () -> kbvClientFactory.createClient(MOCK_CLIENT_ID));
 
         assertEquals("Web Service error occurred: null", exception.getMessage());
         verify(identityIQWebService).setHandlerResolver(headerHandlerResolver);
@@ -92,9 +90,7 @@ class KBVClientFactoryTest {
         InvalidSoapTokenException exception =
                 assertThrows(
                         InvalidSoapTokenException.class,
-                        () -> {
-                            kbvClientFactory.createClient();
-                        });
+                        () -> kbvClientFactory.createClient(MOCK_CLIENT_ID));
 
         assertEquals("Unexpected error occurred: null", exception.getMessage());
         verify(identityIQWebService).setHandlerResolver(headerHandlerResolver);

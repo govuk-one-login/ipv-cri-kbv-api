@@ -4,6 +4,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils.isTokenPayloadValid;
 
 public class SoapTokenRetriever {
@@ -19,52 +22,67 @@ public class SoapTokenRetriever {
     public static final String CACHED_TOKEN_THAT_IS_OUTSIDE_SET_THRESHOLD =
             "Returning a cached token that is outside our threshold, using anyway...";
     private final SoapToken soapToken;
-    private String cachedToken;
+
+    private final Map<String, String> cachedTokens;
 
     public SoapTokenRetriever(SoapToken soapToken) {
         this.soapToken = soapToken;
-        this.cachedToken = null;
+        this.cachedTokens = new HashMap<>();
     }
 
-    public String getSoapToken() {
-        if (cachedToken != null && isTokenValidWithinThreshold(cachedToken)) {
+    public String getSoapToken(String clientId) {
+        if (cachedTokens.containsKey(clientId)
+                && isTokenValidWithinThreshold(cachedTokens.get(clientId))) {
             LOGGER.info("Using cached SOAP token");
-            return this.cachedToken;
+            return this.cachedTokens.get(clientId);
         }
 
         LOGGER.info("Retrieving SOAP token from Experian...");
+
+        String token = attemptToFetchToken(clientId);
+
+        if (isTokenPayloadValid(token)) {
+            cachedTokens.put(clientId, token);
+            LOGGER.info(UPDATED_CACHED_TOKEN_WITH_RECEIVED_EXPERIAN_TOKEN);
+        } else if (isTokenPayloadValid(cachedTokens.get(clientId))) {
+            LOGGER.info(CACHED_TOKEN_THAT_IS_OUTSIDE_SET_THRESHOLD);
+            return cachedTokens.get(clientId);
+        } else if (token != null) {
+            LOGGER.info(EXPERIAN_TOKEN_THAT_IS_OUTSIDE_OUR_THRESHOLD_AND_INVALID);
+            cachedTokens.put(clientId, token);
+            return token;
+        }
+        return cachedTokens.get(clientId);
+    }
+
+    private String attemptToFetchToken(String clientId) {
         String token = null;
 
         for (int retry = 0; retry < MAX_NUMBER_OF_TOKEN_RETRIES; retry++) {
             sleepBeforeRetry(retry);
             try {
-                token = soapToken.getToken();
+                token = soapToken.getToken(clientId);
                 if (token == null) {
                     LOGGER.warn("Received null token from Experian.");
                     continue;
                 }
                 if (isTokenValidWithinThreshold(token)) {
                     LOGGER.info("Successfully retrieved a valid token.");
-                    this.cachedToken = token;
-                    return this.cachedToken;
+
+                    if (cachedTokens.containsKey(clientId)) {
+                        cachedTokens.replace(clientId, token);
+                    } else {
+                        cachedTokens.put(clientId, token);
+                    }
+
+                    return token;
                 }
             } catch (Exception e) {
                 LOGGER.error("Error while getting SOAP token: {}", e.getMessage());
             }
         }
 
-        if (isTokenPayloadValid(token)) {
-            this.cachedToken = token;
-            LOGGER.info(UPDATED_CACHED_TOKEN_WITH_RECEIVED_EXPERIAN_TOKEN);
-        } else if (isTokenPayloadValid(cachedToken)) {
-            LOGGER.info(CACHED_TOKEN_THAT_IS_OUTSIDE_SET_THRESHOLD);
-            return this.cachedToken;
-        } else if (token != null) {
-            LOGGER.info(EXPERIAN_TOKEN_THAT_IS_OUTSIDE_OUR_THRESHOLD_AND_INVALID);
-            this.cachedToken = token;
-            return this.cachedToken;
-        }
-        return this.cachedToken;
+        return token;
     }
 
     public boolean isTokenValidWithinThreshold(String tokenValue) {

@@ -10,6 +10,7 @@ import uk.gov.di.ipv.cri.common.library.util.ClientProviderFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -26,14 +27,16 @@ class ExperianSecretsTest {
 
         when(clientProviderFactory.getSecretsProvider()).thenReturn(mockSecretsProvider);
         when(clientProviderFactory.getSSMProvider()).thenReturn(mockSsmProvider);
-        when(mockSecretsProvider.get(any())).thenReturn("dummy");
+        lenient().when(mockSecretsProvider.get(any())).thenReturn("dummy");
 
         experianSecrets = new ExperianSecrets(clientProviderFactory);
     }
 
     @Test
     void shouldReturnWaspUrl() {
-        assertEquals("dummy", experianSecrets.getWaspUrl());
+        assertEquals(
+                "https://identityiq.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx",
+                experianSecrets.getWaspUrl());
     }
 
     @Test

@@ -59,6 +59,9 @@ Conditions:
   IsStubEnvironment: !Not [!Equals [!Ref Environment, production]]
   IsLocalDevEnvironment: !Equals [!Ref Environment, localdev]
   IsProductionEnvironment: !Equals [!Ref Environment, production]
+  IsStagingOrIntegration: !Or
+    - !Equals [ !Ref Environment, staging ]
+    - !Equals [ !Ref Environment, integration ]
   IsNotDevEnvironment: !Not [!Condition IsDevEnvironment]
   IsDevLikeEnvironment:
     !Or [!Condition IsLocalDevEnvironment, !Condition IsDevEnvironment]
@@ -271,6 +274,14 @@ Resources:
           KeyStoreSecret: experian/keystore
           KeyStorePassword: experian/keystore-password
           WaspURLSecret: experian/iiq-wasp-service
+          WaspURL:
+            !If
+            - IsProductionEnvironment
+            - "https://identityiq.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx"
+            - !If
+              - IsStagingOrIntegration
+              - "https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx"
+              - !FindInMap [ WaspServiceUrls, !Ref Environment, stub ]
       Policies:
         - Statement:
             Effect: Allow
@@ -466,6 +477,13 @@ Resources:
             - Effect: Allow
               Action:
                 - ssm:GetParametersByPath
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/experian*"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParametersByPath
               Resource:
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/clients/*"
         - Statement:
@@ -541,6 +559,13 @@ Resources:
               Resource: !Sub
                 - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*'
                 - Prefix: !If [UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName]
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParametersByPath
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/experian*"
         - Statement:
             - Effect: Allow
               Action:

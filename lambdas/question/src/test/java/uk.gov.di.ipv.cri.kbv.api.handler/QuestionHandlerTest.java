@@ -3,6 +3,7 @@ package uk.gov.di.ipv.cri.kbv.api.handler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,8 +45,10 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidStrategyScoreException;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
+import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -68,6 +71,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -106,15 +110,26 @@ class QuestionHandlerTest {
     @Mock private ConfigurationService mockConfigurationService;
     @Mock private AuditService mockAuditService;
     @Mock private SessionService sessionService;
+    @Mock private ServiceFactory mockServiceFactory;
+    @Mock private KBVClientFactory mockKBVClientFactory;
     @Captor private ArgumentCaptor<Map<String, Object>> auditEventMap;
     @Captor private ArgumentCaptor<AuditEventContext> auditEventContextArgCaptor;
     private KBVService spyKBVService;
 
     @BeforeEach
     void setUp() {
+        lenient()
+                .when(mockServiceFactory.getKbvClientFactory("mock-client-id"))
+                .thenReturn(mockKBVClientFactory);
+        lenient()
+                .when(mockKBVClientFactory.createClient(any()))
+                .thenReturn(mock(IdentityIQWebServiceSoap.class));
+
         spyKBVService = Mockito.spy(new KBVService(mockKBVGateway));
+
         questionHandler =
                 new QuestionHandler(
+                        mockServiceFactory,
                         mockObjectMapper,
                         mockKBVStorageService,
                         mockPersonIdentityService,
@@ -146,9 +161,19 @@ class QuestionHandlerTest {
                 kbvItem.setSessionId(UUID.fromString(requestHeaders.get(HEADER_SESSION_ID)));
                 expectedQuestion = new ObjectMapper().writeValueAsString(getQuestionOne());
 
+                lenient()
+                        .when(mockServiceFactory.getKbvClientFactory("mock-client-id"))
+                        .thenReturn(mockKBVClientFactory);
+                lenient()
+                        .when(mockKBVClientFactory.createClient(any()))
+                        .thenReturn(mock(IdentityIQWebServiceSoap.class));
+
                 when(input.getHeaders()).thenReturn(requestHeaders);
                 when(sessionService.validateSessionId(requestHeaders.get(HEADER_SESSION_ID)))
                         .thenReturn(sessionItem);
+
+                when(sessionItem.getClientId()).thenReturn("mock-client-id");
+
                 when(mockPersonIdentityService.getPersonIdentityDetailed(kbvItem.getSessionId()))
                         .thenReturn(personIdentity);
                 doNothing().when(mockKBVStorageService).save(any());
@@ -167,7 +192,7 @@ class QuestionHandlerTest {
             void shouldReturn200Ok() throws JsonProcessingException {
                 QuestionsResponse experianQuestionResponse =
                         getExperianQuestionResponseWithQuestions();
-                doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
+                doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any(), any());
 
                 APIGatewayProxyResponseEvent response =
                         questionHandler.handleRequest(input, mock(Context.class));
@@ -197,7 +222,7 @@ class QuestionHandlerTest {
                 QuestionsResponse questionsResponse = getExperianQuestionResponseWithQuestions();
                 doReturn(questionsResponse)
                         .when(spyKBVService)
-                        .getQuestions(any(QuestionRequest.class));
+                        .getQuestions(any(), any(QuestionRequest.class));
 
                 questionHandler.handleRequest(input, mock(Context.class));
 
@@ -250,7 +275,7 @@ class QuestionHandlerTest {
                 QuestionsResponse questionsResponse = getExperianQuestionResponseWithAlert();
                 doReturn(questionsResponse)
                         .when(spyKBVService)
-                        .getQuestions(any(QuestionRequest.class));
+                        .getQuestions(any(), any(QuestionRequest.class));
 
                 questionHandler.handleRequest(input, mock(Context.class));
 
@@ -269,7 +294,7 @@ class QuestionHandlerTest {
             void shouldAddMetrics() {
                 QuestionsResponse experianQuestionResponse =
                         getExperianQuestionResponseWithQuestions();
-                doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
+                doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any(), any());
 
                 questionHandler.handleRequest(input, mock(Context.class));
 
@@ -288,6 +313,10 @@ class QuestionHandlerTest {
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> sessionHeader =
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
+
+            SessionItem sessionItem = new SessionItem();
+            sessionItem.setClientId("mock-client-id");
+            when(sessionService.validateSessionId(anyString())).thenReturn(sessionItem);
 
             KBVItem kbvItem = new KBVItem();
             kbvItem.setSessionId(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
@@ -338,10 +367,11 @@ class QuestionHandlerTest {
             QuestionState questionStateMock = mock(QuestionState.class);
             SessionItem mockSessionItem = mock(SessionItem.class);
             when(mockSessionItem.getEvidenceRequest()).thenReturn(mock(EvidenceRequest.class));
+            when(mockSessionItem.getClientId()).thenReturn("mock-client-id");
             when(sessionService.validateSessionId(sessionHeader.get(HEADER_SESSION_ID)))
                     .thenReturn(mockSessionItem);
 
-            when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
+            when(mockKBVGateway.getQuestions(any(), any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
 
             when(input.getHeaders()).thenReturn(sessionHeader);
@@ -404,6 +434,7 @@ class QuestionHandlerTest {
                     Map.of(HEADER_SESSION_ID, UUID.randomUUID().toString());
 
             when(input.getHeaders()).thenReturn(sessionHeader);
+
             doThrow(InternalServerErrorException.class)
                     .when(mockKBVStorageService)
                     .getKBVItem(UUID.fromString(sessionHeader.get(HEADER_SESSION_ID)));
@@ -426,6 +457,10 @@ class QuestionHandlerTest {
 
             when(input.getHeaders()).thenReturn(sessionHeader);
 
+            SessionItem sessionItem = new SessionItem();
+            sessionItem.setClientId("mock-client-id");
+            when(sessionService.validateSessionId(anyString())).thenReturn(sessionItem);
+
             AwsErrorDetails awsErrorDetails =
                     AwsErrorDetails.builder()
                             .errorCode("")
@@ -435,6 +470,7 @@ class QuestionHandlerTest {
                                             .build())
                             .errorMessage("AWS DynamoDbException Occurred")
                             .build();
+
             when(mockPersonIdentityService.getPersonIdentityDetailed(
                             UUID.fromString(sessionHeader.get(HEADER_SESSION_ID))))
                     .thenThrow(
@@ -459,6 +495,9 @@ class QuestionHandlerTest {
 
         @Test
         void shouldReturn500ErrorWhenExperianServiceIsDown() throws IOException {
+            SessionItem sessionItem = new SessionItem();
+            sessionItem.setClientId("mock-client-id");
+            when(sessionService.validateSessionId(anyString())).thenReturn(sessionItem);
 
             APIGatewayProxyRequestEvent input = mock(APIGatewayProxyRequestEvent.class);
             Map<String, String> sessionHeader =
@@ -481,7 +520,7 @@ class QuestionHandlerTest {
 
             doThrow(RuntimeException.class)
                     .when(spyKBVService)
-                    .getQuestions(any(QuestionRequest.class));
+                    .getQuestions(any(), any(QuestionRequest.class));
 
             setupEventProbeErrorBehaviour();
             APIGatewayProxyResponseEvent response =
@@ -545,7 +584,7 @@ class QuestionHandlerTest {
             when(questionsResponse.getUniqueReference()).thenReturn("a urn");
             when(questionsResponse.getResults()).thenReturn(kbvResult);
 
-            when(mockKBVGateway.getQuestions(any(QuestionRequest.class)))
+            when(mockKBVGateway.getQuestions(any(), any(QuestionRequest.class)))
                     .thenReturn(questionsResponse);
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -559,7 +598,11 @@ class QuestionHandlerTest {
                     QuestionNotFoundException.class,
                     () ->
                             questionHandler.processQuestionRequest(
-                                    questionState, kbvItem, sessionItem, requestHeaders),
+                                    mock(IdentityIQWebServiceSoap.class),
+                                    questionState,
+                                    kbvItem,
+                                    sessionItem,
+                                    requestHeaders),
                     "Question not Found");
             verify(sessionService).createAuthorizationCode(sessionItem);
             verify(mockAuditService)
@@ -590,7 +633,13 @@ class QuestionHandlerTest {
             SessionItem sessionItem = new SessionItem();
             assertThrows(
                     NullPointerException.class,
-                    () -> questionHandler.processQuestionRequest(null, kbvItem, sessionItem, null),
+                    () ->
+                            questionHandler.processQuestionRequest(
+                                    mock(IdentityIQWebServiceSoap.class),
+                                    null,
+                                    kbvItem,
+                                    sessionItem,
+                                    null),
                     "questionState cannot be null");
         }
 
@@ -602,7 +651,11 @@ class QuestionHandlerTest {
                             NullPointerException.class,
                             () ->
                                     questionHandler.processQuestionRequest(
-                                            questionState, null, mock(SessionItem.class), null));
+                                            mock(IdentityIQWebServiceSoap.class),
+                                            questionState,
+                                            null,
+                                            mock(SessionItem.class),
+                                            null));
 
             assertEquals("kbvItem cannot be null", expectedException.getMessage());
         }
@@ -624,6 +677,7 @@ class QuestionHandlerTest {
 
             KbvQuestion nextQuestion =
                     questionHandler.processQuestionRequest(
+                            mock(IdentityIQWebServiceSoap.class),
                             questionState,
                             mock(KBVItem.class),
                             mock(SessionItem.class),
@@ -645,7 +699,7 @@ class QuestionHandlerTest {
             when(mockPersonIdentityService.getPersonIdentityDetailed(sessionId))
                     .thenReturn(personIdentity);
             QuestionsResponse experianQuestionResponse = getExperianQuestionResponse();
-            doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any());
+            doReturn(experianQuestionResponse).when(spyKBVService).getQuestions(any(), any());
 
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -657,7 +711,11 @@ class QuestionHandlerTest {
 
             KbvQuestion nextQuestionFromExperian =
                     questionHandler.processQuestionRequest(
-                            questionState, kbvItem, mock(SessionItem.class), new HashMap<>());
+                            mock(IdentityIQWebServiceSoap.class),
+                            questionState,
+                            kbvItem,
+                            mock(SessionItem.class),
+                            new HashMap<>());
 
             assertEquals(
                     nextQuestionFromExperian.getQuestionId(),
@@ -683,7 +741,11 @@ class QuestionHandlerTest {
                             InvalidStrategyScoreException.class,
                             () ->
                                     questionHandler.processQuestionRequest(
-                                            questionState, kbvItem, sessionItem, requestHeaders),
+                                            mock(IdentityIQWebServiceSoap.class),
+                                            questionState,
+                                            kbvItem,
+                                            sessionItem,
+                                            requestHeaders),
                             "No question strategy found for score provided");
 
             assertEquals(
@@ -720,7 +782,7 @@ class QuestionHandlerTest {
             QuestionsResponse experianQuestionResponse = getExperianThinFileResponse();
             doReturn(experianQuestionResponse)
                     .when(spyKBVService)
-                    .getQuestions(any(QuestionRequest.class));
+                    .getQuestions(any(), any(QuestionRequest.class));
 
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -732,7 +794,7 @@ class QuestionHandlerTest {
 
             assertNotNull(
                     questionHandler.processQuestionRequest(
-                            questionState, kbvItem, sessionItem, requestHeaders));
+                            any(), questionState, kbvItem, sessionItem, requestHeaders));
 
             verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
             verify(mockAuditService)
@@ -770,7 +832,7 @@ class QuestionHandlerTest {
             QuestionsResponse experianQuestionResponse = getExperianThinFileResponseWithAlert();
             doReturn(experianQuestionResponse)
                     .when(spyKBVService)
-                    .getQuestions(any(QuestionRequest.class));
+                    .getQuestions(any(), any(QuestionRequest.class));
 
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -782,7 +844,7 @@ class QuestionHandlerTest {
 
             assertNotNull(
                     questionHandler.processQuestionRequest(
-                            questionState, kbvItem, sessionItem, requestHeaders));
+                            any(), questionState, kbvItem, sessionItem, requestHeaders));
 
             verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
             verify(mockAuditService)
@@ -823,7 +885,7 @@ class QuestionHandlerTest {
                             new KbvQuestion[] {getQuestionOne(), getQuestionTwo()});
             doReturn(experianQuestionResponse)
                     .when(spyKBVService)
-                    .getQuestions(any(QuestionRequest.class));
+                    .getQuestions(any(), any(QuestionRequest.class));
 
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -835,7 +897,7 @@ class QuestionHandlerTest {
 
             assertNotNull(
                     questionHandler.processQuestionRequest(
-                            questionState, kbvItem, sessionItem, requestHeaders));
+                            any(), questionState, kbvItem, sessionItem, requestHeaders));
 
             verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
 
@@ -869,7 +931,7 @@ class QuestionHandlerTest {
             QuestionsResponse experianQuestionResponse = getExperianQuestionResponseWithQuestions();
             doReturn(experianQuestionResponse)
                     .when(spyKBVService)
-                    .getQuestions(any(QuestionRequest.class));
+                    .getQuestions(any(), any(QuestionRequest.class));
 
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
@@ -881,7 +943,7 @@ class QuestionHandlerTest {
 
             assertNotNull(
                     questionHandler.processQuestionRequest(
-                            questionState, kbvItem, sessionItem, requestHeaders));
+                            any(), questionState, kbvItem, sessionItem, requestHeaders));
 
             verify(mockPersonIdentityService).getPersonIdentityDetailed(kbvItem.getSessionId());
 

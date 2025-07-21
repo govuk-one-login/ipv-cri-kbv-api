@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SoapTokenRetrieverTest {
+    private static final String MOCK_CLIENT_ID = "mock-client-id";
     private static final String MOCKED_VALID_TOKEN_VALUE = generateValidToken();
     private static final String MOCKED_EXPIRED_TOKEN_VALUE = generateExpiredToken();
     private static final String MOCKED_CLOSE_TO_EXPIRY_TOKEN = generateTokenExpiringIn5Mins();
@@ -32,11 +33,26 @@ class SoapTokenRetrieverTest {
 
     @Test
     void shouldReturnNullWhenTokenIsNull() {
-        when(soapTokenMock.getToken()).thenReturn(null);
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn(null);
 
-        String token = soapTokenRetriever.getSoapToken();
+        String token = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
         assertNull(token);
+    }
+
+    @Test
+    void shouldStoreMultipleTokens() {
+        String tokenA = generateValidToken();
+        String tokenB = generateValidToken();
+
+        when(soapTokenMock.getToken("a")).thenReturn(tokenA);
+        when(soapTokenMock.getToken("b")).thenReturn(tokenB);
+
+        String fetchedA = soapTokenRetriever.getSoapToken("a");
+        String fetchedB = soapTokenRetriever.getSoapToken("b");
+
+        assertEquals(tokenA, fetchedA);
+        assertEquals(tokenB, fetchedB);
     }
 
     @Test
@@ -51,34 +67,34 @@ class SoapTokenRetrieverTest {
 
     @Test
     void shouldCacheToken() {
-        when(soapTokenMock.getToken())
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID))
                 .thenReturn(MOCKED_VALID_TOKEN_VALUE)
                 .thenReturn(generateValidToken2());
 
-        String goodToken = soapTokenRetriever.getSoapToken();
-        String cachedGoodToken = soapTokenRetriever.getSoapToken();
+        String goodToken = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
+        String cachedGoodToken = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
         assertEquals(goodToken, cachedGoodToken);
     }
 
     @Test
     void shouldReturnCloseToExpiringCacheTokenWhenExperianGivesInvalidToken() {
-        when(soapTokenMock.getToken()).thenReturn(MOCKED_CLOSE_TO_EXPIRY_TOKEN);
-        String cachedGoodToken = soapTokenRetriever.getSoapToken();
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn(MOCKED_CLOSE_TO_EXPIRY_TOKEN);
+        String cachedGoodToken = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
-        when(soapTokenMock.getToken()).thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
 
-        String requestForNewToken = soapTokenRetriever.getSoapToken();
+        String requestForNewToken = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
         assertEquals(cachedGoodToken, requestForNewToken);
     }
 
     @Test
     void shouldReturnInvalidToken() {
-        when(soapTokenMock.getToken()).thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
 
-        String token = soapTokenRetriever.getSoapToken();
-        String token2 = soapTokenRetriever.getSoapToken();
+        String token = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
+        String token2 = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
         assertEquals(MOCKED_EXPIRED_TOKEN_VALUE, token);
         assertEquals(MOCKED_EXPIRED_TOKEN_VALUE, token2);
@@ -86,13 +102,13 @@ class SoapTokenRetrieverTest {
 
     @Test
     void shouldUpdateCache() {
-        when(soapTokenMock.getToken()).thenReturn(MOCKED_CLOSE_TO_EXPIRY_TOKEN);
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn(MOCKED_CLOSE_TO_EXPIRY_TOKEN);
 
-        String cachedCloseToExpiry = soapTokenRetriever.getSoapToken();
+        String cachedCloseToExpiry = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
-        when(soapTokenMock.getToken()).thenReturn(MOCKED_VALID_TOKEN_VALUE);
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn(MOCKED_VALID_TOKEN_VALUE);
 
-        String updatedToken = soapTokenRetriever.getSoapToken();
+        String updatedToken = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
         assertEquals(MOCKED_CLOSE_TO_EXPIRY_TOKEN, cachedCloseToExpiry);
         assertEquals(MOCKED_VALID_TOKEN_VALUE, updatedToken);
@@ -101,101 +117,101 @@ class SoapTokenRetrieverTest {
 
     @Test
     void shouldReturnEmptyStringWhenTokenIsEmpty() {
-        when(soapTokenMock.getToken()).thenReturn("");
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn("");
 
-        String token = soapTokenRetriever.getSoapToken();
+        String token = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
         assertEquals("", token);
     }
 
     @Test
     void shouldReturnValidToken() {
-        when(soapTokenMock.getToken()).thenReturn(MOCKED_VALID_TOKEN_VALUE);
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn(MOCKED_VALID_TOKEN_VALUE);
 
-        String token = soapTokenRetriever.getSoapToken();
+        String token = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
-        verify(soapTokenMock, times(1)).getToken();
+        verify(soapTokenMock, times(1)).getToken(MOCK_CLIENT_ID);
         assertEquals(MOCKED_VALID_TOKEN_VALUE, token);
     }
 
     @Test
     void shouldReturnProvidedTokenWhenMalformed() {
-        when(soapTokenMock.getToken()).thenReturn(MOCKED_MALFORMED_TOKEN);
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn(MOCKED_MALFORMED_TOKEN);
 
-        String token = soapTokenRetriever.getSoapToken();
+        String token = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
-        verify(soapTokenMock, times(3)).getToken();
+        verify(soapTokenMock, times(3)).getToken(MOCK_CLIENT_ID);
         assertEquals(MOCKED_MALFORMED_TOKEN, token);
     }
 
     @Test
     void shouldReturnProvidedTokenWhenNoExpiryField() {
-        when(soapTokenMock.getToken()).thenReturn(MOCKED_TOKEN_WITHOUT_EXP);
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn(MOCKED_TOKEN_WITHOUT_EXP);
 
-        String token = soapTokenRetriever.getSoapToken();
+        String token = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
-        verify(soapTokenMock, times(3)).getToken();
+        verify(soapTokenMock, times(3)).getToken(MOCK_CLIENT_ID);
         assertEquals(MOCKED_TOKEN_WITHOUT_EXP, token);
     }
 
     @Test
     void shouldReturnValidTokenOnSecondRetry() {
-        when(soapTokenMock.getToken())
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID))
                 .thenReturn(MOCKED_EXPIRED_TOKEN_VALUE)
                 .thenReturn(MOCKED_VALID_TOKEN_VALUE);
 
-        String token = soapTokenRetriever.getSoapToken();
+        String token = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
-        verify(soapTokenMock, times(2)).getToken();
+        verify(soapTokenMock, times(2)).getToken(MOCK_CLIENT_ID);
         assertEquals(MOCKED_VALID_TOKEN_VALUE, token);
     }
 
     @Test
     void shouldReturnValidTokenOnThirdRetry() {
-        when(soapTokenMock.getToken())
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID))
                 .thenReturn(MOCKED_EXPIRED_TOKEN_VALUE)
                 .thenReturn(MOCKED_EXPIRED_TOKEN_VALUE)
                 .thenReturn(MOCKED_VALID_TOKEN_VALUE);
 
-        String token = soapTokenRetriever.getSoapToken();
+        String token = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
-        verify(soapTokenMock, times(3)).getToken();
+        verify(soapTokenMock, times(3)).getToken(MOCK_CLIENT_ID);
         assertEquals(MOCKED_VALID_TOKEN_VALUE, token);
     }
 
     @Test
     void shouldReturnNotRetryMoreThanThreeTimes() {
-        when(soapTokenMock.getToken())
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID))
                 .thenReturn(MOCKED_EXPIRED_TOKEN_VALUE)
                 .thenReturn(MOCKED_EXPIRED_TOKEN_VALUE)
                 .thenReturn(MOCKED_EXPIRED_TOKEN_VALUE)
                 .thenReturn(MOCKED_VALID_TOKEN_VALUE);
 
-        String token = soapTokenRetriever.getSoapToken();
+        String token = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
-        verify(soapTokenMock, times(3)).getToken();
+        verify(soapTokenMock, times(3)).getToken(MOCK_CLIENT_ID);
         assertEquals(MOCKED_EXPIRED_TOKEN_VALUE, token);
     }
 
     @Test
     void shouldRetryIfTokenIsExpiringSoon() {
-        when(soapTokenMock.getToken())
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID))
                 .thenReturn(MOCKED_CLOSE_TO_EXPIRY_TOKEN)
                 .thenReturn(MOCKED_VALID_TOKEN_VALUE);
 
-        String token = soapTokenRetriever.getSoapToken();
+        String token = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
-        verify(soapTokenMock, times(2)).getToken();
+        verify(soapTokenMock, times(2)).getToken(MOCK_CLIENT_ID);
         assertEquals(MOCKED_VALID_TOKEN_VALUE, token);
     }
 
     @Test
     void shouldRetryOnError() {
-        when(soapTokenMock.getToken()).thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
 
-        String token = soapTokenRetriever.getSoapToken();
+        String token = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
-        verify(soapTokenMock, times(3)).getToken();
+        verify(soapTokenMock, times(3)).getToken(MOCK_CLIENT_ID);
         assertEquals(MOCKED_EXPIRED_TOKEN_VALUE, token);
     }
 
@@ -204,15 +220,15 @@ class SoapTokenRetrieverTest {
         long expectedSleepDuration = 1000;
         long start = System.currentTimeMillis();
 
-        when(soapTokenMock.getToken()).thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
+        when(soapTokenMock.getToken(MOCK_CLIENT_ID)).thenReturn(MOCKED_EXPIRED_TOKEN_VALUE);
 
-        String token = soapTokenRetriever.getSoapToken();
+        String token = soapTokenRetriever.getSoapToken(MOCK_CLIENT_ID);
 
         long end = System.currentTimeMillis();
         long expectedElapse = start + expectedSleepDuration;
 
         assertTrue(end >= expectedElapse);
-        verify(soapTokenMock, times(3)).getToken();
+        verify(soapTokenMock, times(3)).getToken(MOCK_CLIENT_ID);
         assertEquals(MOCKED_EXPIRED_TOKEN_VALUE, token);
     }
 
