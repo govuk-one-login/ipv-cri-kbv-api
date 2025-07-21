@@ -33,12 +33,12 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.exception.MissingClientIdException;
+import uk.gov.di.ipv.cri.kbv.api.service.IdentityIQWebServiceSoapCache;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -50,7 +50,7 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.create
 
 public class QuestionAnswerHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
-
+    private static final Logger LOGGER = LogManager.getLogger(QuestionAnswerHandler.class);
     private static final String HEADER_SESSION_ID = "session-id";
     private static final String ERROR_KEY = "error";
     private static final String LAMBDA_NAME = "post_answer";
@@ -61,14 +61,12 @@ public class QuestionAnswerHandler
     private final EventProbe eventProbe;
     private final AuditService auditService;
     private final ConfigurationService configurationService;
-    private static final Logger LOGGER = LogManager.getLogger(QuestionAnswerHandler.class);
-
     private final ServiceFactory serviceFactory;
-
-    private final Map<String, IdentityIQWebServiceSoap> clients = new HashMap<>();
+    private final IdentityIQWebServiceSoapCache identityIQWebServiceSoapCache;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
+        this.identityIQWebServiceSoapCache = new IdentityIQWebServiceSoapCache();
         this.serviceFactory = new ServiceFactory();
 
         DynamoDbEnhancedClient dynamoDbEnhancedClient = serviceFactory.getDynamoDbEnhancedClient();
@@ -101,8 +99,8 @@ public class QuestionAnswerHandler
         this.auditService = auditService;
         this.kbvService = kbvService;
         this.configurationService = configurationService;
-
         this.eventProbe = eventProbe;
+        this.identityIQWebServiceSoapCache = new IdentityIQWebServiceSoapCache();
     }
 
     @Override
@@ -175,27 +173,11 @@ public class QuestionAnswerHandler
         }
 
         respondWithAnswerFromExperianThenStoreInDb(
-                getIdentityIQWebServiceSoap(clientId),
+                identityIQWebServiceSoapCache.get(clientId, serviceFactory),
                 questionState,
                 kbvItem,
                 sessionItem,
                 requestHeaders);
-    }
-
-    private IdentityIQWebServiceSoap getIdentityIQWebServiceSoap(String clientId) {
-        IdentityIQWebServiceSoap identityIQWebServiceSoap;
-
-        if (!clients.containsKey(clientId)) {
-            identityIQWebServiceSoap =
-                    serviceFactory.getKbvClientFactory(clientId).createClient(clientId);
-            clients.put(clientId, identityIQWebServiceSoap);
-            LOGGER.info("Cached IdentityIQWebServiceSoap for client {}", clientId);
-        } else {
-            identityIQWebServiceSoap = clients.get(clientId);
-            LOGGER.info("Using cached IdentityIQWebServiceSoap for client {}", clientId);
-        }
-
-        return identityIQWebServiceSoap;
     }
 
     private void respondWithAnswerFromExperianThenStoreInDb(

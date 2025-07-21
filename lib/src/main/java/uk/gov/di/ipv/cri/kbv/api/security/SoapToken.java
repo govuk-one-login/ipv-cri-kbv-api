@@ -49,9 +49,7 @@ public class SoapToken {
         try {
             TokenServiceSoap tokenServiceSoap = tokenService.getTokenServiceSoap();
 
-            LOGGER.info(
-                    "Fetching SSM parameter {}",
-                    "experian/iiq-wasp-service/%s".formatted(clientId));
+            LOGGER.info("Fetching SSM parameter experian/iiq-wasp-service/{}", clientId);
 
             String value =
                     configurationService.getParameterValue(
