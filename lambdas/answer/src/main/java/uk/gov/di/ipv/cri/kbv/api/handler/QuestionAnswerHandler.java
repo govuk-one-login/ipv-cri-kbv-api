@@ -136,7 +136,8 @@ public class QuestionAnswerHandler
             return handleException(
                     HttpStatusCode.BAD_REQUEST, npe, "Error finding the requested resource.");
         } catch (MissingClientIdException ex) {
-            return handleException(HttpStatusCode.BAD_REQUEST, ex, "Missing client identifier");
+            return handleException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR, ex, "Missing client identifier");
         } catch (IOException e) {
             Thread.currentThread().interrupt();
             return handleException(

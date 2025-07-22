@@ -196,7 +196,8 @@ public class QuestionHandler
         } catch (NullPointerException npe) {
             return handleException(HttpStatusCode.BAD_REQUEST, npe, npe.toString());
         } catch (MissingClientIdException ex) {
-            return handleException(HttpStatusCode.BAD_REQUEST, ex, "Missing client identifier");
+            return handleException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR, ex, "Missing client identifier");
         } catch (QuestionNotFoundException qe) {
             decrementCounterMetrics();
             return createNoContentResponse();
