@@ -109,7 +109,7 @@ public class QuestionHandler
         this.eventProbe = new EventProbe();
     }
 
-    public QuestionHandler(
+    public QuestionHandler( // NOSONAR
             ServiceFactory serviceFactory,
             ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
@@ -118,7 +118,8 @@ public class QuestionHandler
             ConfigurationService configurationService,
             EventProbe eventProbe,
             AuditService auditService,
-            SessionService sessionService) {
+            SessionService sessionService,
+            IdentityIQWebServiceSoapCache identityIQWebServiceSoapCache) {
         this.serviceFactory = serviceFactory;
         this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
@@ -128,7 +129,7 @@ public class QuestionHandler
         this.kbvService = kbvService;
         this.configurationService = configurationService;
         this.sessionService = sessionService;
-        this.identityIQWebServiceSoapCache = new IdentityIQWebServiceSoapCache();
+        this.identityIQWebServiceSoapCache = identityIQWebServiceSoapCache;
     }
 
     @Override

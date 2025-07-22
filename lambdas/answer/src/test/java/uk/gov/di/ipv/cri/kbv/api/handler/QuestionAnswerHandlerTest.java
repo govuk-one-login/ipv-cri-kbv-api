@@ -3,7 +3,6 @@ package uk.gov.di.ipv.cri.kbv.api.handler;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
-import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.Level;
@@ -36,7 +35,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
-import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
+import uk.gov.di.ipv.cri.kbv.api.service.IdentityIQWebServiceSoapCache;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
@@ -59,7 +58,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -87,19 +85,11 @@ class QuestionAnswerHandlerTest {
     @Mock private AuditService mockAuditService;
     @Mock private KBVGateway mockKBVGateway;
     @Mock private ServiceFactory mockServiceFactory;
-    @Mock private KBVClientFactory mockKBVClientFactory;
+    @Mock private IdentityIQWebServiceSoapCache mockIdentityIQWebServiceSoapCache;
     @Captor private ArgumentCaptor<Map<String, Object>> auditEventExtensionsArgCaptor;
 
     @BeforeEach
     void setUp() {
-        lenient().when(mockServiceFactory.getKbvGateway()).thenReturn(mockKBVGateway);
-        lenient()
-                .when(mockServiceFactory.getKbvClientFactory(MOCK_CLIENT_ID))
-                .thenReturn(mockKBVClientFactory);
-        lenient()
-                .when(mockKBVClientFactory.createClient(any()))
-                .thenReturn(mock(IdentityIQWebServiceSoap.class));
-
         questionAnswerHandler =
                 new QuestionAnswerHandler(
                         mockServiceFactory,
@@ -109,7 +99,8 @@ class QuestionAnswerHandlerTest {
                         mockEventProbe,
                         mockSessionService,
                         mockConfigurationService,
-                        mockAuditService);
+                        mockAuditService,
+                        mockIdentityIQWebServiceSoapCache);
     }
 
     @Test

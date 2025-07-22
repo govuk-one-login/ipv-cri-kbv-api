@@ -46,6 +46,7 @@ import uk.gov.di.ipv.cri.kbv.api.exception.InvalidStrategyScoreException;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
 import uk.gov.di.ipv.cri.kbv.api.gateway.KBVGateway;
 import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
+import uk.gov.di.ipv.cri.kbv.api.service.IdentityIQWebServiceSoapCache;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
@@ -71,7 +72,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -112,19 +112,13 @@ class QuestionHandlerTest {
     @Mock private SessionService sessionService;
     @Mock private ServiceFactory mockServiceFactory;
     @Mock private KBVClientFactory mockKBVClientFactory;
+    @Mock private IdentityIQWebServiceSoapCache identityIQWebServiceSoapCache;
     @Captor private ArgumentCaptor<Map<String, Object>> auditEventMap;
     @Captor private ArgumentCaptor<AuditEventContext> auditEventContextArgCaptor;
     private KBVService spyKBVService;
 
     @BeforeEach
     void setUp() {
-        lenient()
-                .when(mockServiceFactory.getKbvClientFactory("mock-client-id"))
-                .thenReturn(mockKBVClientFactory);
-        lenient()
-                .when(mockKBVClientFactory.createClient(any()))
-                .thenReturn(mock(IdentityIQWebServiceSoap.class));
-
         spyKBVService = Mockito.spy(new KBVService(mockKBVGateway));
 
         questionHandler =
@@ -137,7 +131,8 @@ class QuestionHandlerTest {
                         mockConfigurationService,
                         mockEventProbe,
                         mockAuditService,
-                        sessionService);
+                        sessionService,
+                        identityIQWebServiceSoapCache);
     }
 
     @Nested
@@ -160,13 +155,6 @@ class QuestionHandlerTest {
             void setUp() throws IOException {
                 kbvItem.setSessionId(UUID.fromString(requestHeaders.get(HEADER_SESSION_ID)));
                 expectedQuestion = new ObjectMapper().writeValueAsString(getQuestionOne());
-
-                lenient()
-                        .when(mockServiceFactory.getKbvClientFactory("mock-client-id"))
-                        .thenReturn(mockKBVClientFactory);
-                lenient()
-                        .when(mockKBVClientFactory.createClient(any()))
-                        .thenReturn(mock(IdentityIQWebServiceSoap.class));
 
                 when(input.getHeaders()).thenReturn(requestHeaders);
                 when(sessionService.validateSessionId(requestHeaders.get(HEADER_SESSION_ID)))

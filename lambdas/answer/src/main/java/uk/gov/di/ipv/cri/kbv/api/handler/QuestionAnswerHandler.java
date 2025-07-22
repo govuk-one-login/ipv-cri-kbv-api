@@ -91,7 +91,8 @@ public class QuestionAnswerHandler
             EventProbe eventProbe,
             SessionService sessionService,
             ConfigurationService configurationService,
-            AuditService auditService) {
+            AuditService auditService,
+            IdentityIQWebServiceSoapCache identityIQWebServiceSoapCache) {
         this.serviceFactory = serviceFactory;
         this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
@@ -100,7 +101,7 @@ public class QuestionAnswerHandler
         this.kbvService = kbvService;
         this.configurationService = configurationService;
         this.eventProbe = eventProbe;
-        this.identityIQWebServiceSoapCache = new IdentityIQWebServiceSoapCache();
+        this.identityIQWebServiceSoapCache = identityIQWebServiceSoapCache;
     }
 
     @Override
