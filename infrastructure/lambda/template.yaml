@@ -274,13 +274,13 @@ Resources:
           KeyStoreSecret: experian/keystore
           KeyStorePassword: experian/keystore-password
           WaspURLSecret: experian/iiq-wasp-service
-          WaspURL:
+          WaspURLParameterName:
             !If
             - IsProductionEnvironment
-            - "https://identityiq.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx"
+            - !Ref ProdIpvCoreWaspURL
             - !If
               - IsStagingOrIntegration
-              - "https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx"
+              - !FindInMap [ WaspServiceUrls, !Ref Environment, uat ]
               - !FindInMap [ WaspServiceUrls, !Ref Environment, stub ]
       Policies:
         - Statement:

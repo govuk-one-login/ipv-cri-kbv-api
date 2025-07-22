@@ -28,15 +28,14 @@ class ExperianSecretsTest {
         when(clientProviderFactory.getSecretsProvider()).thenReturn(mockSecretsProvider);
         when(clientProviderFactory.getSSMProvider()).thenReturn(mockSsmProvider);
         lenient().when(mockSecretsProvider.get(any())).thenReturn("dummy");
+        lenient().when(mockSsmProvider.get(any())).thenReturn("dummy");
 
         experianSecrets = new ExperianSecrets(clientProviderFactory);
     }
 
     @Test
     void shouldReturnWaspUrl() {
-        assertEquals(
-                "https://identityiq.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx",
-                experianSecrets.getWaspUrl());
+        assertEquals("dummy", experianSecrets.getWaspUrl());
     }
 
     @Test
