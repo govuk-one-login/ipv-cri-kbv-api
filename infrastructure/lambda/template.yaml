@@ -289,6 +289,13 @@ Resources:
             Resource: !Sub
               - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*'
               - Prefix: !If [ UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName ]
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParametersByPath
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/experian*"
 
   HealthCheckFunctionLogGroup:
     Type: AWS::Logs::LogGroup
