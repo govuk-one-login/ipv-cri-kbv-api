@@ -23,11 +23,14 @@ import static uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils.hasTokenExpired;
 
 public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
     private final SoapTokenRetriever tokenRetriever;
+    private final String clientId;
 
-    public HeaderHandler(SoapTokenRetriever tokenRetriever) {
+    public HeaderHandler(SoapTokenRetriever tokenRetriever, String clientId) {
         this.tokenRetriever = tokenRetriever;
+        this.clientId = clientId;
     }
 
+    @Override
     public boolean handleMessage(SOAPMessageContext smc) {
 
         Boolean outbound = (Boolean) smc.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY);
@@ -74,7 +77,8 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
 
     private String retrieveTokenWithoutError() {
         String tokenValue =
-                Objects.requireNonNull(tokenRetriever.getSoapToken(), "The token must not be null");
+                Objects.requireNonNull(
+                        tokenRetriever.getSoapToken(clientId), "The token must not be null");
 
         if (tokenValue.isEmpty()) {
             throw new InvalidSoapTokenException("The SOAP token value must not be empty");
@@ -91,7 +95,8 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
         return tokenValue;
     }
 
-    public Set getHeaders() {
+    @Override
+    public Set<QName> getHeaders() {
         return Collections.emptySet();
     }
 

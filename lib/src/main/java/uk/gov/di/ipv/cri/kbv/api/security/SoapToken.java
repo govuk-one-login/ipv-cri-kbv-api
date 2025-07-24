@@ -14,6 +14,8 @@ import javax.xml.ws.BindingProvider;
 import javax.xml.ws.WebServiceException;
 import javax.xml.ws.soap.SOAPFaultException;
 
+import java.util.Objects;
+
 public class SoapToken {
     private static final Logger LOGGER = LogManager.getLogger();
     private final TokenService tokenService;
@@ -31,11 +33,11 @@ public class SoapToken {
         this.application = application;
         this.checkIp = checkIp;
         this.tokenService = tokenService;
-        this.configurationService = configurationService;
+        this.configurationService = Objects.requireNonNull(configurationService);
         this.metricsService = metricsService;
     }
 
-    public String getToken() {
+    public String getToken(String clientId) {
         Span span =
                 OpenTelemetryUtil.createSpan(
                         this.getClass(),
@@ -47,12 +49,18 @@ public class SoapToken {
         try {
             TokenServiceSoap tokenServiceSoap = tokenService.getTokenServiceSoap();
 
+            LOGGER.info("Fetching SSM parameter experian/iiq-wasp-service/{}", clientId);
+
+            String value =
+                    configurationService.getParameterValue(
+                            "experian/iiq-wasp-service/%s".formatted(clientId));
+
+            LOGGER.info("Fetched value from SSM: {}", value);
+
             BindingProvider bindingProvider = (BindingProvider) tokenServiceSoap;
             bindingProvider
                     .getRequestContext()
-                    .put(
-                            BindingProvider.ENDPOINT_ADDRESS_PROPERTY,
-                            configurationService.getSecretValue("experian/iiq-wasp-service"));
+                    .put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, value);
 
             String token = tokenServiceSoap.loginWithCertificate(application, checkIp);
 

@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -31,6 +32,8 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
+import uk.gov.di.ipv.cri.kbv.api.exception.MissingClientIdException;
+import uk.gov.di.ipv.cri.kbv.api.service.IdentityIQWebServiceSoapCache;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
@@ -47,7 +50,7 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.create
 
 public class QuestionAnswerHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
-
+    private static final Logger LOGGER = LogManager.getLogger(QuestionAnswerHandler.class);
     private static final String HEADER_SESSION_ID = "session-id";
     private static final String ERROR_KEY = "error";
     private static final String LAMBDA_NAME = "post_answer";
@@ -58,11 +61,14 @@ public class QuestionAnswerHandler
     private final EventProbe eventProbe;
     private final AuditService auditService;
     private final ConfigurationService configurationService;
-    private static final Logger LOGGER = LogManager.getLogger(QuestionAnswerHandler.class);
+    private final ServiceFactory serviceFactory;
+    private final IdentityIQWebServiceSoapCache identityIQWebServiceSoapCache;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
-        ServiceFactory serviceFactory = new ServiceFactory();
+        this.identityIQWebServiceSoapCache = new IdentityIQWebServiceSoapCache();
+        this.serviceFactory = new ServiceFactory();
+
         DynamoDbEnhancedClient dynamoDbEnhancedClient = serviceFactory.getDynamoDbEnhancedClient();
 
         this.configurationService = serviceFactory.getConfigurationService();
@@ -77,22 +83,25 @@ public class QuestionAnswerHandler
         this.eventProbe = new EventProbe();
     }
 
-    public QuestionAnswerHandler(
+    public QuestionAnswerHandler( // NOSONAR
+            ServiceFactory serviceFactory,
             ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
             KBVService kbvService,
             EventProbe eventProbe,
             SessionService sessionService,
             ConfigurationService configurationService,
-            AuditService auditService) {
+            AuditService auditService,
+            IdentityIQWebServiceSoapCache identityIQWebServiceSoapCache) {
+        this.serviceFactory = serviceFactory;
         this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
         this.sessionService = sessionService;
         this.auditService = auditService;
         this.kbvService = kbvService;
         this.configurationService = configurationService;
-
         this.eventProbe = eventProbe;
+        this.identityIQWebServiceSoapCache = identityIQWebServiceSoapCache;
     }
 
     @Override
@@ -127,6 +136,9 @@ public class QuestionAnswerHandler
         } catch (NullPointerException npe) {
             return handleException(
                     HttpStatusCode.BAD_REQUEST, npe, "Error finding the requested resource.");
+        } catch (MissingClientIdException ex) {
+            return handleException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR, ex, "Missing client identifier");
         } catch (IOException e) {
             Thread.currentThread().interrupt();
             return handleException(
@@ -149,15 +161,29 @@ public class QuestionAnswerHandler
         var sessionItem = sessionService.validateSessionId(requestHeaders.get(HEADER_SESSION_ID));
         var kbvItem = kbvStorageService.getKBVItem(sessionItem.getSessionId());
 
+        String clientId = sessionItem.getClientId();
+
+        if (clientId == null || clientId.isBlank()) {
+            throw new MissingClientIdException();
+        }
+
         var questionState = objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
         var submittedAnswer = objectMapper.readValue(requestBody, QuestionAnswer.class);
 
-        if (respondWithAnswerFromDbStore(submittedAnswer, questionState, kbvItem)) return;
+        if (respondWithAnswerFromDbStore(submittedAnswer, questionState, kbvItem)) {
+            return;
+        }
+
         respondWithAnswerFromExperianThenStoreInDb(
-                questionState, kbvItem, sessionItem, requestHeaders);
+                identityIQWebServiceSoapCache.get(clientId, serviceFactory),
+                questionState,
+                kbvItem,
+                sessionItem,
+                requestHeaders);
     }
 
     private void respondWithAnswerFromExperianThenStoreInDb(
+            IdentityIQWebServiceSoap identityIQWebServiceSoap,
             QuestionState questionState,
             KBVItem kbvItem,
             SessionItem sessionItem,
@@ -174,7 +200,8 @@ public class QuestionAnswerHandler
         LOGGER.info(
                 "ANSWER HANDLER: QuestionIds: {} answered and sent to 3rd-party",
                 questionAnswerRequest.getAllQuestionIdAnswered());
-        var questionsResponse = kbvService.submitAnswers(questionAnswerRequest);
+        var questionsResponse =
+                kbvService.submitAnswers(identityIQWebServiceSoap, questionAnswerRequest);
         auditService.sendAuditEvent(
                 AuditEventType.RESPONSE_RECEIVED,
                 new AuditEventContext(requestHeaders, sessionItem),

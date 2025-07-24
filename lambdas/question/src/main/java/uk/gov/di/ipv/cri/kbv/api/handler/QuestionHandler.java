@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
+import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,7 +38,9 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidStrategyScoreException;
+import uk.gov.di.ipv.cri.kbv.api.exception.MissingClientIdException;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
+import uk.gov.di.ipv.cri.kbv.api.service.IdentityIQWebServiceSoapCache;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
@@ -61,6 +64,7 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.create
 
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
+    private static final Logger LOGGER = LogManager.getLogger(QuestionHandler.class);
     public static final String HEADER_SESSION_ID = "session-id";
     public static final String LAMBDA_NAME = "get_question";
     public static final String ERROR_KEY = "error";
@@ -78,11 +82,16 @@ public class QuestionHandler
     private final AuditService auditService;
     private final ConfigurationService configurationService;
     private final SessionService sessionService;
-    private static final Logger LOGGER = LogManager.getLogger(QuestionHandler.class);
+
+    private final ServiceFactory serviceFactory;
+    private final IdentityIQWebServiceSoapCache identityIQWebServiceSoapCache;
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionHandler() {
-        ServiceFactory serviceFactory = new ServiceFactory();
+        this.identityIQWebServiceSoapCache = new IdentityIQWebServiceSoapCache();
+
+        this.serviceFactory = new ServiceFactory();
+
         DynamoDbEnhancedClient dynamoDbEnhancedClient = serviceFactory.getDynamoDbEnhancedClient();
         this.configurationService = serviceFactory.getConfigurationService();
 
@@ -100,7 +109,8 @@ public class QuestionHandler
         this.eventProbe = new EventProbe();
     }
 
-    public QuestionHandler(
+    public QuestionHandler( // NOSONAR
+            ServiceFactory serviceFactory,
             ObjectMapper objectMapper,
             KBVStorageService kbvStorageService,
             PersonIdentityService personIdentityService,
@@ -108,7 +118,9 @@ public class QuestionHandler
             ConfigurationService configurationService,
             EventProbe eventProbe,
             AuditService auditService,
-            SessionService sessionService) {
+            SessionService sessionService,
+            IdentityIQWebServiceSoapCache identityIQWebServiceSoapCache) {
+        this.serviceFactory = serviceFactory;
         this.objectMapper = objectMapper;
         this.kbvStorageService = kbvStorageService;
         this.personIdentityService = personIdentityService;
@@ -117,6 +129,7 @@ public class QuestionHandler
         this.kbvService = kbvService;
         this.configurationService = configurationService;
         this.sessionService = sessionService;
+        this.identityIQWebServiceSoapCache = identityIQWebServiceSoapCache;
     }
 
     @Override
@@ -131,6 +144,7 @@ public class QuestionHandler
             var sessionItem = sessionService.validateSessionId(String.valueOf(sessionId));
             var kbvItem = kbvStorageService.getKBVItem(sessionId);
             var questionState = new QuestionState();
+
             if (kbvItem != null) {
                 questionState =
                         objectMapper.readValue(kbvItem.getQuestionState(), QuestionState.class);
@@ -142,11 +156,26 @@ public class QuestionHandler
                 eventProbe.counterMetric(LAMBDA_NAME);
                 return createNoContentResponse();
             }
+
+            String clientId = sessionItem.getClientId();
+
+            if (clientId == null || clientId.isBlank()) {
+                throw new MissingClientIdException();
+            }
+
             KbvQuestion question =
-                    processQuestionRequest(questionState, kbvItem, sessionItem, input.getHeaders());
+                    processQuestionRequest(
+                            identityIQWebServiceSoapCache.get(clientId, serviceFactory),
+                            questionState,
+                            kbvItem,
+                            sessionItem,
+                            input.getHeaders());
+
             eventProbe.addDimensions(
                     Map.of(METRIC_DIMENSION_QUESTION_ID, question.getQuestionId()));
+
             eventProbe.counterMetric(LAMBDA_NAME);
+
             return ApiGatewayResponseGenerator.proxyJsonResponse(HttpStatusCode.OK, question);
         } catch (SessionExpiredException sessionExpiredException) {
             return handleException(
@@ -167,6 +196,9 @@ public class QuestionHandler
                     "Failed to parse object using ObjectMapper.");
         } catch (NullPointerException npe) {
             return handleException(HttpStatusCode.BAD_REQUEST, npe, npe.toString());
+        } catch (MissingClientIdException ex) {
+            return handleException(
+                    HttpStatusCode.INTERNAL_SERVER_ERROR, ex, "Missing client identifier");
         } catch (QuestionNotFoundException qe) {
             decrementCounterMetrics();
             return createNoContentResponse();
@@ -183,6 +215,7 @@ public class QuestionHandler
 
     @Tracing
     KbvQuestion processQuestionRequest(
+            IdentityIQWebServiceSoap identityIQWebServiceSoap,
             QuestionState questionState,
             KBVItem kbvItem,
             SessionItem sessionItem,
@@ -193,7 +226,9 @@ public class QuestionHandler
         if (questionOptional.isPresent()) {
             return questionOptional.get();
         }
-        var questionsResponse = getQuestionAnswerResponse(kbvItem, sessionItem, requestHeaders);
+        var questionsResponse =
+                getQuestionAnswerResponse(
+                        identityIQWebServiceSoap, kbvItem, sessionItem, requestHeaders);
         questionOptional = getQuestionFromResponse(questionsResponse, questionState);
         sendQuestionReceivedAuditEvent(questionsResponse, sessionItem, requestHeaders);
         sendAuditEventIfThinFileEncountered(questionsResponse, sessionItem, requestHeaders);
@@ -238,7 +273,10 @@ public class QuestionHandler
     }
 
     private QuestionsResponse getQuestionAnswerResponse(
-            KBVItem kbvItem, SessionItem sessionItem, Map<String, String> requestHeaders)
+            IdentityIQWebServiceSoap identityIQWebServiceSoap,
+            KBVItem kbvItem,
+            SessionItem sessionItem,
+            Map<String, String> requestHeaders)
             throws SqsException, JsonProcessingException, InvalidStrategyScoreException {
         Objects.requireNonNull(kbvItem, "kbvItem cannot be null");
 
@@ -249,7 +287,7 @@ public class QuestionHandler
 
         sendQuestionRequestSentAuditEvent(sessionItem, personIdentity, requestHeaders);
         sendExperianIIQStartedAuditEvent(sessionItem, requestHeaders);
-        return this.kbvService.getQuestions(questionRequest);
+        return this.kbvService.getQuestions(identityIQWebServiceSoap, questionRequest);
     }
 
     private QuestionRequest createQuestionRequest(

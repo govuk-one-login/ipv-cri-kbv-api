@@ -1,48 +1,39 @@
 package uk.gov.di.ipv.cri.kbv.healthcheck.handler.config;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.lambda.powertools.parameters.SSMProvider;
-import software.amazon.lambda.powertools.parameters.SecretsProvider;
-import uk.gov.di.ipv.cri.common.library.util.ClientProviderFactory;
+import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ExperianSecretsTest {
-
-    private ExperianSecrets experianSecrets;
-
-    @BeforeEach
-    void setUp() {
-        ClientProviderFactory clientProviderFactory = mock(ClientProviderFactory.class);
-        SecretsProvider mockSecretsProvider = mock(SecretsProvider.class);
-        SSMProvider mockSsmProvider = mock(SSMProvider.class);
-
-        when(clientProviderFactory.getSecretsProvider()).thenReturn(mockSecretsProvider);
-        when(clientProviderFactory.getSSMProvider()).thenReturn(mockSsmProvider);
-        when(mockSecretsProvider.get(any())).thenReturn("dummy");
-
-        experianSecrets = new ExperianSecrets(clientProviderFactory);
-    }
+    @Mock private ConfigurationService configurationService;
+    @InjectMocks private ExperianSecrets experianSecrets;
 
     @Test
     void shouldReturnWaspUrl() {
+        when(configurationService.getParameterValue(any())).thenReturn("dummy");
+
         assertEquals("dummy", experianSecrets.getWaspUrl());
     }
 
     @Test
     void shouldReturnKeyStoreSecret() {
+        when(configurationService.getSecretValue(any())).thenReturn("dummy");
+
         assertEquals("dummy", experianSecrets.getKeystoreSecret());
     }
 
     @Test
     void shouldReturnKeyStorePassword() {
+        when(configurationService.getSecretValue(any())).thenReturn("dummy");
+
         assertEquals("dummy", experianSecrets.getKeystorePassword());
     }
 }

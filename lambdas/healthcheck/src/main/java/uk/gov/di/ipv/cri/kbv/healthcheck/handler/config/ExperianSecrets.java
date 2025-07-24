@@ -7,18 +7,20 @@ public class ExperianSecrets {
     private final ConfigurationService configurationService;
 
     public ExperianSecrets() {
-        this(new ClientProviderFactory());
-    }
+        ClientProviderFactory clientProviderFactory = new ClientProviderFactory();
 
-    public ExperianSecrets(ClientProviderFactory clientProviderFactory) {
         this.configurationService =
                 new ConfigurationService(
                         clientProviderFactory.getSSMProvider(),
                         clientProviderFactory.getSecretsProvider());
     }
 
+    public ExperianSecrets(ConfigurationService configurationService) {
+        this.configurationService = configurationService;
+    }
+
     public String getWaspUrl() {
-        return configurationService.getSecretValue(Configuration.WASP_URL_SECRET);
+        return configurationService.getParameterValue(Configuration.WASP_URL_PARAMETER);
     }
 
     public String getKeystorePassword() {
