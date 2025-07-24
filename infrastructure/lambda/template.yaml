@@ -161,7 +161,7 @@ Mappings:
       stub: https://l8ouaxf1u9.execute-api.eu-west-2.amazonaws.com/build/WASPAuthenticator/tokenService.asmx
       uat: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
     staging:
-      stub: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/build/WASPAuthenticator/tokenService.asmx
+      stub: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/staging/WASPAuthenticator/tokenService.asmx
       uat: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
     integration:
       stub: https://secure.wasp.uat.uk.experian.com/WASPAuthenticator/tokenService.asmx
@@ -178,7 +178,7 @@ Mappings:
       stub: https://l8ouaxf1u9.execute-api.eu-west-2.amazonaws.com/build/IdentityIQWebService/IdentityIQWebService.asmx
       uat: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
     staging:
-      stub: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/dev/IdentityIQWebService/IdentityIQWebService.asmx
+      stub: https://dud29tvi8k.execute-api.eu-west-2.amazonaws.com/staging/IdentityIQWebService/IdentityIQWebService.asmx
       uat: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
     integration:
       stub: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
