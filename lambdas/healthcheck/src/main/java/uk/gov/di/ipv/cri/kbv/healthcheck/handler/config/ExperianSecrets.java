@@ -20,7 +20,8 @@ public class ExperianSecrets {
     }
 
     public String getWaspUrl() {
-        return configurationService.getParameterValue(Configuration.WASP_URL_PARAMETER);
+        return configurationService.getParameterValue(
+                "experian/iiq-wasp-service/%s".formatted(Configuration.CLIENT_ID));
     }
 
     public String getKeystorePassword() {

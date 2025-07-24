@@ -274,14 +274,14 @@ Resources:
           KeyStoreSecret: experian/keystore
           KeyStorePassword: experian/keystore-password
           WaspURLSecret: experian/iiq-wasp-service
-          WaspURLParameterName:
+          ClientId:
             !If
             - IsProductionEnvironment
-            - !Ref ProdIpvCoreWaspURL
+            - "ipv-core"
             - !If
               - IsStagingOrIntegration
-              - !Ref IpvCoreStubPreProdWaspURL
-              - !Ref IpvCoreStubAwsProdWaspURL
+              - "ipv-core-stub-pre-prod"
+              - "ipv-core-stub-aws-prod"
       Policies:
         - Statement:
             Effect: Allow
