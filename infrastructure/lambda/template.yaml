@@ -280,8 +280,8 @@ Resources:
             - !Ref ProdIpvCoreWaspURL
             - !If
               - IsStagingOrIntegration
-              - !FindInMap [ WaspServiceUrls, !Ref Environment, uat ]
-              - !FindInMap [ WaspServiceUrls, !Ref Environment, stub ]
+              - !Ref IpvCoreStubPreProdWaspURL
+              - !Ref IpvCoreStubAwsProdWaspURL
       Policies:
         - Statement:
             Effect: Allow
