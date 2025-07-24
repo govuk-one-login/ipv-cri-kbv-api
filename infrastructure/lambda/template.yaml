@@ -71,8 +71,10 @@ Conditions:
 Globals:
   Function:
     VpcConfig:
-      SecurityGroupIds: [!ImportValue cri-vpc-LambdaSecurityGroup]
-      SubnetIds: !Split [",", !ImportValue cri-vpc-PrivateSubnets]
+      SecurityGroupIds: [!ImportValue spoke-vpc-AWSServicesEndpointSecurityGroupId]
+      SubnetIds:
+        - !ImportValue spoke-vpc-ProtectedSubnetIdA
+        - !ImportValue spoke-vpc-ProtectedSubnetIdB
     PermissionsBoundary:
       !If [UsePermissionsBoundary, !Ref PermissionsBoundary, !Ref AWS::NoValue]
     CodeSigningConfigArn:
