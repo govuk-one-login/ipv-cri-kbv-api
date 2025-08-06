@@ -614,6 +614,7 @@ Resources:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           APP_CONFIG_ID: !Sub "${AWS::StackName}-${Environment}"
           APP_CONFIG_ENVIRONMENT_ID: !Sub "${AWS::StackName}-${Environment}"
+          APP_CONFIG_PROFILE_ID: !Sub "${AWS::StackName}-${Environment}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -649,6 +650,14 @@ Resources:
                 - kms:GenerateDataKey
               Resource:
                 Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueEncryptionKeyArn
+            - Sid: AppConfigAccess
+              Effect: Allow
+              Action:
+                - appconfig:StartConfigurationSession
+                - appconfig:GetLatestConfiguration
+              Resource:
+                - !Sub "arn:aws:appconfig:${AWS::Region}:${AWS::AccountId}:application/${AppConfigApplication}"
+                - !Sub "arn:aws:appconfig:${AWS::Region}:${AWS::AccountId}:application/${AppConfigApplication}/*"
 
   KBVAbandonFunctionLogGroup:
     Type: AWS::Logs::LogGroup
