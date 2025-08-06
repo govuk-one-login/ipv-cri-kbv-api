@@ -1940,20 +1940,26 @@ Resources:
       ApplicationId: !Ref AppConfigApplication
       ConfigurationProfileId: !Ref AppConfigConfigurationProfile
       ContentType: application/json
-      Content: '{ "foo": "bar" }'
+      Content: '{ "foo": "bar", "hello": "world" }'
 
-  # AppConfigDeployment:
-  #   Type: AWS::AppConfig::Deployment
-  #   Properties:
+  AppConfigDeploymentStrategy:
+    Type: AWS::AppConfig::DeploymentStrategy
+    Properties:
+      Name: !Sub "${AWS::StackName}-${Environment}"
+      DeploymentDurationInMinutes: 0
+      FinalBakeTimeInMinutes: 0
+      GrowthFactor: 100
+      GrowthType: LINEAR
+      ReplicateTo: NONE
 
-  # AppConfigDeploymentStrategy:
-  #   Type: AWS::AppConfig::DeploymentStrategy
-  #   Properties:
-  #     Name: !Sub "${AWS::StackName}-${Environment}"
-  #     DeploymentDurationInMinutes: 0
-  #     FinalBakeTimeInMinutes: 0
-  #     GrowthFactor: 100
-  #     GrowthType: LINEAR
+  AppConfigDeployment:
+    Type: AWS::AppConfig::Deployment
+    Properties:
+      ApplicationId: !Ref AppConfigApplication
+      ConfigurationProfileId: !Ref AppConfigConfigurationProfile
+      ConfigurationVersion: !Ref AppConfigHostedConfigurationVersion
+      DeploymentStrategyId: !Ref AppConfigDeploymentStrategy
+      EnvironmentId: !Ref AppConfigEnvironment
 
 Outputs:
   PublicKBVApiGatewayId:
