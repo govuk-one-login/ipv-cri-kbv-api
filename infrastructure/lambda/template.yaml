@@ -612,6 +612,8 @@ Resources:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-abandon"
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
+          APP_CONFIG_ID: !Sub "${AWS::StackName}-${Environment}"
+          APP_CONFIG_ENVIRONMENT_ID: !Sub "${AWS::StackName}-${Environment}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -1903,6 +1905,46 @@ Resources:
       Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-3rd-party-stubs"
       Type: String
       Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, uat ]
+
+  # App Config
+  AppConfigApplication:
+    Type: AWS::AppConfig::Application
+    Properties:
+      Name: !Sub "${AWS::StackName}-${Environment}"
+
+  AppConfigEnvironment:
+    Type: AWS::AppConfig::Environment
+    Properties:
+      Name: !Sub "${AWS::StackName}-${Environment}"
+      ApplicationId: !Ref AppConfigApplication
+
+  AppConfigConfigurationProfile:
+    Type: AWS::AppConfig::ConfigurationProfile
+    Properties:
+      Name: !Sub "${AWS::StackName}-${Environment}"
+      ApplicationId: !Ref AppConfigApplication
+      LocationUri: "hosted"
+
+  AppConfigHostedConfigurationVersion:
+    Type: AWS::AppConfig::HostedConfigurationVersion
+    Properties:
+      ApplicationId: !Ref AppConfigApplication
+      ConfigurationProfileId: !Ref AppConfigConfigurationProfile
+      ContentType: application/json
+      Content: '{ "foo": "bar" }'
+
+  # AppConfigDeployment:
+  #   Type: AWS::AppConfig::Deployment
+  #   Properties:
+
+  # AppConfigDeploymentStrategy:
+  #   Type: AWS::AppConfig::DeploymentStrategy
+  #   Properties:
+  #     Name: !Sub "${AWS::StackName}-${Environment}"
+  #     DeploymentDurationInMinutes: 0
+  #     FinalBakeTimeInMinutes: 0
+  #     GrowthFactor: 100
+  #     GrowthType: LINEAR
 
 Outputs:
   PublicKBVApiGatewayId:

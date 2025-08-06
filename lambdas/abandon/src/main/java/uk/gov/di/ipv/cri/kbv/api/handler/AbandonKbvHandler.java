@@ -9,6 +9,8 @@ import software.amazon.awssdk.http.HttpStatusCode;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
+import software.amazon.lambda.powertools.parameters.AppConfigProvider;
+import software.amazon.lambda.powertools.parameters.ParamManager;
 import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
@@ -57,6 +59,20 @@ public class AbandonKbvHandler
                         serviceFactory.getDynamoDbEnhancedClient());
         this.sessionService = serviceFactory.getSessionService();
         this.auditService = serviceFactory.getAuditService();
+
+        var applicationId = System.getenv("APP_CONFIG_ID");
+        var environmentId = System.getenv("APP_CONFIG_ENVIRONMENT_ID");
+
+        System.out.println(applicationId);
+        System.out.println(environmentId);
+
+        AppConfigProvider appConfigProvider =
+                ParamManager.getAppConfigProvider(environmentId, applicationId);
+
+        String value = appConfigProvider.get("foo");
+
+        System.out.println();
+        System.out.println("foo value: " + value);
     }
 
     @Override
