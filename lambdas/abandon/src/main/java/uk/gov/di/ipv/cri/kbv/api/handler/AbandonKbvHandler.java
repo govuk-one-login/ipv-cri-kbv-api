@@ -5,10 +5,12 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import software.amazon.awssdk.http.HttpStatusCode;
+import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
+import software.amazon.awssdk.services.appconfigdata.AppConfigDataClient;
 import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
 import software.amazon.lambda.powertools.logging.Logging;
 import software.amazon.lambda.powertools.metrics.Metrics;
-import software.amazon.lambda.powertools.parameters.AppConfigProvider;
+import software.amazon.lambda.powertools.parameters.BaseProvider;
 import software.amazon.lambda.powertools.parameters.ParamManager;
 import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
@@ -19,6 +21,8 @@ import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 
 import java.util.Map;
+
+import static java.time.temporal.ChronoUnit.MINUTES;
 
 public class AbandonKbvHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -66,13 +70,17 @@ public class AbandonKbvHandler
         var environmentId = System.getenv("APP_CONFIG_ENVIRONMENT_ID");
         var profileId = System.getenv("APP_CONFIG_PROFILE_ID");
 
-        System.out.println("hi");
         System.out.println(applicationId);
         System.out.println(environmentId);
 
-        AppConfigProvider appConfigProvider =
-                ParamManager.getAppConfigProvider(environmentId, applicationId);
-        // .withMaxAge(3, MINUTES);
+        BaseProvider appConfigProvider =
+                ParamManager.getAppConfigProvider(
+                                AppConfigDataClient.builder()
+                                        .httpClientBuilder(UrlConnectionHttpClient.builder())
+                                        .build(),
+                                environmentId,
+                                applicationId)
+                        .withMaxAge(3, MINUTES);
 
         String paramsRaw = appConfigProvider.get(profileId);
 
