@@ -40,6 +40,7 @@ public class ServiceFactory {
     @ExcludeFromGeneratedCoverageReport
     public ServiceFactory(ClientProviderFactory clientProviderFactory) {
         this.clientProviderFactory = clientProviderFactory;
+        // Put the appConfig service in here unless we can't?
         this.configurationService =
                 new ConfigurationService(getSsmProvider(), getSecretsProvider());
         this.soapTokenRetriever = new SoapTokenRetriever(getSoapToken());

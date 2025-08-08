@@ -612,6 +612,9 @@ Resources:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-abandon"
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
+          APP_CONFIG_ID: !Sub "${AWS::StackName}-${Environment}"
+          APP_CONFIG_ENVIRONMENT_ID: !Sub "${AWS::StackName}-${Environment}"
+          APP_CONFIG_PROFILE_ID: !Sub "${AWS::StackName}-${Environment}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -647,6 +650,14 @@ Resources:
                 - kms:GenerateDataKey
               Resource:
                 Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueEncryptionKeyArn
+            - Sid: AppConfigAccess
+              Effect: Allow
+              Action:
+                - appconfig:StartConfigurationSession
+                - appconfig:GetLatestConfiguration
+              Resource:
+                - !Sub "arn:aws:appconfig:${AWS::Region}:${AWS::AccountId}:application/${AppConfigApplication}"
+                - !Sub "arn:aws:appconfig:${AWS::Region}:${AWS::AccountId}:application/${AppConfigApplication}/*"
 
   KBVAbandonFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -1903,6 +1914,52 @@ Resources:
       Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-3rd-party-stubs"
       Type: String
       Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, uat ]
+
+  # App Config
+  AppConfigApplication:
+    Type: AWS::AppConfig::Application
+    Properties:
+      Name: !Sub "${AWS::StackName}-${Environment}"
+
+  AppConfigEnvironment:
+    Type: AWS::AppConfig::Environment
+    Properties:
+      Name: !Sub "${AWS::StackName}-${Environment}"
+      ApplicationId: !Ref AppConfigApplication
+
+  AppConfigConfigurationProfile:
+    Type: AWS::AppConfig::ConfigurationProfile
+    Properties:
+      Name: !Sub "${AWS::StackName}-${Environment}"
+      ApplicationId: !Ref AppConfigApplication
+      LocationUri: "hosted"
+
+  AppConfigHostedConfigurationVersion:
+    Type: AWS::AppConfig::HostedConfigurationVersion
+    Properties:
+      ApplicationId: !Ref AppConfigApplication
+      ConfigurationProfileId: !Ref AppConfigConfigurationProfile
+      ContentType: application/json
+      Content: '{ "foo": "bar", "hello": "world" }'
+
+  AppConfigDeploymentStrategy:
+    Type: AWS::AppConfig::DeploymentStrategy
+    Properties:
+      Name: !Sub "${AWS::StackName}-${Environment}"
+      DeploymentDurationInMinutes: 0
+      FinalBakeTimeInMinutes: 0
+      GrowthFactor: 100
+      GrowthType: LINEAR
+      ReplicateTo: NONE
+
+  AppConfigDeployment:
+    Type: AWS::AppConfig::Deployment
+    Properties:
+      ApplicationId: !Ref AppConfigApplication
+      ConfigurationProfileId: !Ref AppConfigConfigurationProfile
+      ConfigurationVersion: !Ref AppConfigHostedConfigurationVersion
+      DeploymentStrategyId: !Ref AppConfigDeploymentStrategy
+      EnvironmentId: !Ref AppConfigEnvironment
 
 Outputs:
   PublicKBVApiGatewayId:
