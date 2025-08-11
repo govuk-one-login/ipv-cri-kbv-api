@@ -3,16 +3,15 @@ package uk.gov.di.ipv.cri.kbv.api.security;
 import com.experian.uk.wasp.TokenService;
 import com.experian.uk.wasp.TokenServiceSoap;
 import io.opentelemetry.api.trace.Span;
+import jakarta.xml.ws.BindingProvider;
+import jakarta.xml.ws.WebServiceException;
+import jakarta.xml.ws.soap.SOAPFaultException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidSoapTokenException;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 import uk.gov.di.ipv.cri.kbv.api.util.OpenTelemetryUtil;
-
-import javax.xml.ws.BindingProvider;
-import javax.xml.ws.WebServiceException;
-import javax.xml.ws.soap.SOAPFaultException;
 
 import java.util.Objects;
 

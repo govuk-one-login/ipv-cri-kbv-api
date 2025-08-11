@@ -2,14 +2,13 @@ package uk.gov.di.ipv.cri.kbv.api.security;
 
 import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebService;
 import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
+import jakarta.xml.ws.BindingProvider;
+import jakarta.xml.ws.WebServiceException;
+import jakarta.xml.ws.soap.SOAPFaultException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidSoapTokenException;
-
-import javax.xml.ws.BindingProvider;
-import javax.xml.ws.WebServiceException;
-import javax.xml.ws.soap.SOAPFaultException;
 
 public class KBVClientFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(KBVClientFactory.class);
