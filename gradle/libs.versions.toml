@@ -102,6 +102,6 @@ java = { id = "java" }
 java-test-fixtures = { id = "java-test-fixtures" }
 jacoco = { id = "jacoco" }
 wsdl2java = { id = "com.github.bjornvester.wsdl2java", version = '2.0.1' }
-post-compile-weaving = { id = "io.freefair.aspectj.post-compile-weaving", version = '6.3.0' }
+post-compile-weaving = { id = "io.freefair.aspectj.post-compile-weaving", version = "8.6" }
 sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
