@@ -19,7 +19,7 @@ This will run "build", "test", "buildZip", and "spotLess" reformatting
 
 ## Deploy to dev environment
 
-Ensure you have the `sam-cli` installed, [create a sso profile](https://govukverify.atlassian.net/wiki/spaces/LO/pages/3725591061/Getting+set+up+with+AWS+SSO+in+terminal+CLI+-+quickstart) for the role AdministratorAccessPermission based on `di-ipv-cri-dev` AWS account. Which can be found by searching the [AWS start page](https://uk-digital-identity.awsapps.com/start#/). 
+Ensure you have the `sam-cli` installed, [create a sso profile](https://govukverify.atlassian.net/wiki/spaces/LO/pages/3725591061/Getting+set+up+with+AWS+SSO+in+terminal+CLI+-+quickstart) for the role AdministratorAccessPermission based on `di-ipv-cri-kbv-dev` AWS account. Which can be found by searching the [AWS start page](https://uk-digital-identity.awsapps.com/start#/). 
 
 Deploy to the dev environment with:
 
