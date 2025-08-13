@@ -2,6 +2,9 @@ package uk.gov.di.ipv.cri.kbv.api.security;
 
 import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebService;
 import com.experian.uk.schema.experian.identityiq.services.webservice.IdentityIQWebServiceSoap;
+import jakarta.xml.ws.BindingProvider;
+import jakarta.xml.ws.WebServiceException;
+import jakarta.xml.ws.soap.SOAPFaultException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -9,10 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidSoapTokenException;
-
-import javax.xml.ws.BindingProvider;
-import javax.xml.ws.WebServiceException;
-import javax.xml.ws.soap.SOAPFaultException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

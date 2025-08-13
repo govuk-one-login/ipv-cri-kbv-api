@@ -18,6 +18,10 @@ dependencies {
 	implementation(libs.powertools.tracing)
 	implementation(libs.javax.annotation)
 	implementation(libs.javax.validation)
+	implementation(libs.jakarta.xml.ws)
+	implementation(libs.jakarta.xml.bind)
+	implementation(libs.jakarta.activation)
+	implementation(libs.jakarta.annotation)
 	implementation(libs.saaj)
 	implementation(libs.cxf.jaxws)
 	implementation(libs.cxf.http)
@@ -45,7 +49,7 @@ sourceSets {
 }
 
 wsdl2java {
-	useJakarta = false
+	useJakarta = true
 	includes = [
 		'wsdl/iiq-wasp-token.wsdl',
 		'wsdl/iiq-service.wsdl'
