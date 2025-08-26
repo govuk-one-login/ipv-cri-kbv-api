@@ -75,6 +75,7 @@ Globals:
       SubnetIds:
         - !ImportValue spoke-kbv-medium-ProtectedSubnetIdA
         - !ImportValue spoke-kbv-medium-ProtectedSubnetIdB
+        - !ImportValue spoke-kbv-medium-ProtectedSubnetIdC
     PermissionsBoundary:
       !If [UsePermissionsBoundary, !Ref PermissionsBoundary, !Ref AWS::NoValue]
     CodeSigningConfigArn:
