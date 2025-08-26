@@ -399,7 +399,7 @@ Resources:
                 Principal: "*"
                 Condition:
                   StringNotEquals:
-                    aws:SourceVpce: !ImportValue cri-vpc-ApiGatewayVpcEndpointId
+                    aws:SourceVpce: !ImportValue spoke-kbv-medium-ExecuteApiGatewayEndpointId
 
   PublicKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
