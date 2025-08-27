@@ -4,6 +4,7 @@ import uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtils;
 import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.Assertion;
 import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.FailReport;
 import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.Report;
+import uk.gov.di.ipv.cri.kbv.healthcheck.util.LatencyTracker;
 
 import java.io.IOException;
 import java.net.URI;
@@ -43,14 +44,19 @@ public class SOAPRequestAssertion implements Assertion {
     private final char[] keystorePassword;
     private final byte[] keystore;
 
+    private final LatencyTracker latencyTracker;
+
     public SOAPRequestAssertion(String keystorePassword, String waspUrl, String keystore) {
         this.keystorePassword = keystorePassword.toCharArray();
         this.waspUrl = waspUrl;
         this.keystore = Base64.getDecoder().decode(keystore);
+        this.latencyTracker = new LatencyTracker();
     }
 
     @Override
     public Report run() {
+        latencyTracker.reset();
+
         Report report = new Report();
 
         try {
@@ -61,6 +67,8 @@ public class SOAPRequestAssertion implements Assertion {
 
             AtomicBoolean success = new AtomicBoolean(false);
             report.addAttributes("soap_request", processResponse(success, response));
+            report.addAttributes(
+                    "metrics", Map.of("latencyInMs", latencyTracker.getElapsedTimeInMs()));
             report.addAttributes(
                     "trust_manager",
                     Map.of(
@@ -122,7 +130,12 @@ public class SOAPRequestAssertion implements Assertion {
                                     HttpRequest.BodyPublishers.ofByteArray(
                                             SOAP_ENVELOPE.getBytes(StandardCharsets.UTF_8)))
                             .build();
-            return client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            latencyTracker.start();
+            HttpResponse<String> response =
+                    client.send(request, HttpResponse.BodyHandlers.ofString());
+            latencyTracker.stop();
+            return response;
         }
     }
 }
