@@ -4,6 +4,7 @@ import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.Assertion;
 import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.FailReport;
 import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.Report;
 import uk.gov.di.ipv.cri.kbv.healthcheck.util.EpochConverter;
+import uk.gov.di.ipv.cri.kbv.healthcheck.util.LatencyTracker;
 import uk.gov.di.ipv.cri.kbv.healthcheck.util.StringMasking;
 
 import javax.net.ssl.SSLSession;
@@ -37,12 +38,13 @@ public class SSLHandshakeAssertion implements Assertion {
 
         try (var sslSocket = createSSLSocket(host, port)) {
             configureSocket(sslSocket);
-            performHandshake(sslSocket);
+            long latency = performHandshake(sslSocket).getElapsedTimeInMs();
 
             SSLSession session = sslSocket.getSession();
             report.setPassed(session.isValid());
 
             report.addAttributes("session", getSessionInformation(session));
+            report.addAttributes("metrics", Map.of("latencyInMs", latency));
             report.addAttributes(
                     "serverCertificates",
                     Map.of(
@@ -99,8 +101,16 @@ public class SSLHandshakeAssertion implements Assertion {
         socket.setSoTimeout(DEFAULT_TIMEOUT_MS);
     }
 
-    private static void performHandshake(SSLSocket socket) throws IOException {
+    private static LatencyTracker performHandshake(SSLSocket socket) throws IOException {
+        LatencyTracker latencyTracker = new LatencyTracker();
+
+        latencyTracker.start();
+
         socket.startHandshake();
+
+        latencyTracker.stop();
+
+        return latencyTracker;
     }
 
     private static String bytesToHex(byte[] bytes) {
