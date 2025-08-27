@@ -51,17 +51,19 @@ Conditions:
   UseSecretPrefix: !Not [!Equals [!Ref SecretPrefix, "none"]]
   UsePermissionsBoundary: !Not [!Equals [!Ref PermissionsBoundary, ""]]
   UseCodeSigningConfigArn: !Not [!Equals [!Ref CodeSigningConfigArn, "none"]]
-  UseCanaryDeploymentAlarms: !Not [!Equals [!Ref LambdaDeploymentPreference, AllAtOnce]]
+  UseCanaryDeploymentAlarms:
+    !Not [!Equals [!Ref LambdaDeploymentPreference, AllAtOnce]]
   DeployAlarms: !Or
     - !Condition IsNotDevLikeEnvironment
     - !Equals [!Ref DeployAlarmsInDevEnvironment, "true"]
-  IsDevEnvironment: !Or [!Equals [!Ref Environment, dev], !Condition IsLocalDevEnvironment]
+  IsDevEnvironment:
+    !Or [!Equals [!Ref Environment, dev], !Condition IsLocalDevEnvironment]
   IsStubEnvironment: !Not [!Equals [!Ref Environment, production]]
   IsLocalDevEnvironment: !Equals [!Ref Environment, localdev]
   IsProductionEnvironment: !Equals [!Ref Environment, production]
   IsStagingOrIntegration: !Or
-    - !Equals [ !Ref Environment, staging ]
-    - !Equals [ !Ref Environment, integration ]
+    - !Equals [!Ref Environment, staging]
+    - !Equals [!Ref Environment, integration]
   IsNotDevEnvironment: !Not [!Condition IsDevEnvironment]
   IsDevLikeEnvironment:
     !Or [!Condition IsLocalDevEnvironment, !Condition IsDevEnvironment]
@@ -76,14 +78,18 @@ Globals:
     PermissionsBoundary:
       !If [UsePermissionsBoundary, !Ref PermissionsBoundary, !Ref AWS::NoValue]
     CodeSigningConfigArn:
-      !If [UseCodeSigningConfigArn, !Ref CodeSigningConfigArn, !Ref AWS::NoValue]
+      !If [
+        UseCodeSigningConfigArn,
+        !Ref CodeSigningConfigArn,
+        !Ref AWS::NoValue,
+      ]
     Tracing: Active
     Timeout: 30 # seconds
     Runtime: java21
     Architectures: [arm64]
     AutoPublishAlias: live
     SnapStart:
-      ApplyOn: !FindInMap [ SnapStartMapping, Environment, !Ref Environment ]
+      ApplyOn: !FindInMap [SnapStartMapping, Environment, !Ref Environment]
     DeploymentPreference:
       Type: !Ref LambdaDeploymentPreference
       Role: !GetAtt CodeDeployServiceRole.Arn
@@ -91,7 +97,8 @@ Globals:
     Environment:
       Variables:
         AWS_STACK_NAME: !Ref AWS::StackName
-        SECRET_PREFIX: !If [UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName]
+        SECRET_PREFIX:
+          !If [UseSecretPrefix, !Ref SecretPrefix, !Ref AWS::StackName]
         SQS_AUDIT_EVENT_PREFIX: !Ref AuditEventNamePrefix
         COMMON_PARAMETER_NAME_PREFIX: !Ref CommonStackName
         POWERTOOLS_METRICS_NAMESPACE: !Ref CriIdentifier
@@ -100,26 +107,56 @@ Globals:
         JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
         DT_CONNECTION_AUTH_TOKEN: !Sub
           - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CONNECTION_AUTH_TOKEN}}"
-          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
+          - SecretArn:
+              !FindInMap [
+                EnvironmentConfiguration,
+                !Ref Environment,
+                dynatraceSecretArn,
+              ]
         DT_CONNECTION_BASE_URL: !Sub
           - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CONNECTION_BASE_URL}}"
-          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
+          - SecretArn:
+              !FindInMap [
+                EnvironmentConfiguration,
+                !Ref Environment,
+                dynatraceSecretArn,
+              ]
         DT_CLUSTER_ID: !Sub
           - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CLUSTER_ID}}"
-          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
+          - SecretArn:
+              !FindInMap [
+                EnvironmentConfiguration,
+                !Ref Environment,
+                dynatraceSecretArn,
+              ]
         DT_LOG_COLLECTION_AUTH_TOKEN: !Sub
           - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_LOG_COLLECTION_AUTH_TOKEN}}"
-          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
+          - SecretArn:
+              !FindInMap [
+                EnvironmentConfiguration,
+                !Ref Environment,
+                dynatraceSecretArn,
+              ]
         DT_TENANT: !Sub
           - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_TENANT}}"
-          - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
+          - SecretArn:
+              !FindInMap [
+                EnvironmentConfiguration,
+                !Ref Environment,
+                dynatraceSecretArn,
+              ]
         DT_OPEN_TELEMETRY_ENABLE_INTEGRATION: "true"
         OTEL_INSTRUMENTATION_AWS_SDK_EXPERIMENTAL_USE_PROPAGATOR_FOR_MESSAGING: "true"
         OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
     Layers:
       - !Sub
         - "{{resolve:secretsmanager:${SecretArn}:SecretString:JAVA_LAYER}}"
-        - SecretArn: !FindInMap [EnvironmentConfiguration, !Ref Environment, dynatraceSecretArn]
+        - SecretArn:
+            !FindInMap [
+              EnvironmentConfiguration,
+              !Ref Environment,
+              dynatraceSecretArn,
+            ]
   Api:
     TracingEnabled: true
     OpenApiVersion: 3.0.1
@@ -274,8 +311,7 @@ Resources:
           KeyStoreSecret: experian/keystore
           KeyStorePassword: experian/keystore-password
           WaspURLSecret: experian/iiq-wasp-service
-          ClientId:
-            !If
+          ClientId: !If
             - IsProductionEnvironment
             - "ipv-core"
             - !If
@@ -287,8 +323,9 @@ Resources:
             Effect: Allow
             Action: secretsmanager:GetSecretValue
             Resource: !Sub
-              - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*'
-              - Prefix: !If [ UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName ]
+              - "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*"
+              - Prefix:
+                  !If [UseSecretPrefix, !Ref SecretPrefix, !Ref AWS::StackName]
         - Statement:
             - Effect: Allow
               Action:
@@ -330,7 +367,7 @@ Resources:
         openapi: 3.0.1
         paths: # workaround to get `sam validate` to work
           /never-created:
-            options: { }
+            options: {}
         Fn::Transform:
           Name: AWS::Include
           Parameters:
@@ -372,7 +409,7 @@ Resources:
         openapi: 3.0.1
         paths: # workaround to get `sam validate` to work
           /never-created:
-            options: { }
+            options: {}
         Fn::Transform:
           Name: AWS::Include
           Parameters:
@@ -439,7 +476,10 @@ Resources:
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
-          - [!Ref ExperianKBVQuestionFunctionCanaryErrors, !Ref ExperianKBVQuestionFunction5xxCanaryErrors]
+          - [
+              !Ref ExperianKBVQuestionFunctionCanaryErrors,
+              !Ref ExperianKBVQuestionFunction5xxCanaryErrors,
+            ]
           - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -476,10 +516,15 @@ Resources:
             - Sid: ReadSecretsPolicy
               Effect: Allow
               Action:
-                - 'secretsmanager:GetSecretValue'
+                - "secretsmanager:GetSecretValue"
               Resource: !Sub
-                - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*'
-                - Prefix: !If [UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName]
+                - "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*"
+                - Prefix:
+                    !If [
+                      UseSecretPrefix,
+                      !Ref SecretPrefix,
+                      !Ref AWS::StackName,
+                    ]
         - Statement:
             - Effect: Allow
               Action:
@@ -529,7 +574,10 @@ Resources:
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
-          - [!Ref ExperianKBVAnswerFunctionCanaryErrors, !Ref ExperianKBVAnswerFunction5xxCanaryErrors]
+          - [
+              !Ref ExperianKBVAnswerFunctionCanaryErrors,
+              !Ref ExperianKBVAnswerFunction5xxCanaryErrors,
+            ]
           - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -562,10 +610,15 @@ Resources:
             - Sid: ReadSecretsPolicy
               Effect: Allow
               Action:
-                - 'secretsmanager:GetSecretValue'
+                - "secretsmanager:GetSecretValue"
               Resource: !Sub
-                - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*'
-                - Prefix: !If [UseSecretPrefix, !Ref SecretPrefix , !Ref AWS::StackName]
+                - "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/${Prefix}/experian*"
+                - Prefix:
+                    !If [
+                      UseSecretPrefix,
+                      !Ref SecretPrefix,
+                      !Ref AWS::StackName,
+                    ]
         - Statement:
             - Effect: Allow
               Action:
@@ -615,7 +668,10 @@ Resources:
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
-          - [!Ref ExperianKBVAbandonFunctionCanaryErrors, !Ref ExperianKBVAbandonFunction5xxCanaryErrors]
+          - [
+              !Ref ExperianKBVAbandonFunctionCanaryErrors,
+              !Ref ExperianKBVAbandonFunction5xxCanaryErrors,
+            ]
           - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -632,13 +688,13 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - Statement:
-          - Effect: Allow
-            Action:
-              - ssm:GetParameter
-            Resource:
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
         - Statement:
             - Sid: auditEventQueueKmsEncryptionKeyPermission
               Effect: Allow
@@ -675,7 +731,10 @@ Resources:
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
-          - [!Ref ExperianKBVIssueCredentialFunctionCanaryErrors, !Ref ExperianKBVIssueCredentialFunction5xxCanaryErrors]
+          - [
+              !Ref ExperianKBVIssueCredentialFunctionCanaryErrors,
+              !Ref ExperianKBVIssueCredentialFunction5xxCanaryErrors,
+            ]
           - [!Ref AWS::NoValue]
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -803,7 +862,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/MaxJwtTtl"
       Type: String
-      Value: !FindInMap [MaxJwtTtlMapping, Environment, !Ref 'Environment']
+      Value: !FindInMap [MaxJwtTtlMapping, Environment, !Ref "Environment"]
       Description: default time to live for an JWT in (seconds)
 
   JwtTtlUnitParameter:
@@ -811,7 +870,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/JwtTtlUnit"
       Type: String
-      Value: !FindInMap [ JwtTtlUnitMapping, Environment, !Ref Environment ]
+      Value: !FindInMap [JwtTtlUnitMapping, Environment, !Ref Environment]
       Description: The unit for the time-to-live for an JWT e.g. (MONTHS)
 
   IIQAPIDatabaseModeParameter:
@@ -819,7 +878,8 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/IIQDatabaseMode"
       Type: String
-      Value: !FindInMap [ IIQAPIDatabaseModeMapping, Environment, !Ref 'Environment' ]
+      Value:
+        !FindInMap [IIQAPIDatabaseModeMapping, Environment, !Ref "Environment"]
       Description: "one of: S or Static, A or Aged, N or Normal (Live)"
 
   IIQAPIStrategyParameter:
@@ -838,7 +898,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/IIQOperatorId"
       Type: String
-      Value: !FindInMap [ IIQOperatorIdMapping, Environment, !Ref 'Environment' ]
+      Value: !FindInMap [IIQOperatorIdMapping, Environment, !Ref "Environment"]
       Description: Unique operator id provided by Experian to GDS
 
   IPVCoreStubAuthenticationAlgParameter:
@@ -878,7 +938,8 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/release-flags/vc-contains-unique-id"
       Type: String
-      Value: !FindInMap [ VcContainsUniqueIdMapping, Environment, !Ref Environment ]
+      Value:
+        !FindInMap [VcContainsUniqueIdMapping, Environment, !Ref Environment]
       Description: Verifiable Credential Contains UniqueId Mapping
 
   KBVQuestionFunctionPermission:
@@ -1339,7 +1400,7 @@ Resources:
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
-      
+
   ExperianKBVAbandonFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
@@ -1470,7 +1531,12 @@ Resources:
                 - codedeploy.amazonaws.com
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRoleForLambda
-      PermissionsBoundary: !If [UsePermissionsBoundary, !Ref PermissionsBoundary,!Ref AWS::NoValue]
+      PermissionsBoundary:
+        !If [
+          UsePermissionsBoundary,
+          !Ref PermissionsBoundary,
+          !Ref AWS::NoValue,
+        ]
 
   JWKSBucketRole:
     Type: "AWS::IAM::Role"
@@ -1749,7 +1815,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-aws-prod"
       Type: String
-      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, stub ]
+      Value: !FindInMap [WaspServiceUrls, !Ref Environment, stub]
 
   IpvCoreStubAwsBuildWaspURL:
     Condition: IsStubEnvironment
@@ -1757,7 +1823,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-aws-build"
       Type: String
-      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, stub ]
+      Value: !FindInMap [WaspServiceUrls, !Ref Environment, stub]
 
   IpvCoreStubWaspURL:
     Condition: IsStubEnvironment
@@ -1765,7 +1831,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub"
       Type: String
-      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, stub ]
+      Value: !FindInMap [WaspServiceUrls, !Ref Environment, stub]
 
   IpvCoreStubPreProdAwsBuildWaspURL:
     Condition: IsStubEnvironment
@@ -1773,7 +1839,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-pre-prod-aws-build"
       Type: String
-      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, uat ]
+      Value: !FindInMap [WaspServiceUrls, !Ref Environment, uat]
 
   IpvCoreStubPreProdWaspURL:
     Condition: IsStubEnvironment
@@ -1781,7 +1847,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-pre-prod"
       Type: String
-      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, uat ]
+      Value: !FindInMap [WaspServiceUrls, !Ref Environment, uat]
 
   IpvCoreStubAwsHeadlessWaspURL:
     Condition: IsStubEnvironment
@@ -1789,7 +1855,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-aws-headless"
       Type: String
-      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, stub ]
+      Value: !FindInMap [WaspServiceUrls, !Ref Environment, stub]
 
   IpvCoreStubAwsProd3rdpartyWaspURL:
     Condition: IsStubEnvironment
@@ -1797,7 +1863,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-aws-prod_3rdparty"
       Type: String
-      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, uat ]
+      Value: !FindInMap [WaspServiceUrls, !Ref Environment, uat]
 
   IpvCoreStubAwsBuild3rdpartyWaspURL:
     Condition: IsStubEnvironment
@@ -1805,7 +1871,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-stub-aws-build_3rdparty"
       Type: String
-      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, uat ]
+      Value: !FindInMap [WaspServiceUrls, !Ref Environment, uat]
 
   IpvCoreWaspURL:
     Condition: IsStubEnvironment
@@ -1813,7 +1879,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core"
       Type: String
-      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, stub ]
+      Value: !FindInMap [WaspServiceUrls, !Ref Environment, stub]
 
   IpvCore3rdPartyStubsWaspURL:
     Condition: IsStubEnvironment
@@ -1821,7 +1887,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-wasp-service/ipv-core-3rd-party-stubs"
       Type: String
-      Value: !FindInMap [ WaspServiceUrls, !Ref Environment, uat ]
+      Value: !FindInMap [WaspServiceUrls, !Ref Environment, uat]
 
   # IIQ Web Service URL
   IpvCoreStubAwsProdIIQWebServiceURL:
@@ -1830,7 +1896,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-aws-prod"
       Type: String
-      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, stub ]
+      Value: !FindInMap [IIQWebServiceUrls, !Ref Environment, stub]
 
   IpvCoreStubAwsBuildIIQWebServiceURL:
     Condition: IsStubEnvironment
@@ -1838,7 +1904,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-aws-build"
       Type: String
-      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, stub ]
+      Value: !FindInMap [IIQWebServiceUrls, !Ref Environment, stub]
 
   IpvCoreStubIIQWebServiceURL:
     Condition: IsStubEnvironment
@@ -1846,7 +1912,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub"
       Type: String
-      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, stub ]
+      Value: !FindInMap [IIQWebServiceUrls, !Ref Environment, stub]
 
   IpvCoreStubPreProdAwsBuildIIQWebServiceURL:
     Condition: IsStubEnvironment
@@ -1854,7 +1920,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-pre-prod-aws-build"
       Type: String
-      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, uat ]
+      Value: !FindInMap [IIQWebServiceUrls, !Ref Environment, uat]
 
   IpvCoreStubPreProdIIQWebServiceURL:
     Condition: IsStubEnvironment
@@ -1862,7 +1928,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-pre-prod"
       Type: String
-      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, uat ]
+      Value: !FindInMap [IIQWebServiceUrls, !Ref Environment, uat]
 
   IpvCoreStubAwsHeadlessIIQWebServiceURL:
     Condition: IsStubEnvironment
@@ -1870,7 +1936,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-aws-headless"
       Type: String
-      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, stub ]
+      Value: !FindInMap [IIQWebServiceUrls, !Ref Environment, stub]
 
   IpvCoreStubAwsProd3rdpartyIIQWebServiceURL:
     Condition: IsStubEnvironment
@@ -1878,7 +1944,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-aws-prod_3rdparty"
       Type: String
-      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, uat ]
+      Value: !FindInMap [IIQWebServiceUrls, !Ref Environment, uat]
 
   IpvCoreStubAwsBuild3rdpartyIIQWebServiceURL:
     Condition: IsStubEnvironment
@@ -1886,7 +1952,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-stub-aws-build_3rdparty"
       Type: String
-      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, uat ]
+      Value: !FindInMap [IIQWebServiceUrls, !Ref Environment, uat]
 
   IpvCoreIIQWebServiceURL:
     Condition: IsStubEnvironment
@@ -1894,7 +1960,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core"
       Type: String
-      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, stub ]
+      Value: !FindInMap [IIQWebServiceUrls, !Ref Environment, stub]
 
   IpvCore3rdPartyStubsIIQWebServiceURL:
     Condition: IsStubEnvironment
@@ -1902,7 +1968,7 @@ Resources:
     Properties:
       Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-3rd-party-stubs"
       Type: String
-      Value: !FindInMap [ IIQWebServiceUrls, !Ref Environment, uat ]
+      Value: !FindInMap [IIQWebServiceUrls, !Ref Environment, uat]
 
 Outputs:
   PublicKBVApiGatewayId:
