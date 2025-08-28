@@ -400,7 +400,7 @@ Resources:
                 Condition:
                   StringNotEquals:
                     aws:SourceVpce:
-                      - !ImportValue cri-vpc-ExecuteApiGatewayEndpointId
+                      - !ImportValue cri-vpc-ApiGatewayVpcEndpointId
                       - !ImportValue spoke-kbv-medium-ExecuteApiGatewayEndpointId
 
   PublicKBVApiAccessLogGroup:
