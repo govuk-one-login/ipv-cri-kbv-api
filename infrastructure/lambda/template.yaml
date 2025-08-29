@@ -1075,6 +1075,50 @@ Resources:
       FilterPattern: ""
       LogGroupName: !Ref CertificateExpiryStateMachineLogGroup
 
+  CertificateExpirySchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Role to allow EventBridge to run the certificate expiry state achine
+      PermissionsBoundary:
+        !If [
+          UsePermissionsBoundary,
+          !Ref PermissionsBoundary,
+          !Ref AWS::NoValue,
+        ]
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service: scheduler.amazonaws.com
+      Policies:
+        - PolicyName: AllowStateMachineInvoke
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Resource: !Ref CertificateExpiryStateMachine
+                Action:
+                  - states:StartExecution
+                  - states:StartSyncExecution
+
+  CertificateExpirySchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: !Sub ${AWS::StackName}-CertificateExpiryScheduler
+      Description: Schedule that triggers the certificate expiry state machine to check the Experian mTLS certificates
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      ScheduleExpression: cron(17 2 ? * TUE *)
+      State: ENABLED
+      Target:
+        Arn: !Ref CertificateExpiryStateMachine
+        Input: "{}"
+        RetryPolicy:
+          MaximumRetryAttempts: 0
+        RoleArn: !GetAtt CertificateExpirySchedulerRole.Arn
+
   ExperianKBVLambdaErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: DeployAlarms
