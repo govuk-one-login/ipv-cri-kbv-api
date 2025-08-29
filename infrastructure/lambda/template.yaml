@@ -14,6 +14,14 @@ Parameters:
     Description: >-
       Specifies the configuration to enable gradual Lambda deployments.
       It can be used to set deployment type, and also allows skipping canary deployment by setting to 'AllAtOnce'.
+  StepFunctionsDeploymentPreference:
+    Description: "Specifies the configuration to enable gradual StepFunction deployments. It can be used to set deployment type and also allows skipping canary deployment by setting to 'ALL_AT_ONCE'"
+    Type: String
+    Default: "ALL_AT_ONCE"
+    AllowedValues:
+      - ALL_AT_ONCE
+      - CANARY
+      - LINEAR
   CodeSigningConfigArn:
     Type: String
     Default: "none"
@@ -1024,6 +1032,56 @@ Resources:
             Condition:
               ArnLike:
                 "kms:EncryptionContext:aws:logs:arn": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+
+  CertificateExpiryStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: !Ref StepFunctionsDeploymentPreference
+        StateMachineVersionArn: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${CertificateExpiryStateMachine}:live"
+      Type: EXPRESS
+      DefinitionUri: ../../step-functions/certificate-expiry.asl.json
+      DefinitionSubstitutions:
+        PublicApiGatewayId: !Ref PublicKBVApi
+        Environment: !Ref Environment
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt CertificateExpiryStateMachineLogGroup.Arn
+        IncludeExecutionData: True
+        Level: ALL
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action: logs:*
+            Resource: "*"
+        - Statement:
+            Effect: Allow
+            Action: cloudwatch:PutMetricData
+            Resource: "*"
+        - Statement:
+            Effect: Allow
+            Action: apigateway:GET
+            Resource: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PublicKBVApi}/*/GET/"
+        - Statement:
+            Effect: Allow
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+              - xray:GetSamplingRules
+              - xray:GetSamplingTargets
+            Resource: "*"
+      PermissionsBoundary: !If
+        - UsePermissionsBoundary
+        - !Ref PermissionsBoundary
+        - !Ref AWS::NoValue
+
+  CertificateExpiryStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}-CertificateExpiry-state-machine-logs
+      RetentionInDays: 30
 
   ExperianKBVLambdaErrors:
     Type: AWS::CloudWatch::Alarm
