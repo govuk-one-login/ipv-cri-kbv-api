@@ -1,0 +1,132 @@
+{
+  "Comment": "A state machine that calls the healthcheck endpoint on a schedule and triggers an alarm via CloudWatch Metrics if one or more is set to expire soon.",
+  "StartAt": "GET /healthcheck/thirdparty/info",
+  "States": {
+    "GET /healthcheck/thirdparty/info": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::apigateway:invoke",
+      "Arguments": {
+        "ApiEndpoint": "${PublicApiGatewayId}.execute-api.eu-west-2.amazonaws.com",
+        "Method": "GET",
+        "AllowNullValues": true,
+        "Headers": {},
+        "Stage": "${Environment}",
+        "Path": "/healthcheck/thirdparty/info",
+        "QueryParameters": {},
+        "RequestBody": {},
+        "AuthType": "IAM_ROLE"
+      },
+      "Output": {
+        "KeyStoreEntries": "{% $exists($states.input.KeyStoreEntriesOverride) ? $states.input.KeyStoreEntriesOverride : $states.result.ResponseBody.KeyStoreAssertion.attributes.keystore.entries %}"
+      },
+      "Next": "Flatten mTLS certificate arrays"
+    },
+    "Flatten mTLS certificate arrays": {
+      "Type": "Pass",
+      "Output": {
+        "KeyStoreCertificates": "{% $map($states.input.KeyStoreEntries, function($v) { $v.certificates })[].* %}"
+      },
+      "Next": "For each certificate in response",
+      "Comment": "If map() operates on an array with one entry, it will strip the outer array. Appending [] ensures that it doesn't do this. The * operator afterwards flattens the array through enumeration. Using the * operator without a 2D array results in an array of the inner objects' value entries, so we must have an outer array to use it."
+    },
+    "For each certificate in response": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "INLINE"
+        },
+        "StartAt": "Parse dates",
+        "States": {
+          "Parse dates": {
+            "Type": "Pass",
+            "Next": "Is certificate expiring soon?",
+            "Output": {
+              "certExpiry": "{% $toMillis($replace($split($states.input.validFrom, ' until: ')[1], ' UTC', ''), '[FNn,3-3] [MNn,3-3] [D] [H]:[m]:[s] [Y]') / 1000 %}",
+              "in7Days": "{% $ceil($millis() / 1000) + (60 * 60 * 24 * 7) %}",
+              "in90Days": "{% $ceil($millis() / 1000) + (60 * 60 * 24 * 90) %}"
+            }
+          },
+          "Is certificate expiring soon?": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Comment": "less than 7 days",
+                "Next": "Fire LessThan7Days metric",
+                "Condition": "{% $states.input.certExpiry < $states.input.in7Days %}"
+              },
+              {
+                "Comment": "less than 90 days",
+                "Next": "Fire LessThan90Days metric",
+                "Condition": "{% $states.input.certExpiry < $states.input.in90Days %}"
+              }
+            ],
+            "Default": "Push zero to LessThan7Days metric"
+          },
+          "Push zero to LessThan7Days metric": {
+            "Type": "Task",
+            "Arguments": {
+              "Namespace": "di-ipv-cri-kbv-api",
+              "MetricData": [
+                {
+                  "MetricName": "ExperianMTLSCertificateExpiryLessThan7Days",
+                  "Value": 0,
+                  "Unit": "Count"
+                }
+              ]
+            },
+            "Resource": "arn:aws:states:::aws-sdk:cloudwatch:putMetricData",
+            "Next": "Push zero to LessThan90Days metric"
+          },
+          "Push zero to LessThan90Days metric": {
+            "Type": "Task",
+            "Arguments": {
+              "Namespace": "di-ipv-cri-kbv-api",
+              "MetricData": [
+                {
+                  "MetricName": "ExperianMTLSCertificateExpiryLessThan90Days",
+                  "Value": 0,
+                  "Unit": "Count"
+                }
+              ]
+            },
+            "Resource": "arn:aws:states:::aws-sdk:cloudwatch:putMetricData",
+            "End": true
+          },
+          "Fire LessThan7Days metric": {
+            "Type": "Task",
+            "Arguments": {
+              "Namespace": "di-ipv-cri-kbv-api",
+              "MetricData": [
+                {
+                  "MetricName": "ExperianMTLSCertificateExpiryLessThan7Days",
+                  "Value": 1,
+                  "Unit": "Count"
+                }
+              ]
+            },
+            "Resource": "arn:aws:states:::aws-sdk:cloudwatch:putMetricData",
+            "End": true
+          },
+          "Fire LessThan90Days metric": {
+            "Type": "Task",
+            "Arguments": {
+              "Namespace": "di-ipv-cri-kbv-api",
+              "MetricData": [
+                {
+                  "MetricName": "ExperianMTLSCertificateExpiryLessThan90Days",
+                  "Value": 1,
+                  "Unit": "Count"
+                }
+              ]
+            },
+            "Resource": "arn:aws:states:::aws-sdk:cloudwatch:putMetricData",
+            "End": true
+          }
+        }
+      },
+      "Items": "{% $states.input.KeyStoreCertificates %}",
+      "End": true
+    }
+  },
+  "QueryLanguage": "JSONata"
+}
