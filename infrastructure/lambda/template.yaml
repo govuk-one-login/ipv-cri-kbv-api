@@ -1119,6 +1119,71 @@ Resources:
           MaximumRetryAttempts: 0
         RoleArn: !GetAtt CertificateExpirySchedulerRole.Arn
 
+  CertificateExpiryStateMachineErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
+    Properties:
+      AlarmActions:
+        - !ImportValue platform-alarm-warning-alert-topic
+      AlarmDescription: !Sub
+        - "Experian mTLS certificate expiry checker state machine failed to execute. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-CertificateExpiryStateMachineErrorAlarm
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 1
+      MetricName: ExecutionsFailed
+      Namespace: AWS/States
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: missing
+      Dimensions:
+        - Name: StateMachineArn
+          Value: !Ref CertificateExpiryStateMachine
+
+  CertificateExpiryLessThan90DaysAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
+    Properties:
+      ActionsEnabled: true
+      AlarmActions:
+        - !ImportValue platform-alarm-warning-alert-topic
+      AlarmDescription: !Sub
+        - "Experian mTLS certificate expires in less than 90 days. Rotate it before it expires to avoid an outage in the KBV CRI. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianMTLSCertificateExpiryLessThan90Days
+      Namespace: di-ipv-cri-kbv-api
+      MetricName: ExperianMTLSCertificateExpiryLessThan90Days
+      Statistic: Sum
+      Unit: Count
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing
+
+  CertificateExpiryLessThan7DaysAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
+    Properties:
+      ActionsEnabled: true
+      AlarmActions:
+        - !ImportValue platform-alarm-critical-alert-topic
+      AlarmDescription: !Sub
+        - "Experian mTLS certificate expires in less than 7 days. Rotate it before it expires to avoid an outage in the KBV CRI. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianMTLSCertificateExpiryLessThan7Days
+      Namespace: di-ipv-cri-kbv-api
+      MetricName: ExperianMTLSCertificateExpiryLessThan7Days
+      Statistic: Sum
+      Unit: Count
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing
+
   ExperianKBVLambdaErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: DeployAlarms
