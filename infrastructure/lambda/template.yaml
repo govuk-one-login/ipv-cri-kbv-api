@@ -1025,6 +1025,56 @@ Resources:
               ArnLike:
                 "kms:EncryptionContext:aws:logs:arn": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
 
+  CertificateExpiryStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: ALL_AT_ONCE
+        StateMachineVersionArn: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${CertificateExpiryStateMachine}:live"
+      Type: EXPRESS
+      DefinitionUri: ../../step-functions/certificate-expiry.asl.json
+      DefinitionSubstitutions:
+        PublicApiGatewayId: !Ref PublicKBVApi
+        Environment: !Ref Environment
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt CertificateExpiryStateMachineLogGroup.Arn
+        IncludeExecutionData: True
+        Level: ALL
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action: logs:*
+            Resource: "*"
+        - Statement:
+            Effect: Allow
+            Action: cloudwatch:PutMetricData
+            Resource: "*"
+        - Statement:
+            Effect: Allow
+            Action: apigateway:GET
+            Resource: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PublicKBVApi}/*/GET/"
+      PermissionsBoundary: !If
+        - UsePermissionsBoundary
+        - !Ref PermissionsBoundary
+        - !Ref AWS::NoValue
+
+  CertificateExpiryStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}-CertificateExpiry-state-machine-logs
+      RetentionInDays: 30
+
+  CertificateExpiryStateMachineLogGroupSubscriptionFilterCSLS:
+    Type: AWS::Logs::SubscriptionFilter
+    Condition: IsNotDevEnvironment
+    Properties:
+      DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
+      FilterPattern: ""
+      LogGroupName: !Ref CertificateExpiryStateMachineLogGroup
+
   ExperianKBVLambdaErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: DeployAlarms
