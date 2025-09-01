@@ -2147,3 +2147,9 @@ Outputs:
     Value: !Sub "${PublicKBVApi}"
     Export:
       Name: !Sub ${AWS::StackName}-KBVApiGatewayId
+
+  CertificateExpiryStateMachineArn:
+    Description: "ARN of the certificate expiry checker state machine. Used when invoking it for integration testing."
+    Value: !Ref CertificateExpiryStateMachine
+    Export:
+      Name: !Sub ${AWS::StackName}-CertificateExpiryStateMachineArn
