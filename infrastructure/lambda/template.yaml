@@ -1035,8 +1035,7 @@ Resources:
       Type: EXPRESS
       DefinitionUri: ../../step-functions/certificate-expiry.asl.json
       DefinitionSubstitutions:
-        PublicApiGatewayId: !Ref PublicKBVApi
-        Environment: !Ref Environment
+        HealthCheckFunctionName: !Ref HealthCheckFunction
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
@@ -1054,8 +1053,8 @@ Resources:
             Resource: "*"
         - Statement:
             Effect: Allow
-            Action: apigateway:GET
-            Resource: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PublicKBVApi}/*/GET/"
+            Action: lambda:InvokeFunction
+            Resource: !GetAtt HealthCheckFunction.Arn
       PermissionsBoundary: !If
         - UsePermissionsBoundary
         - !Ref PermissionsBoundary
@@ -2147,3 +2146,9 @@ Outputs:
     Value: !Sub "${PublicKBVApi}"
     Export:
       Name: !Sub ${AWS::StackName}-KBVApiGatewayId
+
+  CertificateExpiryStateMachineArn:
+    Description: "ARN of the certificate expiry checker state machine. Used when invoking it for integration testing."
+    Value: !Ref CertificateExpiryStateMachine
+    Export:
+      Name: !Sub ${AWS::StackName}-CertificateExpiryStateMachineArn
