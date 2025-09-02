@@ -20,6 +20,7 @@ dependencies {
 	testImplementation "org.apache.commons:commons-lang3:3.14.0"
 	testImplementation "org.junit.jupiter:junit-jupiter-api:5.9.0"
 	testImplementation "com.fasterxml.jackson.core:jackson-databind:2.18.1"
+	testImplementation "software.amazon.awssdk:sfn:2.32.24"
 	testImplementation(libs.nimbus.jwt)
 	testImplementation(libs.nimbus.oauth)
 }

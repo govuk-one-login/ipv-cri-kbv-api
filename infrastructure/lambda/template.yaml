@@ -1019,21 +1019,21 @@ Resources:
               ArnLike:
                 "kms:EncryptionContext:aws:logs:arn": !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
 
-  CertificateExpiryStateMachine:
+  CertificateExpiryStepFunction:
     Type: AWS::Serverless::StateMachine
     Properties:
       AutoPublishAlias: live
       DeploymentPreference:
         Type: ALL_AT_ONCE
-        StateMachineVersionArn: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${CertificateExpiryStateMachine}:live"
-      Type: EXPRESS
+        StateMachineVersionArn: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${CertificateExpiryStepFunction}:live"
+      Type: STANDARD
       DefinitionUri: ../../step-functions/certificate-expiry.asl.json
       DefinitionSubstitutions:
         HealthCheckFunctionName: !Ref HealthCheckFunction
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
-              LogGroupArn: !GetAtt CertificateExpiryStateMachineLogGroup.Arn
+              LogGroupArn: !GetAtt CertificateExpiryStepFunctionLogGroup.Arn
         IncludeExecutionData: True
         Level: ALL
       Policies:
@@ -1054,19 +1054,19 @@ Resources:
         - !Ref PermissionsBoundary
         - !Ref AWS::NoValue
 
-  CertificateExpiryStateMachineLogGroup:
+  CertificateExpiryStepFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}-CertificateExpiry-state-machine-logs
+      LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}-CertificateExpiry-step-function-logs
       RetentionInDays: 30
 
-  CertificateExpiryStateMachineLogGroupSubscriptionFilterCSLS:
+  CertificateExpiryStepFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
     Condition: IsNotDevEnvironment
     Properties:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
       FilterPattern: ""
-      LogGroupName: !Ref CertificateExpiryStateMachineLogGroup
+      LogGroupName: !Ref CertificateExpiryStepFunctionLogGroup
 
   CertificateExpirySchedulerRole:
     Type: AWS::IAM::Role
@@ -1091,7 +1091,7 @@ Resources:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
-                Resource: !Ref CertificateExpiryStateMachine
+                Resource: !Ref CertificateExpiryStepFunction
                 Action:
                   - states:StartExecution
                   - states:StartSyncExecution
@@ -1106,13 +1106,13 @@ Resources:
       ScheduleExpression: cron(17 2 ? * TUE *)
       State: ENABLED
       Target:
-        Arn: !Ref CertificateExpiryStateMachine
+        Arn: !Ref CertificateExpiryStepFunction
         Input: "{}"
         RetryPolicy:
           MaximumRetryAttempts: 0
         RoleArn: !GetAtt CertificateExpirySchedulerRole.Arn
 
-  CertificateExpiryStateMachineErrorAlarm:
+  CertificateExpiryStepFunctionErrorAlarm:
     Type: AWS::CloudWatch::Alarm
     Condition: DeployAlarms
     Properties:
@@ -1121,7 +1121,7 @@ Resources:
       AlarmDescription: !Sub
         - "Experian mTLS certificate expiry checker state machine failed to execute. Runbook: ${SupportManualURL}"
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
-      AlarmName: !Sub ${AWS::StackName}-${Environment}-CertificateExpiryStateMachineErrorAlarm
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-CertificateExpiryStepFunctionErrorAlarm
       ComparisonOperator: GreaterThanOrEqualToThreshold
       DatapointsToAlarm: 1
       EvaluationPeriods: 1
@@ -1133,7 +1133,7 @@ Resources:
       TreatMissingData: missing
       Dimensions:
         - Name: StateMachineArn
-          Value: !Ref CertificateExpiryStateMachine
+          Value: !Ref CertificateExpiryStepFunction
 
   CertificateExpiryLessThan90DaysAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -2141,8 +2141,8 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-KBVApiGatewayId
 
-  CertificateExpiryStateMachineArn:
+  CertificateExpiryStepFunctionArn:
     Description: "ARN of the certificate expiry checker state machine. Used when invoking it for integration testing."
-    Value: !Ref CertificateExpiryStateMachine
+    Value: !Ref CertificateExpiryStepFunction
     Export:
-      Name: !Sub ${AWS::StackName}-CertificateExpiryStateMachineArn
+      Name: !Sub ${AWS::StackName}-CertificateExpiryStepFunctionArn
