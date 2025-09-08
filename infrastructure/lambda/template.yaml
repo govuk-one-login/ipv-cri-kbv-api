@@ -1099,7 +1099,6 @@ Resources:
   CertificateExpirySchedule:
     Type: AWS::Scheduler::Schedule
     Properties:
-      Name: !Sub ${AWS::StackName}-CertificateExpiryScheduler
       Description: Schedule that triggers the certificate expiry state machine to check the Experian mTLS certificates
       FlexibleTimeWindow:
         Mode: "OFF"
