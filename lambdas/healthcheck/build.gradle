@@ -5,6 +5,8 @@ plugins {
 }
 
 dependencies {
+	runtimeOnly(libs.bundles.otel)
+
 	implementation(libs.aws.lambda)
 	implementation(libs.aws.lambda.events)
 	implementation(libs.bundles.powertools)
