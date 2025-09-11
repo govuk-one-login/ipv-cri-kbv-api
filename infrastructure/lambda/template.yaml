@@ -240,12 +240,12 @@ Mappings:
 
   SnapStartMapping:
     Environment:
-      localdev: PublishedVersions
-      dev: PublishedVersions
-      build: PublishedVersions
-      staging: PublishedVersions
-      integration: PublishedVersions
-      production: PublishedVersions
+      localdev: None
+      dev: None
+      build: None
+      staging: None
+      integration: None
+      production: None
 
   IIQAPIDatabaseModeMapping:
     Environment:
