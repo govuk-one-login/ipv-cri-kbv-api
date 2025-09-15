@@ -1450,6 +1450,98 @@ Resources:
             Period: 300
             Stat: Sum
 
+  SessionLambdaNoMatchingEncryptionKeyWarningAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
+    Properties:
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-SessionLambdaNoMatchingEncryptionKeyWarningAlarm
+      AlarmDescription: !Sub
+        - "Errors decrypting JWTs using key aliases in Experian KBV (all_aliases_unavailable_for_decryption) rate exceeds 10% of Session Lambda invocations consecutively for 3, 5 minute periods. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 10
+      DatapointsToAlarm: 3
+      EvaluationPeriods: 3
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !ImportValue platform-alarm-warning-alert-topic
+      OKActions:
+        - !ImportValue platform-alarm-warning-alert-topic
+      Metrics:
+        - Id: errors
+          Expression: IF(m2 != 0, (m1 / m2) * 100, 0)
+          Label: JWTErrorRate
+          ReturnData: true
+        - Id: m1
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: !Sub "${CriIdentifier}"
+              MetricName: all_aliases_unavailable_for_decryption
+              Dimensions:
+                - Name: service
+                  Value: !Sub "${CriIdentifier}-sessionTS"
+            Period: 300
+            Stat: Sum
+        - Id: m2
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Invocations
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub ${CommonStackName}-SessionFunctionTS
+            Period: 300
+            Stat: Sum
+
+  SessionLambdaNoMatchingEncryptionKeyCriticalAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
+    Properties:
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-SessionLambdaNoMatchingEncryptionKeyCriticalAlarm
+      AlarmDescription: !Sub
+        - "Errors decrypting JWTs using key aliases in Experian KBV (all_aliases_unavailable_for_decryption) rate exceeds 80% of Session Lambda invocations consecutively for 3, 5 minute periods. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 80
+      DatapointsToAlarm: 3
+      EvaluationPeriods: 3
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !ImportValue core-infrastructure-AlarmTopic
+        - !ImportValue platform-alarm-critical-alert-topic
+      OKActions:
+        - !ImportValue core-infrastructure-AlarmTopic
+        - !ImportValue platform-alarm-critical-alert-topic
+      Metrics:
+        - Id: errors
+          Expression: IF(m2 != 0, (m1 / m2) * 100, 0)
+          Label: JWTErrorRate
+          ReturnData: true
+        - Id: m1
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: !Sub "${CriIdentifier}"
+              MetricName: all_aliases_unavailable_for_decryption
+              Dimensions:
+                - Name: service
+                  Value: !Sub "${CriIdentifier}-sessionTS"
+            Period: 300
+            Stat: Sum
+        - Id: m2
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Invocations
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub ${CommonStackName}-SessionFunctionTS
+            Period: 300
+            Stat: Sum
+
   ExperianKBVQuestionFunction5xxCanaryErrors:
     Type: AWS::CloudWatch::Alarm
     Condition: UseCanaryDeploymentAlarms
