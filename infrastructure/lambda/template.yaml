@@ -150,7 +150,7 @@ Globals:
         OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
     Layers:
       # SEE https://github.com/govuk-one-login/observability-infrastructure/tree/main/lambdalayer
-      - arn:aws:lambda:eu-west-2:216552277552:layer:Dynatrace_OneAgent_1_313_36_20250507-184408_with_collector_java:1
+      - arn:aws:lambda:eu-west-2:216552277552:layer:Dynatrace_OneAgent_1_299_23_20240903-115619_with_collector_java:2
   Api:
     TracingEnabled: true
     OpenApiVersion: 3.0.1
@@ -218,16 +218,28 @@ Mappings:
   EnvironmentConfiguration:
     dev:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+      dtLoggingDestination: stdout
+      dtLoggingJavaFlags: log-Transformer=true,log-OpenTelemetryUtils=true,log-AsyncClassRetransformer=true,log-ClassValue=true
     localdev:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+      dtLoggingDestination: stdout
+      dtLoggingJavaFlags: log-Transformer=true,log-OpenTelemetryUtils=true,log-AsyncClassRetransformer=true,log-ClassValue=true
     build:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+      dtLoggingDestination: stdout
+      dtLoggingJavaFlags: log-Transformer=true,log-OpenTelemetryUtils=true,log-AsyncClassRetransformer=true,log-ClassValue=true
     staging:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+      dtLoggingDestination: ""
+      dtLoggingJavaFlags: ""
     integration:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+      dtLoggingDestination: ""
+      dtLoggingJavaFlags: ""
     production:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceProductionVariables
+      dtLoggingDestination: ""
+      dtLoggingJavaFlags: ""
 
   MemorySizeMapping:
     Environment:
@@ -240,12 +252,12 @@ Mappings:
 
   SnapStartMapping:
     Environment:
-      localdev: PublishedVersions
-      dev: PublishedVersions
-      build: PublishedVersions
-      staging: PublishedVersions
-      integration: PublishedVersions
-      production: PublishedVersions
+      localdev: None
+      dev: None
+      build: None
+      staging: None
+      integration: None
+      production: None
 
   IIQAPIDatabaseModeMapping:
     Environment:
@@ -565,6 +577,8 @@ Resources:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-answer"
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
+          DT_LOGGING_DESTINATION: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingDestination]
+          DT_LOGGING_JAVA_FLAGS: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingJavaFlags]
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
