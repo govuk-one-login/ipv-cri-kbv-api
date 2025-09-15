@@ -479,6 +479,8 @@ Resources:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-question"
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
+          DT_LOGGING_DESTINATION: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingDestination]
+          DT_LOGGING_JAVA_FLAGS: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingJavaFlags]
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
