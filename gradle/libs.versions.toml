@@ -1,5 +1,5 @@
 [versions]
-aws-sdk = "2.20.162"
+aws-sdk = "2.33.9"
 aws-lambda-events = "3.14.0"
 jackson = "2.15.4"
 nimbus-oauth = "11.2"
@@ -29,6 +29,7 @@ aws-dynamodb-enhanced = { module = "software.amazon.awssdk:dynamodb-enhanced" }
 aws-lambda = { module = "software.amazon.awssdk:lambda" }
 aws-sqs = { module = "software.amazon.awssdk:sqs" }
 aws-kms = { module = "software.amazon.awssdk:kms" }
+aws-crt-client = { module = "software.amazon.awssdk:aws-crt-client"}
 aws-lambda-events = { module = "com.amazonaws:aws-lambda-java-events", version.ref = "aws-lambda-events" }
 
 # Jackson

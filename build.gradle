@@ -26,14 +26,16 @@ subprojects {
 		}
 	}
 
-	// The dynamodb enhanced package loads the apache-client as well as the spi-client, so
-	// we need to add the apache-client to the dependencies exclusion to not get a mismatch
+	// https://aws.amazon.com/blogs/developer/tuning-the-aws-java-sdk-2-x-to-reduce-startup-time/
 	configurations.configureEach {
 		exclude group:"software.amazon.awssdk", module: "apache-client"
+		exclude group:"software.amazon.awssdk", module: "netty-nio-client"
+		exclude group:"software.amazon.awssdk", module: "url-connection-client"
 	}
 
 	dependencies {
 		implementation(platform(libs.aws.sdk.bom))
+		implementation(libs.aws.crt.client)
 		runtimeOnly(libs.log4j.lambda)
 
 		implementation(libs.aspectjrt)
