@@ -226,8 +226,8 @@ Mappings:
       dtLoggingJavaFlags: log-Transformer=true,log-OpenTelemetryUtils=true,log-AsyncClassRetransformer=true,log-ClassValue=true
     build:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
-      dtLoggingDestination: stdout
-      dtLoggingJavaFlags: log-Transformer=true,log-OpenTelemetryUtils=true,log-AsyncClassRetransformer=true,log-ClassValue=true
+      dtLoggingDestination: ""
+      dtLoggingJavaFlags: ""
     staging:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
       dtLoggingDestination: ""
