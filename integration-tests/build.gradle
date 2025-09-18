@@ -26,11 +26,6 @@ dependencies {
 }
 
 configurations {
-	testImplementation {
-		// Disable instrumentation for local integration test clients
-		exclude group: "com.amazonaws", module: "aws-xray-recorder-sdk-aws-sdk-v2-instrumentor"
-	}
-
 	cucumberRuntime {
 		extendsFrom testImplementation
 	}

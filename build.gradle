@@ -42,8 +42,6 @@ subprojects {
 	}
 
 	test {
-		// Configures environment variable to avoid initialization of AWS X-Ray segments for each tests
-		environment "LAMBDA_TASK_ROOT", "handler"
 		filter {
 			excludeTestsMatching "uk.gov.di.ipv.cri.kbv.acceptancetest.journey.*"
 		}

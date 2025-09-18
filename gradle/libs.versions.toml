@@ -59,7 +59,6 @@ httpasyncclient = { module = "org.apache.httpcomponents:httpasyncclient", versio
 # Powertools
 powertools-logging = { module = "software.amazon.lambda:powertools-logging", version.ref = "powertools" }
 powertools-metrics = { module = "software.amazon.lambda:powertools-metrics", version.ref = "powertools" }
-powertools-tracing = { module = "software.amazon.lambda:powertools-tracing", version.ref = "powertools" }
 powertools-parameters = { module = "software.amazon.lambda:powertools-parameters", version.ref = "powertools" }
 
 # JUnit & Mockito
@@ -103,7 +102,7 @@ otel-httpclient = { module = "io.opentelemetry.instrumentation:opentelemetry-jav
 jackson = [ "jackson-bom", "jackson-core", "jackson-annotations", "jackson-databind", "jackson-jdk8", "jackson-jsr310" ]
 otel = [ "otel-api", "otel-sdk", "otel-context", "otel-metrics", "otel-trace", "otel-logs", "otel-otlp", "otel-sdk2-autoconf", "otel-httpclient" ]
 pact = [ "pact-provider", "pact-junit5" ]
-powertools = [ "powertools-logging", "powertools-metrics", "powertools-parameters", "powertools-tracing" ]
+powertools = [ "powertools-logging", "powertools-metrics", "powertools-parameters" ]
 junit = [ "junit-api", "junit-params", "junit-engine" ]
 
 [plugins]
