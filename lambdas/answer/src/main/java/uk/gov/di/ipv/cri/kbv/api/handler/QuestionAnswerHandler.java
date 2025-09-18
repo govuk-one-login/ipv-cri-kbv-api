@@ -36,6 +36,7 @@ import uk.gov.di.ipv.cri.kbv.api.service.IdentityIQWebServiceSoapCache;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
+import uk.gov.di.ipv.cri.kbv.api.util.TempCleaner;
 
 import java.io.IOException;
 import java.util.Map;
@@ -65,6 +66,7 @@ public class QuestionAnswerHandler
 
     @ExcludeFromGeneratedCoverageReport
     public QuestionAnswerHandler() {
+        TempCleaner.clean();
         this.identityIQWebServiceSoapCache = new IdentityIQWebServiceSoapCache();
         this.serviceFactory = new ServiceFactory();
 
