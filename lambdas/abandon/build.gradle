@@ -13,7 +13,6 @@ dependencies {
 	implementation(libs.cri.common.lib)
 	implementation(libs.aws.lambda)
 	implementation(libs.aws.lambda.events)
-	implementation(libs.powertools.tracing)
 	implementation(libs.aws.dynamodb.enhanced)
 	implementation(libs.bundles.jackson)
 
