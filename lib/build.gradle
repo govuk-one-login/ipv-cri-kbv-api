@@ -15,7 +15,6 @@ dependencies {
 	implementation(libs.aws.dynamodb.enhanced)
 	implementation(libs.aws.kms)
 	implementation(libs.aws.sqs)
-	implementation(libs.powertools.tracing)
 	implementation(libs.javax.annotation)
 	implementation(libs.javax.validation)
 	implementation(libs.jakarta.xml.ws)

@@ -12,8 +12,6 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.SAARespons
 import io.opentelemetry.api.trace.Span;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import software.amazon.lambda.powertools.tracing.Tracing;
-import software.amazon.lambda.powertools.tracing.TracingUtils;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
@@ -24,7 +22,6 @@ import java.util.List;
 import java.util.Objects;
 
 public class KBVGateway {
-    private static final String EXPERIAN_IIQ_REQUEST = "experian_iiq_request_type";
     private static final Logger LOGGER = LogManager.getLogger();
     private static final String EXPERIAN_INITIAL_QUESTION_RESPONSE = "initial_questions_response";
     private static final String EXPERIAN_INITIAL_QUESTION_DURATION = "get_questions_duration";
@@ -56,7 +53,6 @@ public class KBVGateway {
                 Objects.requireNonNull(metricsService, "metricsService must not be null");
     }
 
-    @Tracing
     public QuestionsResponse getQuestions(
             IdentityIQWebServiceSoap identityIQWebServiceSoap, QuestionRequest questionRequest) {
         SAARequest saaRequest = saaRequestMapper.mapQuestionRequest(questionRequest);
@@ -99,7 +95,6 @@ public class KBVGateway {
         return questionsResponse;
     }
 
-    @Tracing
     public QuestionsResponse submitAnswers(
             IdentityIQWebServiceSoap identityIQWebServiceSoap,
             QuestionAnswerRequest questionAnswerRequest) {
@@ -140,17 +135,13 @@ public class KBVGateway {
         return questionsResponse;
     }
 
-    @Tracing(segmentName = "getQuestionResponse")
     private SAAResponse2 getQuestionRequestResponse(
             IdentityIQWebServiceSoap identityIQWebServiceSoap, SAARequest saaRequest) {
-        TracingUtils.putAnnotation(EXPERIAN_IIQ_REQUEST, EXPERIAN_INITIAL_QUESTION_RESPONSE);
         return identityIQWebServiceSoap.saa(saaRequest);
     }
 
-    @Tracing(segmentName = "submitQuestionAnswerResponse")
     private RTQResponse2 submitQuestionAnswerResponse(
             IdentityIQWebServiceSoap identityIQWebServiceSoap, RTQRequest rtqRequest) {
-        TracingUtils.putAnnotation(EXPERIAN_IIQ_REQUEST, EXPERIAN_SUBMIT_RESPONSE);
         return identityIQWebServiceSoap.rtq(rtqRequest);
     }
 
