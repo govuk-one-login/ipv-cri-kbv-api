@@ -8,7 +8,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.SignedJWT;
 import software.amazon.awssdk.services.kms.KmsClient;
-import software.amazon.lambda.powertools.tracing.Tracing;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.Address;
 import uk.gov.di.ipv.cri.common.library.domain.personidentity.BirthDate;
@@ -87,7 +86,6 @@ public class VerifiableCredentialService {
         this.vcClaimsSetBuilder = vcClaimsSetBuilder;
     }
 
-    @Tracing
     public SignedJWT generateSignedVerifiableCredentialJwt(
             SessionItem sessionItem, PersonIdentityDetailed personIdentity, KBVItem kbvItem)
             throws JOSEException, NoSuchAlgorithmException, JsonProcessingException {
