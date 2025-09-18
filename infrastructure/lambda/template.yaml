@@ -73,8 +73,11 @@ Conditions:
 Globals:
   Function:
     VpcConfig:
-      SecurityGroupIds: [!ImportValue cri-vpc-LambdaSecurityGroup]
-      SubnetIds: !Split [",", !ImportValue cri-vpc-PrivateSubnets]
+      SecurityGroupIds: [!ImportValue spoke-kbv-medium-AWSServicesEndpointSecurityGroupId]
+      SubnetIds:
+        - !ImportValue spoke-kbv-medium-ProtectedSubnetIdA
+        - !ImportValue spoke-kbv-medium-ProtectedSubnetIdB
+        - !ImportValue spoke-kbv-medium-ProtectedSubnetIdC
     PermissionsBoundary:
       !If [UsePermissionsBoundary, !Ref PermissionsBoundary, !Ref AWS::NoValue]
     CodeSigningConfigArn:
@@ -437,7 +440,9 @@ Resources:
                 Principal: "*"
                 Condition:
                   StringNotEquals:
-                    aws:SourceVpce: !ImportValue cri-vpc-ApiGatewayVpcEndpointId
+                    aws:SourceVpce:
+                      - !ImportValue cri-vpc-ApiGatewayVpcEndpointId
+                      - !ImportValue spoke-kbv-medium-ExecuteApiGatewayEndpointId
 
   PublicKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
