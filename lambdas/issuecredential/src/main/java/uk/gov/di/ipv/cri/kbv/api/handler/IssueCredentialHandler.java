@@ -36,6 +36,7 @@ import uk.gov.di.ipv.cri.kbv.api.exception.CredentialRequestException;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.VerifiableCredentialService;
+import uk.gov.di.ipv.cri.kbv.api.util.TempCleaner;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
@@ -81,6 +82,7 @@ public class IssueCredentialHandler
 
     @ExcludeFromGeneratedCoverageReport
     public IssueCredentialHandler() throws JsonProcessingException {
+        TempCleaner.clean();
         ServiceFactory serviceFactory = new ServiceFactory();
         DynamoDbEnhancedClient dynamoDbEnhancedClient = serviceFactory.getDynamoDbEnhancedClient();
         ConfigurationService configurationService = serviceFactory.getConfigurationService();

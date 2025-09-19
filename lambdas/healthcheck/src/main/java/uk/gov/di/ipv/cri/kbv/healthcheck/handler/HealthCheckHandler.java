@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
+import uk.gov.di.ipv.cri.kbv.api.util.TempCleaner;
 import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.Assertion;
 import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.FailReport;
 import uk.gov.di.ipv.cri.kbv.healthcheck.handler.assertions.Report;
@@ -35,6 +36,7 @@ public class HealthCheckHandler
 
     @ExcludeFromGeneratedCoverageReport
     public HealthCheckHandler() {
+        TempCleaner.clean();
         this.experianSecrets = new ExperianSecrets();
     }
 

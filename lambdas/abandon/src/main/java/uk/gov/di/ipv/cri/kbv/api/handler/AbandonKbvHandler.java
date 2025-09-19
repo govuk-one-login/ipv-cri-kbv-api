@@ -17,6 +17,7 @@ import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
+import uk.gov.di.ipv.cri.kbv.api.util.TempCleaner;
 
 import java.util.Map;
 import java.util.UUID;
@@ -48,6 +49,7 @@ public class AbandonKbvHandler
 
     @ExcludeFromGeneratedCoverageReport
     public AbandonKbvHandler() {
+        TempCleaner.clean();
         ServiceFactory serviceFactory = new ServiceFactory();
         this.eventProbe = new EventProbe();
         this.kbvStorageService =
