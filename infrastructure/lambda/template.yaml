@@ -64,6 +64,7 @@ Conditions:
   IsStagingOrIntegration: !Or
     - !Equals [!Ref Environment, staging]
     - !Equals [!Ref Environment, integration]
+  IsNotProductionOrIntegration: !Not [!Or [!Equals [!Ref Environment, integration], !Equals [!Ref Environment, production]]]
   IsNotDevEnvironment: !Not [!Condition IsDevEnvironment]
   IsDevLikeEnvironment:
     !Or [!Condition IsLocalDevEnvironment, !Condition IsDevEnvironment]
@@ -365,6 +366,7 @@ Resources:
       Name: !Sub kbv-cri-${AWS::StackName}
       Description: Public KBV CRI API
       StageName: !Ref Environment
+      AlwaysDeploy: true
       AccessLogSetting:
         DestinationArn: !GetAtt PublicKBVApiAccessLogGroup.Arn
       DefinitionBody:
@@ -400,6 +402,9 @@ Resources:
               Principal: "*"
               Action: execute-api:Invoke
               Resource: "execute-api:/*"
+      Tags:
+        FMSRegionalPolicy: !If [IsNotProductionOrIntegration, "false", ""]
+        CustomPolicy: !If [IsNotProductionOrIntegration, "true", ""]
 
   PrivateKBVApi:
     Type: AWS::Serverless::Api
@@ -407,6 +412,7 @@ Resources:
       Name: !Sub kbv-cri-private-${AWS::StackName}
       Description: Private KBV CRI API
       StageName: !Ref Environment
+      AlwaysDeploy: true
       AccessLogSetting:
         DestinationArn: !GetAtt PrivateKBVApiAccessLogGroup.Arn
       DefinitionBody:
@@ -438,6 +444,9 @@ Resources:
                 Condition:
                   StringNotEquals:
                     aws:SourceVpce: !ImportValue cri-vpc-ApiGatewayVpcEndpointId
+      Tags:
+        FMSRegionalPolicy: !If [IsNotProductionOrIntegration, "false", ""]
+        CustomPolicy: !If [IsNotProductionOrIntegration, "true", ""]
 
   PublicKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
