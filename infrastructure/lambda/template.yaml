@@ -756,6 +756,7 @@ Resources:
           KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
           SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
           PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
+          MAXIMUM_JWT_TTL: !FindInMap [MaxJwtTtlMapping, Environment, !Ref Environment]
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
