@@ -301,15 +301,6 @@ Mappings:
       production: MONTHS
       localdev: HOURS
 
-  VcContainsUniqueIdMapping:
-    Environment:
-      dev: true
-      build: true
-      staging: true
-      integration: false
-      production: false
-      localdev: true
-
 Resources:
   HealthCheckFunction:
     Type: AWS::Serverless::Function
@@ -528,11 +519,7 @@ Resources:
               Action:
                 - ssm:GetParameter
               Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTtl"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQDatabaseMode"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQStrategy"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQOperatorId"
@@ -630,11 +617,7 @@ Resources:
               Action:
                 - ssm:GetParameter
               Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTtl"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
                 - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/IIQDatabaseMode"
         - Statement:
             - Sid: ReadSecretsPolicy
@@ -721,14 +704,6 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - Statement:
-            - Effect: Allow
-              Action:
-                - ssm:GetParameter
-              Resource:
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
-                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
-        - Statement:
             - Sid: auditEventQueueKmsEncryptionKeyPermission
               Effect: Allow
               Action:
@@ -798,16 +773,7 @@ Resources:
             Action:
               - ssm:GetParameter
             Resource:
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/KBVTableName"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/verifiableCredentialKmsSigningKeyId"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/MaxJwtTtl"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/JwtTtlUnit"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/SessionTableName"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/PersonIdentityTableName"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CommonStackName}/verifiable-credential/issuer"
               - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kbv-cri-api-v1/quality/mappings"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/release-flags/vc-expiry-removed"
-              - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/release-flags/vc-contains-unique-id"
         - Statement:
             Effect: Allow
             Action:
@@ -889,31 +855,6 @@ Resources:
       KeyType: API_KEY
       UsagePlanId: !Ref PublicApiUsagePlan
 
-  # Can remove
-  ParameterKBVItemTableName:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/KBVTableName"
-      Value: !Sub kbv-${AWS::StackName}
-      Type: String
-      Description: kbv item dynamodb table name
-
-  MaxJwtTtlParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/MaxJwtTtl"
-      Type: String
-      Value: !FindInMap [MaxJwtTtlMapping, Environment, !Ref "Environment"]
-      Description: default time to live for an JWT in (seconds)
-
-  JwtTtlUnitParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/JwtTtlUnit"
-      Type: String
-      Value: !FindInMap [JwtTtlUnitMapping, Environment, !Ref Environment]
-      Description: The unit for the time-to-live for an JWT e.g. (MONTHS)
-
   IIQAPIDatabaseModeParameter:
     Type: AWS::SSM::Parameter
     Properties:
@@ -950,14 +891,6 @@ Resources:
       Type: String
       Value: ES256
 
-  VerifiableCredentialKmsSigningKeyParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/verifiableCredentialKmsSigningKeyId"
-      Type: String
-      Value: !ImportValue core-infrastructure-CriVcSigningKey1Id
-      Description: Verifiable Credential Key Id
-
   PublicKBVApiGatewayIdParameter:
     Type: AWS::SSM::Parameter
     Properties:
@@ -973,15 +906,6 @@ Resources:
       Type: String
       Value: !Sub "https://${PublicKBVApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
       Description: "Base url of the public KBV CRI API"
-
-  ReleaseFlagsVcContainsUniqueIdParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${AWS::StackName}/release-flags/vc-contains-unique-id"
-      Type: String
-      Value:
-        !FindInMap [VcContainsUniqueIdMapping, Environment, !Ref Environment]
-      Description: Verifiable Credential Contains UniqueId Mapping
 
   KBVQuestionFunctionPermission:
     Type: AWS::Lambda::Permission
