@@ -757,6 +757,7 @@ Resources:
           SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
           PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
           MAXIMUM_JWT_TTL: !FindInMap [MaxJwtTtlMapping, Environment, !Ref Environment]
+          JWT_TTL_UNIT: !FindInMap [JwtTtlUnitMapping, Environment, !Ref Environment]
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
