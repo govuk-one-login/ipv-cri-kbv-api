@@ -75,8 +75,7 @@ public class QuestionAnswerHandler
         this.configurationService = serviceFactory.getConfigurationService();
 
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        this.kbvStorageService =
-                new KBVStorageService(configurationService, dynamoDbEnhancedClient);
+        this.kbvStorageService = new KBVStorageService(dynamoDbEnhancedClient);
         this.kbvService = new KBVService(serviceFactory.getKbvGateway());
         this.sessionService = serviceFactory.getSessionService();
         this.auditService = serviceFactory.getAuditService();

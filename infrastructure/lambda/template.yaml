@@ -488,6 +488,7 @@ Resources:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           DT_LOGGING_DESTINATION: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingDestination]
           DT_LOGGING_JAVA_FLAGS: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingJavaFlags]
+          KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -588,6 +589,7 @@ Resources:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           DT_LOGGING_DESTINATION: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingDestination]
           DT_LOGGING_JAVA_FLAGS: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingJavaFlags]
+          KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -682,6 +684,7 @@ Resources:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-abandon"
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
+          KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -745,6 +748,7 @@ Resources:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-issuecredential"
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
+          KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -866,6 +870,7 @@ Resources:
       KeyType: API_KEY
       UsagePlanId: !Ref PublicApiUsagePlan
 
+  # Can remove
   ParameterKBVItemTableName:
     Type: AWS::SSM::Parameter
     Properties:
