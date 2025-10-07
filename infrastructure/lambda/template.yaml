@@ -490,6 +490,7 @@ Resources:
           DT_LOGGING_JAVA_FLAGS: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingJavaFlags]
           KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
           SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+          PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -592,6 +593,7 @@ Resources:
           DT_LOGGING_JAVA_FLAGS: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingJavaFlags]
           KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
           SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+          PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -753,6 +755,7 @@ Resources:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
           SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+          PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
