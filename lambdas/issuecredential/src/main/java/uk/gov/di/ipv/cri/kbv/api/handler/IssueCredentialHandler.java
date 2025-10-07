@@ -90,8 +90,7 @@ public class IssueCredentialHandler
         this.verifiableCredentialService =
                 new VerifiableCredentialService(
                         configurationService, serviceFactory.getKMSClient());
-        this.kbvStorageService =
-                new KBVStorageService(configurationService, dynamoDbEnhancedClient);
+        this.kbvStorageService = new KBVStorageService(dynamoDbEnhancedClient);
         this.sessionService = serviceFactory.getSessionService();
         this.eventProbe = new EventProbe();
         this.auditService = serviceFactory.getAuditService();

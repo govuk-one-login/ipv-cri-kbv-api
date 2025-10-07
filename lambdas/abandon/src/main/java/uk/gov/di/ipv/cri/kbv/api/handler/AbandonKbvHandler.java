@@ -52,10 +52,7 @@ public class AbandonKbvHandler
         TempCleaner.clean();
         ServiceFactory serviceFactory = new ServiceFactory();
         this.eventProbe = new EventProbe();
-        this.kbvStorageService =
-                new KBVStorageService(
-                        serviceFactory.getConfigurationService(),
-                        serviceFactory.getDynamoDbEnhancedClient());
+        this.kbvStorageService = new KBVStorageService(serviceFactory.getDynamoDbEnhancedClient());
         this.sessionService = serviceFactory.getSessionService();
         this.auditService = serviceFactory.getAuditService();
     }

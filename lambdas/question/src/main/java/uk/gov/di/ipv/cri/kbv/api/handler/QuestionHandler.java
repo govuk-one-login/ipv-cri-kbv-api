@@ -104,8 +104,7 @@ public class QuestionHandler
                         serviceFactory.getDynamoDbEnhancedClient());
 
         this.kbvService = new KBVService(serviceFactory.getKbvGateway());
-        this.kbvStorageService =
-                new KBVStorageService(configurationService, dynamoDbEnhancedClient);
+        this.kbvStorageService = new KBVStorageService(dynamoDbEnhancedClient);
         this.auditService = serviceFactory.getAuditService();
         this.sessionService = serviceFactory.getSessionService();
         this.eventProbe = new EventProbe();
