@@ -489,6 +489,7 @@ Resources:
           DT_LOGGING_DESTINATION: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingDestination]
           DT_LOGGING_JAVA_FLAGS: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingJavaFlags]
           KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
+          SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -590,6 +591,7 @@ Resources:
           DT_LOGGING_DESTINATION: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingDestination]
           DT_LOGGING_JAVA_FLAGS: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingJavaFlags]
           KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
+          SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -685,6 +687,7 @@ Resources:
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
+          SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -749,6 +752,7 @@ Resources:
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
+          SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
