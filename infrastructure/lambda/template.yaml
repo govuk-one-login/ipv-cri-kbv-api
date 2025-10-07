@@ -491,6 +491,7 @@ Resources:
           KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
           SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
           PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
+          VERIFIABLE_CREDENTIAL_ISSUER: !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -594,6 +595,7 @@ Resources:
           KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
           SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
           PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
+          VERIFIABLE_CREDENTIAL_ISSUER: !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -690,6 +692,7 @@ Resources:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
           SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+          VERIFIABLE_CREDENTIAL_ISSUER: !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -758,6 +761,7 @@ Resources:
           PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
           MAXIMUM_JWT_TTL: !FindInMap [MaxJwtTtlMapping, Environment, !Ref Environment]
           JWT_TTL_UNIT: !FindInMap [JwtTtlUnitMapping, Environment, !Ref Environment]
+          VERIFIABLE_CREDENTIAL_ISSUER: !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
