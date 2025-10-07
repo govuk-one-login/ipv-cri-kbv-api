@@ -488,7 +488,7 @@ Resources:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           DT_LOGGING_DESTINATION: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingDestination]
           DT_LOGGING_JAVA_FLAGS: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingJavaFlags]
-          KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
+          KBV_TABLE_NAME: !Ref KBVTable
           SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
           PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
           VERIFIABLE_CREDENTIAL_ISSUER: !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
@@ -592,7 +592,7 @@ Resources:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           DT_LOGGING_DESTINATION: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingDestination]
           DT_LOGGING_JAVA_FLAGS: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingJavaFlags]
-          KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
+          KBV_TABLE_NAME: !Ref KBVTable
           SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
           PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
           VERIFIABLE_CREDENTIAL_ISSUER: !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
@@ -690,7 +690,7 @@ Resources:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-abandon"
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
-          KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
+          KBV_TABLE_NAME: !Ref KBVTable
           SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
           VERIFIABLE_CREDENTIAL_ISSUER: !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
       DeploymentPreference:
@@ -756,7 +756,7 @@ Resources:
           POWERTOOLS_SERVICE_NAME: !Sub "${CriIdentifier}-issuecredential"
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
-          KBV_TABLE_NAME: !Sub kbv-${AWS::StackName}
+          KBV_TABLE_NAME: !Ref KBVTable
           SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
           PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
           MAXIMUM_JWT_TTL: !FindInMap [MaxJwtTtlMapping, Environment, !Ref Environment]
