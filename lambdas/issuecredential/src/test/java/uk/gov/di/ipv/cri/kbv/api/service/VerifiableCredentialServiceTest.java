@@ -37,6 +37,8 @@ import uk.gov.di.ipv.cri.kbv.api.domain.ContraIndicator;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.service.fixtures.TestFixtures;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
@@ -95,6 +97,11 @@ class VerifiableCredentialServiceTest implements TestFixtures {
     @Mock private SessionItem mockSessionItem;
     private static final String ISSUER = "issuer";
     private static final String KMS_SIGNING_KEY_ID = "kmsSigningKeyId";
+
+    @SystemStub
+    @SuppressWarnings("unused")
+    private final EnvironmentVariables environment =
+            new EnvironmentVariables("JWT_TTL_UNIT", "MINUTES");
 
     @Nested
     class KbvVerifiableCredentialJwt implements TestFixtures {
@@ -166,7 +173,6 @@ class VerifiableCredentialServiceTest implements TestFixtures {
 
             assertTrue(
                     signedJWT.verify(new ECDSAVerifier(ECKey.parse(TestFixtures.EC_PUBLIC_JWK_1))));
-            verify(mockConfigurationService).getParameterValue("JwtTtlUnit");
             verify(mockConfigurationService).getMaxJwtTtl();
             verify(mockVcClaimSetBuilder).subject(SUBJECT);
             verify(mockVcClaimSetBuilder).verifiableCredentialType(KBV_CREDENTIAL_TYPE);
@@ -184,7 +190,6 @@ class VerifiableCredentialServiceTest implements TestFixtures {
 
             initMockConfigurationService();
             when(mockConfigurationService.getMaxJwtTtl()).thenReturn(10L);
-            when(mockConfigurationService.getParameterValue("JwtTtlUnit")).thenReturn("MINUTES");
             when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn(ISSUER);
             ArgumentCaptor<JWTClaimsSet> jwtClaimsSetArgumentCaptor =
                     ArgumentCaptor.forClass(JWTClaimsSet.class);
@@ -418,7 +423,6 @@ class VerifiableCredentialServiceTest implements TestFixtures {
 
     private void initMockConfigurationService() {
         when(mockConfigurationService.getMaxJwtTtl()).thenReturn(6L);
-        when(mockConfigurationService.getParameterValue("JwtTtlUnit")).thenReturn("MONTHS");
         when(mockConfigurationService.getVerifiableCredentialKmsSigningKeyId())
                 .thenReturn(KMS_SIGNING_KEY_ID);
         when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn(ISSUER);
