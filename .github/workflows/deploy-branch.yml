@@ -65,8 +65,9 @@ jobs:
       stack-name: ${{ steps.deploy.outputs.stack-name }}
       stack-outputs: ${{ steps.deploy.outputs.stack-outputs }}
     steps:
-      - name: Set TIMESTAMP env var
-        run: echo "TIMESTAMP=$(date +%s)" >> $GITHUB_ENV
+      - name: Set timestamp
+        id: set_timestamp
+        run: echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
 
       - name: Deploy stack
         uses: govuk-one-login/github-actions/sam/deploy-stack@d201191485b645ec856a34e5ca48636cf97b2574
@@ -88,4 +89,4 @@ jobs:
           parameters: |
             Environment=localdev
             SecretPrefix=pre-merge-test
-            ForceLambdaUpdate=$TIMESTAMP
+            ForceLambdaUpdate=${{ steps.set_timestamp.outputs.timestamp }}
