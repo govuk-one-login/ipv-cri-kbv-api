@@ -89,7 +89,7 @@ Globals:
         !Ref AWS::NoValue,
       ]
     Timeout: 30 # seconds
-    Runtime: java21
+    Runtime: java17
     Architectures: [arm64]
     AutoPublishAlias: live
     SnapStart:
