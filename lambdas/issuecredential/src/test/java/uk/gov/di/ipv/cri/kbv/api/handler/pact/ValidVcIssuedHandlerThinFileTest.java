@@ -131,6 +131,7 @@ public class ValidVcIssuedHandlerThinFileTest
             throws IOException, JOSEException, NoSuchAlgorithmException, InvalidKeySpecException {
         environmentVariables.set("LAMBDA_TASK_ROOT", "handler");
         environmentVariables.set(ENV_VAR_FEATURE_FLAG_VC_CONTAINS_UNIQUE_ID, "override");
+        environmentVariables.set("JWT_TTL_UNIT", "MINUTES");
 
         setupEventProbeBehaviour();
 
@@ -177,7 +178,6 @@ public class ValidVcIssuedHandlerThinFileTest
     @Override
     public void validDummyExperianKbvComponent() {
         when(configurationServiceMock.getMaxJwtTtl()).thenReturn(10L);
-        when(configurationServiceMock.getParameterValue("JwtTtlUnit")).thenReturn("MINUTES");
         when(configurationServiceMock.getVerifiableCredentialIssuer())
                 .thenReturn("dummyExperianKbvComponentId");
         when(configurationServiceMock.getVerifiableCredentialKmsSigningKeyId())
