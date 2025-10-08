@@ -94,7 +94,15 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler.NO_SUCH_A
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(SystemStubsExtension.class)
 class IssueCredentialHandlerTest implements TestFixtures {
-    @SystemStub EnvironmentVariables environmentVariables = new EnvironmentVariables();
+
+    @SystemStub
+    @SuppressWarnings("unused")
+    private final EnvironmentVariables environment =
+            new EnvironmentVariables(
+                    "JWT_TTL_UNIT",
+                    "MINUTES",
+                    ENV_VAR_FEATURE_FLAG_VC_CONTAINS_UNIQUE_ID,
+                    "override");
 
     private static final String SUBJECT = "subject";
     private static final UUID SESSION_ID = UUID.randomUUID();
@@ -316,7 +324,6 @@ class IssueCredentialHandlerTest implements TestFixtures {
 
         NoSuchAlgorithmException noSuchAlgorithmException =
                 new NoSuchAlgorithmException(NO_SUCH_ALGORITHM_ERROR);
-        environmentVariables.set(ENV_VAR_FEATURE_FLAG_VC_CONTAINS_UNIQUE_ID, "override");
         UUID sessionId = UUID.randomUUID();
 
         AccessToken accessToken =
@@ -351,7 +358,6 @@ class IssueCredentialHandlerTest implements TestFixtures {
         when(mockConfigurationService.getVerifiableCredentialIssuer()).thenReturn(issuer);
         when(mockConfigurationService.getVerifiableCredentialKmsSigningKeyId())
                 .thenReturn(kmsSigningKeyId);
-        when(mockConfigurationService.getParameterValue("JwtTtlUnit")).thenReturn("MINUTES");
 
         when(mockSessionService.getSessionByAccessToken(accessToken)).thenReturn(sessionItem);
         when(mockKBVStorageService.getKBVItem(sessionId)).thenReturn(kbvItem);

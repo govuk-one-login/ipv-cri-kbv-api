@@ -41,6 +41,8 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.W3_BASE_CONTEXT;
 
 public class VerifiableCredentialService {
+    private static final String JWT_TTL_UNIT = System.getenv("JWT_TTL_UNIT");
+
     private final VerifiableCredentialClaimsSetBuilder vcClaimsSetBuilder;
     private final SignedJWTFactory signedJwtFactory;
     private final ConfigurationService configurationService;
@@ -89,15 +91,13 @@ public class VerifiableCredentialService {
     public SignedJWT generateSignedVerifiableCredentialJwt(
             SessionItem sessionItem, PersonIdentityDetailed personIdentity, KBVItem kbvItem)
             throws JOSEException, NoSuchAlgorithmException, JsonProcessingException {
-        long jwtTtl = this.configurationService.getMaxJwtTtl();
         String issuer = configurationService.getVerifiableCredentialIssuer();
         String kmsSigningKeyId = configurationService.getVerifiableCredentialKmsSigningKeyId();
-        ChronoUnit jwtTtlUnit =
-                ChronoUnit.valueOf(this.configurationService.getParameterValue("JwtTtlUnit"));
+        ChronoUnit jwtTtlUnit = ChronoUnit.valueOf(JWT_TTL_UNIT);
         var claimsSet =
                 this.vcClaimsSetBuilder
                         .subject(sessionItem.getSubject())
-                        .timeToLive(jwtTtl, jwtTtlUnit)
+                        .timeToLive(configurationService.getMaxJwtTtl(), jwtTtlUnit)
                         .verifiableCredentialType(KBV_CREDENTIAL_TYPE)
                         .verifiableCredentialContext(new String[] {W3_BASE_CONTEXT, DI_CONTEXT})
                         .verifiableCredentialSubject(
