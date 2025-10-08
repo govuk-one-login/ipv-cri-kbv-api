@@ -597,7 +597,7 @@ Resources:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           DT_LOGGING_DESTINATION: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingDestination]
           DT_LOGGING_JAVA_FLAGS: !FindInMap [EnvironmentConfiguration, !Ref Environment, dtLoggingJavaFlags]
-          KBV_TABLE_NAME: "ABC"
+          KBV_TABLE_NAME: !Ref KBVTable
           SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
           PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
           VERIFIABLE_CREDENTIAL_ISSUER: !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
