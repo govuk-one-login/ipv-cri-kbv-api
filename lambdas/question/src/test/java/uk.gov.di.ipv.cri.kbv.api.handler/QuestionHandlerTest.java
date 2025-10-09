@@ -50,6 +50,9 @@ import uk.gov.di.ipv.cri.kbv.api.service.IdentityIQWebServiceSoapCache;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -136,7 +139,12 @@ class QuestionHandlerTest {
     }
 
     @Nested
+    @ExtendWith(SystemStubsExtension.class)
     class QuestionHandlerCalled {
+        @SystemStub
+        @SuppressWarnings("unused")
+        private final EnvironmentVariables environment =
+                new EnvironmentVariables("POWERTOOLS_METRICS_NAMESPACE", "ExperianKbvCri");
 
         @Nested
         class When1stCalledAndReturn1stUnAnsweredQuestionFromExperianEndpoint {
