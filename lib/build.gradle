@@ -25,6 +25,7 @@ dependencies {
 	implementation(libs.cxf.jaxws)
 	implementation(libs.cxf.http)
 	implementation(libs.httpasyncclient)
+	implementation(libs.log4j.lambda)
 
 	testImplementation(libs.bundles.junit)
 	testImplementation(libs.mockito.junit)
