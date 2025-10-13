@@ -61,6 +61,7 @@ import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.THIN_FILE_ENCOU
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.EXPERIAN_IIQ_RESPONSE;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createAuditEventExtensions;
 import static uk.gov.di.ipv.cri.kbv.api.domain.KbvResponsesAuditExtension.createResponseReceivedAuditEventExtensions;
+import static uk.gov.di.ipv.cri.kbv.api.util.StringUtils.whitespaceToUnderscore;
 
 public class QuestionHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
@@ -306,7 +307,7 @@ public class QuestionHandler
                         METRIC_REQUESTED_VERIFICATION_SCORE,
                         String.valueOf(requestedVerificationScore),
                         METRIC_DIMENSION_QUESTION_STRATEGY,
-                        questionRequest.getStrategy()));
+                        whitespaceToUnderscore(questionRequest.getStrategy())));
         eventProbe.counterMetric(METRIC_KBV_JOURNEY_TYPE);
 
         questionRequest.setIiqOperatorId(

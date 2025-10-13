@@ -8,6 +8,8 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 import java.util.Map;
 import java.util.Objects;
 
+import static uk.gov.di.ipv.cri.kbv.api.util.StringUtils.whitespaceToUnderscore;
+
 public class MetricsService {
 
     public static final String OUTCOME = "outcome";
@@ -25,14 +27,14 @@ public class MetricsService {
 
     public void sendErrorMetric(String metricName, String errorCode) {
         if (StringUtils.isNotBlank(errorCode)) {
-            eventProbe.addDimensions(Map.of(ERROR_CODE, errorCode));
+            eventProbe.addDimensions(Map.of(ERROR_CODE, whitespaceToUnderscore(errorCode)));
             eventProbe.counterMetric(metricName);
         }
     }
 
     public void sendResultMetric(String metricName, KbvResult result) {
         if (Objects.nonNull(result) && StringUtils.isNotBlank(result.getOutcome())) {
-            eventProbe.addDimensions(Map.of(OUTCOME, result.getOutcome()));
+            eventProbe.addDimensions(Map.of(OUTCOME, whitespaceToUnderscore(result.getOutcome())));
             eventProbe.counterMetric(metricName);
         }
     }

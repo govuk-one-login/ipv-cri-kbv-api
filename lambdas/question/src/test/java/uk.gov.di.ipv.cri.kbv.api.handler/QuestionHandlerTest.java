@@ -94,15 +94,15 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_REQUESTED
 @ExtendWith(MockitoExtension.class)
 class QuestionHandlerTest {
     private static final String MOCK_IIQ_STRATEGY_PARAM_VALUE =
-            "{\"2\": \"3 out of 4 prioritised\"}";
+            "{\"2\": \"3_out_of_4_prioritised\"}";
     private static final Map<String, String> MOCK_IIQ_STRATEGY_MAPPED_VALUE =
-            Map.of("2", "3 out of 4 prioritised");
+            Map.of("2", "3_out_of_4_prioritised");
     private static final Map<String, String> MOCK_KBV_JOURNEY_METRIC_MAP =
             Map.of(
                     METRIC_REQUESTED_VERIFICATION_SCORE,
                     "2",
                     METRIC_DIMENSION_QUESTION_STRATEGY,
-                    "3 out of 4 prioritised");
+                    "3_out_of_4_prioritised");
 
     private QuestionHandler questionHandler;
     @Mock private ObjectMapper mockObjectMapper;
