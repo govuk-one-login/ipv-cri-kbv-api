@@ -91,8 +91,7 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler.KBV_CREDE
 import static uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler.NO_SUCH_ALGORITHM_ERROR;
 
 @SuppressWarnings("rawtypes")
-@ExtendWith(MockitoExtension.class)
-@ExtendWith(SystemStubsExtension.class)
+@ExtendWith({SystemStubsExtension.class, MockitoExtension.class})
 class IssueCredentialHandlerTest implements TestFixtures {
 
     @SystemStub
@@ -102,7 +101,9 @@ class IssueCredentialHandlerTest implements TestFixtures {
                     "JWT_TTL_UNIT",
                     "MINUTES",
                     ENV_VAR_FEATURE_FLAG_VC_CONTAINS_UNIQUE_ID,
-                    "override");
+                    "override",
+                    "POWERTOOLS_METRICS_NAMESPACE",
+                    "ExperianKbvCri");
 
     private static final String SUBJECT = "subject";
     private static final UUID SESSION_ID = UUID.randomUUID();

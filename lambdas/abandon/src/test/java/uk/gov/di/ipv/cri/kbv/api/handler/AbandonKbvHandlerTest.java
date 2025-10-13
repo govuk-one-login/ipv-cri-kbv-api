@@ -20,6 +20,9 @@ import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KBVItem;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
 import java.util.Map;
 import java.util.UUID;
@@ -37,7 +40,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.kbv.api.domain.IIQAuditEventType.ABANDONED;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, SystemStubsExtension.class})
 class AbandonKbvHandlerTest {
     private static final String ABANDON_STATUS = "Abandoned";
     private static final String HEADER_SESSION_ID = "session-id";
@@ -49,6 +52,11 @@ class AbandonKbvHandlerTest {
 
     @Mock private AuditService mockAuditService;
     @InjectMocks private AbandonKbvHandler abandonKbvHandler;
+
+    @SystemStub
+    @SuppressWarnings("unused")
+    private final EnvironmentVariables environment =
+            new EnvironmentVariables("POWERTOOLS_METRICS_NAMESPACE", "ExperianKbvCRI");
 
     @Test
     void shouldReturn200OkWhenItReceivesAValidRequest() throws SqsException {
