@@ -68,7 +68,6 @@ Conditions:
   IsStagingOrIntegration: !Or
     - !Equals [!Ref Environment, staging]
     - !Equals [!Ref Environment, integration]
-  IsNotProduction: !Not [!Equals [!Ref Environment, production]]
   IsNotDevEnvironment: !Not [!Condition IsDevEnvironment]
   IsDevLikeEnvironment:
     !Or [!Condition IsLocalDevEnvironment, !Condition IsDevEnvironment]
@@ -399,8 +398,8 @@ Resources:
               Action: execute-api:Invoke
               Resource: "execute-api:/*"
       Tags:
-        FMSRegionalPolicy: !If [ IsNotProduction, "false", "" ]
-        CustomPolicy: !If [ IsNotProduction, "true", "" ]
+        FMSRegionalPolicy: false
+        CustomPolicy: true
 
   PrivateKBVApi:
     Type: AWS::Serverless::Api
@@ -441,8 +440,8 @@ Resources:
                   StringNotEquals:
                     aws:SourceVpce: !ImportValue cri-vpc-ApiGatewayVpcEndpointId
       Tags:
-        FMSRegionalPolicy: !If [ IsNotProduction, "false", "" ]
-        CustomPolicy: !If [ IsNotProduction, "true", "" ]
+        FMSRegionalPolicy: false
+        CustomPolicy: true
 
   PublicKBVApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
