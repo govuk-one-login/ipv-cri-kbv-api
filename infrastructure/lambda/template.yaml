@@ -513,6 +513,8 @@ Resources:
               Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueName
         - KMSDecryptPolicy:
             KeyId: !ImportValue core-infrastructure-CriDecryptionKey1Id
+        - KMSDecryptPolicy:
+            KeyId: !Ref DynamoTablesEncryptionKey
         - Statement:
             - Effect: Allow
               Action:
@@ -611,6 +613,8 @@ Resources:
               Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueName
         - KMSDecryptPolicy:
             KeyId: !ImportValue core-infrastructure-CriDecryptionKey1Id
+        - KMSDecryptPolicy:
+            KeyId: !Ref DynamoTablesEncryptionKey
         - Statement:
             - Effect: Allow
               Action:
@@ -702,6 +706,8 @@ Resources:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - DynamoDBWritePolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+        - KMSDecryptPolicy:
+            KeyId: !Ref DynamoTablesEncryptionKey
         - Statement:
             - Sid: auditEventQueueKmsEncryptionKeyPermission
               Effect: Allow
@@ -759,6 +765,8 @@ Resources:
             TableName: !Ref KBVTable
         - DynamoDBReadPolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
+        - KMSDecryptPolicy:
+            KeyId: !Ref DynamoTablesEncryptionKey
         - Statement:
             Effect: Allow
             Action:
@@ -794,6 +802,37 @@ Resources:
       DestinationArn: "arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython"
       FilterPattern: ""
       LogGroupName: !Ref IssueCredentialFunctionLogGroup
+
+  DynamoTablesEncryptionKey:
+    Type: AWS::KMS::Key
+    Properties:
+      EnableKeyRotation: true
+      Description: !Sub ${AWS::StackName} customer-managed key for DynamoDB at-rest encryption
+      KeyPolicy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action:
+              - kms:*
+            Resource: "*"
+          - Effect: Allow
+            Principal:
+              Service: "dynamodb.amazonaws.com"
+            Action:
+              - "kms:Encrypt*"
+              - "kms:Decrypt*"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:Describe*"
+            Resource: "*"
+            Condition:
+              StringEquals:
+                "kms:CallerAccount": !Sub "${AWS::AccountId}"
+                "kms:ViaService":
+                  - "dynamodb.amazonaws.com"
+                  - !Sub "lambda.${AWS::Region}.amazonaws.com"
 
   KBVTable:
     Type: AWS::DynamoDB::Table
