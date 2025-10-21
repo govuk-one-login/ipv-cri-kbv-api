@@ -5,7 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.cloudwatchlogs.emf.model.Unit;
+import software.amazon.lambda.powertools.metrics.model.MetricUnit;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 
@@ -63,7 +63,8 @@ class MetricsServiceTest {
 
         this.metricsService.sendDurationMetric("baz_duration", executionDuration);
 
-        verify(eventProbe).counterMetric("baz_duration", executionDuration, Unit.MILLISECONDS);
+        verify(eventProbe)
+                .counterMetric("baz_duration", executionDuration, MetricUnit.MILLISECONDS);
     }
 
     @Test

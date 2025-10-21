@@ -39,6 +39,9 @@ import uk.gov.di.ipv.cri.kbv.api.service.IdentityIQWebServiceSoapCache;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -66,7 +69,7 @@ import static org.mockito.Mockito.when;
 import static uk.gov.di.ipv.cri.common.library.domain.AuditEventType.REQUEST_SENT;
 import static uk.gov.di.ipv.cri.common.library.domain.AuditEventType.RESPONSE_RECEIVED;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, SystemStubsExtension.class})
 class QuestionAnswerHandlerTest {
     private static final String MOCK_CLIENT_ID = "mock-client-id";
     private static final UUID SESSION_ID = UUID.randomUUID();
@@ -87,6 +90,11 @@ class QuestionAnswerHandlerTest {
     @Mock private ServiceFactory mockServiceFactory;
     @Mock private IdentityIQWebServiceSoapCache mockIdentityIQWebServiceSoapCache;
     @Captor private ArgumentCaptor<Map<String, Object>> auditEventExtensionsArgCaptor;
+
+    @SystemStub
+    @SuppressWarnings("unused")
+    private final EnvironmentVariables environment =
+            new EnvironmentVariables("POWERTOOLS_METRICS_NAMESPACE", "ExperianKbvCri");
 
     @BeforeEach
     void setUp() {
