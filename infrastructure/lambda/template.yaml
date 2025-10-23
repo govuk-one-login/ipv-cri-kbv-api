@@ -515,6 +515,8 @@ Resources:
             KeyId: !ImportValue core-infrastructure-CriDecryptionKey1Id
         - KMSDecryptPolicy:
             KeyId: !Ref DynamoTablesEncryptionKey
+        - KMSDecryptPolicy:
+            KeyId: !Sub "{{resolve:ssm:/${CommonStackName}/DynamoDBCustomerManagedKeyID}}"
         - Statement:
             - Effect: Allow
               Action:
@@ -615,6 +617,8 @@ Resources:
             KeyId: !ImportValue core-infrastructure-CriDecryptionKey1Id
         - KMSDecryptPolicy:
             KeyId: !Ref DynamoTablesEncryptionKey
+        - KMSDecryptPolicy:
+            KeyId: !Sub "{{resolve:ssm:/${CommonStackName}/DynamoDBCustomerManagedKeyID}}"
         - Statement:
             - Effect: Allow
               Action:
@@ -708,6 +712,8 @@ Resources:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - KMSDecryptPolicy:
             KeyId: !Ref DynamoTablesEncryptionKey
+        - KMSDecryptPolicy:
+            KeyId: !Sub "{{resolve:ssm:/${CommonStackName}/DynamoDBCustomerManagedKeyID}}"
         - Statement:
             - Sid: auditEventQueueKmsEncryptionKeyPermission
               Effect: Allow
@@ -767,6 +773,8 @@ Resources:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
         - KMSDecryptPolicy:
             KeyId: !Ref DynamoTablesEncryptionKey
+        - KMSDecryptPolicy:
+            KeyId: !Sub "{{resolve:ssm:/${CommonStackName}/DynamoDBCustomerManagedKeyID}}"
         - Statement:
             Effect: Allow
             Action:
