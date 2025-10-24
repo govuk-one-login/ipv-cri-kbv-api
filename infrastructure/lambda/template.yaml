@@ -68,6 +68,9 @@ Conditions:
   IsStagingOrIntegration: !Or
     - !Equals [!Ref Environment, staging]
     - !Equals [!Ref Environment, integration]
+  IsBuildOrProduction: !Or
+    - !Equals [ !Ref Environment, production ]
+    - !Equals [ !Ref Environment, build ]
   IsNotDevEnvironment: !Not [!Condition IsDevEnvironment]
   IsDevLikeEnvironment:
     !Or [!Condition IsLocalDevEnvironment, !Condition IsDevEnvironment]
@@ -696,6 +699,11 @@ Resources:
               !Ref ExperianKBVAbandonFunction5xxCanaryErrors,
             ]
           - [!Ref AWS::NoValue]
+      ProvisionedConcurrencyConfig:
+        !If
+        - IsBuildOrProduction
+        - ProvisionedConcurrentExecutions: 1
+        - !Ref AWS::NoValue
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
