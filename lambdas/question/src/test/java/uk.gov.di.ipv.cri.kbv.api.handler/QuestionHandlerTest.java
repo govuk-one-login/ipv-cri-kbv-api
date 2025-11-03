@@ -50,6 +50,9 @@ import uk.gov.di.ipv.cri.kbv.api.service.IdentityIQWebServiceSoapCache;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -91,15 +94,15 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_REQUESTED
 @ExtendWith(MockitoExtension.class)
 class QuestionHandlerTest {
     private static final String MOCK_IIQ_STRATEGY_PARAM_VALUE =
-            "{\"2\": \"3 out of 4 prioritised\"}";
+            "{\"2\": \"3_out_of_4_prioritised\"}";
     private static final Map<String, String> MOCK_IIQ_STRATEGY_MAPPED_VALUE =
-            Map.of("2", "3 out of 4 prioritised");
+            Map.of("2", "3_out_of_4_prioritised");
     private static final Map<String, String> MOCK_KBV_JOURNEY_METRIC_MAP =
             Map.of(
                     METRIC_REQUESTED_VERIFICATION_SCORE,
                     "2",
                     METRIC_DIMENSION_QUESTION_STRATEGY,
-                    "3 out of 4 prioritised");
+                    "3_out_of_4_prioritised");
 
     private QuestionHandler questionHandler;
     @Mock private ObjectMapper mockObjectMapper;
@@ -136,7 +139,12 @@ class QuestionHandlerTest {
     }
 
     @Nested
+    @ExtendWith(SystemStubsExtension.class)
     class QuestionHandlerCalled {
+        @SystemStub
+        @SuppressWarnings("unused")
+        private final EnvironmentVariables environment =
+                new EnvironmentVariables("POWERTOOLS_METRICS_NAMESPACE", "ExperianKbvCri");
 
         @Nested
         class When1stCalledAndReturn1stUnAnsweredQuestionFromExperianEndpoint {
