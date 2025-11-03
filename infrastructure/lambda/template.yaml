@@ -77,6 +77,11 @@ Conditions:
   IsNotDevLikeEnvironment: !Not
     - !Condition IsDevLikeEnvironment
 
+  UseNewDTLayer: !Or
+    - !Equals [ !Ref Environment, localdev ]
+    - !Equals [ !Ref Environment, dev ]
+    - !Equals [ !Ref Environment, build ]
+
 Globals:
   Function:
     VpcConfig:
@@ -128,14 +133,28 @@ Globals:
                 !Ref Environment,
                 dynatraceSecretArn,
               ]
-        DT_CLUSTER_ID: !Sub
-          - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CLUSTER_ID}}"
-          - SecretArn:
-              !FindInMap [
-                EnvironmentConfiguration,
-                !Ref Environment,
-                dynatraceSecretArn,
-              ]
+        DT_CLUSTER_ID: !If
+          - UseNewDTLayer
+          - !Ref "AWS::NoValue"
+          - !Sub
+            - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CLUSTER_ID}}"
+            - SecretArn:
+                !FindInMap
+                - EnvironmentConfiguration
+                - !Ref Environment
+                - dynatraceSecretArn
+
+        DT_CLUSTER: !If
+          - UseNewDTLayer
+          - !Sub
+            - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_CLUSTER_ID}}"
+            - SecretArn:
+                !FindInMap
+                  - EnvironmentConfiguration
+                  - !Ref Environment
+                  - dynatraceSecretArn
+          - !Ref "AWS::NoValue"
+
         DT_LOG_COLLECTION_AUTH_TOKEN: !Sub
           - "{{resolve:secretsmanager:${SecretArn}:SecretString:DT_LOG_COLLECTION_AUTH_TOKEN}}"
           - SecretArn:
@@ -152,7 +171,12 @@ Globals:
                 !Ref Environment,
                 dynatraceSecretArn,
               ]
-        DT_OPEN_TELEMETRY_ENABLE_INTEGRATION: "true"
+
+        DT_OPEN_TELEMETRY_ENABLE_INTEGRATION: !If
+          - UseNewDTLayer
+          - !Ref "AWS::NoValue"
+          - "true"
+
         OTEL_INSTRUMENTATION_AWS_SDK_EXPERIMENTAL_USE_PROPAGATOR_FOR_MESSAGING: "true"
         OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
     Layers:
