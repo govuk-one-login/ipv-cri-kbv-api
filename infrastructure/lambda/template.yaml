@@ -302,9 +302,9 @@ Mappings:
 
   SnapStartMapping:
     Environment:
-      localdev: None
-      dev: None
-      build: None
+      localdev: PublishedVersions
+      dev: PublishedVersions
+      build: PublishedVersions
       staging: None
       integration: None
       production: None
