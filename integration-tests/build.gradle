@@ -12,7 +12,7 @@ repositories {
 dependencies {
 	testImplementation project(":lib")
 
-	testImplementation(testFixtures("uk.gov.account:cri-common-lib:6.0.0"))
+	testImplementation(testFixtures("uk.gov.account:cri-common-lib:7.2.0"))
 	testImplementation "io.cucumber:cucumber-java:7.15.0"
 	testImplementation "io.cucumber:cucumber-junit:7.15.0"
 	testImplementation "io.cucumber:cucumber-picocontainer:7.15.0"
