@@ -32,11 +32,11 @@ import uk.gov.di.ipv.cri.common.library.service.PersonIdentityService;
 import uk.gov.di.ipv.cri.common.library.service.SessionService;
 import uk.gov.di.ipv.cri.common.library.util.ApiGatewayResponseGenerator;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
+import uk.gov.di.ipv.cri.common.library.util.TempCleaner;
 import uk.gov.di.ipv.cri.kbv.api.exception.CredentialRequestException;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
 import uk.gov.di.ipv.cri.kbv.api.service.ServiceFactory;
 import uk.gov.di.ipv.cri.kbv.api.service.VerifiableCredentialService;
-import uk.gov.di.ipv.cri.kbv.api.util.TempCleaner;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
