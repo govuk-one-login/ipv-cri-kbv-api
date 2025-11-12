@@ -33,6 +33,11 @@ subprojects {
 		exclude group:"software.amazon.awssdk", module: "url-connection-client"
 	}
 
+	configurations.all {
+		exclude group: "org.eclipse.angus", module: "smtp"
+		exclude group: "org.eclipse.angus", module: "angus-mail"
+	}
+
 	dependencies {
 		implementation(platform(libs.aws.sdk.bom))
 		implementation(libs.aws.crt.client)
