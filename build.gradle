@@ -35,6 +35,7 @@ subprojects {
 
 	configurations.all {
 		exclude group: "org.eclipse.angus", module: "smtp"
+		exclude group: "org.eclipse.angus", module: "angus-mail"
 	}
 
 	dependencies {
