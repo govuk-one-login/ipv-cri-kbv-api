@@ -76,7 +76,40 @@ jobs:
     permissions:
       security-events: write
     steps:
-      - name: Run CodeQL scan
-        uses: govuk-one-login/github-actions/code-quality/codeql@d201191485b645ec856a34e5ca48636cf97b2574
+      - name: Pull repository
+        uses: actions/checkout@v4
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
-          languages: javascript-typescript
+          gradle-version: '8.13'
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: corretto
+          cache: gradle
+
+      - name: Gradle build
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Set CODEQL_JAVA_BUILD_DIR dynamically
+        id: set_build_dirs
+        run: |
+          echo "Finding all directories with compiled .class files..."
+          dirs=$(find lambdas -type f -path "*/build/classes/java/*" -name "*.class" -exec dirname {} \; | sort -u)
+          
+          if [ -z "$dirs" ]; then
+            echo "No compiled .class files found. CodeQL may fail."
+          else
+            build_dirs=$(echo $dirs | tr ' ' ':')
+            echo "Found build directories: $build_dirs"
+            echo "CODEQL_JAVA_BUILD_DIR=$build_dirs" >> $GITHUB_ENV
+          fi
+
+      - name: Run CodeQL scan
+        uses: govuk-one-login/github-actions/code-quality/codeql@943e5650a5973460ce590bca42b29703822d8678
+        with:
+          languages: java
+          autobuild: false
