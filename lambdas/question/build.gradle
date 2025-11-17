@@ -19,7 +19,7 @@ dependencies {
 
 	testImplementation(libs.bundles.junit)
 	testImplementation(libs.mockito.junit)
-	testImplementation(libs.mockito.inline)
+	testImplementation(libs.mockito.core)
 	testImplementation(libs.hamcrest)
 	testImplementation(libs.bundles.pact)
 	testImplementation(libs.webcompere.core)
