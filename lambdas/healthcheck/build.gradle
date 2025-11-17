@@ -12,13 +12,11 @@ dependencies {
 	implementation(project(":lib"))
 	implementation(libs.cri.common.lib)
 
-	implementation(libs.log4j.lambda)
-
 	testImplementation(libs.bundles.junit)
 	testImplementation(libs.mockito.junit)
-	testImplementation(libs.mockito.inline)
+	testImplementation(libs.mockito.core)
 
-	implementation (libs.mockito.inline){
+	implementation (libs.mockito.core){
 		exclude group: 'net.bytebuddy', module: 'byte-buddy'
 	}
 	implementation("net.bytebuddy:byte-buddy:1.17.5")
