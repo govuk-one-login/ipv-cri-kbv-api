@@ -11,7 +11,6 @@ import au.com.dius.pact.provider.junitsupport.loader.SelectorBuilder;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.AccessTokenType;
-import org.apache.log4j.BasicConfigurator;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.junit.jupiter.api.AfterEach;
@@ -80,8 +79,6 @@ class InValidIssueHandler403Test implements DummyStates {
                 "pact.filter.description",
                 "Invalid credential request due to invalid access token");
         if (ENABLE_FULL_DEBUG) {
-            // AutoConfig SL4j with Log4J
-            BasicConfigurator.configure();
             Configurator.setAllLevels("", Level.DEBUG);
         }
     }
