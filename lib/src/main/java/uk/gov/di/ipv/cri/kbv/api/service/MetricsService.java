@@ -25,14 +25,14 @@ public class MetricsService {
 
     public void sendErrorMetric(String metricName, String errorCode) {
         if (StringUtils.isNotBlank(errorCode)) {
-            eventProbe.addDimensions(Map.of(ERROR_CODE, errorCode));
+            eventProbe.addDimensions(Map.of(ERROR_CODE, EventProbe.clean(errorCode)));
             eventProbe.counterMetric(metricName);
         }
     }
 
     public void sendResultMetric(String metricName, KbvResult result) {
         if (Objects.nonNull(result) && StringUtils.isNotBlank(result.getOutcome())) {
-            eventProbe.addDimensions(Map.of(OUTCOME, result.getOutcome()));
+            eventProbe.addDimensions(Map.of(OUTCOME, EventProbe.clean(result.getOutcome())));
             eventProbe.counterMetric(metricName);
         }
     }

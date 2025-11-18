@@ -172,7 +172,9 @@ public class QuestionHandler
                             input.getHeaders());
 
             eventProbe.addDimensions(
-                    Map.of(METRIC_DIMENSION_QUESTION_ID, question.getQuestionId()));
+                    Map.of(
+                            METRIC_DIMENSION_QUESTION_ID,
+                            EventProbe.clean(question.getQuestionId())));
 
             eventProbe.counterMetric(LAMBDA_NAME);
 
@@ -304,9 +306,9 @@ public class QuestionHandler
         eventProbe.addDimensions(
                 Map.of(
                         METRIC_REQUESTED_VERIFICATION_SCORE,
-                        String.valueOf(requestedVerificationScore),
+                        EventProbe.clean(String.valueOf(requestedVerificationScore)),
                         METRIC_DIMENSION_QUESTION_STRATEGY,
-                        questionRequest.getStrategy()));
+                        EventProbe.clean(questionRequest.getStrategy())));
         eventProbe.counterMetric(METRIC_KBV_JOURNEY_TYPE);
 
         questionRequest.setIiqOperatorId(
