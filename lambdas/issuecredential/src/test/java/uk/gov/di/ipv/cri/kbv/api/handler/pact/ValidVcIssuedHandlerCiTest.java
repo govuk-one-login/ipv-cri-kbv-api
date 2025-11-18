@@ -14,7 +14,6 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.AccessTokenType;
-import org.apache.log4j.BasicConfigurator;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.jetbrains.annotations.NotNull;
@@ -110,7 +109,7 @@ public class ValidVcIssuedHandlerCiTest
     }
 
     @BeforeAll
-    static void setupServer() {
+    void setupServer() {
         System.setProperty("pact.verifier.publishResults", "true");
         System.setProperty("pact.content_type.override.application/jwt", "text");
         System.setProperty("pact_do_not_track", "true");
@@ -118,7 +117,6 @@ public class ValidVcIssuedHandlerCiTest
         System.setProperty("pact.filter.description", "Valid credential request for VC with CI");
         if (ENABLE_FULL_DEBUG) {
             // AutoConfig SL4j with Log4J
-            BasicConfigurator.configure();
             Configurator.setAllLevels("", Level.DEBUG);
         }
     }
