@@ -17,8 +17,7 @@ dependencies {
 	implementation(libs.aws.dynamodb)
 	implementation(libs.aws.dynamodb.enhanced)
 
-	testImplementation(libs.junit.api)
-	testImplementation(libs.junit.params)
+	testImplementation(libs.bundles.junit)
 	testImplementation(libs.mockito.junit)
 	testImplementation(libs.mockito.inline)
 	testImplementation(libs.hamcrest)
@@ -26,5 +25,4 @@ dependencies {
 	testImplementation(libs.webcompere.core)
 	testImplementation(libs.webcompere.jupiter)
 	testImplementation "org.slf4j:slf4j-log4j12:2.0.13"
-	testRuntimeOnly(libs.junit.engine)
 }
