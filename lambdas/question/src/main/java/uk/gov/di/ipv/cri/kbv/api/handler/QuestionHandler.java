@@ -13,9 +13,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.http.HttpStatusCode;
-import software.amazon.lambda.powertools.logging.CorrelationIdPathConstants;
+import software.amazon.lambda.powertools.logging.CorrelationIdPaths;
 import software.amazon.lambda.powertools.logging.Logging;
-import software.amazon.lambda.powertools.metrics.Metrics;
+import software.amazon.lambda.powertools.metrics.FlushMetrics;
 import uk.gov.di.ipv.cri.common.library.annotations.ExcludeFromGeneratedCoverageReport;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventContext;
 import uk.gov.di.ipv.cri.common.library.domain.AuditEventType;
@@ -134,8 +134,8 @@ public class QuestionHandler
     }
 
     @Override
-    @Logging(correlationIdPath = CorrelationIdPathConstants.API_GATEWAY_REST, clearState = true)
-    @Metrics(captureColdStart = true)
+    @Logging(correlationIdPath = CorrelationIdPaths.API_GATEWAY_REST, clearState = true)
+    @FlushMetrics(namespace = "kbv-cri-api", captureColdStart = true)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
 
@@ -172,7 +172,9 @@ public class QuestionHandler
                             input.getHeaders());
 
             eventProbe.addDimensions(
-                    Map.of(METRIC_DIMENSION_QUESTION_ID, question.getQuestionId()));
+                    Map.of(
+                            METRIC_DIMENSION_QUESTION_ID,
+                            EventProbe.clean(question.getQuestionId())));
 
             eventProbe.counterMetric(LAMBDA_NAME);
 
@@ -304,9 +306,9 @@ public class QuestionHandler
         eventProbe.addDimensions(
                 Map.of(
                         METRIC_REQUESTED_VERIFICATION_SCORE,
-                        String.valueOf(requestedVerificationScore),
+                        EventProbe.clean(String.valueOf(requestedVerificationScore)),
                         METRIC_DIMENSION_QUESTION_STRATEGY,
-                        questionRequest.getStrategy()));
+                        EventProbe.clean(questionRequest.getStrategy())));
         eventProbe.counterMetric(METRIC_KBV_JOURNEY_TYPE);
 
         questionRequest.setIiqOperatorId(
