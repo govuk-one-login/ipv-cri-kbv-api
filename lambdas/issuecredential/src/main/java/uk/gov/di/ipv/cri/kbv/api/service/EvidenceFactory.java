@@ -168,8 +168,7 @@ public class EvidenceFactory {
     }
 
     private void logVcScore(String result) {
-        eventProbe.addDimensions(
-                Map.of(METRIC_DIMENSION_KBV_VERIFICATION, EventProbe.clean(result)));
+        eventProbe.addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, result));
 
         LOGGER.info("kbv {}", result);
     }

@@ -4,18 +4,17 @@ aws-lambda-events = "3.14.0"
 jackson = "2.17.2"
 nimbus-oauth = "11.29.1"
 nimbus-jwt = "10.5"
-junit = "5.14.1"
+junit = "5.12.2"
 junit-launcher = "1.12.2"
-mockito = "5.20.0"
-powertools = "2.7.0"
-cri-common-lib = "8.0.0"
+mockito = "5.2.0"
+powertools = "1.18.0"
+cri-common-lib = "7.3.0"
 pact-provider = "4.7.0-beta.2"
 webcompere = "2.1.6"
 otel = "1.55.0"
 otel-alpha = "2.12.0-alpha"
 apache-cfx = "4.1.4"
 jakata-xml = "4.0.2"
-log4j = "2.23.1"
 
 # Plugins
 spotless = "8.0.+"
@@ -61,8 +60,7 @@ httpasyncclient = { module = "org.apache.httpcomponents:httpasyncclient", versio
 # Powertools
 powertools-logging = { module = "software.amazon.lambda:powertools-logging", version.ref = "powertools" }
 powertools-metrics = { module = "software.amazon.lambda:powertools-metrics", version.ref = "powertools" }
-powertools-parameters-ssm = { module = "software.amazon.lambda:powertools-parameters-ssm", version.ref = "powertools" }
-powertools-secrets = { module = "software.amazon.lambda:powertools-parameters-secrets", version.ref = "powertools" }
+powertools-parameters = { module = "software.amazon.lambda:powertools-parameters", version.ref = "powertools" }
 
 # JUnit & Mockito
 junit-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
@@ -70,13 +68,11 @@ junit-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref 
 junit-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-launcher" }
 mockito-junit = { module = "org.mockito:mockito-junit-jupiter", version.ref = "mockito" }
-mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
-hamcrest = { module = "org.hamcrest:hamcrest", version = "3.0" }
+mockito-inline = { module = "org.mockito:mockito-inline", version.ref = "mockito" }
+hamcrest = { module = "org.hamcrest:hamcrest", version = "2.2" }
 
-log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
-log4j-slf4j2-impl = { module = "org.apache.logging.log4j:log4j-slf4j2-impl", version.ref = "log4j" }
-log4j-layout-template-json = { module = "org.apache.logging.log4j:log4j-layout-template-json", version.ref = "log4j" }
-
+# Logging
+log4j-lambda = { module = "com.amazonaws:aws-lambda-java-log4j2", version = "1.6.0" }
 
 # Nimbus
 nimbus-oauth = { module = "com.nimbusds:oauth2-oidc-sdk", version.ref = "nimbus-oauth" }
@@ -108,9 +104,8 @@ otel-httpclient = { module = "io.opentelemetry.instrumentation:opentelemetry-jav
 jackson = [ "jackson-bom", "jackson-core", "jackson-annotations", "jackson-databind", "jackson-jdk8", "jackson-jsr310" ]
 otel = [ "otel-api", "otel-sdk", "otel-context", "otel-metrics", "otel-trace", "otel-logs", "otel-otlp", "otel-sdk2-autoconf", "otel-httpclient" ]
 pact = [ "pact-provider", "pact-junit5" ]
-powertools = [ "powertools-logging", "powertools-parameters-ssm", "powertools-secrets", "powertools-metrics" ]
-junit = [ "junit-api", "junit-params", "junit-engine" ]
-logging = [ "log4j-core", "log4j-slf4j2-impl", "log4j-layout-template-json" ]
+powertools = [ "powertools-logging", "powertools-metrics", "powertools-parameters" ]
+junit = [ "junit-api", "junit-params", "junit-engine", "junit-launcher" ]
 
 [plugins]
 java = { id = "java" }
