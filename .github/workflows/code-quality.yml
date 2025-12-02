@@ -16,6 +16,9 @@ jobs:
     name: pre-commit
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.9'
       - name: Run pre-commit
         uses: govuk-one-login/github-actions/code-quality/run-pre-commit@d201191485b645ec856a34e5ca48636cf97b2574
         with:
