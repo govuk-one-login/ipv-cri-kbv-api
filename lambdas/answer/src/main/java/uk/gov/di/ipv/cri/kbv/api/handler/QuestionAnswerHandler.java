@@ -106,7 +106,7 @@ public class QuestionAnswerHandler
 
     @Override
     @Logging(correlationIdPath = CorrelationIdPaths.API_GATEWAY_REST, clearState = true)
-    @FlushMetrics(namespace = "kbv-cri-api", captureColdStart = true)
+    @FlushMetrics(namespace = "di-ipv-cri-kbv-api", captureColdStart = true)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
         try {
