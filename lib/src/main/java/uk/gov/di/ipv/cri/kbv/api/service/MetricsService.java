@@ -20,20 +20,21 @@ public class MetricsService {
     }
 
     public void sendDurationMetric(String durationMetricName, long executionDuration) {
-        eventProbe.counterMetric(durationMetricName, executionDuration, MetricUnit.MILLISECONDS);
+        eventProbe.counterMetric(
+                EventProbe.clean(durationMetricName), executionDuration, MetricUnit.MILLISECONDS);
     }
 
     public void sendErrorMetric(String metricName, String errorCode) {
         if (StringUtils.isNotBlank(errorCode)) {
             eventProbe.addDimensions(Map.of(ERROR_CODE, EventProbe.clean(errorCode)));
-            eventProbe.counterMetric(metricName);
+            eventProbe.counterMetric(EventProbe.clean(metricName));
         }
     }
 
     public void sendResultMetric(String metricName, KbvResult result) {
         if (Objects.nonNull(result) && StringUtils.isNotBlank(result.getOutcome())) {
             eventProbe.addDimensions(Map.of(OUTCOME, EventProbe.clean(result.getOutcome())));
-            eventProbe.counterMetric(metricName);
+            eventProbe.counterMetric(EventProbe.clean(metricName));
         }
     }
 
