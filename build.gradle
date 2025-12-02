@@ -41,9 +41,11 @@ subprojects {
 	dependencies {
 		implementation(platform(libs.aws.sdk.bom))
 		implementation(libs.aws.crt.client)
-		runtimeOnly(libs.log4j.lambda)
 
 		implementation(libs.aspectjrt)
+		implementation(libs.bundles.logging)
+
+		testImplementation 'org.junit.platform:junit-platform-launcher:1.14.1'
 	}
 
 	test {

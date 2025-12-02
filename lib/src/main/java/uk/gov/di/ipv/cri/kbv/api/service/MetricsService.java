@@ -1,7 +1,7 @@
 package uk.gov.di.ipv.cri.kbv.api.service;
 
 import com.nimbusds.oauth2.sdk.util.StringUtils;
-import software.amazon.cloudwatchlogs.emf.model.Unit;
+import software.amazon.lambda.powertools.metrics.model.MetricUnit;
 import uk.gov.di.ipv.cri.common.library.util.EventProbe;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 
@@ -20,19 +20,19 @@ public class MetricsService {
     }
 
     public void sendDurationMetric(String durationMetricName, long executionDuration) {
-        eventProbe.counterMetric(durationMetricName, executionDuration, Unit.MILLISECONDS);
+        eventProbe.counterMetric(durationMetricName, executionDuration, MetricUnit.MILLISECONDS);
     }
 
     public void sendErrorMetric(String metricName, String errorCode) {
         if (StringUtils.isNotBlank(errorCode)) {
-            eventProbe.addDimensions(Map.of(ERROR_CODE, errorCode));
+            eventProbe.addDimensions(Map.of(ERROR_CODE, EventProbe.clean(errorCode)));
             eventProbe.counterMetric(metricName);
         }
     }
 
     public void sendResultMetric(String metricName, KbvResult result) {
         if (Objects.nonNull(result) && StringUtils.isNotBlank(result.getOutcome())) {
-            eventProbe.addDimensions(Map.of(OUTCOME, result.getOutcome()));
+            eventProbe.addDimensions(Map.of(OUTCOME, EventProbe.clean(result.getOutcome())));
             eventProbe.counterMetric(metricName);
         }
     }
