@@ -221,7 +221,7 @@ Mappings:
       java: arn:aws:lambda:eu-west-2:061089867205:layer:OneAgent_1_323_46_with_collector_java_arm-v1-signed:1
       node: arn:aws:lambda:eu-west-2:061089867205:layer:OneAgent_1_323_46_with_collector_node_arm-v1-signed:1
     staging:
-      java: arn:aws:lambda:eu-west-2:061089867205:layer:OneAgent_1_323_46_with_collector_java_arm-v1-signed:1
+      java: arn:aws:lambda:eu-west-2:510556704934:layer:OneAgent_1_323_46_with_collector_java_arm-v1-signed:1
       node: arn:aws:lambda:eu-west-2:216552277552:layer:Dynatrace_OneAgent_1_313_36_20250507-184408_with_collector_java:1
     integration:
       java: arn:aws:lambda:eu-west-2:216552277552:layer:Dynatrace_OneAgent_1_313_36_20250507-184408_with_collector_java:1
