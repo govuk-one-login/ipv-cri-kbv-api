@@ -16,19 +16,10 @@ jobs:
     name: pre-commit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: 3.13
-
-      - name: Install pre-commit
-        run: pip install pre-commit
-
       - name: Run pre-commit
-        run: pre-commit run --all-files
+        uses: govuk-one-login/github-actions/code-quality/run-pre-commit@4aa6635feaed2295171e4637a9b1ef7cf03b1e96
+        with:
+          all-files: true
 
   linting:
     name: Linting
