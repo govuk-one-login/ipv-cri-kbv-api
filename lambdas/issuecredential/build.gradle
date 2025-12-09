@@ -16,8 +16,6 @@ dependencies {
 	implementation(libs.aws.lambda.events)
 	implementation(libs.aws.kms)
 
-	implementation(libs.bundles.powertools)
-
 	implementation(libs.nimbus.oauth)
 	implementation(libs.nimbus.jwt)
 	implementation(libs.cri.common.lib)

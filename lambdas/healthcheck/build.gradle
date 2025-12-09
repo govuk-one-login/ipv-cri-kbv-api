@@ -7,7 +7,7 @@ plugins {
 dependencies {
 	implementation(libs.aws.lambda)
 	implementation(libs.aws.lambda.events)
-	implementation(libs.bundles.powertools)
+	aspect libs.bundles.powertools
 
 	implementation(project(":lib"))
 	implementation(libs.cri.common.lib)
