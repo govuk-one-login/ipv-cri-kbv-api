@@ -88,6 +88,8 @@ public class AbandonKbvHandler
         } catch (AwsServiceException e) {
             response.withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR);
             eventProbe.log(ERROR, e).counterMetric(ABANDON_KBV, 0d);
+        } finally {
+            eventProbe.flush();
         }
         return response;
     }
