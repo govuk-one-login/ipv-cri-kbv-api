@@ -1,8 +1,10 @@
 package uk.gov.di.ipv.cri.kbv.api.security;
 
+import com.dynatrace.oneagent.sdk.OneAgentSDKFactory;
+import com.dynatrace.oneagent.sdk.api.OneAgentSDK;
+import com.dynatrace.oneagent.sdk.api.OutgoingWebRequestTracer;
 import com.experian.uk.wasp.TokenService;
 import com.experian.uk.wasp.TokenServiceSoap;
-import io.opentelemetry.api.trace.Span;
 import jakarta.xml.ws.BindingProvider;
 import jakarta.xml.ws.WebServiceException;
 import jakarta.xml.ws.soap.SOAPFaultException;
@@ -11,12 +13,13 @@ import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidSoapTokenException;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
-import uk.gov.di.ipv.cri.kbv.api.util.OpenTelemetryUtil;
 
 import java.util.Objects;
 
 public class SoapToken {
     private static final Logger LOGGER = LogManager.getLogger();
+    private static final OneAgentSDK oneAgentSdk = OneAgentSDKFactory.createInstance();
+
     private final TokenService tokenService;
     private final String application;
     private final boolean checkIp;
@@ -37,12 +40,10 @@ public class SoapToken {
     }
 
     public String getToken(String clientId) {
-        Span span =
-                OpenTelemetryUtil.createSpan(
-                        this.getClass(),
-                        "getToken",
-                        "LoginWithCertificate",
-                        "http://www.uk.experian.com/WASP/LoginWithCertificate");
+        OutgoingWebRequestTracer outgoingWebRequestTracer =
+                oneAgentSdk.traceOutgoingWebRequest(
+                        "http://www.uk.experian.com/WASP/LoginWithCertificate", "POST");
+        outgoingWebRequestTracer.start();
 
         long startTime = System.nanoTime();
         try {
@@ -65,21 +66,21 @@ public class SoapToken {
 
             long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
 
-            OpenTelemetryUtil.endSpan(span);
-
             LOGGER.info("SoapToken#getToken latency is {}ms", totalTimeInMs);
             metricsService.sendDurationMetric("get_soap_token_duration", totalTimeInMs);
 
             return token;
         } catch (SOAPFaultException e) {
-            OpenTelemetryUtil.endSpanWithError(span);
+            outgoingWebRequestTracer.error(e.getMessage());
             throw new InvalidSoapTokenException("SOAP Fault occurred: " + e.getMessage());
         } catch (WebServiceException e) {
-            OpenTelemetryUtil.endSpanWithError(span);
+            outgoingWebRequestTracer.error(e.getMessage());
             throw new InvalidSoapTokenException("Web Service error occurred: " + e.getMessage());
         } catch (Exception e) {
-            OpenTelemetryUtil.endSpanWithError(span);
+            outgoingWebRequestTracer.error(e.getMessage());
             throw new InvalidSoapTokenException("Unexpected error occurred: " + e.getMessage());
+        } finally {
+            outgoingWebRequestTracer.end();
         }
     }
 }

@@ -7,7 +7,7 @@ plugins {
 dependencies {
 	aspect libs.bundles.powertools
 
-	runtimeOnly(libs.bundles.otel)
+	runtimeOnly(libs.oneagent.sdk)
 
 	implementation(libs.bundles.jackson)
 	implementation project(":lib")

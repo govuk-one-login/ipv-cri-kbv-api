@@ -1,5 +1,8 @@
 package uk.gov.di.ipv.cri.kbv.api.gateway;
 
+import com.dynatrace.oneagent.sdk.OneAgentSDKFactory;
+import com.dynatrace.oneagent.sdk.api.OneAgentSDK;
+import com.dynatrace.oneagent.sdk.api.OutgoingWebRequestTracer;
 import com.experian.uk.schema.experian.identityiq.services.webservice.ArrayOfString;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Control;
 import com.experian.uk.schema.experian.identityiq.services.webservice.Error;
@@ -9,14 +12,12 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.RTQRespons
 import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
-import io.opentelemetry.api.trace.Span;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
-import uk.gov.di.ipv.cri.kbv.api.util.OpenTelemetryUtil;
 
 import java.util.List;
 import java.util.Objects;
@@ -30,6 +31,8 @@ public class KBVGateway {
     private static final String EXPERIAN_SUBMIT_RESPONSE = "submit_questions_response";
     private static final String EXPERIAN_SUBMIT_DURATION = "submit_answers_duration";
     private static final String EXPERIAN_SUBMIT_ERROR = "submit_questions_response_error";
+
+    private static final OneAgentSDK oneAgentSdk = OneAgentSDKFactory.createInstance();
 
     private final StartAuthnAttemptRequestMapper saaRequestMapper;
     private final ResponseToQuestionMapper responseToQuestionMapper;
@@ -57,12 +60,11 @@ public class KBVGateway {
             IdentityIQWebServiceSoap identityIQWebServiceSoap, QuestionRequest questionRequest) {
         SAARequest saaRequest = saaRequestMapper.mapQuestionRequest(questionRequest);
 
-        Span span =
-                OpenTelemetryUtil.createSpan(
-                        this.getClass(),
-                        "getQuestions",
-                        "SAA",
-                        "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/SAA");
+        OutgoingWebRequestTracer outgoingWebRequestTracer =
+                oneAgentSdk.traceOutgoingWebRequest(
+                        "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/SAA",
+                        "POST");
+        outgoingWebRequestTracer.start();
 
         long startTime = System.nanoTime();
 
@@ -71,7 +73,7 @@ public class KBVGateway {
 
         long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
 
-        OpenTelemetryUtil.endSpan(span);
+        outgoingWebRequestTracer.end();
 
         LOGGER.info("Get questions API response latency: latencyInMs={}", totalTimeInMs);
         metricsService.sendDurationMetric(EXPERIAN_INITIAL_QUESTION_DURATION, totalTimeInMs);
@@ -103,19 +105,18 @@ public class KBVGateway {
 
         long startTime = System.nanoTime();
 
-        Span span =
-                OpenTelemetryUtil.createSpan(
-                        this.getClass(),
-                        "submitAnswers",
-                        "RTQ",
-                        "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/RTQ");
+        OutgoingWebRequestTracer outgoingWebRequestTracer =
+                oneAgentSdk.traceOutgoingWebRequest(
+                        "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/RTQ",
+                        "POST");
+        outgoingWebRequestTracer.start();
 
         RTQResponse2 rtqResponse2 =
                 submitQuestionAnswerResponse(identityIQWebServiceSoap, rtqRequest);
 
         long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
 
-        OpenTelemetryUtil.endSpan(span);
+        outgoingWebRequestTracer.end();
 
         LOGGER.info("Submit answers API response latency: latencyInMs={}", totalTimeInMs);
         metricsService.sendDurationMetric(EXPERIAN_SUBMIT_DURATION, totalTimeInMs);
