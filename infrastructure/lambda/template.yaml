@@ -157,9 +157,6 @@ Globals:
                 !Ref Environment,
                 dynatraceSecretArn,
               ]
-
-        OTEL_INSTRUMENTATION_AWS_SDK_EXPERIMENTAL_USE_PROPAGATOR_FOR_MESSAGING: "true"
-        OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
     Layers:
       # SEE https://github.com/govuk-one-login/observability-infrastructure/tree/main/lambdalayer
       - !FindInMap [DynatraceLayerARN, !Ref Environment, java]

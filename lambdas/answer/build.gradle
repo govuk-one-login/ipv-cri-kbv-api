@@ -6,7 +6,7 @@ plugins {
 
 dependencies {
 	aspect libs.bundles.powertools
-	runtimeOnly(libs.bundles.otel)
+	runtimeOnly(libs.oneagent.sdk)
 
 	implementation(project(":lib"))
 	implementation(libs.cri.common.lib)
