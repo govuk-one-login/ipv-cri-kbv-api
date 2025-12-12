@@ -9,7 +9,6 @@ dependencies {
 	aspect libs.bundles.powertools
 
 	implementation(libs.cri.common.lib)
-	implementation(libs.bundles.otel)
 	implementation(libs.nimbus.oauth)
 	implementation(libs.aws.dynamodb)
 	implementation(libs.aws.dynamodb.enhanced)

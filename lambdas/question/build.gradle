@@ -7,8 +7,6 @@ plugins {
 dependencies {
 	aspect libs.bundles.powertools
 
-	runtimeOnly(libs.bundles.otel)
-
 	implementation(libs.bundles.jackson)
 	implementation project(":lib")
 	implementation(libs.cri.common.lib)

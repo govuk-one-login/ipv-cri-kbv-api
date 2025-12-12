@@ -2,7 +2,6 @@ package uk.gov.di.ipv.cri.kbv.api.security;
 
 import com.experian.uk.wasp.TokenService;
 import com.experian.uk.wasp.TokenServiceSoap;
-import io.opentelemetry.api.trace.Span;
 import jakarta.xml.ws.BindingProvider;
 import jakarta.xml.ws.WebServiceException;
 import jakarta.xml.ws.soap.SOAPFaultException;
@@ -11,12 +10,12 @@ import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.common.library.service.ConfigurationService;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidSoapTokenException;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
-import uk.gov.di.ipv.cri.kbv.api.util.OpenTelemetryUtil;
 
 import java.util.Objects;
 
 public class SoapToken {
     private static final Logger LOGGER = LogManager.getLogger();
+
     private final TokenService tokenService;
     private final String application;
     private final boolean checkIp;
@@ -37,12 +36,6 @@ public class SoapToken {
     }
 
     public String getToken(String clientId) {
-        Span span =
-                OpenTelemetryUtil.createSpan(
-                        this.getClass(),
-                        "getToken",
-                        "LoginWithCertificate",
-                        "http://www.uk.experian.com/WASP/LoginWithCertificate");
 
         long startTime = System.nanoTime();
         try {
@@ -65,20 +58,15 @@ public class SoapToken {
 
             long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
 
-            OpenTelemetryUtil.endSpan(span);
-
             LOGGER.info("SoapToken#getToken latency is {}ms", totalTimeInMs);
             metricsService.sendDurationMetric("get_soap_token_duration", totalTimeInMs);
 
             return token;
         } catch (SOAPFaultException e) {
-            OpenTelemetryUtil.endSpanWithError(span);
             throw new InvalidSoapTokenException("SOAP Fault occurred: " + e.getMessage());
         } catch (WebServiceException e) {
-            OpenTelemetryUtil.endSpanWithError(span);
             throw new InvalidSoapTokenException("Web Service error occurred: " + e.getMessage());
         } catch (Exception e) {
-            OpenTelemetryUtil.endSpanWithError(span);
             throw new InvalidSoapTokenException("Unexpected error occurred: " + e.getMessage());
         }
     }

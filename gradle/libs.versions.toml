@@ -11,8 +11,6 @@ powertools = "2.7.0"
 cri-common-lib = "8.0.5"
 pact-provider = "4.7.0-beta.2"
 webcompere = "2.1.6"
-otel = "1.55.0"
-otel-alpha = "2.12.0-alpha"
 apache-cfx = "4.1.4"
 jakata-xml = "4.0.2"
 log4j = "2.23.1"
@@ -93,20 +91,8 @@ pact-provider = { module = "au.com.dius.pact:provider", version.ref = "pact-prov
 webcompere-core = { module = "uk.org.webcompere:system-stubs-core", version.ref = "webcompere" }
 webcompere-jupiter = { module = "uk.org.webcompere:system-stubs-jupiter", version.ref = "webcompere" }
 
-# OpenTelemetry
-otel-api = { module = "io.opentelemetry:opentelemetry-api", version.ref = "otel" }
-otel-sdk = { module = "io.opentelemetry:opentelemetry-sdk", version.ref = "otel" }
-otel-context = { module = "io.opentelemetry:opentelemetry-context", version.ref = "otel" }
-otel-metrics = { module = "io.opentelemetry:opentelemetry-sdk-metrics", version.ref = "otel" }
-otel-trace = { module = "io.opentelemetry:opentelemetry-sdk-trace", version.ref = "otel" }
-otel-logs = { module = "io.opentelemetry:opentelemetry-sdk-logs", version.ref = "otel" }
-otel-otlp = { module = "io.opentelemetry:opentelemetry-exporter-otlp", version.ref = "otel" }
-otel-sdk2-autoconf = { module = "io.opentelemetry.instrumentation:opentelemetry-aws-sdk-2.2-autoconfigure", version.ref = "otel-alpha" }
-otel-httpclient = { module = "io.opentelemetry.instrumentation:opentelemetry-java-http-client", version.ref = "otel-alpha" }
-
 [bundles]
 jackson = [ "jackson-bom", "jackson-core", "jackson-annotations", "jackson-databind", "jackson-jdk8", "jackson-jsr310" ]
-otel = [ "otel-api", "otel-sdk", "otel-context", "otel-metrics", "otel-trace", "otel-logs", "otel-otlp", "otel-sdk2-autoconf", "otel-httpclient" ]
 pact = [ "pact-provider", "pact-junit5" ]
 powertools = [ "powertools-logging", "powertools-parameters-ssm", "powertools-secrets", "powertools-metrics" ]
 junit = [ "junit-api", "junit-params", "junit-engine" ]

@@ -9,14 +9,12 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.RTQRespons
 import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
-import io.opentelemetry.api.trace.Span;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
-import uk.gov.di.ipv.cri.kbv.api.util.OpenTelemetryUtil;
 
 import java.util.List;
 import java.util.Objects;
@@ -57,21 +55,12 @@ public class KBVGateway {
             IdentityIQWebServiceSoap identityIQWebServiceSoap, QuestionRequest questionRequest) {
         SAARequest saaRequest = saaRequestMapper.mapQuestionRequest(questionRequest);
 
-        Span span =
-                OpenTelemetryUtil.createSpan(
-                        this.getClass(),
-                        "getQuestions",
-                        "SAA",
-                        "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/SAA");
-
         long startTime = System.nanoTime();
 
         SAAResponse2 saaResponse2 =
                 getQuestionRequestResponse(identityIQWebServiceSoap, saaRequest);
 
         long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
-
-        OpenTelemetryUtil.endSpan(span);
 
         LOGGER.info("Get questions API response latency: latencyInMs={}", totalTimeInMs);
         metricsService.sendDurationMetric(EXPERIAN_INITIAL_QUESTION_DURATION, totalTimeInMs);
@@ -103,19 +92,10 @@ public class KBVGateway {
 
         long startTime = System.nanoTime();
 
-        Span span =
-                OpenTelemetryUtil.createSpan(
-                        this.getClass(),
-                        "submitAnswers",
-                        "RTQ",
-                        "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/RTQ");
-
         RTQResponse2 rtqResponse2 =
                 submitQuestionAnswerResponse(identityIQWebServiceSoap, rtqRequest);
 
         long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
-
-        OpenTelemetryUtil.endSpan(span);
 
         LOGGER.info("Submit answers API response latency: latencyInMs={}", totalTimeInMs);
         metricsService.sendDurationMetric(EXPERIAN_SUBMIT_DURATION, totalTimeInMs);
