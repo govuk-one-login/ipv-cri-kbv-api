@@ -273,8 +273,8 @@ Mappings:
     Environment:
       localdev: PublishedVersions
       dev: PublishedVersions
-      build: None
-      staging: None
+      build: PublishedVersions
+      staging: PublishedVersions
       integration: None
       production: None
 
