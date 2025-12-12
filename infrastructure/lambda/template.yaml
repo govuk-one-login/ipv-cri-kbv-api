@@ -275,8 +275,8 @@ Mappings:
       dev: PublishedVersions
       build: PublishedVersions
       staging: PublishedVersions
-      integration: None
-      production: None
+      integration: PublishedVersions
+      production: PublishedVersions
 
   IIQAPIDatabaseModeMapping:
     Environment:
@@ -708,10 +708,6 @@ Resources:
               !Ref ExperianKBVAbandonFunction5xxCanaryErrors,
             ]
           - [!Ref AWS::NoValue]
-      ProvisionedConcurrencyConfig: !If
-        - IsProductionEnvironment
-        - ProvisionedConcurrentExecutions: 1
-        - !Ref AWS::NoValue
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
