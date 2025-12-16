@@ -158,8 +158,6 @@ public class IssueCredentialHandler
             LOGGER.info(VC_MESSAGE_FORMAT, CREDENTIAL_NOT_ISSUED, e.getMessage());
             return ApiGatewayResponseGenerator.proxyJsonResponse(
                     HttpStatusCode.INTERNAL_SERVER_ERROR, e.getMessage());
-        } finally {
-            eventProbe.flush();
         }
     }
 
