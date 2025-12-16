@@ -31,6 +31,7 @@ subprojects {
 		exclude group:"software.amazon.awssdk", module: "apache-client"
 		exclude group:"software.amazon.awssdk", module: "netty-nio-client"
 		exclude group:"software.amazon.awssdk", module: "url-connection-client"
+		exclude group:"org.apache.tika", module: "tika-parser-pdf-module"
 	}
 
 	configurations.all {
