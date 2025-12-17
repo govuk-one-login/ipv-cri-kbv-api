@@ -152,8 +152,6 @@ public class QuestionAnswerHandler
         } catch (Exception e) {
             return handleException(
                     HttpStatusCode.INTERNAL_SERVER_ERROR, e, "AWS Server error occurred.");
-        } finally {
-            eventProbe.flush();
         }
     }
 

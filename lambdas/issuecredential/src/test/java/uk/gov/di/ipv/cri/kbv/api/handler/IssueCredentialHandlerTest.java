@@ -302,7 +302,6 @@ class IssueCredentialHandlerTest implements TestFixtures {
         verify(mockEventProbe).counterMetric(KBV_CREDENTIAL_ISSUER, 0d);
         verify(mockEventProbe).log(any(), exceptionCaptor.capture());
         verify(mockAuditService, never()).sendAuditEvent(any(AuditEventType.class));
-        verify(mockEventProbe).flush();
         verifyNoMoreInteractions(mockEventProbe);
 
         assertEquals(HttpStatusCode.FORBIDDEN, response.getStatusCode());
@@ -407,7 +406,6 @@ class IssueCredentialHandlerTest implements TestFixtures {
         verify(mockEventProbe).log(any(), exceptionCaptor.capture());
         verify(mockEventProbe).addDimensions(Map.of(METRIC_DIMENSION_KBV_VERIFICATION, "pass"));
         verify(mockAuditService, never()).sendAuditEvent(any(AuditEventType.class));
-        verify(mockEventProbe).flush();
         verifyNoMoreInteractions(mockEventProbe);
 
         assertEquals(HttpStatusCode.INTERNAL_SERVER_ERROR, response.getStatusCode());

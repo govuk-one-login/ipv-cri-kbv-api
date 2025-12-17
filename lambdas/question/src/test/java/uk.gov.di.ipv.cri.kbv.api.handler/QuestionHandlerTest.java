@@ -291,7 +291,6 @@ class QuestionHandlerTest {
                 verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE);
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_QUESTION_ID, "Q00015"));
-                verify(mockEventProbe).flush();
                 verifyNoMoreInteractions(mockEventProbe);
             }
         }
@@ -398,7 +397,6 @@ class QuestionHandlerTest {
             verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
             verify(mockEventProbe).addDimensions(MOCK_KBV_JOURNEY_METRIC_MAP);
             verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE);
-            verify(mockEventProbe).flush();
             verifyNoMoreInteractions(mockEventProbe);
         }
 
