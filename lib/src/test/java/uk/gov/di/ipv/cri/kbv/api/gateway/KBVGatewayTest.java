@@ -22,12 +22,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 import uk.gov.di.ipv.cri.kbv.api.exception.HeaderHandlerException;
+import uk.gov.di.ipv.cri.kbv.api.exception.TimeoutException;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandler;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapToken;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapTokenRetriever;
@@ -36,15 +38,10 @@ import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
+import static org.mockito.Mockito.*;
 import static uk.gov.di.ipv.cri.kbv.api.util.SoapTokenUtilsTest.generateToken;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,7 +56,7 @@ class KBVGatewayTest {
     @Mock private IdentityIQWebServiceSoap mockIdentityIQWebServiceSoap;
     @Mock private MetricsService mockMetricsService;
 
-    @InjectMocks private KBVGateway kbvGateway;
+    @Spy @InjectMocks private KBVGateway kbvGateway;
 
     @Test
     void shouldCallGetQuestionsSuccessfully() {
@@ -67,16 +64,21 @@ class KBVGatewayTest {
         SAAResponse2 mockSaaResponse = mock(SAAResponse2.class);
         QuestionsResponse mockQuestionsResponse = mock(QuestionsResponse.class);
         KbvResult mockKbvResult = mock(KbvResult.class);
+
         when(mockQuestionsResponse.getResults()).thenReturn(mockKbvResult);
         when(mockSAARequestMapper.mapQuestionRequest(questionRequest)).thenReturn(mockSaaRequest);
-        when(mockIdentityIQWebServiceSoap.saa(mockSaaRequest)).thenReturn(mockSaaResponse);
         when(mockQuestionsResponseMapper.mapSAAResponse(mockSaaResponse))
                 .thenReturn(mockQuestionsResponse);
 
-        kbvGateway.getQuestions(mockIdentityIQWebServiceSoap, questionRequest);
+        doReturn(mockSaaResponse)
+                .when(kbvGateway)
+                .getQuestionRequestResponse(mockIdentityIQWebServiceSoap, mockSaaRequest);
 
+        QuestionsResponse result =
+                kbvGateway.getQuestions(mockIdentityIQWebServiceSoap, questionRequest);
+
+        assertNotNull(result);
         verify(mockSAARequestMapper).mapQuestionRequest(questionRequest);
-        verify(mockIdentityIQWebServiceSoap).saa(mockSaaRequest);
         verify(mockQuestionsResponseMapper).mapSAAResponse(mockSaaResponse);
         verify(mockMetricsService).sendDurationMetric(eq("get_questions_duration"), anyLong());
         verify(mockMetricsService).sendResultMetric("initial_questions_response", mockKbvResult);
@@ -88,19 +90,62 @@ class KBVGatewayTest {
         RTQResponse2 mockRtqResponse = mock(RTQResponse2.class);
         QuestionsResponse mockQuestionsResponse = mock(QuestionsResponse.class);
         KbvResult mockKbvResult = mock(KbvResult.class);
+
         when(mockQuestionsResponse.getResults()).thenReturn(mockKbvResult);
         when(mockResponseToQuestionMapper.mapQuestionAnswersRtqRequest(questionAnswerRequest))
                 .thenReturn(mockRtqRequest);
-        when(mockIdentityIQWebServiceSoap.rtq(mockRtqRequest)).thenReturn(mockRtqResponse);
         when(mockQuestionsResponseMapper.mapRTQResponse(mockRtqResponse))
                 .thenReturn(mockQuestionsResponse);
-        kbvGateway.submitAnswers(mockIdentityIQWebServiceSoap, questionAnswerRequest);
 
+        doReturn(mockRtqResponse)
+                .when(kbvGateway)
+                .submitQuestionAnswerResponse(mockIdentityIQWebServiceSoap, mockRtqRequest);
+
+        QuestionsResponse result =
+                kbvGateway.submitAnswers(mockIdentityIQWebServiceSoap, questionAnswerRequest);
+
+        assertNotNull(result);
         verify(mockResponseToQuestionMapper).mapQuestionAnswersRtqRequest(questionAnswerRequest);
-        verify(mockIdentityIQWebServiceSoap).rtq(mockRtqRequest);
         verify(mockQuestionsResponseMapper).mapRTQResponse(mockRtqResponse);
         verify(mockMetricsService).sendDurationMetric(eq("submit_answers_duration"), anyLong());
         verify(mockMetricsService).sendResultMetric("submit_questions_response", mockKbvResult);
+    }
+
+    @Test
+    void shouldHandleGetQuestionsTimeout() {
+        SAARequest mockSaaRequest = mock(SAARequest.class);
+
+        when(mockSAARequestMapper.mapQuestionRequest(questionRequest)).thenReturn(mockSaaRequest);
+
+        doThrow(new TimeoutException("TIMEOUT", new Throwable()))
+                .when(kbvGateway)
+                .getQuestionRequestResponse(mockIdentityIQWebServiceSoap, mockSaaRequest);
+
+        QuestionsResponse result =
+                kbvGateway.getQuestions(mockIdentityIQWebServiceSoap, questionRequest);
+
+        assertNull(result);
+
+        verify(mockMetricsService).sendErrorMetric("initial_questions_response_timeout", "TIMEOUT");
+    }
+
+    @Test
+    void shouldHandleSubmitAnswersTimeout() {
+        RTQRequest mockRtqRequest = mock(RTQRequest.class);
+
+        when(mockResponseToQuestionMapper.mapQuestionAnswersRtqRequest(questionAnswerRequest))
+                .thenReturn(mockRtqRequest);
+
+        doThrow(new TimeoutException("TIMEOUT", new Throwable()))
+                .when(kbvGateway)
+                .submitQuestionAnswerResponse(mockIdentityIQWebServiceSoap, mockRtqRequest);
+
+        QuestionsResponse result =
+                kbvGateway.submitAnswers(mockIdentityIQWebServiceSoap, questionAnswerRequest);
+
+        assertNull(result);
+
+        verify(mockMetricsService).sendErrorMetric("submit_questions_response_timeout", "TIMEOUT");
     }
 
     @Test
