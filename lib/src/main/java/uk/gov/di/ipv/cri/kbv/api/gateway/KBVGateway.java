@@ -10,19 +10,27 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.Results;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest;
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
 import io.opentelemetry.api.trace.Span;
+import jakarta.xml.ws.WebServiceException;
+import org.apache.cxf.endpoint.Client;
+import org.apache.cxf.frontend.ClientProxy;
+import org.apache.cxf.transport.http.HTTPConduit;
+import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.exception.TimeoutException;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 import uk.gov.di.ipv.cri.kbv.api.util.OpenTelemetryUtil;
 
+import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.Objects;
 
 public class KBVGateway {
     private static final Logger LOGGER = LogManager.getLogger();
+    private static final int RESPONSE_TIMEOUT = 24000;
     private static final String EXPERIAN_INITIAL_QUESTION_RESPONSE = "initial_questions_response";
     private static final String EXPERIAN_INITIAL_QUESTION_DURATION = "get_questions_duration";
     private static final String EXPERIAN_INITIAL_QUESTION_ERROR =
@@ -30,6 +38,10 @@ public class KBVGateway {
     private static final String EXPERIAN_SUBMIT_RESPONSE = "submit_questions_response";
     private static final String EXPERIAN_SUBMIT_DURATION = "submit_answers_duration";
     private static final String EXPERIAN_SUBMIT_ERROR = "submit_questions_response_error";
+    private static final String EXPERIAN_INITIAL_QUESTION_TIMEOUT =
+            "initial_questions_response_timeout";
+    private static final String EXPERIAN_SUBMIT_RESPONSE_TIMEOUT =
+            "submit_questions_response_timeout";
 
     private final StartAuthnAttemptRequestMapper saaRequestMapper;
     private final ResponseToQuestionMapper responseToQuestionMapper;
@@ -66,15 +78,25 @@ public class KBVGateway {
 
         long startTime = System.nanoTime();
 
-        SAAResponse2 saaResponse2 =
-                getQuestionRequestResponse(identityIQWebServiceSoap, saaRequest);
+        SAAResponse2 saaResponse2;
+        try {
+            saaResponse2 = getQuestionRequestResponse(identityIQWebServiceSoap, saaRequest);
+        } catch (TimeoutException te) {
+            LOGGER.error("Question retrieval to the third party API timed out", te);
+            metricsService.sendErrorMetric(EXPERIAN_INITIAL_QUESTION_TIMEOUT, "TIMEOUT");
+            return null;
+        } catch (Exception e) {
+            LOGGER.error("Question retrieval to the third party API threw an exception", e);
+            metricsService.sendErrorMetric(EXPERIAN_SUBMIT_ERROR, "EXCEPTION");
+            return null;
+        } finally {
+            long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
 
-        long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
+            OpenTelemetryUtil.endSpan(span);
 
-        OpenTelemetryUtil.endSpan(span);
-
-        LOGGER.info("Get questions API response latency: latencyInMs={}", totalTimeInMs);
-        metricsService.sendDurationMetric(EXPERIAN_INITIAL_QUESTION_DURATION, totalTimeInMs);
+            LOGGER.info("Get questions API response latency: latencyInMs={}", totalTimeInMs);
+            metricsService.sendDurationMetric(EXPERIAN_INITIAL_QUESTION_DURATION, totalTimeInMs);
+        }
 
         QuestionsResponse questionsResponse = questionsResponseMapper.mapSAAResponse(saaResponse2);
 
@@ -110,15 +132,26 @@ public class KBVGateway {
                         "RTQ",
                         "http://schema.uk.experian.com/Experian/IdentityIQ/Services/WebService/RTQ");
 
-        RTQResponse2 rtqResponse2 =
-                submitQuestionAnswerResponse(identityIQWebServiceSoap, rtqRequest);
+        RTQResponse2 rtqResponse2;
 
-        long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
+        try {
+            rtqResponse2 = submitQuestionAnswerResponse(identityIQWebServiceSoap, rtqRequest);
+        } catch (TimeoutException te) {
+            LOGGER.error("Answer submission to the third party API timed out", te);
+            metricsService.sendErrorMetric(EXPERIAN_SUBMIT_RESPONSE_TIMEOUT, "TIMEOUT");
+            return null;
+        } catch (Exception e) {
+            LOGGER.error("Answer submission to the third party API threw an exception", e);
+            metricsService.sendErrorMetric(EXPERIAN_SUBMIT_ERROR, "EXCEPTION");
+            return null;
+        } finally {
+            long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
 
-        OpenTelemetryUtil.endSpan(span);
+            OpenTelemetryUtil.endSpan(span);
 
-        LOGGER.info("Submit answers API response latency: latencyInMs={}", totalTimeInMs);
-        metricsService.sendDurationMetric(EXPERIAN_SUBMIT_DURATION, totalTimeInMs);
+            LOGGER.info("Submit answers API response latency: latencyInMs={}", totalTimeInMs);
+            metricsService.sendDurationMetric(EXPERIAN_SUBMIT_DURATION, totalTimeInMs);
+        }
 
         QuestionsResponse questionsResponse = questionsResponseMapper.mapRTQResponse(rtqResponse2);
 
@@ -135,14 +168,44 @@ public class KBVGateway {
         return questionsResponse;
     }
 
-    private SAAResponse2 getQuestionRequestResponse(
+    protected SAAResponse2 getQuestionRequestResponse(
             IdentityIQWebServiceSoap identityIQWebServiceSoap, SAARequest saaRequest) {
-        return identityIQWebServiceSoap.saa(saaRequest);
+        Client client = ClientProxy.getClient(identityIQWebServiceSoap);
+        HTTPConduit httpConduit = (HTTPConduit) client.getConduit();
+
+        HTTPClientPolicy httpClientPolicy = new HTTPClientPolicy();
+        httpClientPolicy.setReceiveTimeout(RESPONSE_TIMEOUT);
+
+        httpConduit.setClient(httpClientPolicy);
+
+        try {
+            return identityIQWebServiceSoap.saa(saaRequest);
+        } catch (WebServiceException wse) {
+            if (wse.getCause() instanceof SocketTimeoutException) {
+                throw new TimeoutException("SAA response timed out after " + RESPONSE_TIMEOUT, wse);
+            }
+            throw wse;
+        }
     }
 
-    private RTQResponse2 submitQuestionAnswerResponse(
+    protected RTQResponse2 submitQuestionAnswerResponse(
             IdentityIQWebServiceSoap identityIQWebServiceSoap, RTQRequest rtqRequest) {
-        return identityIQWebServiceSoap.rtq(rtqRequest);
+        Client client = ClientProxy.getClient(identityIQWebServiceSoap);
+        HTTPConduit httpConduit = (HTTPConduit) client.getConduit();
+
+        HTTPClientPolicy httpClientPolicy = new HTTPClientPolicy();
+        httpClientPolicy.setReceiveTimeout(RESPONSE_TIMEOUT);
+
+        httpConduit.setClient(httpClientPolicy);
+
+        try {
+            return identityIQWebServiceSoap.rtq(rtqRequest);
+        } catch (WebServiceException wse) {
+            if (wse.getCause() instanceof SocketTimeoutException) {
+                throw new TimeoutException("RTQ response timed out after " + RESPONSE_TIMEOUT, wse);
+            }
+            throw wse;
+        }
     }
 
     private void logError(String context, QuestionsResponse questionsResponse) {
@@ -197,5 +260,15 @@ public class KBVGateway {
                     errorMessage,
                     confirmationCode);
         }
+    }
+
+    private boolean isTimeoutException(Throwable t) {
+        while (t != null) {
+            if (t instanceof SocketTimeoutException) {
+                return true;
+            }
+            t = t.getCause();
+        }
+        return false;
     }
 }
