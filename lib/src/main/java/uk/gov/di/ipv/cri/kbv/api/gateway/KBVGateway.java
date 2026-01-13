@@ -170,13 +170,8 @@ public class KBVGateway {
 
     protected SAAResponse2 getQuestionRequestResponse(
             IdentityIQWebServiceSoap identityIQWebServiceSoap, SAARequest saaRequest) {
-        Client client = ClientProxy.getClient(identityIQWebServiceSoap);
-        HTTPConduit httpConduit = (HTTPConduit) client.getConduit();
 
-        HTTPClientPolicy httpClientPolicy = new HTTPClientPolicy();
-        httpClientPolicy.setReceiveTimeout(RESPONSE_TIMEOUT);
-
-        httpConduit.setClient(httpClientPolicy);
+        implementTimeout(identityIQWebServiceSoap);
 
         try {
             return identityIQWebServiceSoap.saa(saaRequest);
@@ -190,13 +185,8 @@ public class KBVGateway {
 
     protected RTQResponse2 submitQuestionAnswerResponse(
             IdentityIQWebServiceSoap identityIQWebServiceSoap, RTQRequest rtqRequest) {
-        Client client = ClientProxy.getClient(identityIQWebServiceSoap);
-        HTTPConduit httpConduit = (HTTPConduit) client.getConduit();
 
-        HTTPClientPolicy httpClientPolicy = new HTTPClientPolicy();
-        httpClientPolicy.setReceiveTimeout(RESPONSE_TIMEOUT);
-
-        httpConduit.setClient(httpClientPolicy);
+        implementTimeout(identityIQWebServiceSoap);
 
         try {
             return identityIQWebServiceSoap.rtq(rtqRequest);
@@ -262,13 +252,11 @@ public class KBVGateway {
         }
     }
 
-    private boolean isTimeoutException(Throwable t) {
-        while (t != null) {
-            if (t instanceof SocketTimeoutException) {
-                return true;
-            }
-            t = t.getCause();
-        }
-        return false;
+    protected void implementTimeout(IdentityIQWebServiceSoap identityIQWebServiceSoap) {
+        Client client = ClientProxy.getClient(identityIQWebServiceSoap);
+        HTTPConduit httpConduit = (HTTPConduit) client.getConduit();
+        HTTPClientPolicy clientPolicy = new HTTPClientPolicy();
+        clientPolicy.setReceiveTimeout(RESPONSE_TIMEOUT);
+        httpConduit.setClient(clientPolicy);
     }
 }
