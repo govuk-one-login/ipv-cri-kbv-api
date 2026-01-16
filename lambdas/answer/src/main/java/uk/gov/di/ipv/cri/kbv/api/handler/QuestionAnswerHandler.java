@@ -33,6 +33,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswer;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.exception.MissingClientIdException;
+import uk.gov.di.ipv.cri.kbv.api.exception.TimeoutException;
 import uk.gov.di.ipv.cri.kbv.api.service.IdentityIQWebServiceSoapCache;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
@@ -135,6 +136,8 @@ public class QuestionAnswerHandler
         } catch (NullPointerException npe) {
             return handleException(
                     HttpStatusCode.BAD_REQUEST, npe, "Error finding the requested resource.");
+        } catch (TimeoutException te) {
+            return handleException(HttpStatusCode.GATEWAY_TIMEOUT, te, "Third party API timed out");
         } catch (MissingClientIdException ex) {
             return handleException(
                     HttpStatusCode.INTERNAL_SERVER_ERROR, ex, "Missing client identifier");
@@ -201,6 +204,9 @@ public class QuestionAnswerHandler
                 questionAnswerRequest.getAllQuestionIdAnswered());
         var questionsResponse =
                 kbvService.submitAnswers(identityIQWebServiceSoap, questionAnswerRequest);
+        if (questionsResponse == null) {
+            throw new TimeoutException("Third party API timed out");
+        }
         auditService.sendAuditEvent(
                 AuditEventType.RESPONSE_RECEIVED,
                 new AuditEventContext(requestHeaders, sessionItem),

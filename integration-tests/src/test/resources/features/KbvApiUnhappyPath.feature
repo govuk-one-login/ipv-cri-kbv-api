@@ -88,3 +88,19 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 2 question
       | user | sharedClaims        |
       | 197  | LOW_CONFIDENCE.json |
       | 256  | HILDA_HEAD.json     |
+
+  @unhappy_timeout
+  Scenario Outline: 3-out-of-4 question strategy and Experian response timed out
+    Given user has an overridden signed JWT using "<sharedClaims>"
+
+    # Session
+    When user sends a POST request to session end point
+    Then user gets a session-id
+
+    # First question
+    When user sends a GET request to question endpoint for timeout
+    And verify timeout response is shown
+
+    Examples:
+      | sharedClaims      |
+      | TEST_TIMEOUT.json |
