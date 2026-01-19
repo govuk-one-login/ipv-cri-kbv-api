@@ -233,9 +233,7 @@ public class QuestionHandler
         var questionsResponse =
                 getQuestionAnswerResponse(
                         identityIQWebServiceSoap, kbvItem, sessionItem, requestHeaders);
-        if (questionsResponse == null) {
-            throw new ExperianTimeoutException("Third party API timed out");
-        }
+
         questionOptional = getQuestionFromResponse(questionsResponse, questionState);
         sendQuestionReceivedAuditEvent(questionsResponse, sessionItem, requestHeaders);
         sendAuditEventIfThinFileEncountered(questionsResponse, sessionItem, requestHeaders);

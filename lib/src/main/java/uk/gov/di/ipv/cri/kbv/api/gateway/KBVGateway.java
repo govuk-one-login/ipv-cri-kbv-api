@@ -80,7 +80,7 @@ public class KBVGateway {
         } catch (ExperianTimeoutException ete) {
             LOGGER.error("Question retrieval to the third party API timed out", ete);
             metricsService.sendErrorMetric(EXPERIAN_INITIAL_QUESTION_TIMEOUT, "TIMEOUT");
-            return null;
+            throw ete;
         } finally {
             long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
 
@@ -127,10 +127,10 @@ public class KBVGateway {
         RTQResponse2 rtqResponse2;
         try {
             rtqResponse2 = submitQuestionAnswerResponse(identityIQWebServiceSoap, rtqRequest);
-        } catch (ExperianTimeoutException te) {
-            LOGGER.error("Answer submission to the third party API timed out", te);
+        } catch (ExperianTimeoutException ete) {
+            LOGGER.error("Answer submission to the third party API timed out", ete);
             metricsService.sendErrorMetric(EXPERIAN_SUBMIT_RESPONSE_TIMEOUT, "TIMEOUT");
-            return null;
+            throw ete;
         } finally {
             long totalTimeInMs = (System.nanoTime() - startTime) / 1000000;
 

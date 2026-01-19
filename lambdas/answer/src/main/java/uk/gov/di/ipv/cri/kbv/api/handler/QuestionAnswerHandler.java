@@ -205,9 +205,7 @@ public class QuestionAnswerHandler
                 questionAnswerRequest.getAllQuestionIdAnswered());
         var questionsResponse =
                 kbvService.submitAnswers(identityIQWebServiceSoap, questionAnswerRequest);
-        if (questionsResponse == null) {
-            throw new ExperianTimeoutException("Third party API timed out");
-        }
+
         auditService.sendAuditEvent(
                 AuditEventType.RESPONSE_RECEIVED,
                 new AuditEventContext(requestHeaders, sessionItem),

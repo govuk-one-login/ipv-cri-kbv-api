@@ -43,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -131,10 +130,15 @@ class KBVGatewayTest {
                 .when(kbvGateway)
                 .getQuestionRequestResponse(mockIdentityIQWebServiceSoap, mockSaaRequest);
 
-        QuestionsResponse result =
-                kbvGateway.getQuestions(mockIdentityIQWebServiceSoap, questionRequest);
+        ExperianTimeoutException exception =
+                assertThrows(
+                        ExperianTimeoutException.class,
+                        () ->
+                                kbvGateway.getQuestions(
+                                        mockIdentityIQWebServiceSoap, questionRequest));
 
-        assertNull(result);
+        assertEquals("TIMEOUT", exception.getMessage());
+
         verify(mockMetricsService).sendErrorMetric("initial_questions_response_timeout", "TIMEOUT");
     }
 
@@ -216,10 +220,15 @@ class KBVGatewayTest {
                 .when(kbvGateway)
                 .submitQuestionAnswerResponse(mockIdentityIQWebServiceSoap, mockRtqRequest);
 
-        QuestionsResponse result =
-                kbvGateway.submitAnswers(mockIdentityIQWebServiceSoap, questionAnswerRequest);
+        ExperianTimeoutException exception =
+                assertThrows(
+                        ExperianTimeoutException.class,
+                        () ->
+                                kbvGateway.submitAnswers(
+                                        mockIdentityIQWebServiceSoap, questionAnswerRequest));
 
-        assertNull(result);
+        assertEquals("TIMEOUT", exception.getMessage());
+
         verify(mockMetricsService).sendErrorMetric("submit_questions_response_timeout", "TIMEOUT");
     }
 
