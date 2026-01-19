@@ -1,5 +1,6 @@
 package gov.uk.kbv.api.stepdefinitions;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -87,6 +88,13 @@ public class KbvSteps {
         assertNotNull(kbvQuestion.getQuestionId());
 
         this.questionId = kbvQuestion.getQuestionId();
+    }
+
+    @When("user sends a GET request to question endpoint for timeout")
+    public void userSendsGetRequestToQuestionEndpointForTimeout()
+            throws IOException, InterruptedException {
+        this.testContext.setResponse(
+                this.kbvApiClient.sendQuestionRequest(this.testContext.getSessionId()));
     }
 
     @When("user sends a GET request to question endpoint when there are no questions left")
@@ -289,5 +297,13 @@ public class KbvSteps {
                     sharedClaims.at("/name/0/nameParts/0/value").asText(),
                     payload.at("/vc/credentialSubject/name/0/nameParts/0/value").asText());
         }
+    }
+
+    @And("verify timeout response is shown")
+    public void verifyTimeoutResponseIsShown() throws JsonProcessingException {
+        var response = objectMapper.readTree(this.testContext.getResponse().body());
+
+        assertTrue(response.get("error").asText().contains("SAA response timed out"));
+        assertEquals(504, this.testContext.getResponse().statusCode());
     }
 }

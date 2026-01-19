@@ -14,6 +14,7 @@ import jakarta.xml.soap.SOAPHeaderElement;
 import jakarta.xml.soap.SOAPMessage;
 import jakarta.xml.soap.SOAPPart;
 import jakarta.xml.ws.BindingProvider;
+import jakarta.xml.ws.WebServiceException;
 import jakarta.xml.ws.handler.MessageContext;
 import jakarta.xml.ws.handler.soap.SOAPMessageContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,24 +23,33 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.exception.ExperianTimeoutException;
 import uk.gov.di.ipv.cri.kbv.api.exception.HeaderHandlerException;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandler;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapToken;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapTokenRetriever;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 
+import java.net.SocketTimeoutException;
+import java.net.http.HttpTimeoutException;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -53,30 +63,37 @@ class KBVGatewayTest {
 
     @Mock private QuestionRequest questionRequest;
     @Mock private QuestionAnswerRequest questionAnswerRequest;
+    @Mock private QuestionsResponse mockQuestionsResponse;
     @Mock private StartAuthnAttemptRequestMapper mockSAARequestMapper;
     @Mock private ResponseToQuestionMapper mockResponseToQuestionMapper;
     @Mock private QuestionsResponseMapper mockQuestionsResponseMapper;
     @Mock private IdentityIQWebServiceSoap mockIdentityIQWebServiceSoap;
     @Mock private MetricsService mockMetricsService;
+    @Mock private SAARequest mockSaaRequest;
+    @Mock private RTQRequest mockRtqRequest;
+    @Mock private RTQResponse2 mockRtqResponse;
+    @Mock private SAAResponse2 mockSaaResponse;
 
-    @InjectMocks private KBVGateway kbvGateway;
+    @Spy @InjectMocks private KBVGateway kbvGateway;
 
     @Test
     void shouldCallGetQuestionsSuccessfully() {
-        SAARequest mockSaaRequest = mock(SAARequest.class);
-        SAAResponse2 mockSaaResponse = mock(SAAResponse2.class);
-        QuestionsResponse mockQuestionsResponse = mock(QuestionsResponse.class);
         KbvResult mockKbvResult = mock(KbvResult.class);
+
         when(mockQuestionsResponse.getResults()).thenReturn(mockKbvResult);
         when(mockSAARequestMapper.mapQuestionRequest(questionRequest)).thenReturn(mockSaaRequest);
-        when(mockIdentityIQWebServiceSoap.saa(mockSaaRequest)).thenReturn(mockSaaResponse);
         when(mockQuestionsResponseMapper.mapSAAResponse(mockSaaResponse))
                 .thenReturn(mockQuestionsResponse);
 
-        kbvGateway.getQuestions(mockIdentityIQWebServiceSoap, questionRequest);
+        doReturn(mockSaaResponse)
+                .when(kbvGateway)
+                .getQuestionRequestResponse(mockIdentityIQWebServiceSoap, mockSaaRequest);
 
+        QuestionsResponse result =
+                kbvGateway.getQuestions(mockIdentityIQWebServiceSoap, questionRequest);
+
+        assertNotNull(result);
         verify(mockSAARequestMapper).mapQuestionRequest(questionRequest);
-        verify(mockIdentityIQWebServiceSoap).saa(mockSaaRequest);
         verify(mockQuestionsResponseMapper).mapSAAResponse(mockSaaResponse);
         verify(mockMetricsService).sendDurationMetric(eq("get_questions_duration"), anyLong());
         verify(mockMetricsService).sendResultMetric("initial_questions_response", mockKbvResult);
@@ -84,23 +101,148 @@ class KBVGatewayTest {
 
     @Test
     void shouldCallSubmitAnswersSuccessfully() {
-        RTQRequest mockRtqRequest = mock(RTQRequest.class);
-        RTQResponse2 mockRtqResponse = mock(RTQResponse2.class);
-        QuestionsResponse mockQuestionsResponse = mock(QuestionsResponse.class);
         KbvResult mockKbvResult = mock(KbvResult.class);
+
         when(mockQuestionsResponse.getResults()).thenReturn(mockKbvResult);
         when(mockResponseToQuestionMapper.mapQuestionAnswersRtqRequest(questionAnswerRequest))
                 .thenReturn(mockRtqRequest);
-        when(mockIdentityIQWebServiceSoap.rtq(mockRtqRequest)).thenReturn(mockRtqResponse);
         when(mockQuestionsResponseMapper.mapRTQResponse(mockRtqResponse))
                 .thenReturn(mockQuestionsResponse);
-        kbvGateway.submitAnswers(mockIdentityIQWebServiceSoap, questionAnswerRequest);
 
+        doReturn(mockRtqResponse)
+                .when(kbvGateway)
+                .submitQuestionAnswerResponse(mockIdentityIQWebServiceSoap, mockRtqRequest);
+
+        QuestionsResponse result =
+                kbvGateway.submitAnswers(mockIdentityIQWebServiceSoap, questionAnswerRequest);
+
+        assertNotNull(result);
         verify(mockResponseToQuestionMapper).mapQuestionAnswersRtqRequest(questionAnswerRequest);
-        verify(mockIdentityIQWebServiceSoap).rtq(mockRtqRequest);
         verify(mockQuestionsResponseMapper).mapRTQResponse(mockRtqResponse);
         verify(mockMetricsService).sendDurationMetric(eq("submit_answers_duration"), anyLong());
         verify(mockMetricsService).sendResultMetric("submit_questions_response", mockKbvResult);
+    }
+
+    @Test
+    void shouldHandleGetQuestionsExperianTimeoutException() {
+        when(mockSAARequestMapper.mapQuestionRequest(questionRequest)).thenReturn(mockSaaRequest);
+        doThrow(new ExperianTimeoutException("TIMEOUT"))
+                .when(kbvGateway)
+                .getQuestionRequestResponse(mockIdentityIQWebServiceSoap, mockSaaRequest);
+
+        ExperianTimeoutException exception =
+                assertThrows(
+                        ExperianTimeoutException.class,
+                        () ->
+                                kbvGateway.getQuestions(
+                                        mockIdentityIQWebServiceSoap, questionRequest));
+
+        assertEquals("TIMEOUT", exception.getMessage());
+
+        verify(mockMetricsService).sendErrorMetric("initial_questions_response_timeout", "TIMEOUT");
+    }
+
+    @Test
+    void shouldThrowExperianTimeoutExceptionWhenHttpTimeoutOccursSubmitAnswerResponse()
+            throws ExperianTimeoutException {
+        WebServiceException wse =
+                new WebServiceException("timeout", new HttpTimeoutException("test"));
+
+        doThrow(wse).when(mockIdentityIQWebServiceSoap).rtq(mockRtqRequest);
+
+        ExperianTimeoutException exception =
+                assertThrows(
+                        ExperianTimeoutException.class,
+                        () ->
+                                kbvGateway.submitQuestionAnswerResponse(
+                                        mockIdentityIQWebServiceSoap, mockRtqRequest));
+
+        assertTrue(exception.getMessage().contains("RTQ response timed out"));
+    }
+
+    @Test
+    void shouldThrowExperianTimeoutExceptionWhenHttpTimeoutOccursGetQuestionsResponse()
+            throws ExperianTimeoutException {
+        WebServiceException wse =
+                new WebServiceException("timeout", new HttpTimeoutException("test"));
+
+        doThrow(wse).when(mockIdentityIQWebServiceSoap).saa(mockSaaRequest);
+
+        ExperianTimeoutException exception =
+                assertThrows(
+                        ExperianTimeoutException.class,
+                        () ->
+                                kbvGateway.getQuestionRequestResponse(
+                                        mockIdentityIQWebServiceSoap, mockSaaRequest));
+
+        assertTrue(exception.getMessage().contains("SAA response timed out"));
+    }
+
+    @Test
+    void shouldThrowExperianTimeoutExceptionWhenSocketTimeoutOccursSubmitAnswerResponse()
+            throws ExperianTimeoutException {
+        WebServiceException wse = new WebServiceException("timeout", new SocketTimeoutException());
+
+        doThrow(wse).when(mockIdentityIQWebServiceSoap).rtq(mockRtqRequest);
+
+        ExperianTimeoutException exception =
+                assertThrows(
+                        ExperianTimeoutException.class,
+                        () ->
+                                kbvGateway.submitQuestionAnswerResponse(
+                                        mockIdentityIQWebServiceSoap, mockRtqRequest));
+
+        assertTrue(exception.getMessage().contains("RTQ response timed out"));
+    }
+
+    @Test
+    void shouldThrowExperianTimeoutExceptionWhenSocketTimeoutOccursGetQuestionsResponse()
+            throws ExperianTimeoutException {
+        WebServiceException wse = new WebServiceException("timeout", new SocketTimeoutException());
+
+        doThrow(wse).when(mockIdentityIQWebServiceSoap).saa(mockSaaRequest);
+
+        ExperianTimeoutException exception =
+                assertThrows(
+                        ExperianTimeoutException.class,
+                        () ->
+                                kbvGateway.getQuestionRequestResponse(
+                                        mockIdentityIQWebServiceSoap, mockSaaRequest));
+
+        assertTrue(exception.getMessage().contains("SAA response timed out"));
+    }
+
+    @Test
+    void shouldHandleSubmitAnswersExperianTimeoutException() {
+        when(mockResponseToQuestionMapper.mapQuestionAnswersRtqRequest(questionAnswerRequest))
+                .thenReturn(mockRtqRequest);
+        doThrow(new ExperianTimeoutException("TIMEOUT"))
+                .when(kbvGateway)
+                .submitQuestionAnswerResponse(mockIdentityIQWebServiceSoap, mockRtqRequest);
+
+        ExperianTimeoutException exception =
+                assertThrows(
+                        ExperianTimeoutException.class,
+                        () ->
+                                kbvGateway.submitAnswers(
+                                        mockIdentityIQWebServiceSoap, questionAnswerRequest));
+
+        assertEquals("TIMEOUT", exception.getMessage());
+
+        verify(mockMetricsService).sendErrorMetric("submit_questions_response_timeout", "TIMEOUT");
+    }
+
+    @Test
+    void shouldSendErrorMetricForSubmitAnswerResponsesError() {
+        when(mockQuestionsResponse.hasError()).thenReturn(true);
+        when(mockQuestionsResponse.getErrorCode()).thenReturn("test");
+        doReturn(mockRtqResponse).when(kbvGateway).submitQuestionAnswerResponse(any(), any());
+        when(mockQuestionsResponseMapper.mapRTQResponse(mockRtqResponse))
+                .thenReturn(mockQuestionsResponse);
+
+        kbvGateway.submitAnswers(mockIdentityIQWebServiceSoap, questionAnswerRequest);
+
+        verify(mockMetricsService).sendErrorMetric("submit_questions_response_error", "test");
     }
 
     @Test

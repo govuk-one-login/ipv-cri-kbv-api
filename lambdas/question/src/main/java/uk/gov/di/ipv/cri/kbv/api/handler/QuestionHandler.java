@@ -37,6 +37,7 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.exception.ExperianTimeoutException;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidStrategyScoreException;
 import uk.gov.di.ipv.cri.kbv.api.exception.MissingClientIdException;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
@@ -198,6 +199,8 @@ public class QuestionHandler
                     "Failed to parse object using ObjectMapper.");
         } catch (NullPointerException npe) {
             return handleException(HttpStatusCode.BAD_REQUEST, npe, npe.toString());
+        } catch (ExperianTimeoutException ete) {
+            return handleException(HttpStatusCode.GATEWAY_TIMEOUT, ete, ete.toString());
         } catch (MissingClientIdException ex) {
             return handleException(
                     HttpStatusCode.INTERNAL_SERVER_ERROR, ex, "Missing client identifier");
@@ -230,6 +233,7 @@ public class QuestionHandler
         var questionsResponse =
                 getQuestionAnswerResponse(
                         identityIQWebServiceSoap, kbvItem, sessionItem, requestHeaders);
+
         questionOptional = getQuestionFromResponse(questionsResponse, questionState);
         sendQuestionReceivedAuditEvent(questionsResponse, sessionItem, requestHeaders);
         sendAuditEventIfThinFileEncountered(questionsResponse, sessionItem, requestHeaders);
