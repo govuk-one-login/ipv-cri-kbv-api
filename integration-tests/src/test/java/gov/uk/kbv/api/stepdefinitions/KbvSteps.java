@@ -303,7 +303,7 @@ public class KbvSteps {
     public void verifyTimeoutResponseIsShown() throws JsonProcessingException {
         var response = objectMapper.readTree(this.testContext.getResponse().body());
 
-        assertTrue(response.get("error").asText().contains("Third party API timed out"));
+        assertTrue(response.get("error").asText().contains("SAA response timed out"));
         assertEquals(504, this.testContext.getResponse().statusCode());
     }
 }
