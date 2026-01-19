@@ -29,8 +29,8 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvResult;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.exception.ExperianTimeoutException;
 import uk.gov.di.ipv.cri.kbv.api.exception.HeaderHandlerException;
-import uk.gov.di.ipv.cri.kbv.api.exception.TimeoutException;
 import uk.gov.di.ipv.cri.kbv.api.security.HeaderHandler;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapToken;
 import uk.gov.di.ipv.cri.kbv.api.security.SoapTokenRetriever;
@@ -125,9 +125,9 @@ class KBVGatewayTest {
     }
 
     @Test
-    void shouldHandleGetQuestionsTimeoutException() {
+    void shouldHandleGetQuestionsExperianTimeoutException() {
         when(mockSAARequestMapper.mapQuestionRequest(questionRequest)).thenReturn(mockSaaRequest);
-        doThrow(new TimeoutException("TIMEOUT"))
+        doThrow(new ExperianTimeoutException("TIMEOUT"))
                 .when(kbvGateway)
                 .getQuestionRequestResponse(mockIdentityIQWebServiceSoap, mockSaaRequest);
 
@@ -139,16 +139,16 @@ class KBVGatewayTest {
     }
 
     @Test
-    void shouldThrowTimeoutExceptionWhenHttpTimeoutOccursSubmitAnswerResponse()
-            throws TimeoutException {
+    void shouldThrowExperianTimeoutExceptionWhenHttpTimeoutOccursSubmitAnswerResponse()
+            throws ExperianTimeoutException {
         WebServiceException wse =
                 new WebServiceException("timeout", new HttpTimeoutException("test"));
 
         doThrow(wse).when(mockIdentityIQWebServiceSoap).rtq(mockRtqRequest);
 
-        TimeoutException exception =
+        ExperianTimeoutException exception =
                 assertThrows(
-                        TimeoutException.class,
+                        ExperianTimeoutException.class,
                         () ->
                                 kbvGateway.submitQuestionAnswerResponse(
                                         mockIdentityIQWebServiceSoap, mockRtqRequest));
@@ -157,16 +157,16 @@ class KBVGatewayTest {
     }
 
     @Test
-    void shouldThrowTimeoutExceptionWhenHttpTimeoutOccursGetQuestionsResponse()
-            throws TimeoutException {
+    void shouldThrowExperianTimeoutExceptionWhenHttpTimeoutOccursGetQuestionsResponse()
+            throws ExperianTimeoutException {
         WebServiceException wse =
                 new WebServiceException("timeout", new HttpTimeoutException("test"));
 
         doThrow(wse).when(mockIdentityIQWebServiceSoap).saa(mockSaaRequest);
 
-        TimeoutException exception =
+        ExperianTimeoutException exception =
                 assertThrows(
-                        TimeoutException.class,
+                        ExperianTimeoutException.class,
                         () ->
                                 kbvGateway.getQuestionRequestResponse(
                                         mockIdentityIQWebServiceSoap, mockSaaRequest));
@@ -175,15 +175,15 @@ class KBVGatewayTest {
     }
 
     @Test
-    void shouldThrowTimeoutExceptionWhenSocketTimeoutOccursSubmitAnswerResponse()
-            throws TimeoutException {
+    void shouldThrowExperianTimeoutExceptionWhenSocketTimeoutOccursSubmitAnswerResponse()
+            throws ExperianTimeoutException {
         WebServiceException wse = new WebServiceException("timeout", new SocketTimeoutException());
 
         doThrow(wse).when(mockIdentityIQWebServiceSoap).rtq(mockRtqRequest);
 
-        TimeoutException exception =
+        ExperianTimeoutException exception =
                 assertThrows(
-                        TimeoutException.class,
+                        ExperianTimeoutException.class,
                         () ->
                                 kbvGateway.submitQuestionAnswerResponse(
                                         mockIdentityIQWebServiceSoap, mockRtqRequest));
@@ -192,15 +192,15 @@ class KBVGatewayTest {
     }
 
     @Test
-    void shouldThrowTimeoutExceptionWhenSocketTimeoutOccursGetQuestionsResponse()
-            throws TimeoutException {
+    void shouldThrowExperianTimeoutExceptionWhenSocketTimeoutOccursGetQuestionsResponse()
+            throws ExperianTimeoutException {
         WebServiceException wse = new WebServiceException("timeout", new SocketTimeoutException());
 
         doThrow(wse).when(mockIdentityIQWebServiceSoap).saa(mockSaaRequest);
 
-        TimeoutException exception =
+        ExperianTimeoutException exception =
                 assertThrows(
-                        TimeoutException.class,
+                        ExperianTimeoutException.class,
                         () ->
                                 kbvGateway.getQuestionRequestResponse(
                                         mockIdentityIQWebServiceSoap, mockSaaRequest));
@@ -209,10 +209,10 @@ class KBVGatewayTest {
     }
 
     @Test
-    void shouldHandleSubmitAnswersTimeoutException() {
+    void shouldHandleSubmitAnswersExperianTimeoutException() {
         when(mockResponseToQuestionMapper.mapQuestionAnswersRtqRequest(questionAnswerRequest))
                 .thenReturn(mockRtqRequest);
-        doThrow(new TimeoutException("TIMEOUT"))
+        doThrow(new ExperianTimeoutException("TIMEOUT"))
                 .when(kbvGateway)
                 .submitQuestionAnswerResponse(mockIdentityIQWebServiceSoap, mockRtqRequest);
 

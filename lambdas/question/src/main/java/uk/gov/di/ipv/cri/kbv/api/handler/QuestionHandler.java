@@ -37,10 +37,10 @@ import uk.gov.di.ipv.cri.kbv.api.domain.KbvQuestion;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionState;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
+import uk.gov.di.ipv.cri.kbv.api.exception.ExperianTimeoutException;
 import uk.gov.di.ipv.cri.kbv.api.exception.InvalidStrategyScoreException;
 import uk.gov.di.ipv.cri.kbv.api.exception.MissingClientIdException;
 import uk.gov.di.ipv.cri.kbv.api.exception.QuestionNotFoundException;
-import uk.gov.di.ipv.cri.kbv.api.exception.TimeoutException;
 import uk.gov.di.ipv.cri.kbv.api.service.IdentityIQWebServiceSoapCache;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVService;
 import uk.gov.di.ipv.cri.kbv.api.service.KBVStorageService;
@@ -199,8 +199,8 @@ public class QuestionHandler
                     "Failed to parse object using ObjectMapper.");
         } catch (NullPointerException npe) {
             return handleException(HttpStatusCode.BAD_REQUEST, npe, npe.toString());
-        } catch (TimeoutException te) {
-            return handleException(HttpStatusCode.GATEWAY_TIMEOUT, te, te.toString());
+        } catch (ExperianTimeoutException ete) {
+            return handleException(HttpStatusCode.GATEWAY_TIMEOUT, ete, ete.toString());
         } catch (MissingClientIdException ex) {
             return handleException(
                     HttpStatusCode.INTERNAL_SERVER_ERROR, ex, "Missing client identifier");
@@ -234,7 +234,7 @@ public class QuestionHandler
                 getQuestionAnswerResponse(
                         identityIQWebServiceSoap, kbvItem, sessionItem, requestHeaders);
         if (questionsResponse == null) {
-            throw new TimeoutException("Third party API timed out");
+            throw new ExperianTimeoutException("Third party API timed out");
         }
         questionOptional = getQuestionFromResponse(questionsResponse, questionState);
         sendQuestionReceivedAuditEvent(questionsResponse, sessionItem, requestHeaders);

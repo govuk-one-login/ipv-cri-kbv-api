@@ -16,7 +16,7 @@ import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionRequest;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
-import uk.gov.di.ipv.cri.kbv.api.exception.TimeoutException;
+import uk.gov.di.ipv.cri.kbv.api.exception.ExperianTimeoutException;
 import uk.gov.di.ipv.cri.kbv.api.service.MetricsService;
 import uk.gov.di.ipv.cri.kbv.api.util.OpenTelemetryUtil;
 
@@ -77,8 +77,8 @@ public class KBVGateway {
         SAAResponse2 saaResponse2;
         try {
             saaResponse2 = getQuestionRequestResponse(identityIQWebServiceSoap, saaRequest);
-        } catch (TimeoutException te) {
-            LOGGER.error("Question retrieval to the third party API timed out", te);
+        } catch (ExperianTimeoutException ete) {
+            LOGGER.error("Question retrieval to the third party API timed out", ete);
             metricsService.sendErrorMetric(EXPERIAN_INITIAL_QUESTION_TIMEOUT, "TIMEOUT");
             return null;
         } finally {
@@ -127,7 +127,7 @@ public class KBVGateway {
         RTQResponse2 rtqResponse2;
         try {
             rtqResponse2 = submitQuestionAnswerResponse(identityIQWebServiceSoap, rtqRequest);
-        } catch (TimeoutException te) {
+        } catch (ExperianTimeoutException te) {
             LOGGER.error("Answer submission to the third party API timed out", te);
             metricsService.sendErrorMetric(EXPERIAN_SUBMIT_RESPONSE_TIMEOUT, "TIMEOUT");
             return null;
@@ -162,7 +162,7 @@ public class KBVGateway {
         } catch (WebServiceException wse) {
             if (wse.getCause() instanceof SocketTimeoutException
                     || wse.getCause() instanceof HttpTimeoutException) {
-                throw new TimeoutException("SAA response timed out ");
+                throw new ExperianTimeoutException("SAA response timed out ");
             }
             throw wse;
         }
@@ -175,7 +175,7 @@ public class KBVGateway {
         } catch (WebServiceException wse) {
             if (wse.getCause() instanceof SocketTimeoutException
                     || wse.getCause() instanceof HttpTimeoutException) {
-                throw new TimeoutException("RTQ response timed out ");
+                throw new ExperianTimeoutException("RTQ response timed out ");
             }
             throw wse;
         }

@@ -12,13 +12,20 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.gov.di.ipv.cri.kbv.api.exception.TimeoutException;
+import uk.gov.di.ipv.cri.kbv.api.exception.ExperianTimeoutException;
 import uk.gov.di.ipv.cri.kbv.api.security.KBVClientFactory;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class IdentityIQWebServiceSoapCacheTest {
@@ -63,21 +70,21 @@ class IdentityIQWebServiceSoapCacheTest {
     }
 
     @Test
-    void shouldThrowTimeoutException() {
-        doThrow(new TimeoutException("timeout"))
+    void shouldThrowExperianTimeoutException() {
+        doThrow(new ExperianTimeoutException("timeout"))
                 .when(identityIQWebServiceSoapCache)
                 .implementTimeout(mockIdentityIQWebServiceSoap);
 
-        TimeoutException exception =
+        ExperianTimeoutException exception =
                 assertThrows(
-                        TimeoutException.class,
+                        ExperianTimeoutException.class,
                         () -> identityIQWebServiceSoapCache.get("dummy", mockServiceFactory));
 
         assertEquals("timeout", exception.getMessage());
     }
 
     @Test
-    void shouldTestHttpConduitTimeoutMethod() throws TimeoutException {
+    void shouldTestHttpConduitTimeoutMethod() throws ExperianTimeoutException {
         Client mockClient = mock(Client.class);
         HTTPConduit mockConduit = mock(HTTPConduit.class);
 

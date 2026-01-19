@@ -30,7 +30,11 @@ import java.util.stream.Collectors;
 
 import static gov.uk.kbv.api.util.FileHelper.loadOverrideFile;
 import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class KbvSteps {
 
@@ -298,8 +302,6 @@ public class KbvSteps {
     @And("verify timeout response is shown")
     public void verifyTimeoutResponseIsShown() throws JsonProcessingException {
         var response = objectMapper.readTree(this.testContext.getResponse().body());
-
-        System.out.println(this.testContext.getResponse().body());
 
         assertTrue(response.get("error").asText().contains("Third party API timed out"));
         assertEquals(504, this.testContext.getResponse().statusCode());
