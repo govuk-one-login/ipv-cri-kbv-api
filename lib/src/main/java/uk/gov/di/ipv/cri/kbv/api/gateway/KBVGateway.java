@@ -81,6 +81,9 @@ public class KBVGateway {
 
         SAAResponse2 saaResponse2;
         try {
+            LOGGER.warn("GET QUESTION FLOW START | function={} | forceTimeout='{}'",
+                    System.getenv("AWS_LAMBDA_FUNCTION_NAME"),
+                    System.getenv("FORCE_TIMEOUT_METRIC"));
             saaResponse2 = getQuestionRequestResponse(identityIQWebServiceSoap, saaRequest);
         } catch (ExperianTimeoutException ete) {
             LOGGER.error("Question retrieval to the third party API timed out", ete);
@@ -93,6 +96,9 @@ public class KBVGateway {
 
             LOGGER.info("Get questions API response latency: latencyInMs={}", totalTimeInMs);
             metricsService.sendDurationMetric(EXPERIAN_INITIAL_QUESTION_DURATION, totalTimeInMs);
+
+            LOGGER.warn("GET QUESTIONS PATH: emitting debug metric right now");
+            metricsService.sendErrorMetric("GET_QUESTION_DEBUG_METRIC", "PING");
         }
 
         QuestionsResponse questionsResponse = questionsResponseMapper.mapSAAResponse(saaResponse2);
@@ -131,6 +137,9 @@ public class KBVGateway {
 
         RTQResponse2 rtqResponse2;
         try {
+            LOGGER.warn("SUBMIT FLOW START | function={} | forceTimeout='{}'",
+                    System.getenv("AWS_LAMBDA_FUNCTION_NAME"),
+                    System.getenv("FORCE_TIMEOUT_METRIC"));
             rtqResponse2 = submitQuestionAnswerResponse(identityIQWebServiceSoap, rtqRequest);
         } catch (ExperianTimeoutException ete) {
             LOGGER.error("Answer submission to the third party API timed out", ete);
@@ -143,6 +152,9 @@ public class KBVGateway {
 
             LOGGER.info("Submit answers API response latency: latencyInMs={}", totalTimeInMs);
             metricsService.sendDurationMetric(EXPERIAN_SUBMIT_DURATION, totalTimeInMs);
+
+            LOGGER.warn("SUBMIT PATH: emitting debug metric right now");
+            metricsService.sendErrorMetric("SUBMIT_DEBUG_METRIC", "PING");
         }
 
         QuestionsResponse questionsResponse = questionsResponseMapper.mapRTQResponse(rtqResponse2);
@@ -162,8 +174,11 @@ public class KBVGateway {
 
     protected SAAResponse2 getQuestionRequestResponse(
             IdentityIQWebServiceSoap identityIQWebServiceSoap, SAARequest saaRequest) {
-        if ("true".equals(System.getenv("FORCE_TIMEOUT_METRIC"))) {
-            throw new ExperianTimeoutException("SAA response timed out ");
+        LOGGER.warn("getQuestionResponse() entered | forceTimeout='{}'",
+                System.getenv("FORCE_TIMEOUT_METRIC"));
+        if (forceTimeoutMetric()) {
+            LOGGER.warn("FORCING TIMEOUT IN GET QUESTIONS");
+            throw new ExperianTimeoutException("Forced SAA timeout");
         }
         try {
             return identityIQWebServiceSoap.saa(saaRequest);
@@ -176,7 +191,7 @@ public class KBVGateway {
                     || cause instanceof java.net.ConnectException
                     || message.contains("timed out")
                     || message.contains("could not send message")) {
-                throw new ExperianTimeoutException("SAA response timed out", wse);
+                throw new ExperianTimeoutException("SAA response timed out ");
             }
             throw wse;
         }
@@ -184,8 +199,12 @@ public class KBVGateway {
 
     protected RTQResponse2 submitQuestionAnswerResponse(
             IdentityIQWebServiceSoap identityIQWebServiceSoap, RTQRequest rtqRequest) {
-        if ("true".equals(System.getenv("FORCE_TIMEOUT_METRIC"))) {
-            throw new ExperianTimeoutException("RTQ response timed out ");
+        LOGGER.warn("submitQuestionAnswerResponse() entered | forceTimeout='{}'",
+                System.getenv("FORCE_TIMEOUT_METRIC"));
+
+        if (forceTimeoutMetric()) {
+            LOGGER.warn("FORCING TIMEOUT IN SUBMIT");
+            throw new ExperianTimeoutException("Forced RTQ timeout");
         }
         try {
             return identityIQWebServiceSoap.rtq(rtqRequest);
@@ -257,13 +276,9 @@ public class KBVGateway {
                     confirmationCode);
         }
     }
-
-    protected void implementTimeout(IdentityIQWebServiceSoap identityIQWebServiceSoap) {
-        Client client = ClientProxy.getClient(identityIQWebServiceSoap);
-        HTTPConduit httpConduit = (HTTPConduit) client.getConduit();
-        HTTPClientPolicy clientPolicy = new HTTPClientPolicy();
-        clientPolicy.setConnectionTimeout(RESPONSE_TIMEOUT);
-        clientPolicy.setReceiveTimeout(RESPONSE_TIMEOUT);
-        httpConduit.setClient(clientPolicy);
+    private static boolean forceTimeoutMetric() {
+        return Boolean.parseBoolean(
+                String.valueOf(System.getenv("FORCE_TIMEOUT_METRIC")).trim()
+        );
     }
 }
