@@ -15,7 +15,7 @@ public class IdentityIQWebServiceSoapCache {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(IdentityIQWebServiceSoapCache.class);
     private final Map<String, IdentityIQWebServiceSoap> cache;
-    private static final int RESPONSE_TIMEOUT = 28000;
+    private static final int RESPONSE_TIMEOUT = 5000;
 
     public IdentityIQWebServiceSoapCache() {
         this.cache = new HashMap<>();
@@ -44,6 +44,7 @@ public class IdentityIQWebServiceSoapCache {
         Client client = ClientProxy.getClient(identityIQWebServiceSoap);
         HTTPConduit httpConduit = (HTTPConduit) client.getConduit();
         HTTPClientPolicy clientPolicy = new HTTPClientPolicy();
+        clientPolicy.setConnectionTimeout(RESPONSE_TIMEOUT);
         clientPolicy.setReceiveTimeout(RESPONSE_TIMEOUT);
         httpConduit.setClient(clientPolicy);
     }

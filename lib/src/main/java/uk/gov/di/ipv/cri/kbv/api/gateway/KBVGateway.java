@@ -11,6 +11,10 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
 import io.opentelemetry.api.trace.Span;
 import jakarta.xml.ws.WebServiceException;
+import org.apache.cxf.endpoint.Client;
+import org.apache.cxf.frontend.ClientProxy;
+import org.apache.cxf.transport.http.HTTPConduit;
+import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
@@ -38,6 +42,7 @@ public class KBVGateway {
             "initial_questions_response_timeout";
     private static final String EXPERIAN_SUBMIT_RESPONSE_TIMEOUT =
             "submit_questions_response_timeout";
+    private static final int RESPONSE_TIMEOUT = 5000;
 
     private final StartAuthnAttemptRequestMapper saaRequestMapper;
     private final ResponseToQuestionMapper responseToQuestionMapper;
@@ -157,12 +162,20 @@ public class KBVGateway {
 
     protected SAAResponse2 getQuestionRequestResponse(
             IdentityIQWebServiceSoap identityIQWebServiceSoap, SAARequest saaRequest) {
+        if ("true".equals(System.getenv("FORCE_TIMEOUT_METRIC"))) {
+            throw new ExperianTimeoutException("SAA response timed out ");
+        }
         try {
             return identityIQWebServiceSoap.saa(saaRequest);
         } catch (WebServiceException wse) {
-            if (wse.getCause() instanceof SocketTimeoutException
-                    || wse.getCause() instanceof HttpTimeoutException) {
-                throw new ExperianTimeoutException("SAA response timed out ");
+            Throwable cause = wse.getCause();
+            String message = wse.getMessage() != null ? wse.getMessage().toLowerCase() : "";
+            if (cause instanceof SocketTimeoutException
+                    || cause instanceof HttpTimeoutException
+                    || cause instanceof java.net.ConnectException
+                    || message.contains("timed out")
+                    || message.contains("could not send message")) {
+                throw new ExperianTimeoutException("SAA response timed out", wse);
             }
             throw wse;
         }
@@ -170,11 +183,19 @@ public class KBVGateway {
 
     protected RTQResponse2 submitQuestionAnswerResponse(
             IdentityIQWebServiceSoap identityIQWebServiceSoap, RTQRequest rtqRequest) {
+        if ("true".equals(System.getenv("FORCE_TIMEOUT_METRIC"))) {
+            throw new ExperianTimeoutException("RTQ response timed out ");
+        }
         try {
             return identityIQWebServiceSoap.rtq(rtqRequest);
         } catch (WebServiceException wse) {
-            if (wse.getCause() instanceof SocketTimeoutException
-                    || wse.getCause() instanceof HttpTimeoutException) {
+            Throwable cause = wse.getCause();
+            String message = wse.getMessage() != null ? wse.getMessage().toLowerCase() : "";
+            if (cause instanceof SocketTimeoutException
+                    || cause instanceof HttpTimeoutException
+                    || cause instanceof java.net.ConnectException
+                    || message.contains("timed out")
+                    || message.contains("could not send message")) {
                 throw new ExperianTimeoutException("RTQ response timed out ");
             }
             throw wse;
@@ -233,5 +254,14 @@ public class KBVGateway {
                     errorMessage,
                     confirmationCode);
         }
+    }
+
+    protected void implementTimeout(IdentityIQWebServiceSoap identityIQWebServiceSoap) {
+        Client client = ClientProxy.getClient(identityIQWebServiceSoap);
+        HTTPConduit httpConduit = (HTTPConduit) client.getConduit();
+        HTTPClientPolicy clientPolicy = new HTTPClientPolicy();
+        clientPolicy.setConnectionTimeout(RESPONSE_TIMEOUT);
+        clientPolicy.setReceiveTimeout(RESPONSE_TIMEOUT);
+        httpConduit.setClient(clientPolicy);
     }
 }
