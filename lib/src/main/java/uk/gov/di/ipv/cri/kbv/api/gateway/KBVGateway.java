@@ -170,6 +170,7 @@ public class KBVGateway {
         } catch (WebServiceException wse) {
             Throwable cause = wse.getCause();
             String message = wse.getMessage() != null ? wse.getMessage().toLowerCase() : "";
+            LOGGER.info("cause message", cause);
             if (cause instanceof SocketTimeoutException
                     || cause instanceof HttpTimeoutException
                     || cause instanceof java.net.ConnectException
@@ -191,6 +192,7 @@ public class KBVGateway {
         } catch (WebServiceException wse) {
             Throwable cause = wse.getCause();
             String message = wse.getMessage() != null ? wse.getMessage().toLowerCase() : "";
+            LOGGER.info("cause message", cause);
             if (cause instanceof SocketTimeoutException
                     || cause instanceof HttpTimeoutException
                     || cause instanceof java.net.ConnectException
