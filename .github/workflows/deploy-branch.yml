@@ -39,7 +39,8 @@ jobs:
         with:
           java-version: 21
           distribution: corretto
-          cache: gradle
+      - name: Build
+        run: ./gradlew clean build --no-build-cache --refresh-dependencies
 
       - name: Build SAM application
         uses: govuk-one-login/github-actions/sam/build-application@87ae1213145261e3837cc38d5b9317422acd95c2
