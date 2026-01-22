@@ -139,6 +139,11 @@ public class QuestionHandler
     @FlushMetrics(namespace = "di-ipv-cri-kbv-api", captureColdStart = true)
     public APIGatewayProxyResponseEvent handleRequest(
             APIGatewayProxyRequestEvent input, Context context) {
+        LOGGER.warn(
+                "HANDLER ENTERED | function={} | version={} | forceTimeout='{}'",
+                System.getenv("AWS_LAMBDA_FUNCTION_NAME"),
+                System.getenv("AWS_LAMBDA_FUNCTION_VERSION"),
+                System.getenv("FORCE_TIMEOUT_METRIC"));
 
         try {
             var sessionId = UUID.fromString(input.getHeaders().get(HEADER_SESSION_ID));
