@@ -11,10 +11,6 @@ import com.experian.uk.schema.experian.identityiq.services.webservice.SAARequest
 import com.experian.uk.schema.experian.identityiq.services.webservice.SAAResponse2;
 import io.opentelemetry.api.trace.Span;
 import jakarta.xml.ws.WebServiceException;
-import org.apache.cxf.endpoint.Client;
-import org.apache.cxf.frontend.ClientProxy;
-import org.apache.cxf.transport.http.HTTPConduit;
-import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
@@ -81,7 +77,8 @@ public class KBVGateway {
 
         SAAResponse2 saaResponse2;
         try {
-            LOGGER.warn("GET QUESTION FLOW START | function={} | forceTimeout='{}'",
+            LOGGER.warn(
+                    "GET QUESTION FLOW START | function={} | forceTimeout='{}'",
                     System.getenv("AWS_LAMBDA_FUNCTION_NAME"),
                     System.getenv("FORCE_TIMEOUT_METRIC"));
             saaResponse2 = getQuestionRequestResponse(identityIQWebServiceSoap, saaRequest);
@@ -137,7 +134,8 @@ public class KBVGateway {
 
         RTQResponse2 rtqResponse2;
         try {
-            LOGGER.warn("SUBMIT FLOW START | function={} | forceTimeout='{}'",
+            LOGGER.warn(
+                    "SUBMIT FLOW START | function={} | forceTimeout='{}'",
                     System.getenv("AWS_LAMBDA_FUNCTION_NAME"),
                     System.getenv("FORCE_TIMEOUT_METRIC"));
             rtqResponse2 = submitQuestionAnswerResponse(identityIQWebServiceSoap, rtqRequest);
@@ -174,7 +172,8 @@ public class KBVGateway {
 
     protected SAAResponse2 getQuestionRequestResponse(
             IdentityIQWebServiceSoap identityIQWebServiceSoap, SAARequest saaRequest) {
-        LOGGER.warn("getQuestionResponse() entered | forceTimeout='{}'",
+        LOGGER.warn(
+                "getQuestionResponse() entered | forceTimeout='{}'",
                 System.getenv("FORCE_TIMEOUT_METRIC"));
         if (forceTimeoutMetric()) {
             LOGGER.warn("FORCING TIMEOUT IN GET QUESTIONS");
@@ -185,7 +184,7 @@ public class KBVGateway {
         } catch (WebServiceException wse) {
             Throwable cause = wse.getCause();
             String message = wse.getMessage() != null ? wse.getMessage().toLowerCase() : "";
-            LOGGER.info("cause message", cause);
+            LOGGER.info("cause={}", cause, wse);
             if (cause instanceof SocketTimeoutException
                     || cause instanceof HttpTimeoutException
                     || cause instanceof java.net.ConnectException
@@ -199,7 +198,8 @@ public class KBVGateway {
 
     protected RTQResponse2 submitQuestionAnswerResponse(
             IdentityIQWebServiceSoap identityIQWebServiceSoap, RTQRequest rtqRequest) {
-        LOGGER.warn("submitQuestionAnswerResponse() entered | forceTimeout='{}'",
+        LOGGER.warn(
+                "submitQuestionAnswerResponse() entered | forceTimeout='{}'",
                 System.getenv("FORCE_TIMEOUT_METRIC"));
 
         if (forceTimeoutMetric()) {
@@ -211,7 +211,7 @@ public class KBVGateway {
         } catch (WebServiceException wse) {
             Throwable cause = wse.getCause();
             String message = wse.getMessage() != null ? wse.getMessage().toLowerCase() : "";
-            LOGGER.info("cause message", cause);
+            LOGGER.info("cause={}", cause, wse);
             if (cause instanceof SocketTimeoutException
                     || cause instanceof HttpTimeoutException
                     || cause instanceof java.net.ConnectException
@@ -276,9 +276,8 @@ public class KBVGateway {
                     confirmationCode);
         }
     }
+
     private static boolean forceTimeoutMetric() {
-        return Boolean.parseBoolean(
-                String.valueOf(System.getenv("FORCE_TIMEOUT_METRIC")).trim()
-        );
+        return Boolean.parseBoolean(String.valueOf(System.getenv("FORCE_TIMEOUT_METRIC")).trim());
     }
 }
