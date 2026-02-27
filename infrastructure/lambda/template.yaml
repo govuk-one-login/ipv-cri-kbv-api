@@ -1151,7 +1151,7 @@ Resources:
     Condition: DeployAlarms
     Properties:
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       AlarmDescription: !Sub
         - "Experian mTLS certificate expiry checker state machine failed to execute. Runbook: ${SupportManualURL}"
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
@@ -1175,7 +1175,7 @@ Resources:
     Properties:
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       AlarmDescription: !Sub
         - "Experian mTLS certificate expires in less than 90 days. Rotate it before it expires to avoid an outage in the KBV CRI. Runbook: ${SupportManualURL}"
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
@@ -1196,7 +1196,7 @@ Resources:
     Properties:
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue platform-alarm-critical-alert-topic
+        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
       AlarmDescription: !Sub
         - "Experian mTLS certificate expires in less than 7 days. Rotate it before it expires to avoid an outage in the KBV CRI. Runbook: ${SupportManualURL}"
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
@@ -1221,9 +1221,9 @@ Resources:
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue platform-alarm-critical-alert-topic
+        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
       OKActions:
-        - !ImportValue platform-alarm-critical-alert-topic
+        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
       InsufficientDataActions: []
       MetricName: Errors
       Namespace: AWS/Lambda
@@ -1246,9 +1246,9 @@ Resources:
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue platform-alarm-critical-alert-topic
+        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
       OKActions:
-        - !ImportValue platform-alarm-critical-alert-topic
+        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
       InsufficientDataActions: []
       DatapointsToAlarm: 3
       EvaluationPeriods: 3
@@ -1297,9 +1297,9 @@ Resources:
       EvaluationPeriods: 3
       TreatMissingData: notBreaching
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       Metrics:
         - Id: errors
           Expression: IF(m2 != 0, (m1 / m2) * 100, 0)
@@ -1342,9 +1342,9 @@ Resources:
       EvaluationPeriods: 3
       TreatMissingData: notBreaching
       AlarmActions:
-        - !ImportValue platform-alarm-critical-alert-topic
+        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
       OKActions:
-        - !ImportValue platform-alarm-critical-alert-topic
+        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
       Metrics:
         - Id: errors
           Expression: IF(m2 != 0, (m1 / m2) * 100, 0)
@@ -1387,9 +1387,9 @@ Resources:
       EvaluationPeriods: 3
       TreatMissingData: notBreaching
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       Metrics:
         - Id: errors
           Expression: IF(m2 != 0, (m1 / m2) * 100, 0)
@@ -1432,9 +1432,9 @@ Resources:
       EvaluationPeriods: 3
       TreatMissingData: notBreaching
       AlarmActions:
-        - !ImportValue platform-alarm-critical-alert-topic
+        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
       OKActions:
-        - !ImportValue platform-alarm-critical-alert-topic
+        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
       Metrics:
         - Id: errors
           Expression: IF(m2 != 0, (m1 / m2) * 100, 0)
@@ -1477,9 +1477,9 @@ Resources:
       EvaluationPeriods: 3
       TreatMissingData: notBreaching
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       Metrics:
         - Id: errors
           Expression: IF(m2 != 0, (m1 / m2) * 100, 0)
@@ -1522,9 +1522,9 @@ Resources:
       EvaluationPeriods: 3
       TreatMissingData: notBreaching
       AlarmActions:
-        - !ImportValue platform-alarm-critical-alert-topic
+        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
       OKActions:
-        - !ImportValue platform-alarm-critical-alert-topic
+        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
       Metrics:
         - Id: errors
           Expression: IF(m2 != 0, (m1 / m2) * 100, 0)
@@ -1559,9 +1559,9 @@ Resources:
     Properties:
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       AlarmDescription: !Sub "Experian KBV QuestionFunction Lambda returning 5xx response."
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVQuestionFunction5xxCanaryError
       Namespace: AWS/ApiGateway
@@ -1589,9 +1589,9 @@ Resources:
     Properties:
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       AlarmDescription: !Sub "Experian KBV QuestionFunction Lambda error."
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVQuestionFunctionCanaryError
       MetricName: Errors
@@ -1617,9 +1617,9 @@ Resources:
     Properties:
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       AlarmDescription: !Sub "Experian KBV AnswerFunction Lambda returning 5xx response."
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAnswerFunction5xxCanaryError
       Namespace: AWS/ApiGateway
@@ -1647,9 +1647,9 @@ Resources:
     Properties:
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       AlarmDescription: !Sub "Experian KBV AnswerFunction Lambda error."
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAnswerFunctionCanaryError
       MetricName: Errors
@@ -1675,9 +1675,9 @@ Resources:
     Properties:
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       AlarmDescription: !Sub "Experian KBV AbandonFunction Lambda returning 5xx response."
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAbandonFunction5xxCanaryError
       Namespace: AWS/ApiGateway
@@ -1705,9 +1705,9 @@ Resources:
     Properties:
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       AlarmDescription: !Sub "Experian KBV Abandon Lambda error."
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVAbandonFunctionCanaryError
       MetricName: Errors
@@ -1733,9 +1733,9 @@ Resources:
     Properties:
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       AlarmDescription: !Sub "Experian KBV IssueCredentialFunction Lambda returning 5xx response."
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVIssueCredentialFunction5xxCanaryError
       Namespace: AWS/ApiGateway
@@ -1763,9 +1763,9 @@ Resources:
     Properties:
       ActionsEnabled: true
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       AlarmDescription: !Sub "Experian KBV IssueCredential Lambda error."
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVIssueCredentialFunctionCanaryError
       MetricName: Errors
@@ -1845,9 +1845,9 @@ Resources:
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       InsufficientDataActions: []
       EvaluationPeriods: 5
       DatapointsToAlarm: 2
@@ -1908,9 +1908,9 @@ Resources:
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       OKActions:
-        - !ImportValue platform-alarm-critical-alert-topic
+        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
       AlarmActions:
-        - !ImportValue platform-alarm-critical-alert-topic
+        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
       InsufficientDataActions: []
       EvaluationPeriods: 5
       DatapointsToAlarm: 2
@@ -1971,9 +1971,9 @@ Resources:
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       OKActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       AlarmActions:
-        - !ImportValue platform-alarm-warning-alert-topic
+        - !ImportValue build-notifications-WarningAlertsTopicArn
       InsufficientDataActions: []
       EvaluationPeriods: 5
       DatapointsToAlarm: 2
