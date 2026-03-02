@@ -1196,7 +1196,8 @@ Resources:
     Properties:
       ActionsEnabled: true
       AlarmActions:
-        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       AlarmDescription: !Sub
         - "Experian mTLS certificate expires in less than 7 days. Rotate it before it expires to avoid an outage in the KBV CRI. Runbook: ${SupportManualURL}"
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
@@ -1221,9 +1222,11 @@ Resources:
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
-        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       OKActions:
-        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       InsufficientDataActions: []
       MetricName: Errors
       Namespace: AWS/Lambda
@@ -1246,9 +1249,11 @@ Resources:
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
-        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       OKActions:
-        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       InsufficientDataActions: []
       DatapointsToAlarm: 3
       EvaluationPeriods: 3
@@ -1342,9 +1347,11 @@ Resources:
       EvaluationPeriods: 3
       TreatMissingData: notBreaching
       AlarmActions:
-        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       OKActions:
-        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       Metrics:
         - Id: errors
           Expression: IF(m2 != 0, (m1 / m2) * 100, 0)
@@ -1432,9 +1439,11 @@ Resources:
       EvaluationPeriods: 3
       TreatMissingData: notBreaching
       AlarmActions:
-        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       OKActions:
-        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       Metrics:
         - Id: errors
           Expression: IF(m2 != 0, (m1 / m2) * 100, 0)
@@ -1522,9 +1531,11 @@ Resources:
       EvaluationPeriods: 3
       TreatMissingData: notBreaching
       AlarmActions:
-        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       OKActions:
-        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       Metrics:
         - Id: errors
           Expression: IF(m2 != 0, (m1 / m2) * 100, 0)
@@ -1908,9 +1919,11 @@ Resources:
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       OKActions:
-        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       AlarmActions:
-        - !If [IsProductionEnvironment, !ImportValue build-notifications-PagerDutySNSTopicArn, !ImportValue build-notifications-CriticalAlertsTopicArn]
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       InsufficientDataActions: []
       EvaluationPeriods: 5
       DatapointsToAlarm: 2
