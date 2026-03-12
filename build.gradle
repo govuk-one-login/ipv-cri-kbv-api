@@ -7,9 +7,7 @@ plugins {
 defaultTasks 'clean', 'spotlessApply', 'build'
 
 repositories {
-	maven {
-		url 'https://gds.jfrog.io/artifactory/di-allowed-repos'
-	}
+	mavenCentral()
 }
 
 subprojects {
@@ -21,9 +19,7 @@ subprojects {
 	}
 
 	repositories {
-		maven {
-			url 'https://gds.jfrog.io/artifactory/di-allowed-repos'
-		}
+		mavenCentral()
 	}
 
 	// https://aws.amazon.com/blogs/developer/tuning-the-aws-java-sdk-2-x-to-reduce-startup-time/
