@@ -1,15 +1,16 @@
 [versions]
 aws-sdk = "2.41.25"
 aws-lambda-events = "3.14.0"
-jackson = "2.17.2"
+jackson = "2.21.1"
+jackson_annotations = "2.21" # annotations has no patch version
 nimbus-oauth = "11.29.1"
 nimbus-jwt = "10.5"
 junit = "5.14.1"
 junit-launcher = "1.12.2"
 mockito = "5.20.0"
 powertools = "2.9.0"
-cri-common-lib = "8.3.0"
-pact-provider = "4.6.19"
+cri-common-lib = "8.3.3"
+pact-provider = "4.6.20"
 webcompere = "2.1.6"
 otel = "1.55.0"
 otel-alpha = "2.12.0-alpha"
@@ -36,11 +37,11 @@ aws-lambda-events = { module = "com.amazonaws:aws-lambda-java-events", version.r
 
 # Jackson
 jackson-bom = { module = "com.fasterxml.jackson:jackson-bom", version.ref = "jackson"}
-jackson-core = { module = "com.fasterxml.jackson.core:jackson-core" }
-jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
-jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations" }
-jackson-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" }
-jackson-jdk8 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jdk8" }
+jackson-core = { module = "com.fasterxml.jackson.core:jackson-core", version.ref = "jackson" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations", version.ref = "jackson_annotations" }
+jackson-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
+jackson-jdk8 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jdk8", version.ref = "jackson" }
 
 # JavaX
 javax-annotation = { module = "javax.annotation:javax.annotation-api", version = "1.3.2" }
