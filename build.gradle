@@ -35,7 +35,7 @@ subprojects {
 		exclude group: "org.eclipse.angus", module: "angus-mail"
 		resolutionStrategy.eachDependency { DependencyResolveDetails details ->
 			if (details.requested.group == 'io.netty') {
-				details.useVersion "4.1.128.Final"
+				details.useVersion "4.2.10.Final"
 				details.because 'Vulnerability fix: force Netty version to override vulnerable transitive dependency from pact'
 			}
 		}
