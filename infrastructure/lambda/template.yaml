@@ -79,6 +79,9 @@ Conditions:
     - !Condition IsBuildEnvironment
   IsNotDevBuildLikeEnvironment: !Not
     - !Condition IsDevBuildLikeEnvironment
+  CreateOAuthSSMParam: !And
+    - !Not [!Condition IsLocalDevEnvironment]
+    - !Not [!Condition IsProductionEnvironment]
 
 Globals:
   Function:
@@ -2241,6 +2244,15 @@ Resources:
       Name: !Sub "/${AWS::StackName}/experian/iiq-webservice/ipv-core-3rd-party-stubs"
       Type: String
       Value: !FindInMap [IIQWebServiceUrls, !Ref Environment, uat]
+
+  OAuthCommonStackNameParam:
+    Type: AWS::SSM::Parameter
+    Condition: CreateOAuthSSMParam
+    Properties:
+      Name: /common-cri/oauth-common/stack-name
+      Type: String
+      Value: !Ref CommonStackName
+      Description: The stack currently used for OAuth (common-lambdas or oauth-common). Only required for test-resources.
 
 Outputs:
   PublicKBVApiGatewayId:
