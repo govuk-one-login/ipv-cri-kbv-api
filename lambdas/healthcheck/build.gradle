@@ -21,6 +21,6 @@ dependencies {
 	}
 	implementation("net.bytebuddy:byte-buddy:1.17.5")
 
-	testImplementation 'org.bouncycastle:bcpkix-jdk18on:1.80'
-	testImplementation 'org.bouncycastle:bcprov-jdk18on:1.80'
+	testImplementation 'org.bouncycastle:bcpkix-jdk18on:1.84'
+	testImplementation 'org.bouncycastle:bcprov-jdk18on:1.84'
 }
