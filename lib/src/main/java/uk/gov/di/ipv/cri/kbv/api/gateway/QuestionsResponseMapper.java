@@ -15,7 +15,6 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionsResponse;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 class QuestionsResponseMapper {
     QuestionsResponse mapRTQResponse(RTQResponse2 response) {
@@ -94,9 +93,7 @@ class QuestionsResponseMapper {
             if (Objects.nonNull(results.getAlerts())
                     && Objects.nonNull(results.getAlerts().getAlerts())) {
                 kbvResult.setAlerts(
-                        results.getAlerts().getAlerts().stream()
-                                .map(KbvAlert::new)
-                                .collect(Collectors.toList()));
+                        results.getAlerts().getAlerts().stream().map(KbvAlert::new).toList());
             }
         }
         return kbvResult;

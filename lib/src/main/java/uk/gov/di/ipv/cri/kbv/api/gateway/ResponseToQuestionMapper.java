@@ -9,7 +9,6 @@ import uk.gov.di.ipv.cri.kbv.api.domain.QuestionAnswerRequest;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 class ResponseToQuestionMapper {
 
@@ -44,6 +43,6 @@ class ResponseToQuestionMapper {
                             response.setAnswerActionFlag("U");
                             return response;
                         })
-                .collect(Collectors.toList());
+                .toList();
     }
 }

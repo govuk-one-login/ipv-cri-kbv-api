@@ -73,10 +73,8 @@ public class QuestionState {
     }
 
     public void setQAPairs(KbvQuestion[] questions) {
-        this.qaPairs =
-                Arrays.stream(questions).map(QuestionAnswerPair::new).collect(Collectors.toList());
-        this.allQaPairs.add(
-                Arrays.stream(questions).map(QuestionAnswerPair::new).collect(Collectors.toList()));
+        this.qaPairs = Arrays.stream(questions).map(QuestionAnswerPair::new).toList();
+        this.allQaPairs.add(Arrays.stream(questions).map(QuestionAnswerPair::new).toList());
 
         logSizeInfo(questions);
     }
@@ -87,7 +85,7 @@ public class QuestionState {
 
     @JsonIgnore
     public List<QuestionAnswer> getAnswers() {
-        return getQaPairs().stream().map(QuestionAnswer::new).collect(Collectors.toList());
+        return getQaPairs().stream().map(QuestionAnswer::new).toList();
     }
 
     @JsonIgnore
@@ -136,8 +134,7 @@ public class QuestionState {
     }
 
     private void logSizeInfo(KbvQuestion[] questions) {
-        int allQaPairsSize =
-                this.allQaPairs.stream().flatMap(List::stream).collect(Collectors.toList()).size();
+        int allQaPairsSize = this.allQaPairs.stream().flatMap(List::stream).toList().size();
         LOGGER.info("QAPairs size: {}", qaPairs.size());
         LOGGER.info("KBVQuestion size: {}", questions.length);
         LOGGER.info("AllQAPairs size: {}", allQaPairsSize);

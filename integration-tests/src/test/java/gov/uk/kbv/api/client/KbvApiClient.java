@@ -86,7 +86,7 @@ public class KbvApiClient {
     public void submitCorrectAnswers(String question, String sessionId, int user)
             throws IOException, InterruptedException {
 
-        String POST_REQUEST_BODY =
+        String postRequestBody =
                 "{\"questionId\":\""
                         + question
                         + "\",\"answer\":\""
@@ -105,7 +105,7 @@ public class KbvApiClient {
                         .header(HttpHeaders.ACCEPT, JSON_MIME_MEDIA_TYPE)
                         .header(HttpHeaders.CONTENT_TYPE, JSON_MIME_MEDIA_TYPE)
                         .header(HttpHeaders.SESSION_ID, sessionId)
-                        .POST(HttpRequest.BodyPublishers.ofString(POST_REQUEST_BODY))
+                        .POST(HttpRequest.BodyPublishers.ofString(postRequestBody))
                         .build();
         sendHttpRequest(request);
     }
@@ -113,7 +113,7 @@ public class KbvApiClient {
     public void submitIncorrectAnswers(String question, String sessionId, int user)
             throws IOException, InterruptedException {
 
-        String POST_REQUEST_BODY =
+        String postRequestBody =
                 "{\"questionId\":\""
                         + question
                         + "\",\"answer\":\""
@@ -132,7 +132,7 @@ public class KbvApiClient {
                         .header(HttpHeaders.ACCEPT, JSON_MIME_MEDIA_TYPE)
                         .header(HttpHeaders.CONTENT_TYPE, JSON_MIME_MEDIA_TYPE)
                         .header(HttpHeaders.SESSION_ID, sessionId)
-                        .POST(HttpRequest.BodyPublishers.ofString(POST_REQUEST_BODY))
+                        .POST(HttpRequest.BodyPublishers.ofString(postRequestBody))
                         .build();
         sendHttpRequest(request);
     }

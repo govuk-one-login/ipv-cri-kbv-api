@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class TestDataCreator {
-    public static PersonIdentity createTestPersonIdentity(AddressType addressType) {
+    public static PersonIdentity createTestPersonIdentity(AddressType addressType) { // NOSONAR
         PersonIdentity personIdentity = new PersonIdentity();
         personIdentity.setDateOfBirth(LocalDate.of(1976, 12, 26));
         Address address = new Address();
@@ -33,7 +33,7 @@ public class TestDataCreator {
     }
 
     public static PersonIdentity createTestPersonIdentityWithDuplicateAddresses(
-            AddressType addressType) {
+            AddressType addressType) { // NOSONAR
         PersonIdentity personIdentity = new PersonIdentity();
         personIdentity.setDateOfBirth(LocalDate.of(1976, 12, 26));
 

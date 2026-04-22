@@ -124,7 +124,7 @@ public class ValidVcIssuedHandlerPassTest
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         MockHttpServer.stopServer();
     }
 

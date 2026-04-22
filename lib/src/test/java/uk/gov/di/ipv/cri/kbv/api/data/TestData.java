@@ -8,38 +8,39 @@ public final class TestData {
             "eyJraWQiOiJpcHYtY29yZS1zdHViIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJ1cm46dXVpZDpkZTc1ZjM5Ny0xYzdlLTQ0NDMtYWUzNi0xZGE3Njk3YzYzNzciLCJhdWQiOiJodHRwczpcL1wvZXhwZXJpYW4uY3JpLmFjY291bnQuZ292LnVrIiwibmJmIjoxNjQ5MTc1NDU1LCJzaGFyZWRfY2xhaW1zIjp7IkBjb250ZXh0IjpbImh0dHBzOlwvXC93d3cudzMub3JnXC8yMDE4XC9jcmVkZW50aWFsc1wvdjEiLCJodHRwczpcL1wvdm9jYWIubG9uZG9uLmNsb3VkYXBwcy5kaWdpdGFsXC9jb250ZXh0c1wvaWRlbnRpdHktdjEuanNvbmxkIl0sImJpcnRoRGF0ZSI6W3sidmFsdWUiOiIxOTY0LTA5LTAzIn1dLCJuYW1lIjpbeyJuYW1lUGFydHMxMjM0IjpbeyJ0eXBlIjoiR2l2ZW5OYW1lIiwidmFsdWUiOiJLRU5ORVRIIn0seyJ0eXBlIjoiRmFtaWx5TmFtZSIsInZhbHVlIjoiREVDRVJRVUVJUkEifV19XSwiYWRkcmVzc2VzIjpbeyJjdXJyZW50QWRkcmVzcyI6dHJ1ZSwidG93bkNpdHkiOiJCQVRIIiwic3RyZWV0MiI6IkhBRExFWSBST0FEIiwic3RyZWV0MSI6IjgiLCJwb3N0Q29kZSI6IkJBMiA1QUEifV19LCJpc3MiOiJodHRwczpcL1wvZGV2LmNvcmUuaXB2LmFjY291bnQuZ292LnVrIiwiZXhwIjoxNjQ5MTc5MDU1LCJpYXQiOjE2NDkxNzU0NTV9.Oh4Lraq0NBykGkG1QmgJO0uqO2lh-b2fyBIVyEs_pBj5euG2ea-XfOuC6ehkYJGTxiBFxeel7bA_EvZ_7yWFqp1f0ZP-i-N3CMWCOahXTM4W27CpgUzXU5TexFAzE5ikzFGWBb8Rtap1ajhOOALLSynY9sjo2oX18aTSCBM9l20093MMoaTX-vLwIB95scETK31ccV7-VvDkCdhw6ApneWLOyF0pADzP4Zr3cJU298pk6FBAfQch4swDWmLVqVkjo-Zq6CUlLQxRLWVwWlf4sOH39g_Fu_fgKIS_1XKAv-RnkrQpO1v5og2Av8hOKf1cwYSKsUwsxukgCI6AO8pzKFsEYA3aK5LE__WFZu4PFnACzhv5-HzLpS1O80YphchR9LwJUSdlgri9UmFgtVFj7-_Et-W0MGuQ7SQ5mOLEigGxnhGkRSw7nzWvV6hTs16-KAbqGtf1DiBZ4rpIyp30b2stLG2SE9IPFO4pGocfofGmB2B7_v5hUlAcBejekzlxtKFrIBSvZWlkAEkpdO5lTD7L9mpcUiOns1qCZWjEKeoGUMz5D3pKyZS9ceV-cagBRBN7QGTmHnvTDdmOKFiPx_xux-xDMd5LU8GWyl0WZumVDMj9VvQGimSCxi_jhAW2CS5K6_IvUSfQSR17b2fZNhhBGJjqTK-j0X4FwYwr0a0";
 
     public static final String PERSON_SHARED_ATTRIBUTE =
-            "{\n"
-                    + "    \"addresses\": [\n"
-                    + "      {\n"
-                    + "        \"townCity\": \"BATH\",\n"
-                    + "        \"street1\": \"8\",\n"
-                    + "        \"postCode\": \"BA2 5AA\",\n"
-                    + "        \"street2\": \"HADLEY ROAD\",\n"
-                    + "        \"currentAddress\": true\n"
-                    + "      }\n"
-                    + "    ],\n"
-                    + "    \"name\": [\n"
-                    + "      {\n"
-                    + "        \"nameParts\": [\n"
-                    + "          {\n"
-                    + "            \"type\": \"GivenName\",\n"
-                    + "            \"value\": \"KENNETH\"\n"
-                    + "          },\n"
-                    + "          {\n"
-                    + "            \"type\": \"FamilyName\",\n"
-                    + "            \"value\": \"DECERQUEIRA\"\n"
-                    + "          }\n"
-                    + "        ]\n"
-                    + "      }\n"
-                    + "    ],\n"
-                    + "    \"@context\": [\n"
-                    + "      \"https://www.w3.org/2018/credentials/v1\",\n"
-                    + "      \"https://vocab.london.cloudapps.digital/contexts/identity-v1.jsonld\"\n"
-                    + "    ],\n"
-                    + "    \"birthDate\": [\n"
-                    + "      {\n"
-                    + "        \"value\": \"1964-09-03\"\n"
-                    + "      }\n"
-                    + "    ]\n"
-                    + "  }";
+            """
+                    {
+                        "addresses": [
+                          {
+                            "townCity": "BATH",
+                            "street1": "8",
+                            "postCode": "BA2 5AA",
+                            "street2": "HADLEY ROAD",
+                            "currentAddress": true
+                          }
+                        ],
+                        "name": [
+                          {
+                            "nameParts": [
+                              {
+                                "type": "GivenName",
+                                "value": "KENNETH"
+                              },
+                              {
+                                "type": "FamilyName",
+                                "value": "DECERQUEIRA"
+                              }
+                            ]
+                          }
+                        ],
+                        "@context": [
+                          "https://www.w3.org/2018/credentials/v1",
+                          "https://vocab.london.cloudapps.digital/contexts/identity-v1.jsonld"
+                        ],
+                        "birthDate": [
+                          {
+                            "value": "1964-09-03"
+                          }
+                        ]
+                      }""";
 }

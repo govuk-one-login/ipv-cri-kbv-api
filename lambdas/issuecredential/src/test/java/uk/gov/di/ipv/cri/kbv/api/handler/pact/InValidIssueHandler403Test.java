@@ -87,7 +87,7 @@ class InValidIssueHandler403Test implements DummyStates {
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         MockHttpServer.stopServer();
     }
 
