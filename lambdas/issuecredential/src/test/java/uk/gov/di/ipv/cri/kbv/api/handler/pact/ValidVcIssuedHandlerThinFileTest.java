@@ -122,7 +122,7 @@ public class ValidVcIssuedHandlerThinFileTest
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         MockHttpServer.stopServer();
     }
 

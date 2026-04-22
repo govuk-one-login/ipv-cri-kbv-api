@@ -143,10 +143,5 @@ class StartAuthnAttemptRequestMapper {
         locationDetails.setUKLocation(ukLocation);
 
         return locationDetails;
-
-        // TODO: examine the edge cases, specifically when the
-        // following fields are populated:
-        // personAddress.getDependentAddressLocality() &
-        // personAddress.getDoubleDependentAddressLocality()
     }
 }

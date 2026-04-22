@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public interface TestFixtures {
     String EC_PRIVATE_KEY_1 =
@@ -74,22 +73,18 @@ public interface TestFixtures {
     }
 
     default List<QuestionAnswer> getQuestionAnswers(String... questions) {
-        var questionAnswers =
-                Arrays.stream(questions)
-                        .map(
-                                questionId -> {
-                                    QuestionAnswer questionAnswer = new QuestionAnswer();
-                                    questionAnswer.setQuestionId(questionId);
-                                    return questionAnswer;
-                                })
-                        .collect(Collectors.toList());
-        return questionAnswers;
+        return Arrays.stream(questions)
+                .map(
+                        questionId -> {
+                            QuestionAnswer questionAnswer = new QuestionAnswer();
+                            questionAnswer.setQuestionId(questionId);
+                            return questionAnswer;
+                        })
+                .toList();
     }
 
     default List<KbvQuestion> getKbvQuestions(String... questions) {
-        var kbvQuestions =
-                Arrays.stream(questions).map(this::getQuestion).collect(Collectors.toList());
-        return kbvQuestions;
+        return Arrays.stream(questions).map(this::getQuestion).toList();
     }
 
     default QuestionState getQuestionStateWithAnswer(

@@ -26,7 +26,6 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import static gov.uk.kbv.api.util.FileHelper.loadOverrideFile;
 import static org.junit.Assert.assertTrue;
@@ -214,7 +213,7 @@ public class KbvSteps {
         var events =
                 testHarnessResponses.stream()
                         .filter(event -> event.getEvent().toString().equals("IPV_KBV_CRI_START"))
-                        .collect(Collectors.toList());
+                        .toList();
 
         assertNotNull(events);
         for (TestHarnessResponse<AuditEvent<Map<String, Object>>> testHarnessResponse : events) {

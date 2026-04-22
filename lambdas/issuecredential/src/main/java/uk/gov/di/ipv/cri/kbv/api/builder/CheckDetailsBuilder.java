@@ -16,7 +16,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CheckDetailsBuilder {
@@ -114,12 +113,12 @@ public class CheckDetailsBuilder {
 
         @Override
         public CheckDetail[] buildToArray() {
-            return checkDetailStream.collect(Collectors.toList()).toArray(CheckDetail[]::new);
+            return checkDetailStream.toList().toArray(CheckDetail[]::new);
         }
 
         @Override
         public List<String> buildToList() {
-            return qaIds.collect(Collectors.toList());
+            return qaIds.toList();
         }
     }
 

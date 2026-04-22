@@ -33,7 +33,7 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
     @Override
     public boolean handleMessage(SOAPMessageContext smc) {
 
-        Boolean outbound = (Boolean) smc.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY);
+        boolean outbound = (Boolean) smc.get(MessageContext.MESSAGE_OUTBOUND_PROPERTY);
 
         if (outbound) {
 
@@ -100,9 +100,13 @@ public class HeaderHandler implements SOAPHandler<SOAPMessageContext> {
         return Collections.emptySet();
     }
 
+    @Override
     public boolean handleFault(SOAPMessageContext context) {
         return true;
     }
 
-    public void close(MessageContext context) {}
+    @Override
+    public void close(MessageContext context) {
+        // Not required
+    }
 }

@@ -41,9 +41,7 @@ public class AnswerResource {
                 AnswerResource.class.getClassLoader().getResourceAsStream(resourceName);
         Reader reader = new InputStreamReader(inputStream);
         ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> map = mapper.readValue(reader, Map.class);
-
-        return map;
+        return mapper.readValue(reader, Map.class);
     }
 
     private static String getResourceFileName(int user) throws IOException {
