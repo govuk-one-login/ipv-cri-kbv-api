@@ -30,12 +30,8 @@ subprojects {
 		exclude group:"software.amazon.awssdk", module: "netty-nio-client"
 		exclude group:"software.amazon.awssdk", module: "url-connection-client"
 		exclude group:"org.apache.tika", module: "tika-parser-pdf-module"
-
-		// Exclude netty in general but allow for webdriver manager in acceptance tests (browser download)
-		if (project.name != 'acceptance-tests') {
-			exclude group: "io.netty", module: "*"
-			exclude group: "io.grpc", module: "grpc-netty"
-		}
+		exclude group: "io.netty", module: "*"
+		exclude group: "io.grpc", module: "grpc-netty"
 	}
 
 	configurations.all {
