@@ -24,21 +24,19 @@ subprojects {
 
 	// https://aws.amazon.com/blogs/developer/tuning-the-aws-java-sdk-2-x-to-reduce-startup-time/
 	configurations.configureEach {
+		// These clients are excluded as we are using the aws-crt client exclusively
+		// https://aws.amazon.com/blogs/developer/tuning-the-aws-java-sdk-2-x-to-reduce-startup-time/
 		exclude group:"software.amazon.awssdk", module: "apache-client"
 		exclude group:"software.amazon.awssdk", module: "netty-nio-client"
 		exclude group:"software.amazon.awssdk", module: "url-connection-client"
 		exclude group:"org.apache.tika", module: "tika-parser-pdf-module"
+		exclude group: "io.netty", module: "*"
+		exclude group: "io.grpc", module: "grpc-netty"
 	}
 
 	configurations.all {
 		exclude group: "org.eclipse.angus", module: "smtp"
 		exclude group: "org.eclipse.angus", module: "angus-mail"
-		resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-			if (details.requested.group == 'io.netty') {
-				details.useVersion "4.2.10.Final"
-				details.because 'Vulnerability fix: force Netty version to override vulnerable transitive dependency from pact'
-			}
-		}
 	}
 
 	dependencies {
