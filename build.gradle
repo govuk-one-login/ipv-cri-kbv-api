@@ -37,6 +37,12 @@ subprojects {
 	configurations.all {
 		exclude group: "org.eclipse.angus", module: "smtp"
 		exclude group: "org.eclipse.angus", module: "angus-mail"
+		resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+			if (details.requested.group == 'org.apache.neethi') {
+				details.useVersion '3.2.2'
+				details.because 'Vulnerability fix: force Neethi version to override vulnerable transitive dependency'
+			}
+		}
 	}
 
 	dependencies {
