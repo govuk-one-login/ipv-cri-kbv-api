@@ -65,6 +65,11 @@ jobs:
       stack-name: ${{ steps.deploy.outputs.stack-name }}
       stack-outputs: ${{ steps.deploy.outputs.stack-outputs }}
     steps:
+      - name: Setup SAM
+        uses: aws-actions/setup-sam@v2
+        with:
+          version: 1.159.1 # 2026-05-20 resolving https://github.com/aws/aws-sam-cli/issues/9027
+
       - name: Set timestamp
         id: set_timestamp
         run: echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
