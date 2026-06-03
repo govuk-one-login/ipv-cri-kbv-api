@@ -67,7 +67,6 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
-import static uk.gov.di.ipv.cri.common.library.util.VerifiableCredentialClaimsSetBuilder.ENV_VAR_FEATURE_FLAG_VC_CONTAINS_UNIQUE_ID;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.METRIC_DIMENSION_KBV_VERIFICATION;
 import static uk.gov.di.ipv.cri.kbv.api.handler.util.JwtSigner.getEcdsaSigner;
 import static uk.gov.di.ipv.cri.kbv.api.objectmapper.CustomObjectMapper.getMapperWithCustomSerializers;
@@ -132,7 +131,6 @@ public class ValidVcIssuedHandlerCiTest
     void pactSetup(PactVerificationContext context)
             throws IOException, JOSEException, NoSuchAlgorithmException, InvalidKeySpecException {
         environmentVariables.set("LAMBDA_TASK_ROOT", "handler");
-        environmentVariables.set(ENV_VAR_FEATURE_FLAG_VC_CONTAINS_UNIQUE_ID, "override");
         environmentVariables.set("JWT_TTL_UNIT", "MINUTES");
 
         setupEventProbeBehaviour();
