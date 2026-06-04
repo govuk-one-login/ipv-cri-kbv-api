@@ -84,7 +84,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static uk.gov.di.ipv.cri.common.library.util.VerifiableCredentialClaimsSetBuilder.ENV_VAR_FEATURE_FLAG_VC_CONTAINS_UNIQUE_ID;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.METRIC_DIMENSION_KBV_VERIFICATION;
 import static uk.gov.di.ipv.cri.kbv.api.domain.VerifiableCredentialConstants.VC_THIRD_PARTY_KBV_CHECK_PASS;
 import static uk.gov.di.ipv.cri.kbv.api.handler.IssueCredentialHandler.KBV_CREDENTIAL_ISSUER;
@@ -98,11 +97,7 @@ class IssueCredentialHandlerTest implements TestFixtures {
     @SystemStub
     @SuppressWarnings("unused")
     private final EnvironmentVariables environment =
-            new EnvironmentVariables(
-                    "JWT_TTL_UNIT",
-                    "MINUTES",
-                    ENV_VAR_FEATURE_FLAG_VC_CONTAINS_UNIQUE_ID,
-                    "override");
+            new EnvironmentVariables("JWT_TTL_UNIT", "MINUTES");
 
     private static final String SUBJECT = "subject";
     private static final UUID SESSION_ID = UUID.randomUUID();
