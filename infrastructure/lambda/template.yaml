@@ -366,6 +366,8 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref HealthCheckFunction.Alias
       Principal: apigateway.amazonaws.com
+      SourceAccount: !Sub "${AWS::AccountId}"
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PublicKBVApi}/*/*/*"
 
   PublicKBVApi:
     Type: AWS::Serverless::Api
@@ -973,6 +975,8 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt KBVQuestionFunction.Arn
       Principal: apigateway.amazonaws.com
+      SourceAccount: !Sub "${AWS::AccountId}"
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PrivateKBVApi}/*/*/*"
 
   KBVAnswerFunctionPermission:
     Type: AWS::Lambda::Permission
@@ -980,6 +984,8 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt KBVAnswerFunction.Arn
       Principal: apigateway.amazonaws.com
+      SourceAccount: !Sub "${AWS::AccountId}"
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PrivateKBVApi}/*/*/*"
 
   KBVAbandonFunctionPermission:
     Type: AWS::Lambda::Permission
@@ -987,6 +993,8 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt KBVAbandonFunction.Arn
       Principal: apigateway.amazonaws.com
+      SourceAccount: !Sub "${AWS::AccountId}"
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PrivateKBVApi}/*/*/*"
 
   IssueCredentialFunctionPermission:
     Type: AWS::Lambda::Permission
@@ -994,6 +1002,8 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt IssueCredentialFunction.Arn
       Principal: apigateway.amazonaws.com
+      SourceAccount: !Sub "${AWS::AccountId}"
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PublicKBVApi}/*/*/*"
 
   KBVQuestionFunctionAliasPermission:
     Type: AWS::Lambda::Permission
@@ -1001,6 +1011,8 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref KBVQuestionFunction.Alias
       Principal: apigateway.amazonaws.com
+      SourceAccount: !Sub "${AWS::AccountId}"
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PrivateKBVApi}/*/*/*"
 
   KBVAnswerFunctionAliasPermission:
     Type: AWS::Lambda::Permission
@@ -1008,6 +1020,8 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref KBVAnswerFunction.Alias
       Principal: apigateway.amazonaws.com
+      SourceAccount: !Sub "${AWS::AccountId}"
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PrivateKBVApi}/*/*/*"
 
   KBVAbandonFunctionAliasPermission:
     Type: AWS::Lambda::Permission
@@ -1015,6 +1029,8 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref KBVAbandonFunction.Alias
       Principal: apigateway.amazonaws.com
+      SourceAccount: !Sub "${AWS::AccountId}"
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PrivateKBVApi}/*/*/*"
 
   IssueCredentialFunctionAliasPermission:
     Type: AWS::Lambda::Permission
@@ -1022,6 +1038,8 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref IssueCredentialFunction.Alias
       Principal: apigateway.amazonaws.com
+      SourceAccount: !Sub "${AWS::AccountId}"
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${PublicKBVApi}/*/*/*"
 
   LoggingKmsKey:
     Type: AWS::KMS::Key
