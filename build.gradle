@@ -45,6 +45,12 @@ subprojects {
 		}
 	}
 
+	configurations.configureEach {
+		resolutionStrategy {
+			force 'com.fasterxml.jackson.core:jackson-databind:2.22.1'
+		}
+	}
+
 	dependencies {
 		implementation(platform(libs.aws.sdk.bom))
 		implementation(libs.aws.crt.client)
