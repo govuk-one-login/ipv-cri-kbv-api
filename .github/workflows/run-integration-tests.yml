@@ -42,7 +42,7 @@ jobs:
         with:
           gradle-version: '8.13'
       - name: Assume AWS Role
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.aws_role_arn }}
           aws-region: ${{ inputs.aws-region }}
