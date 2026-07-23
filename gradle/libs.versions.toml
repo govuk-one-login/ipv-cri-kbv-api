@@ -54,7 +54,7 @@ jakarta-activation = { module = "jakarta.activation:jakarta.activation-api", ver
 jakarta-annotation = { module = "jakarta.annotation:jakarta.annotation-api", version = "3.0.0" }
 
 # SOAP / CXF
-saaj = { module = "com.sun.xml.messaging.saaj:saaj-impl", version = "3.0.4" }
+saaj = { module = "com.sun.xml.messaging.saaj:saaj-impl", version = "3.0.6" }
 cxf-jaxws = { module = "org.apache.cxf:cxf-rt-frontend-jaxws", version.ref = "apache-cfx" }
 cxf-http = { module = "org.apache.cxf:cxf-rt-transports-http", version.ref = "apache-cfx" }
 httpasyncclient = { module = "org.apache.httpcomponents:httpasyncclient", version = "4.1.5" }
