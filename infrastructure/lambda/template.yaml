@@ -79,6 +79,11 @@ Conditions:
     - !Condition IsBuildEnvironment
   IsNotDevBuildLikeEnvironment: !Not
     - !Condition IsDevBuildLikeEnvironment
+  IsNotIntOrProdEnvironment: !Not 
+    - !Or
+      - !Condition IsProductionEnvironment
+      - !Equals [!Ref Environment, integration]
+
   CreateOAuthSSMParam: !And
     - !Not [!Condition IsLocalDevEnvironment]
     - !Not [!Condition IsProductionEnvironment]
@@ -243,18 +248,42 @@ Mappings:
       uat: https://identityiq.uat.xml.uk.experian.com/IdentityIQWebService/IdentityIQWebService.asmx
 
   EnvironmentConfiguration:
-    dev:
-      dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
     localdev:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+      BaseURL: https://review-k.dev.account.gov.uk
+      CoreRedirectURI: https://identity.staging.account.gov.uk/credential-issuer/callback?id=kbv
+      StubJwksEndpoint: https://test-resources.review-k.dev.account.gov.uk/.well-known/jwks.json
+      ProvisionedConcurrency: 0
+    dev:
+      dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+      BaseURL: https://review-k.dev.account.gov.uk
+      CoreRedirectURI: https://identity.staging.account.gov.uk/credential-issuer/callback?id=kbv
+      StubJwksEndpoint: https://test-resources.review-k.dev.account.gov.uk/.well-known/jwks.json
+      ProvisionedConcurrency: 0
     build:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+      BaseURL: https://review-k.build.account.gov.uk
+      CoreRedirectURI: https://identity.staging.account.gov.uk/credential-issuer/callback?id=kbv
+      StubJwksEndpoint: https://test-resources.review-k.build.account.gov.uk/.well-known/jwks.json
+      ProvisionedConcurrency: 1
     staging:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+      BaseURL: https://review-k.staging.account.gov.uk
+      CoreRedirectURI: https://identity.staging.account.gov.uk/credential-issuer/callback?id=kbv
+      StubJwksEndpoint: https://test-resources.review-k.staging.account.gov.uk/.well-known/jwks.json
+      ProvisionedConcurrency: 0
     integration:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
+      BaseURL: https://review-k.integration.account.gov.uk
+      CoreRedirectURI: https://identity.integration.account.gov.uk/credential-issuer/callback?id=kbv
+      StubJwksEndpoint: https://test-resources.review-k.integration.account.gov.uk/.well-known/jwks.json
+      ProvisionedConcurrency: 0
     production:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceProductionVariables
+      BaseURL: https://review-k.account.gov.uk
+      CoreRedirectURI: https://identity.account.gov.uk/credential-issuer/callback?id=kbv
+      StubJwksEndpoint: ""
+      ProvisionedConcurrency: 1
 
   MemorySizeMapping:
     Environment:
@@ -313,6 +342,47 @@ Mappings:
       localdev: HOURS
 
 Resources:
+  OAuth:
+    Type: AWS::Serverless::Application
+    Condition: IsNotIntOrProdEnvironment
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:eu-west-2:667736788427:applications/di-ipv-cri-oauth-common
+        SemanticVersion: 1.0.0
+      Parameters:
+        AuditEventNamePrefix: IPV_KBV_CRI
+        BuildNotificationStackName: slack-notifications
+        CommonLambdasStackName: !Ref CommonStackName
+        CommonLambdasUsesCMK: true
+        CSLSDestinationArn: !If
+          - IsNotDevBuildLikeEnvironment
+          - arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython
+          - !Ref AWS::NoValue
+        CriIdentifier: !Ref CriIdentifier
+        CriAudience: !FindInMap [EnvironmentConfiguration, !Ref Environment, BaseURL]
+        CriVcIssuer: !FindInMap [EnvironmentConfiguration, !Ref Environment, BaseURL]
+        CriPrivateApiGwName: !Sub kbv-cri-private-${AWS::StackName}
+        CriPublicApiGwName: !Sub kbv-cri-${AWS::StackName}
+        CriPrivateApiGatewayID: !Sub ${PrivateKBVApi}
+        CriPublicApiGatewayID: !Sub ${PublicKBVApi}
+        Environment: !If
+          - IsLocalDevEnvironment
+          - dev
+          - !Ref Environment
+        IPVCoreRedirectURI: !FindInMap [EnvironmentConfiguration, !Ref Environment, CoreRedirectURI]
+        IPVCoreStubJwksEndpoint: !FindInMap [EnvironmentConfiguration, !Ref Environment, StubJwksEndpoint]
+        LambdaCodeSigningConfigArn: !If
+          - UseCodeSigningConfigArn
+          - !Ref CodeSigningConfigArn
+          - !Ref AWS::NoValue
+        LambdaDeploymentPreference: !Ref LambdaDeploymentPreference
+        LambdaProvisionedConcurrentExecutions: !FindInMap [EnvironmentConfiguration, !Ref Environment, ProvisionedConcurrency]
+        LambdaVpcConfiguration: di-ipv-cri-pipeline-deployment
+        PermissionsBoundaryArn: !If
+          - UsePermissionsBoundary
+          - !Ref PermissionsBoundary
+          - !Ref AWS::NoValue
+
   HealthCheckFunction:
     Type: AWS::Serverless::Function
     Properties:
