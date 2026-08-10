@@ -79,10 +79,6 @@ Conditions:
     - !Condition IsBuildEnvironment
   IsNotDevBuildLikeEnvironment: !Not
     - !Condition IsDevBuildLikeEnvironment
-  IsNotIntOrProdEnvironment: !Not 
-    - !Or
-      - !Condition IsProductionEnvironment
-      - !Equals [!Ref Environment, integration]
 
   CreateOAuthSSMParam: !And
     - !Not [!Condition IsLocalDevEnvironment]
@@ -344,7 +340,6 @@ Mappings:
 Resources:
   OAuth:
     Type: AWS::Serverless::Application
-    Condition: IsNotIntOrProdEnvironment
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:eu-west-2:667736788427:applications/di-ipv-cri-oauth-common
