@@ -49,7 +49,7 @@ sourceSets {
 
 wsdl2java {
 	useJakarta = true
-	cxfVersion = "4.1.3"
+	cxfVersion = "4.2.3"
 	includes = [
 		'wsdl/iiq-wasp-token.wsdl',
 		'wsdl/iiq-service.wsdl'
