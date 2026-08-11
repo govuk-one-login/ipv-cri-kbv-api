@@ -1,6 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Digital Identity IPV CRI KBV API
 Transform: [AWS::Serverless-2016-10-31, AWS::LanguageExtensions] #TODO: LanguageExtensions must come before Serverless
+Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W8003 #For UseOAuthCommonLambdas & UseOAuthCommonTables condition - Can be removed one migration complete.
 
 Parameters:
   Environment:
@@ -83,6 +88,14 @@ Conditions:
   CreateOAuthSSMParam: !And
     - !Not [!Condition IsLocalDevEnvironment]
     - !Not [!Condition IsProductionEnvironment]
+  UseOAuthCommonLambdas: !Equals
+    - !FindInMap [ EnvironmentConfiguration, !Ref Environment, OAuthCommonLambdas ]
+    - true
+  UseOAuthCommonTables: !And
+    - !Condition UseOAuthCommonLambdas
+    - !Equals
+      - !FindInMap [ EnvironmentConfiguration, !Ref Environment, OAuthCommonTables ]
+      - true
 
 Globals:
   Function:
@@ -250,36 +263,48 @@ Mappings:
       CoreRedirectURI: https://identity.staging.account.gov.uk/credential-issuer/callback?id=kbv
       StubJwksEndpoint: https://test-resources.review-k.dev.account.gov.uk/.well-known/jwks.json
       ProvisionedConcurrency: 0
+      OAuthCommonLambdas: false
+      OAuthCommonTables: false
     dev:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
       BaseURL: https://review-k.dev.account.gov.uk
       CoreRedirectURI: https://identity.staging.account.gov.uk/credential-issuer/callback?id=kbv
       StubJwksEndpoint: https://test-resources.review-k.dev.account.gov.uk/.well-known/jwks.json
       ProvisionedConcurrency: 0
+      OAuthCommonLambdas: false
+      OAuthCommonTables: false
     build:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
       BaseURL: https://review-k.build.account.gov.uk
       CoreRedirectURI: https://identity.staging.account.gov.uk/credential-issuer/callback?id=kbv
       StubJwksEndpoint: https://test-resources.review-k.build.account.gov.uk/.well-known/jwks.json
       ProvisionedConcurrency: 1
+      OAuthCommonLambdas: false
+      OAuthCommonTables: false
     staging:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
       BaseURL: https://review-k.staging.account.gov.uk
       CoreRedirectURI: https://identity.staging.account.gov.uk/credential-issuer/callback?id=kbv
       StubJwksEndpoint: https://test-resources.review-k.staging.account.gov.uk/.well-known/jwks.json
       ProvisionedConcurrency: 0
+      OAuthCommonLambdas: false
+      OAuthCommonTables: false
     integration:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
       BaseURL: https://review-k.integration.account.gov.uk
       CoreRedirectURI: https://identity.integration.account.gov.uk/credential-issuer/callback?id=kbv
       StubJwksEndpoint: https://test-resources.review-k.integration.account.gov.uk/.well-known/jwks.json
       ProvisionedConcurrency: 0
+      OAuthCommonLambdas: false
+      OAuthCommonTables: false
     production:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceProductionVariables
       BaseURL: https://review-k.account.gov.uk
       CoreRedirectURI: https://identity.account.gov.uk/credential-issuer/callback?id=kbv
       StubJwksEndpoint: ""
       ProvisionedConcurrency: 1
+      OAuthCommonLambdas: false
+      OAuthCommonTables: false
 
   MemorySizeMapping:
     Environment:
@@ -347,8 +372,14 @@ Resources:
       Parameters:
         AuditEventNamePrefix: IPV_KBV_CRI
         BuildNotificationStackName: slack-notifications
-        CommonLambdasStackName: !Ref CommonStackName
-        CommonLambdasUsesCMK: true
+        CommonLambdasStackName: !If
+          - UseOAuthCommonTables
+          - !Ref AWS::NoValue
+          - !Ref CommonStackName
+        CommonLambdasUsesCMK: !If
+          - UseOAuthCommonTables
+          - !Ref AWS::NoValue
+          - true
         CSLSDestinationArn: !If
           - IsNotDevBuildLikeEnvironment
           - arn:aws:logs:eu-west-2:885513274347:destination:csls_cw_logs_destination_prodpython
@@ -358,8 +389,6 @@ Resources:
         CriVcIssuer: !FindInMap [EnvironmentConfiguration, !Ref Environment, BaseURL]
         CriPrivateApiGwName: !Sub kbv-cri-private-${AWS::StackName}
         CriPublicApiGwName: !Sub kbv-cri-${AWS::StackName}
-        CriPrivateApiGatewayID: !Sub ${PrivateKBVApi}
-        CriPublicApiGatewayID: !Sub ${PublicKBVApi}
         Environment: !If
           - IsLocalDevEnvironment
           - dev
@@ -561,9 +590,18 @@ Resources:
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           KBV_TABLE_NAME: !Ref KBVTable
-          SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
-          PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
-          VERIFIABLE_CREDENTIAL_ISSUER: !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
+          SESSION_TABLE: !If
+            - UseOAuthCommonTables
+            - !GetAtt OAuth.Outputs.DbSessionTableName
+            - !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+          PERSON_IDENTITY_TABLE: !If
+            - UseOAuthCommonTables
+            - !GetAtt OAuth.Outputs.DbPersonIdentityTableName
+            - !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
+          VERIFIABLE_CREDENTIAL_ISSUER: !If
+            - UseOAuthCommonTables
+            - !FindInMap [ EnvironmentConfiguration, !Ref Environment, BaseURL ]
+            - !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -585,6 +623,12 @@ Resources:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - DynamoDBReadPolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
+        - DynamoDBReadPolicy:
+            TableName: !GetAtt OAuth.Outputs.DbSessionTableName
+        - DynamoDBWritePolicy:
+            TableName: !GetAtt OAuth.Outputs.DbSessionTableName
+        - DynamoDBReadPolicy:
+            TableName: !GetAtt OAuth.Outputs.DbPersonIdentityTableName
         - SQSSendMessagePolicy:
             QueueName:
               Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueName
@@ -594,6 +638,8 @@ Resources:
             KeyId: !Ref DynamoTablesEncryptionKey
         - KMSDecryptPolicy:
             KeyId: !Sub "{{resolve:ssm:/${CommonStackName}/DynamoDBCustomerManagedKeyID}}"
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt OAuth.Outputs.DbCustomerManagedKeyID
         - Statement:
             - Effect: Allow
               Action:
@@ -663,9 +709,18 @@ Resources:
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           KBV_TABLE_NAME: !Ref KBVTable
-          SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
-          PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
-          VERIFIABLE_CREDENTIAL_ISSUER: !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
+          SESSION_TABLE: !If
+            - UseOAuthCommonTables
+            - !GetAtt OAuth.Outputs.DbSessionTableName
+            - !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+          PERSON_IDENTITY_TABLE: !If
+              - UseOAuthCommonTables
+              - !GetAtt OAuth.Outputs.DbPersonIdentityTableName
+              - !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
+          VERIFIABLE_CREDENTIAL_ISSUER: !If
+            - UseOAuthCommonLambdas
+            - !FindInMap [ EnvironmentConfiguration, !Ref Environment, BaseURL ]
+            - !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -685,6 +740,10 @@ Resources:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - DynamoDBWritePolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+        - DynamoDBReadPolicy:
+            TableName: !GetAtt OAuth.Outputs.DbSessionTableName
+        - DynamoDBWritePolicy:
+            TableName: !GetAtt OAuth.Outputs.DbSessionTableName
         - SQSSendMessagePolicy:
             QueueName:
               Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueName
@@ -694,6 +753,8 @@ Resources:
             KeyId: !Ref DynamoTablesEncryptionKey
         - KMSDecryptPolicy:
             KeyId: !Sub "{{resolve:ssm:/${CommonStackName}/DynamoDBCustomerManagedKeyID}}"
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt OAuth.Outputs.DbCustomerManagedKeyID
         - Statement:
             - Effect: Allow
               Action:
@@ -761,8 +822,14 @@ Resources:
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           KBV_TABLE_NAME: !Ref KBVTable
-          SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
-          VERIFIABLE_CREDENTIAL_ISSUER: !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
+          SESSION_TABLE: !If
+            - UseOAuthCommonTables
+            - !GetAtt OAuth.Outputs.DbSessionTableName
+            - !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+          VERIFIABLE_CREDENTIAL_ISSUER: !If
+            - UseOAuthCommonTables
+            - !FindInMap [ EnvironmentConfiguration, !Ref Environment, BaseURL ]
+            - !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
       DeploymentPreference:
         Alarms: !If
           - UseCanaryDeploymentAlarms
@@ -785,10 +852,16 @@ Resources:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - DynamoDBWritePolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+        - DynamoDBReadPolicy:
+            TableName: !GetAtt OAuth.Outputs.DbSessionTableName
+        - DynamoDBWritePolicy:
+            TableName: !GetAtt OAuth.Outputs.DbSessionTableName
         - KMSDecryptPolicy:
             KeyId: !Ref DynamoTablesEncryptionKey
         - KMSDecryptPolicy:
             KeyId: !Sub "{{resolve:ssm:/${CommonStackName}/DynamoDBCustomerManagedKeyID}}"
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt OAuth.Outputs.DbCustomerManagedKeyID
         - Statement:
             - Sid: auditEventQueueKmsEncryptionKeyPermission
               Effect: Allow
@@ -823,13 +896,22 @@ Resources:
           SQS_AUDIT_EVENT_QUEUE_URL:
             Fn::ImportValue: !Sub ${TxmaStackName}-AuditEventQueueUrl
           KBV_TABLE_NAME: !Ref KBVTable
-          SESSION_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
-          PERSON_IDENTITY_TABLE: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
+          SESSION_TABLE: !If
+            - UseOAuthCommonTables
+            - !GetAtt OAuth.Outputs.DbSessionTableName
+            - !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
+          PERSON_IDENTITY_TABLE: !If
+            - UseOAuthCommonTables
+            - !GetAtt OAuth.Outputs.DbPersonIdentityTableName
+            - !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
           MAXIMUM_JWT_TTL:
             !FindInMap [MaxJwtTtlMapping, Environment, !Ref Environment]
           JWT_TTL_UNIT:
             !FindInMap [JwtTtlUnitMapping, Environment, !Ref Environment]
-          VERIFIABLE_CREDENTIAL_ISSUER: !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
+          VERIFIABLE_CREDENTIAL_ISSUER: !If
+            - UseOAuthCommonLambdas
+            - !FindInMap [ EnvironmentConfiguration, !Ref Environment, BaseURL ]
+            - !Sub "{{resolve:ssm:/${CommonStackName}/verifiable-credential/issuer}}"
           VERIFIABLE_CREDENTIAL_SIGNING_KEY_ID: !ImportValue core-infrastructure-CriVcSigningKey1Id
       DeploymentPreference:
         Alarms: !If
@@ -845,13 +927,19 @@ Resources:
         - DynamoDBReadPolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/SessionTableName}}"
         - DynamoDBReadPolicy:
+            TableName: !GetAtt OAuth.Outputs.DbSessionTableName
+        - DynamoDBReadPolicy:
             TableName: !Ref KBVTable
         - DynamoDBReadPolicy:
             TableName: !Sub "{{resolve:ssm:/${CommonStackName}/PersonIdentityTableName}}"
+        - DynamoDBReadPolicy:
+            TableName: !GetAtt OAuth.Outputs.DbPersonIdentityTableName
         - KMSDecryptPolicy:
             KeyId: !Ref DynamoTablesEncryptionKey
         - KMSDecryptPolicy:
             KeyId: !Sub "{{resolve:ssm:/${CommonStackName}/DynamoDBCustomerManagedKeyID}}"
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt OAuth.Outputs.DbCustomerManagedKeyID
         - Statement:
             Effect: Allow
             Action:
@@ -1408,7 +1496,10 @@ Resources:
               MetricName: Invocations
               Dimensions:
                 - Name: FunctionName
-                  Value: !Sub ${CommonStackName}-SessionFunctionTS
+                  Value: !If
+                    - UseOAuthCommonLambdas
+                    - !GetAtt OAuth.Outputs.LambdaSessionFunctionName
+                    - !Sub ${CommonStackName}-SessionFunctionTS
             Period: 300
             Stat: Sum
 
@@ -1455,7 +1546,10 @@ Resources:
               MetricName: Invocations
               Dimensions:
                 - Name: FunctionName
-                  Value: !Sub ${CommonStackName}-SessionFunctionTS
+                  Value: !If
+                    - UseOAuthCommonLambdas
+                    - !GetAtt OAuth.Outputs.LambdaSessionFunctionName
+                    - !Sub ${CommonStackName}-SessionFunctionTS
             Period: 300
             Stat: Sum
 
@@ -1500,7 +1594,10 @@ Resources:
               MetricName: Invocations
               Dimensions:
                 - Name: FunctionName
-                  Value: !Sub ${CommonStackName}-AccessTokenFunctionTS
+                  Value: !If
+                    - UseOAuthCommonLambdas
+                    - !GetAtt OAuth.Outputs.LambdaAccessTokenFunctionName
+                    - !Sub ${CommonStackName}-AccessTokenFunctionTS
             Period: 300
             Stat: Sum
 
@@ -1547,7 +1644,10 @@ Resources:
               MetricName: Invocations
               Dimensions:
                 - Name: FunctionName
-                  Value: !Sub ${CommonStackName}-AccessTokenFunctionTS
+                  Value: !If
+                    - UseOAuthCommonLambdas
+                    - !GetAtt OAuth.Outputs.LambdaAccessTokenFunctionName
+                    - !Sub ${CommonStackName}-AccessTokenFunctionTS
             Period: 300
             Stat: Sum
 
@@ -1592,7 +1692,10 @@ Resources:
               MetricName: Invocations
               Dimensions:
                 - Name: FunctionName
-                  Value: !Sub ${CommonStackName}-SessionFunctionTS
+                  Value: !If
+                    - UseOAuthCommonLambdas
+                    - !GetAtt OAuth.Outputs.LambdaSessionFunctionName
+                    - !Sub ${CommonStackName}-SessionFunctionTS
             Period: 300
             Stat: Sum
 
@@ -1639,7 +1742,10 @@ Resources:
               MetricName: Invocations
               Dimensions:
                 - Name: FunctionName
-                  Value: !Sub ${CommonStackName}-SessionFunctionTS
+                  Value: !If
+                    - UseOAuthCommonLambdas
+                    - !GetAtt OAuth.Outputs.LambdaSessionFunctionName
+                    - !Sub ${CommonStackName}-SessionFunctionTS
             Period: 300
             Stat: Sum
 
@@ -2334,7 +2440,10 @@ Resources:
     Properties:
       Name: /common-cri/oauth-common/stack-name
       Type: String
-      Value: !Ref CommonStackName
+      Value: !If
+        - UseOAuthCommonTables
+        - !Select [ 1, !Split [ "/", !Ref OAuth ] ]
+        - !Ref CommonStackName
       Description: The stack currently used for OAuth (common-lambdas or oauth-common). Only required for test-resources.
 
 Outputs:
@@ -2343,21 +2452,24 @@ Outputs:
     Value: !Sub "${PublicKBVApi}"
     Export:
       Name: !Sub ${AWS::StackName}-PublicKBVApiGatewayId
-
   PrivateKBVApiGatewayId:
     Description: "API GatewayID of the private KBV CRI API"
     Value: !Ref PrivateKBVApi
     Export:
       Name: !Sub ${AWS::StackName}-PrivateKBVApiGatewayId
-
   KBVApiGatewayId:
     Description: "API GatewayID of the KBV CRI API - export currently used by dns-records stack"
     Value: !Sub "${PublicKBVApi}"
     Export:
       Name: !Sub ${AWS::StackName}-KBVApiGatewayId
-
   CertificateExpiryStepFunctionArn:
     Description: "ARN of the certificate expiry checker state machine. Used when invoking it for integration testing."
     Value: !Ref CertificateExpiryStepFunction
     Export:
       Name: !Sub ${AWS::StackName}-CertificateExpiryStepFunctionArn
+  CommonStackName:
+    Description: Common Lambdas Stack Name
+    Value: !Ref CommonStackName
+  OAuthCommonStackName:
+    Description: OAuthCommon Stack Name
+    Value: !Select [ 1, !Split [ "/", !Ref OAuth ] ]
