@@ -111,6 +111,10 @@ Feature: User goes through 3-out-of-4 question strategy. User answers 3 question
     And a verification score of 2 is returned in the response
     And the check details array has 3 objects returned in the response
 
+    # Migration table check
+    Then the sessions exist in the CommonLambdas tables is true
+    And the sessions exist in the OAuthCommon tables is false
+
     Examples:
       | user |
       | 197  |
