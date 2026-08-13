@@ -287,7 +287,7 @@ Mappings:
       CoreRedirectURI: https://identity.staging.account.gov.uk/credential-issuer/callback?id=kbv
       StubJwksEndpoint: https://test-resources.review-k.staging.account.gov.uk/.well-known/jwks.json
       ProvisionedConcurrency: 0
-      OAuthCommonLambdas: false
+      OAuthCommonLambdas: true
       OAuthCommonTables: false
     integration:
       dynatraceSecretArn: arn:aws:secretsmanager:eu-west-2:216552277552:secret:DynatraceNonProductionVariables
