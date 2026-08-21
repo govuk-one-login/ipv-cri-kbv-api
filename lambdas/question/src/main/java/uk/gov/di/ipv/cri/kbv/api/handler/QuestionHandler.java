@@ -75,6 +75,9 @@ public class QuestionHandler
     public static final String METRIC_DIMENSION_QUESTION_STRATEGY = "question_strategy";
     public static final String METRIC_KBV_JOURNEY_TYPE = "kbv_journey_type";
     public static final String METRIC_REQUESTED_VERIFICATION_SCORE = "requested_verification_score";
+    public static final String METRIC_EXPERIAN_QUESTION_RESPONSE_RECEIVED =
+            "experian_question_response_received";
+    public static final String METRIC_THIN_FILE_ENCOUNTERED = "thin_file_encountered";
     private final ObjectMapper objectMapper;
     private final KBVStorageService kbvStorageService;
     private final PersonIdentityService personIdentityService;
@@ -234,6 +237,8 @@ public class QuestionHandler
                 getQuestionAnswerResponse(
                         identityIQWebServiceSoap, kbvItem, sessionItem, requestHeaders);
 
+        sendThinFileMetrics(questionsResponse);
+
         questionOptional = getQuestionFromResponse(questionsResponse, questionState);
         sendQuestionReceivedAuditEvent(questionsResponse, sessionItem, requestHeaders);
         sendAuditEventIfThinFileEncountered(questionsResponse, sessionItem, requestHeaders);
@@ -381,6 +386,15 @@ public class QuestionHandler
                 Map.of(
                         EXPERIAN_IIQ_RESPONSE,
                         createResponseReceivedAuditEventExtensions(questionsResponse)));
+    }
+
+    private void sendThinFileMetrics(QuestionsResponse questionsResponse) {
+        if (Objects.isNull(questionsResponse)) {
+            return;
+        }
+        eventProbe.counterMetric(METRIC_EXPERIAN_QUESTION_RESPONSE_RECEIVED);
+        eventProbe.counterMetric(
+                METRIC_THIN_FILE_ENCOUNTERED, questionsResponse.isThinFile() ? 1d : 0d);
     }
 
     private void sendAuditEventIfThinFileEncountered(
