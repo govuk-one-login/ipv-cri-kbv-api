@@ -984,8 +984,10 @@ class QuestionHandlerTest {
             SessionItem sessionItem = new SessionItem();
             sessionItem.setSessionId(UUID.randomUUID());
 
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
+
             when(mockPersonIdentityService.getPersonIdentityDetailed(sessionItem.getSessionId()))
-                    .thenReturn(mock(PersonIdentityDetailed.class));
+                    .thenReturn(mock(personIdentity));
             doReturn(questionsResponse)
                     .when(spyKBVService)
                     .getQuestions(any(), any(QuestionRequest.class));
