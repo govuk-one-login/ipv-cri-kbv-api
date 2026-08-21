@@ -988,14 +988,18 @@ class QuestionHandlerTest {
 
             when(mockPersonIdentityService.getPersonIdentityDetailed(sessionItem.getSessionId()))
                     .thenReturn(mock(personIdentity));
+
             doReturn(questionsResponse)
                     .when(spyKBVService)
                     .getQuestions(any(), any(QuestionRequest.class));
+
             when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
                     .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
+
             when(mockObjectMapper.readValue(
                             anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
                     .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
+
             when(mockConfigurationService.getVerifiableCredentialIssuer())
                     .thenReturn("kbv-component-id");
 
