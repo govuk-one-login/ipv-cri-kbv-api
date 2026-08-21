@@ -85,8 +85,10 @@ import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.IIQ_STRATEGY_PAR
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.LAMBDA_NAME;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_ID;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_DIMENSION_QUESTION_STRATEGY;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_EXPERIAN_QUESTION_RESPONSE_RECEIVED;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_KBV_JOURNEY_TYPE;
 import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_REQUESTED_VERIFICATION_SCORE;
+import static uk.gov.di.ipv.cri.kbv.api.handler.QuestionHandler.METRIC_THIN_FILE_ENCOUNTERED;
 
 @ExtendWith(MockitoExtension.class)
 class QuestionHandlerTest {
@@ -289,6 +291,8 @@ class QuestionHandlerTest {
                 verify(mockEventProbe).counterMetric(LAMBDA_NAME);
                 verify(mockEventProbe).addDimensions(MOCK_KBV_JOURNEY_METRIC_MAP);
                 verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE);
+                verify(mockEventProbe).counterMetric(METRIC_EXPERIAN_QUESTION_RESPONSE_RECEIVED);
+                verify(mockEventProbe).counterMetric(METRIC_THIN_FILE_ENCOUNTERED, 0d);
                 verify(mockEventProbe)
                         .addDimensions(Map.of(METRIC_DIMENSION_QUESTION_ID, "Q00015"));
                 verifyNoMoreInteractions(mockEventProbe);
@@ -397,6 +401,8 @@ class QuestionHandlerTest {
             verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE, 0d);
             verify(mockEventProbe).addDimensions(MOCK_KBV_JOURNEY_METRIC_MAP);
             verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE);
+            verify(mockEventProbe).counterMetric(METRIC_EXPERIAN_QUESTION_RESPONSE_RECEIVED);
+            verify(mockEventProbe).counterMetric(METRIC_THIN_FILE_ENCOUNTERED, 0d);
             verifyNoMoreInteractions(mockEventProbe);
         }
 
@@ -601,6 +607,8 @@ class QuestionHandlerTest {
             verify(mockKBVStorageService).save(kbvItem);
             verify(mockEventProbe).addDimensions(MOCK_KBV_JOURNEY_METRIC_MAP);
             verify(mockEventProbe).counterMetric(METRIC_KBV_JOURNEY_TYPE);
+            verify(mockEventProbe).counterMetric(METRIC_EXPERIAN_QUESTION_RESPONSE_RECEIVED);
+            verify(mockEventProbe).counterMetric(METRIC_THIN_FILE_ENCOUNTERED, 0d);
             verifyNoMoreInteractions(mockEventProbe);
             verify(kbvItem).setAuthRefNo("an auth ref no");
             verify(kbvItem).setUrn("a urn");
@@ -940,6 +948,68 @@ class QuestionHandlerTest {
                             eq(THIN_FILE_ENCOUNTERED.toString()),
                             argumentCaptorForThinFile.capture(),
                             auditEventMapForThinFile.capture());
+        }
+    }
+
+    @Nested
+    class ThinFileMetrics {
+
+        @Test
+        void shouldEmitAThinFileMetricOfOneGivenResponseIsAThinFile()
+                throws SqsException, IOException {
+            SessionItem sessionItem = givenAQuestionResponseOf(getExperianThinFileResponse());
+
+            questionHandler.processQuestionRequest(
+                    any(), new QuestionState(), getKbvItem(sessionItem), sessionItem, Map.of());
+
+            verify(mockEventProbe).counterMetric(METRIC_EXPERIAN_QUESTION_RESPONSE_RECEIVED);
+            verify(mockEventProbe).counterMetric(METRIC_THIN_FILE_ENCOUNTERED, 1d);
+        }
+
+        @Test
+        void shouldEmitAThinFileMetricOfZeroGivenResponseIsNotAThinFile()
+                throws SqsException, IOException {
+            SessionItem sessionItem =
+                    givenAQuestionResponseOf(getExperianQuestionResponseWithQuestions());
+
+            questionHandler.processQuestionRequest(
+                    any(), new QuestionState(), getKbvItem(sessionItem), sessionItem, Map.of());
+
+            verify(mockEventProbe).counterMetric(METRIC_EXPERIAN_QUESTION_RESPONSE_RECEIVED);
+            verify(mockEventProbe).counterMetric(METRIC_THIN_FILE_ENCOUNTERED, 0d);
+        }
+
+        private SessionItem givenAQuestionResponseOf(QuestionsResponse questionsResponse)
+                throws JsonProcessingException {
+            SessionItem sessionItem = new SessionItem();
+            sessionItem.setSessionId(UUID.randomUUID());
+
+            PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
+
+            when(mockPersonIdentityService.getPersonIdentityDetailed(sessionItem.getSessionId()))
+                    .thenReturn(personIdentity);
+
+            doReturn(questionsResponse)
+                    .when(spyKBVService)
+                    .getQuestions(any(), any(QuestionRequest.class));
+
+            when(mockConfigurationService.getParameterValue(IIQ_STRATEGY_PARAM_NAME))
+                    .thenReturn(MOCK_IIQ_STRATEGY_PARAM_VALUE);
+
+            when(mockObjectMapper.readValue(
+                            anyString(), Mockito.<TypeReference<Map<String, String>>>any()))
+                    .thenReturn(MOCK_IIQ_STRATEGY_MAPPED_VALUE);
+
+            when(mockConfigurationService.getVerifiableCredentialIssuer())
+                    .thenReturn("kbv-component-id");
+
+            return sessionItem;
+        }
+
+        private KBVItem getKbvItem(SessionItem sessionItem) {
+            KBVItem kbvItem = new KBVItem();
+            kbvItem.setSessionId(sessionItem.getSessionId());
+            return kbvItem;
         }
     }
 

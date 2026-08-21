@@ -1455,6 +1455,59 @@ Resources:
             Period: 300
             Stat: Sum
 
+  ExperianKBVThinFileRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: DeployAlarms
+    Properties:
+      AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVThinFileRateAlarm
+      AlarmDescription: !Sub
+        - "100% of the question responses received from Experian were thin files, with a minimum of 10 responses, for 2 consecutive periods of (15mins each). Experian may have stopped returning questions for all users. Runbook: ${SupportManualURL}"
+        - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
+      ActionsEnabled: true
+      AlarmActions:
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
+      OKActions:
+        - !ImportValue slack-notifications-CriticalAlertsTopicArn
+        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
+      InsufficientDataActions: []
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Threshold: 100
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 2
+      TreatMissingData: notBreaching
+      Metrics:
+        - Id: thinFileRateAboveMinimumVolume
+          Label: ThinFileRateAboveMinimumVolume
+          ReturnData: true
+          Expression: IF(responses >= 10, thinFilePercentage, 0)
+        - Id: thinFilePercentage
+          Label: ThinFilePercentage
+          ReturnData: false
+          Expression: (thinFiles / responses) * 100
+        - Id: thinFiles
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: di-ipv-cri-kbv-api
+              MetricName: thin_file_encountered
+              Dimensions:
+                - Name: Service
+                  Value: !Sub "${CriIdentifier}-question"
+            Period: 900
+            Stat: Sum
+        - Id: responses
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: di-ipv-cri-kbv-api
+              MetricName: experian_question_response_received
+              Dimensions:
+                - Name: Service
+                  Value: !Sub "${CriIdentifier}-question"
+            Period: 900
+            Stat: Sum
+
   SessionLambdaFailedToVerifyJWTWarningAlarm:
     Type: AWS::CloudWatch::Alarm
     Condition: DeployAlarms
