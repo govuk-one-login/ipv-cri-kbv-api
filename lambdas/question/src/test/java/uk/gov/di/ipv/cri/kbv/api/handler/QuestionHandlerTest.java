@@ -987,7 +987,7 @@ class QuestionHandlerTest {
             PersonIdentityDetailed personIdentity = mock(PersonIdentityDetailed.class);
 
             when(mockPersonIdentityService.getPersonIdentityDetailed(sessionItem.getSessionId()))
-                    .thenReturn(mock(personIdentity));
+                    .thenReturn(personIdentity);
 
             doReturn(questionsResponse)
                     .when(spyKBVService)

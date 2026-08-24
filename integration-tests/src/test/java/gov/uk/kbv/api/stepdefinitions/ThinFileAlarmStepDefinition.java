@@ -213,7 +213,7 @@ public class ThinFileAlarmStepDefinition {
         List<MetricDataQuery> queries =
                 describeAlarm().metrics().stream()
                         .map(query -> query.toBuilder().returnData(true).build())
-                        .collect(Collectors.toList());
+                        .toList();
 
         GetMetricDataResponse response =
                 CLOUD_WATCH.getMetricData(
