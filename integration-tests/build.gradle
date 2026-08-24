@@ -20,6 +20,7 @@ dependencies {
 	testImplementation "org.apache.commons:commons-lang3:3.18.0"
 	testImplementation "org.junit.jupiter:junit-jupiter-api:5.9.0"
 	testImplementation "software.amazon.awssdk:sfn:2.32.24"
+	testImplementation "software.amazon.awssdk:cloudwatch:2.32.24"
 	testImplementation libs.bundles.jackson
 	testImplementation(libs.nimbus.jwt)
 	testImplementation(libs.nimbus.oauth)
@@ -31,7 +32,7 @@ configurations {
 	}
 }
 
-def tags = findProperty('tags') == null ? 'not @Ignore' : "${findProperty('tags')} and not @Ignore"
+def tags = findProperty('tags') == null ? 'not @Ignore and not @manual' : "${findProperty('tags')} and not @Ignore"
 
 test {
 	systemProperty "cucumber.filter.tags", System.getProperty("cucumber.filter.tags")

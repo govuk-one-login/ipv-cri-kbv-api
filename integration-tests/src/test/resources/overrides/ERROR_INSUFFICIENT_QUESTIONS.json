@@ -1,0 +1,18 @@
+{
+  "shared_claims": {
+    "name": [
+      {
+        "nameParts": [
+          {
+            "type": "GivenName",
+            "value": "Error"
+          },
+          {
+            "type": "FamilyName",
+            "value": "InsufficientQuestions"
+          }
+        ]
+      }
+    ]
+  }
+}
