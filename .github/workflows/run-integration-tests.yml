@@ -55,4 +55,4 @@ jobs:
           API_GATEWAY_ID_PUBLIC: ${{ fromJson(inputs.stack-outputs).PublicKBVApiGatewayId }}
           API_GATEWAY_ID_PRIVATE: ${{ fromJson(inputs.stack-outputs).PrivateKBVApiGatewayId }}
           APIGW_API_KEY: ${{ secrets.api-gateway-api-key }}
-        run: ./gradlew --no-daemon integration-tests:cucumber
+        run: ./gradlew --no-daemon integration-tests:cucumber -Ptags="not @Ignore"

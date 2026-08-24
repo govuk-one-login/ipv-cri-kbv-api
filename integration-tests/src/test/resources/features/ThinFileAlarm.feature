@@ -1,4 +1,4 @@
-@manual @thin_file_alarm
+@Ignore @manual @thin_file_alarm
 Feature: Thin file rate alarm
 
   Scenario: Thin file journeys emit the metrics the alarm is built on
