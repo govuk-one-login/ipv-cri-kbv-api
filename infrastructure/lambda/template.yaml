@@ -1462,7 +1462,7 @@ Resources:
     Properties:
       AlarmName: !Sub ${AWS::StackName}-${Environment}-ExperianKBVThinFileRateAlarm
       AlarmDescription: !Sub
-        - "100% of the question responses received from Experian were thin files, with a minimum of 10 responses, for 2 consecutive periods of (15mins each). Experian may have stopped returning questions for all users. Runbook: ${SupportManualURL}"
+        - "100% of the question responses received from Experian were thin files, with a minimum of 10 responses, for 2 consecutive periods (of 15mins each). Experian may have stopped returning questions for all users. Runbook: ${SupportManualURL}"
         - SupportManualURL: !FindInMap [StaticVariables, Urls, SupportManualURL]
       ActionsEnabled: true
       AlarmActions:
