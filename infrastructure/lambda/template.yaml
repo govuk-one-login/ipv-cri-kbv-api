@@ -368,7 +368,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:eu-west-2:667736788427:applications/di-ipv-cri-oauth-common
-        SemanticVersion: 1.2.4
+        SemanticVersion: 1.2.6
       Parameters:
         AuditEventNamePrefix: IPV_KBV_CRI
         BuildNotificationStackName: slack-notifications
@@ -395,6 +395,7 @@ Resources:
           - !Ref Environment
         IPVCoreRedirectURI: !FindInMap [EnvironmentConfiguration, !Ref Environment, CoreRedirectURI]
         IPVCoreStubJwksEndpoint: !FindInMap [EnvironmentConfiguration, !Ref Environment, StubJwksEndpoint]
+        LambdaEnableSafeAuthCodeLogging: true
         LambdaSessionByTokenRetry: true
         LambdaCodeSigningConfigArn: !If
           - UseCodeSigningConfigArn
