@@ -13,9 +13,9 @@ dependencies {
 	testImplementation project(":lib")
 	testImplementation libs.bundles.logging
 	testImplementation(testFixtures(libs.cri.common.lib))
-	testImplementation "io.cucumber:cucumber-java:7.15.0"
-	testImplementation "io.cucumber:cucumber-junit:7.15.0"
-	testImplementation "io.cucumber:cucumber-picocontainer:7.15.0"
+	testImplementation "io.cucumber:cucumber-java:7.34.7"
+	testImplementation "io.cucumber:cucumber-junit:7.34.7"
+	testImplementation "io.cucumber:cucumber-picocontainer:7.34.7"
 	testImplementation "org.apache.httpcomponents:httpclient:4.5.13"
 	testImplementation "org.apache.commons:commons-lang3:3.18.0"
 	testImplementation "org.junit.jupiter:junit-jupiter-api:5.9.0"
