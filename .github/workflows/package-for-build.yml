@@ -39,7 +39,7 @@ jobs:
         with:
           gradle-version: "9.6.1"
       - name: Assume temporary AWS role
-        uses: aws-actions/configure-aws-credentials@5fd3084fc36e372ff1fff382a39b10d03659f355 # v2.2.0
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           role-to-assume: ${{ secrets.BUILD_GH_ACTIONS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
