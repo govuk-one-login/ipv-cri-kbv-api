@@ -444,7 +444,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${HealthCheckFunction}"
-      RetentionInDays: 30
+      RetentionInDays: 365
 
   HealthCheckFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
@@ -555,7 +555,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PublicKBVApi}-public-AccessLogs
-      RetentionInDays: 30
+      RetentionInDays: 365
 
   PublicKBVApiAccessLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
@@ -569,7 +569,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-${PrivateKBVApi}-private-AccessLogs
-      RetentionInDays: 30
+      RetentionInDays: 365
 
   PrivateKBVApiAccessLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
@@ -688,7 +688,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${KBVQuestionFunction}"
-      RetentionInDays: 30
+      RetentionInDays: 365
 
   KBVQuestionFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
@@ -801,7 +801,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${KBVAnswerFunction}"
-      RetentionInDays: 30
+      RetentionInDays: 365
 
   KBVAnswerFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
@@ -875,7 +875,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${KBVAbandonFunction}"
-      RetentionInDays: 30
+      RetentionInDays: 365
 
   KBVAbandonFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
@@ -966,7 +966,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${IssueCredentialFunction}"
-      RetentionInDays: 30
+      RetentionInDays: 365
 
   IssueCredentialFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
@@ -1260,7 +1260,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/vendedlogs/states/${AWS::StackName}-CertificateExpiry-step-function-logs
-      RetentionInDays: 30
+      RetentionInDays: 365
 
   CertificateExpiryStepFunctionLogGroupSubscriptionFilterCSLS:
     Type: AWS::Logs::SubscriptionFilter
