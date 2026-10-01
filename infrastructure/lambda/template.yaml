@@ -1466,10 +1466,8 @@ Resources:
       ActionsEnabled: true
       AlarmActions:
         - !ImportValue slack-notifications-CriticalAlertsTopicArn
-        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       OKActions:
         - !ImportValue slack-notifications-CriticalAlertsTopicArn
-        - !If [IsProductionEnvironment, !ImportValue slack-notifications-PagerDutySNSTopicArn, !Ref "AWS::NoValue"]
       InsufficientDataActions: []
       ComparisonOperator: GreaterThanOrEqualToThreshold
       Threshold: 100
