@@ -368,7 +368,7 @@ Resources:
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:eu-west-2:667736788427:applications/di-ipv-cri-oauth-common
-        SemanticVersion:  1.4.1
+        SemanticVersion:  1.5.0
       Parameters:
         AuditEventNamePrefix: IPV_KBV_CRI
         BuildNotificationStackName: slack-notifications
@@ -402,6 +402,7 @@ Resources:
         LambdaDeploymentPreference: !Ref LambdaDeploymentPreference
         LambdaProvisionedConcurrentExecutions: !FindInMap [EnvironmentConfiguration, !Ref Environment, ProvisionedConcurrency]
         LambdaVpcConfiguration: di-ipv-cri-pipeline-deployment
+        LogRetention: 365
         PermissionsBoundaryArn: !If
           - UsePermissionsBoundary
           - !Ref PermissionsBoundary
