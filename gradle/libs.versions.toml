@@ -1,7 +1,7 @@
 [versions]
 aws-sdk = "2.41.25"
 aws-lambda-events = "3.14.0"
-jackson = "2.22.1"
+jackson = "2.22.3"
 jackson_annotations = "2.22" # annotations has no patch version
 nimbus-oauth = "11.29.1"
 nimbus-jwt = "10.5"
