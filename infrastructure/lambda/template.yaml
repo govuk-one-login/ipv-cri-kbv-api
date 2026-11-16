@@ -6,6 +6,7 @@ Metadata:
     config:
       ignore_checks:
         - W8003 #For UseOAuthCommonLambdas & UseOAuthCommonTables condition - Can be removed one migration complete.
+        - E3724 #linting issue, can remove once resolved: https://github.com/aws-cloudformation/cfn-lint/issues/4985
 
 Parameters:
   Environment:
